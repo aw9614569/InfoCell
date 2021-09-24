@@ -14,8 +14,6 @@ target_include_directories(applib
 )
 
 target_link_libraries(applib
-    PUBLIC
-        ${HEADER_ROOT_DIR}
 	PRIVATE
 		CONAN_PKG::nlohmann_json
 		CONAN_PKG::utfcpp

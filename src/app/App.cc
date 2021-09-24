@@ -1,14 +1,14 @@
 #include "App.h"
 
-#include <string>
-#include <vector>
-#include <utf8.h>
-#include <nlohmann/json.hpp>
-
 namespace arcsolver {
 
 void App::init(int argc, char* argv[])
 {
+    if (argc == 1) {
+        arcDb.load("F:\\Devel\\ARC\\ARC\\data\\training\\007bbfb7.json");
+    } else {
+        arcDb.load(argv[1]);
+    }
 }
 
 void App::run()
