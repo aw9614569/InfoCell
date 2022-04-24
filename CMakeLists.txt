@@ -7,7 +7,6 @@ find_package(Boost 1.71)
 find_package(Threads)
 
 include(../conan/conanbuildinfo.cmake)
-include(cmake/ftxui-targets.cmake)
 conan_basic_setup(TARGETS)
 
 enable_testing()

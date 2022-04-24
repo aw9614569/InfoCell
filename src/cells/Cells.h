@@ -235,6 +235,9 @@ public:
     Color() :
         red(redD), green(greenD), blue(blueD) { }
 
+    Color(int64_t _red, int64_t _green, int64_t _blue) :
+        red(_red), green(_green), blue(_blue) { }
+
     const std::string nameAsString() const override
     {
         static std::string s_name = "Color";
@@ -789,25 +792,25 @@ struct Sensor
 
     void init()
     {
-        std::cout << "Size of pixel cell is " << sizeof(Pixel) << " bytes\n";
-        std::cout << "Allocating vector .. ";
+//        std::cout << "Size of pixel cell is " << sizeof(Pixel) << " bytes\n";
+//        std::cout << "Allocating vector .. ";
         const int senzorSize = m_height * m_width;
         pixels.reserve(senzorSize);
-        std::cout << "done\n";
-        std::cout << "Creating cells 0%..";
+//        std::cout << "done\n";
+//        std::cout << "Creating cells 0%..";
         int percentage = 0;
         for (int y = 0; y < m_height; ++y) {
             for (int x = 0; x < m_width; ++x) {
                 pixels.emplace_back();
                 int newPercentage = ((int64_t(y) * m_width + x) * 100) / senzorSize;
                 if ((newPercentage % 10 == 0) && (newPercentage - percentage) > 9) {
-                    std::cout << newPercentage << "%..";
+//                    std::cout << newPercentage << "%..";
                     percentage = newPercentage;
                 }
             }
         }
-        std::cout << "100% done\n";
-        std::cout << "Initializeing cells .. ";
+//        std::cout << "100% done\n";
+//        std::cout << "Initializeing cells .. ";
         for (int y = 0; y < m_height; ++y) {
             for (int x = 0; x < m_width; ++x) {
                 Pixel& pixel = pixels[currentIndex(x, y)];
@@ -817,12 +820,17 @@ struct Sensor
                 pixel.right  = rightPixel(x, y);
             }
         }
-        std::cout << "done" << std::endl;
+//        std::cout << "done" << std::endl;
+    }
+
+    Pixel& getPixel(int x, int y)
+    {
+        return pixels[currentIndex(x, y)];
     }
 
     int currentIndex(int x, int y)
     {
-        return y * m_height + x;
+        return y * m_width + x;
     }
 
     bool isInRange(int x, int y)
@@ -856,7 +864,7 @@ struct Sensor
         if (!isInRange(x, y) || y == 0) {
             return nullptr;
         }
-        int upIndex = (y - 1) * m_height + x;
+        int upIndex = (y - 1) * m_width + x;
         return &pixels[upIndex];
     }
 
@@ -865,7 +873,7 @@ struct Sensor
         if (!isInRange(x, y) || y == m_height - 1) {
             return nullptr;
         } else {
-            int downIndex = (y + 1) * m_height + x;
+            int downIndex = (y + 1) * m_width + x;
             return &pixels[downIndex];
         }
     }
@@ -875,7 +883,7 @@ struct Sensor
         if (!isInRange(x, y) || x == 0) {
             return nullptr;
         } else {
-            return &pixels[y * m_height + x - 1];
+            return &pixels[y * m_width + x - 1];
         }
     }
 
@@ -884,7 +892,7 @@ struct Sensor
         if (!isInRange(x, y) || x == m_width - 1) {
             return nullptr;
         } else {
-            return &pixels[y * m_height + x + 1];
+            return &pixels[y * m_width + x + 1];
         }
     }
 

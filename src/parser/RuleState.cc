@@ -637,11 +637,11 @@ void OrState::slotStateChanged(SlotState& p_slot)
     //    std::cout << "    DDDD " << GetName() << " SlotStateChanged, len: " << GetIndex() << "\n";
 
     bool noMatchAndAccept = (m_matchedSlotsNum == 0 && m_acceptedSlotsNum == 0);
-    for (unsigned i = 0; i < m_slots.size(); ++i) {
-        if (m_slots[i].isEmpty())
+    for (SlotState& slotState : m_slots) {
+        if (slotState.isEmpty())
             continue;
-        SharedRuleState ruleState = m_slots[i].m_ruleState;
-        switch (m_slots[i].getState()) {
+        SharedRuleState ruleState = slotState.m_ruleState;
+        switch (slotState.getState()) {
         case RuleStates::Matching:
         case RuleStates::Matched:
             if (m_parentSlots.empty()) {
@@ -651,12 +651,12 @@ void OrState::slotStateChanged(SlotState& p_slot)
                 continue;
             }
             handleMatchedSlot(ruleState);
-            m_slots[i].reset();
+            slotState.reset();
             break;
 
         case RuleStates::NotMatched:
             m_liveSlotSlotsNum--;
-            m_slots[i].reset();
+            slotState.reset();
             break;
 
         case RuleStates::Init:

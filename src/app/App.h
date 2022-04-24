@@ -32,6 +32,7 @@ private:
     void loadArcFileByFileIndex();
     void renderArcTaskDemonstration();
     void renderArcTestInputGrid();
+    void solve();
 
     std::vector<std::string> arcFileNames;
     ArcDb arcDb;

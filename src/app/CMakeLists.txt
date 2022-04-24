@@ -16,8 +16,8 @@ target_include_directories(applib
 target_link_libraries(applib
 	PUBLIC
 		CONAN_PKG::nlohmann_json
-        ftxui::screen
-        ftxui::component
+        CONAN_PKG::ftxui
 	PRIVATE
 		CONAN_PKG::utfcpp
+        cellslib
 )
