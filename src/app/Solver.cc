@@ -16,18 +16,24 @@ const std::array<cells::Color, 10> cellColors = {
     cells::Color(0x87, 0x0C, 0x25)  /* brown */
 };
 
-Solver::Solver(Logger& logger, const cells::Sensor& input, const cells::Sensor& output) :
-    logger(logger), m_input(input), m_output(output)
+Solver::Solver(Logger& logger, const ArcTask& arcTask) :
+    logger(logger), m_arcTask(arcTask)
 {
     solve();
 }
 
 void Solver::solve()
 {
-    logger.log(INFO) << "Mapping input[" << m_input.m_width << ", " << m_input.m_height << "] to output[" << m_output.m_width << ", " << m_output.m_height << "]";
-    logger.log(INFO) << "Mapping input[" << m_input.m_width << ", " << m_input.m_height << "] to output[" << m_output.m_width << ", " << m_output.m_height << "]";
-    logger.log(INFO) << "Mapping input[" << m_input.m_width << ", " << m_input.m_height << "] to output[" << m_output.m_width << ", " << m_output.m_height << "]";
-    logger.log(INFO) << "Mapping input[" << m_input.m_width << ", " << m_input.m_height << "] to output[" << m_output.m_width << ", " << m_output.m_height << "]";
+    logger.log(INFO) << "There are " << m_arcTask.m_demonstrations.size() << " demo tasks";
+    unsigned int i = 1;
+    for (const auto& arcDemo : m_arcTask.m_demonstrations) {
+        const cells::Sensor& m_input = arcDemo.m_input;
+        const cells::Sensor& m_output = arcDemo.m_output;
+
+        logger.log(INFO) << " (" << i++ << ") mapping[" << m_input.m_width << ", " << m_input.m_height << "] to[" << m_output.m_width << ", " << m_output.m_height << "] ";
+    }
+    const cells::Sensor& m_input = m_arcTask.m_testInput;
+    logger.log(INFO) << "Mapping input[" << m_input.m_width << ", " << m_input.m_height << "] to ... ?";
 }
 
 /*

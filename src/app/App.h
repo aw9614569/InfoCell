@@ -45,7 +45,7 @@ private:
     std::vector<std::string> m_solveMessages;
     Logger solverLogger;
 
-    nlohmann::json m_arcDb;
+    nlohmann::json m_arcJsonTask;
     std::string m_arcFilePath;
     ftxui::Element m_arcTaskDemonstration;
     ftxui::Element m_arcTestInputGrid;

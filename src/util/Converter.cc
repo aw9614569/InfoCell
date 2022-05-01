@@ -19,33 +19,45 @@ const std::array<cells::Color, 10> cellColors = {
     cells::Color(0x87, 0x0C, 0x25)  /* brown */
 };
 
-JsonMatrixToCellConverter::JsonMatrixToCellConverter(const json& jsonDb, const std::string& path) :
-    m_jsonDb(jsonDb), m_path(path), m_jMatrix(jsonDb[json::json_pointer(m_path)])
+static cells::Sensor convertArcMatrixToSensor(const nlohmann::json& arcMatrix);
+
+ArcTask ConvertJsonToCell(const nlohmann::json& jsonArcFile)
 {
-    convert();
+    ArcTask arcTask;
+    const auto& trainSet = jsonArcFile.at("train");
+    for (const auto& train : trainSet) {
+        const auto& inputMatrix  = train.at("input");
+        const auto& outputMatrix = train.at("output");
+        ArcDemonstration arcDemonstration;
+        arcDemonstration.m_input = convertArcMatrixToSensor(inputMatrix);
+        arcDemonstration.m_output = convertArcMatrixToSensor(outputMatrix);
+        arcTask.m_demonstrations.push_back(arcDemonstration);
+    }
+    arcTask.m_testInput = convertArcMatrixToSensor(jsonArcFile["/test/0/input"_json_pointer]);
+    arcTask.m_testSolution = convertArcMatrixToSensor(jsonArcFile["/test/0/output"_json_pointer]);
+
+    return arcTask;
 }
 
-    void JsonMatrixToCellConverter::convert()
+static cells::Sensor convertArcMatrixToSensor(const nlohmann::json& arcMatrix)
 {
-    size_t matrixHeight = m_jMatrix.size();
-    size_t matrixWidth  = m_jMatrix[0].size();
+    cells::Sensor sensor;
+    size_t matrixHeight = arcMatrix.size();
+    size_t matrixWidth  = arcMatrix[0].size();
 
-    m_sensor.height(matrixHeight).width(matrixWidth);
-    m_sensor.init();
+    sensor.height(matrixHeight).width(matrixWidth);
+    sensor.init();
 
     int y = 0;
-    for (auto inputRowIt = m_jMatrix.begin(); inputRowIt != m_jMatrix.end(); ++inputRowIt) {
+    for (auto inputRowIt = arcMatrix.begin(); inputRowIt != arcMatrix.end(); ++inputRowIt) {
         int x = 0;
         for (const int val : *inputRowIt) {
-            cells::Pixel& pixel = m_sensor.getPixel(x, y);
+            cells::Pixel& pixel = sensor.getPixel(x, y);
             pixel.color         = cellColors[val];
         }
     }
-}
 
-const cells::Sensor& JsonMatrixToCellConverter::sensor() const
-{
-    return m_sensor;
+    return sensor;
 }
 
 } // namespace synth

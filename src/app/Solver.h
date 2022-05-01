@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "cells/Cells.h"
+#include "util/ArcTask.h"
 #include "util/Logging.h"
 
 namespace synth {
@@ -8,13 +9,12 @@ namespace synth {
 class Solver
 {
 public:
-    Solver(Logger& logger, const cells::Sensor& input, const cells::Sensor& output);
+    Solver(Logger& logger, const ArcTask& arcTask);
 
     void solve();
 
     Logger& logger;
-    const cells::Sensor& m_input;
-    const cells::Sensor& m_output;
+    const ArcTask& m_arcTask;
 };
 
 /*

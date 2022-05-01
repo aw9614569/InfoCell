@@ -68,7 +68,7 @@ std::string App::getArcFilePathFromIndex(int index)
 void App::loadArcFile(const std::string& filename)
 {
     std::ifstream ifs(filename);
-    m_arcDb = json::parse(ifs);
+    m_arcJsonTask = json::parse(ifs);
 #if 0
     //    std::cout << jf.dump(4) << std::endl;
     std::cout << "Input:" << std::endl;
@@ -90,14 +90,14 @@ void App::loadArcFileByFileIndex()
 
 void App::renderArcTaskDemonstration()
 {
-    auto& jTrain = m_arcDb.at("train");
+    auto& jTrain = m_arcJsonTask.at("train");
     int i        = 0;
     std::vector<Elements> arcTaskDemonstrationTableData;
     arcTaskDemonstrationTableData.push_back({
         text("Input") | center,
         text("Output") | center,
     });
-    for (const auto& train : m_arcDb.at("train")) {
+    for (const auto& train : m_arcJsonTask.at("train")) {
         auto& inputRow  = train.at("input");
         auto& outputRow = train.at("output");
         Elements arcSet;
@@ -136,7 +136,7 @@ void App::renderArcTaskDemonstration()
 
 void App::renderArcTestInputGrid()
 {
-    auto& inputRow = m_arcDb["/test/0/input"_json_pointer];
+    auto& inputRow = m_arcJsonTask["/test/0/input"_json_pointer];
 
     Elements arcSetInputLines;
     for (auto inputRowIt = inputRow.begin(); inputRowIt != inputRow.end(); ++inputRowIt) {
@@ -239,9 +239,8 @@ void App::run()
 
 void App::solve()
 {
-    JsonMatrixToCellConverter input(m_arcDb, "/train/0/input");
-    JsonMatrixToCellConverter output(m_arcDb, "/train/0/output");
-    Solver solver(solverLogger, input.sensor(), output.sensor());
+    ArcTask arcTask = ConvertJsonToCell(m_arcJsonTask);
+    Solver solver(solverLogger, arcTask);
 }
 
 } // namespace synth
