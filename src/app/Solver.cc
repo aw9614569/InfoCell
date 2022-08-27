@@ -19,48 +19,51 @@ const std::array<cells::Color, 10> cellColors = {
     cells::Color(0x87, 0x0C, 0x25)  /* brown */
 };
 
-enum class Direction
-{
-    LeftToRight,
-    RightToLeft
-};
-
 Solver::Solver(Logger& logger, const ArcTask& arcTask) :
     logger(logger), m_arcTask(arcTask)
 {
     solve();
 }
 
-class Vector
+
+class Pixel
 {
 public:
     int x;
     int y;
 };
 
+class Patch;
+class PatchBoardI
+{
+public:
+    virtual void subscribePatchForPixel(std::shared_ptr<Patch> patch, int x, int y) = 0;
+
+    virtual int width() const  = 0;
+    virtual int height() const = 0;
+};
+
 class Patch : public std::enable_shared_from_this<Patch>
 {
 public:
-    Patch(cells::Color color) :
-        m_color(color) { }
+    Patch(cells::Color color, PatchBoardI* patchBoardI) :
+        m_color(color), m_patchBoardI(patchBoardI) { }
 
     const cells::Color& color() const
     {
         return m_color;
     }
 
-    void addPixelCoordinate(int x, int y, Direction scanDir)
+    void addPixelCoordinate(int x, int y)
     {
-        if (vectors.empty()) {
+        if (pixels.empty()) {
             m_startX  = x;
             m_startY  = y;
             m_leftX   = x;
             m_rightX  = x;
             m_topY    = y;
             m_bottomY = y;
-            vectors.push_back({ x, y });
         } else {
-            vectors.push_back({ x - m_lastX, y - m_lastY });
             if (x < m_leftX)
                 m_leftX = x;
             if (x > m_rightX)
@@ -70,36 +73,70 @@ public:
         }
         m_lastX = x;
         m_lastY = y;
-
-        if (scanDir == Direction::LeftToRight)
-          m_subscribeCb(shared_from_this(), x + 1, y);
-        else
-          m_subscribeCb(shared_from_this(), x - 1, y);
-
-        m_subscribeCb(shared_from_this(), x + 1, y + 1);
-        m_subscribeCb(shared_from_this(), x, y + 1);
-        m_subscribeCb(shared_from_this(), x - 1, y + 1);
+        pixels.push_back({ x, y });
+        m_patchBoardI->subscribePatchForPixel(shared_from_this(), x, y);
     }
 
     void merge(const Patch& other)
     {
-        vectors.push_back({ other.m_startX - m_startX, other.m_startY - m_startY });
-        for (const auto& vector : other.vectors) {
-            vectors.push_back(vector);
+        for (const auto& pixel : other.pixels) {
+            pixels.push_back(pixel);
         }
     }
 
-    void setSubriberCb(std::function<void(std::shared_ptr<Patch>, int x, int y)> subscribeCb)
+    void vectorize()
     {
-        m_subscribeCb = subscribeCb;
+        vectors.clear();
+        const Pixel* prevPixel = &pixels.front();
+        bool firstPixel        = true;
+        int patchBoardWidth    = m_patchBoardI->width();
+
+        std::sort(pixels.begin(), pixels.end(), [patchBoardWidth](const Pixel& p1, const Pixel& p2) {
+            return p1.y * patchBoardWidth + p1.x < p2.y * patchBoardWidth + p2.x;
+        });
+        for (const auto& pixel : pixels) {
+            if (firstPixel) {
+                firstPixel = false;
+                continue;
+            }
+            const Pixel* currPixel = &pixel;
+            vectors.push_back({ currPixel->x - prevPixel->x, currPixel->y - prevPixel->y });
+            prevPixel = currPixel;
+        }
     }
 
+    void assignId(int id)
+    {
+        m_id = id;
+    }
+#if 0
     bool operator==(const Patch& rhs) const
     {
         return rhs.color() == color() && rhs.m_startX == m_startX && rhs.m_startY == m_startY;
     }
+#endif
 
-    std::function<void(std::shared_ptr<Patch>, int x, int y)> m_subscribeCb;
+    bool operator<(const Patch& rhs) const
+    {
+        int width = m_patchBoardI->width();
+        return m_startY * width + m_startX < rhs.m_startY * width + rhs.m_startX;
+    }
+
+    std::string toString(int boardWidth, int boardHeight) const
+    {
+        int patchWidth = m_rightX - m_leftX;
+        int patchHeight = m_bottomY - m_topY;
+        std::string ret((boardWidth + 1) * boardHeight, '.');
+        for (int i = 1; i <= boardHeight; ++i)
+            ret[((boardWidth + 1) * i) - 1] = '\n';
+        for (const Pixel& pixel : pixels) {
+            ret[pixel.y * (boardHeight + 1) + pixel.x] = 'X';
+        }
+
+        return ret;
+    }
+
+    int m_id = 0;
 
     int m_startX = 0;
     int m_startY = 0;
@@ -112,7 +149,9 @@ public:
     int m_bottomY = 0;
 
     cells::Color m_color;
+    PatchBoardI* m_patchBoardI = nullptr;
     std::vector<cells::Vector> vectors;
+    std::vector<Pixel> pixels;
 };
 
 struct PatchSlot
@@ -173,29 +212,53 @@ std::ostream& operator<<(std::ostream& os, const cells::Color& color)
     return os;
 }
 
-class PatchBoard
+class PatchBoard : public PatchBoardI
 {
 public:
-    PatchBoard(int width, int height) :
-        m_width(width), m_height(height)
+    PatchBoard(const cells::Sensor& sensor) :
+        m_width(sensor.width()), m_height(sensor.height()), m_sensor(sensor)
     {
         const int boardSize = m_height * m_width;
         m_patchSlots.resize(boardSize);
-        for (auto& patchSlot : m_patchSlots)
+        for (auto& patchSlot : m_patchSlots) {
             patchSlot.setDeletePatchCb([this](std::shared_ptr<Patch> patch) { m_patches.erase(patch); });
+        }
     }
 
-    int width() const
+    int width() const override
     {
         return m_width;
     }
 
-    int height() const
+    int height() const override
     {
         return m_height;
     }
 
-    void processPixel(int x, int y, const cells::Color& color, Direction scanDir)
+    void process()
+    {
+        for (int y = 0; y < height(); ++y) {
+            for (int x = 0; x < width(); ++x) {
+                const cells::Pixel& pixel = m_sensor.getPixel(x, y);
+                //                logger.log(DEBUG) << "Processing pixel[" << x << ", " << y << "]" << pixel.color;
+                processPixel(x, y, pixel.color);
+            }
+        }
+        int id = 1;
+        std::vector<std::shared_ptr<Patch>> sortedPatches;
+        for (std::shared_ptr<Patch> patch : m_patches) {
+            sortedPatches.push_back(patch);
+        }
+        std::sort(sortedPatches.begin(), sortedPatches.end(), [](const std::shared_ptr<Patch>& lhs, const std::shared_ptr<Patch>& rhs) { return *lhs < *rhs; });
+        for (std::shared_ptr<Patch> patch : sortedPatches) {
+            patch->assignId(id++);
+            patch->vectorize();
+            loggerPtr->log(DEBUG) << "Patch " << patch->m_id << "\n"
+                                  << patch->toString(width(), height()) << "\n";
+        }
+    }
+
+    void processPixel(int x, int y, const cells::Color& color)
     {
         PatchSlot& patchSlot             = getPatchSlot(x, y);
         std::shared_ptr<Patch> candidate = patchSlot.getCandidate(color);
@@ -203,12 +266,11 @@ public:
         if (candidate) {
 //            loggerPtr->log(DEBUG) << " - pixel[" << x << ", " << y << "] " << color << " - patch found " << "(" << candidate.get() << ")";
         } else {
-            candidate = std::make_shared<Patch>(color);
+            candidate = std::make_shared<Patch>(color, this);
 //            loggerPtr->log(DEBUG) << " - pixel[" << x << ", " << y << "] " << color << " - patch created " << "(" << candidate.get() << ")";
-            candidate->setSubriberCb([this](std::shared_ptr<Patch> patch, int x, int y) { subscribePatchForPixel(patch, x, y); });
             m_patches.insert(candidate);
         }
-        candidate->addPixelCoordinate(x, y, scanDir);
+        candidate->addPixelCoordinate(x, y);
     }
 
     int patchesCount() const
@@ -218,6 +280,14 @@ public:
 
 protected:
     void subscribePatchForPixel(std::shared_ptr<Patch> patch, int x, int y)
+    {
+        subscribePatchForPixelImpl(patch, x + 1, y);
+        subscribePatchForPixelImpl(patch, x + 1, y + 1);
+        subscribePatchForPixelImpl(patch, x, y + 1);
+        subscribePatchForPixelImpl(patch, x - 1, y + 1);
+    }
+
+    void subscribePatchForPixelImpl(std::shared_ptr<Patch> patch, int x, int y)
     {
         if (!isInRange(x, y))
             return;
@@ -244,8 +314,9 @@ protected:
         return true;
     }
 
-    int m_width;
-    int m_height;
+    const int m_width;
+    const int m_height;
+    const cells::Sensor& m_sensor;
     std::vector<PatchSlot> m_patchSlots;
     std::set<std::shared_ptr<Patch>> m_patches;
 };
@@ -272,27 +343,8 @@ void Solver::solve()
 
 void Solver::solveOne(const cells::Sensor& sensor)
 {
-    PatchBoard patchBoard(sensor.width(), sensor.height());
-    Direction scanDir = Direction::LeftToRight;
-    for (int y = 0; y < sensor.height(); ++y) {
-        switch (scanDir) {
-        case Direction::LeftToRight:
-            for (int x = 0; x < sensor.width(); ++x) {
-                const cells::Pixel& pixel = sensor.getPixel(x, y);
-//                logger.log(DEBUG) << "Processing pixel[" << x << ", " << y << "]" << pixel.color;
-                patchBoard.processPixel(x, y, pixel.color, scanDir);
-            }
-            break;
-        case Direction::RightToLeft:
-            for (int x = sensor.width() - 1; x >= 0; --x) {
-                const cells::Pixel& pixel = sensor.getPixel(x, y);
-//                logger.log(DEBUG) << "Processing pixel[" << x << ", " << y << "]" << pixel.color;
-                patchBoard.processPixel(x, y, pixel.color, scanDir);
-            }
-            break;
-        }
-        scanDir = scanDir == Direction::LeftToRight ? Direction::RightToLeft : Direction::LeftToRight;
-    }
+    PatchBoard patchBoard(sensor);
+    patchBoard.process();
     logger.log(DEBUG) << "Number of patches found: " << patchBoard.patchesCount();
 }
 

@@ -318,9 +318,6 @@ public:
 class Vector : public DataCell
 {
 public:
-    Vector() :
-        x(xD), y(yD) { }
-
     Vector(int64_t _x, int64_t _y) :
         x(_x), y(_y) { }
 
@@ -348,8 +345,6 @@ public:
         }
     }
 
-    int64_t xD = 0;
-    int64_t yD = 0;
     IntValue x;
     IntValue y;
 };

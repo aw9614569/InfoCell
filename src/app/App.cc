@@ -200,16 +200,31 @@ void App::run()
         return ret;
     });
 
-    auto solveQuitBtn         = Button("Ok", [&] { depth = 0; });
-    auto solverScreenRenderer = Renderer(solveQuitBtn, [&] {
+    int logIndex = 0;
+    auto solveQuitBtn     = Button("Ok", [&] { depth = 0; });
+    auto solveLogMessages = Renderer([&] {
         Elements logItems;
         for (const auto& logMessage : m_solveMessages) {
             logItems.push_back(text(logMessage));
         }
+
+        return vbox(logItems) | vscroll_indicator | frame | size(HEIGHT, LESS_THAN, 25);
+    });
+
+    auto solveLogMessages2 = Menu(&m_solveMessages, &logIndex);
+
+
+    auto logContainer   = Container::Vertical({ solveLogMessages });
+    auto solveContainer = Container::Vertical({
+        solveLogMessages2,
+        solveQuitBtn
+    });
+
+    auto solverScreenRenderer = Renderer(solveContainer, [&] {
         return vbox({
                    text("The solver is solving ..."),
                    separator(),
-                   vbox(logItems),
+                   solveLogMessages2->Render() | vscroll_indicator | frame | size(HEIGHT, LESS_THAN, 25),
                    separator(),
                    solveQuitBtn->Render()
                })
