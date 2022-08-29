@@ -42,6 +42,11 @@ Solver::Solver(Logger& logger, const ArcTask& arcTask) :
 class Pixel
 {
 public:
+    bool operator<(const Pixel& rhs) const
+    {
+        return std::tie(x, y) < std::tie(rhs.x, rhs.y);
+    }
+
     int x;
     int y;
 };
@@ -50,7 +55,8 @@ class Patch;
 class PatchBoardI
 {
 public:
-    virtual void subscribePatchForPixel(std::shared_ptr<Patch> patch, int x, int y) = 0;
+    virtual void subscribePatchForPixel(std::shared_ptr<Patch> patch, int x, int y)       = 0;
+    virtual void mergePatch(std::shared_ptr<Patch> winner, std::shared_ptr<Patch> looser) = 0;
 
     virtual int width() const  = 0;
     virtual int height() const = 0;
@@ -60,7 +66,7 @@ class Patch : public std::enable_shared_from_this<Patch>
 {
 public:
     Patch(cells::Color color, PatchBoardI* patchBoardI) :
-        m_color(color), m_patchBoardI(patchBoardI) { }
+        m_color(color), m_patchBoardI(patchBoardI), m_boardWidth(patchBoardI->width()), m_boardHeight(patchBoardI->height()) { }
 
     const cells::Color& color() const
     {
@@ -69,45 +75,41 @@ public:
 
     void addPixelCoordinate(int x, int y)
     {
-        if (pixels.empty()) {
-            m_startX  = x;
-            m_startY  = y;
-            m_leftX   = x;
-            m_rightX  = x;
-            m_topY    = y;
-            m_bottomY = y;
-        } else {
-            if (x < m_leftX)
-                m_leftX = x;
-            if (x > m_rightX)
-                m_rightX = x;
-            if (y > m_bottomY)
-                m_bottomY = y;
-        }
-        m_lastX = x;
-        m_lastY = y;
-        pixels.push_back({ x, y });
+        refreshBoundaries(x, y);
+        m_pixels.push_back({ x, y });
         m_patchBoardI->subscribePatchForPixel(shared_from_this(), x, y);
     }
 
-    void merge(const Patch& other)
+    void registerSubscribedPixel(int x, int y)
     {
-        for (const auto& pixel : other.pixels) {
-            pixels.push_back(pixel);
+        m_subscribedPixels.insert({x, y});
+    }
+
+    void merge(std::shared_ptr<Patch> other)
+    {
+        for (const auto& pixel : other->m_pixels) {
+            m_pixels.push_back(pixel);
         }
+        sortPixels();
+        m_patchBoardI->mergePatch(shared_from_this(), other);
+    }
+
+    void sortPixels()
+    {
+        int patchBoardWidth = m_patchBoardI->width();
+        std::sort(m_pixels.begin(), m_pixels.end(), [patchBoardWidth](const Pixel& p1, const Pixel& p2) {
+            return p1.y * patchBoardWidth + p1.x < p2.y * patchBoardWidth + p2.x;
+        });
     }
 
     void vectorize()
     {
         vectors.clear();
-        const Pixel* prevPixel = &pixels.front();
-        bool firstPixel        = true;
-        int patchBoardWidth    = m_patchBoardI->width();
 
-        std::sort(pixels.begin(), pixels.end(), [patchBoardWidth](const Pixel& p1, const Pixel& p2) {
-            return p1.y * patchBoardWidth + p1.x < p2.y * patchBoardWidth + p2.x;
-        });
-        for (const auto& pixel : pixels) {
+        const Pixel* prevPixel = &m_pixels.front();
+        bool firstPixel        = true;
+
+        for (const auto& pixel : m_pixels) {
             if (firstPixel) {
                 firstPixel = false;
                 continue;
@@ -118,44 +120,84 @@ public:
         }
     }
 
+    void refreshBoundaries(int x, int y)
+    {
+        if (x < m_leftX)
+            m_leftX = x;
+        if (x > m_rightX)
+            m_rightX = x;
+        if (y < m_topY)
+            m_topY = y;
+        if (y > m_bottomY)
+            m_bottomY = y;
+    }
+
     void assignId(int id)
     {
         m_id = id;
     }
 
-    bool operator<(const Patch& rhs) const
+    const Pixel& firstPixel() const
     {
-        int width = m_patchBoardI->width();
-        return m_startY * width + m_startX < rhs.m_startY * width + rhs.m_startX;
+        return m_pixels.front();
     }
 
-    std::string toString(int boardWidth, int boardHeight) const
+    const Pixel& lastPixel() const
     {
-        int patchWidth = m_rightX - m_leftX;
-        int patchHeight = m_bottomY - m_topY;
+        return m_pixels.back();
+    }
 
+    int pixelIndex(const Pixel& pixel) const
+    {
+        return pixel.y * m_boardWidth + pixel.x;
+    }
+
+    int firstPixelIndex() const
+    {
+        const Pixel& pixel = firstPixel();
+        return pixel.y * m_boardWidth + pixel.x;
+    }
+
+    bool operator<(const Patch& rhs) const
+    {
+        return firstPixelIndex() < rhs.firstPixelIndex();
+    }
+
+    int patchWidth() const
+    {
+        return m_rightX - m_leftX;
+    }
+
+    int patchHeight() const
+    {
+        return m_bottomY - m_topY;
+    }
+
+    std::string toString() const
+    {
         char boardColor = '0' + cellColorsToColorId.at(color());
-        std::string board(boardWidth * boardHeight, '.');
-        for (const Pixel& pixel : pixels) {
-            board[pixel.y * boardWidth + pixel.x] = boardColor;
+        std::string board(m_boardWidth * m_boardHeight, '.');
+        for (const Pixel& pixel : m_pixels) {
+            board[pixel.y * m_boardWidth + pixel.x] = boardColor;
         }
         std::string ret;
-        ret += std::to_string(boardWidth);
+        ret += std::to_string(m_boardWidth);
         ret += ' ';
-        ret += std::to_string(boardHeight);
+        ret += std::to_string(m_boardHeight);
         ret += ' ';
         ret += board;
 
         return ret;
     }
 
+    const std::set<Pixel>& subscribedPixels() const
+    {
+        return m_subscribedPixels;
+    }
+
     int m_id = 0;
 
-    int m_startX = 0;
-    int m_startY = 0;
-    int m_lastX  = 0;
-    int m_lastY  = 0;
-
+private:
     int m_leftX   = 0;
     int m_rightX  = 0;
     int m_topY    = 0;
@@ -163,16 +205,28 @@ public:
 
     cells::Color m_color;
     PatchBoardI* m_patchBoardI = nullptr;
+    const int m_boardWidth;
+    const int m_boardHeight;
     std::vector<cells::Vector> vectors;
-    std::vector<Pixel> pixels;
+    std::vector<Pixel> m_pixels;
+    std::set<Pixel> m_subscribedPixels;
 };
 
 struct PatchSlot
 {
+    PatchSlot(PatchBoardI* patchBoardI) :
+        m_patchBoardI(patchBoardI) { }
+
     void registerCandidate(std::shared_ptr<Patch> patch)
     {
         std::set<std::shared_ptr<Patch>>& patches = m_candidates[patch->color()];
         patches.insert(patch);
+    }
+
+    void unRegisterCandidate(std::shared_ptr<Patch> patch)
+    {
+        std::set<std::shared_ptr<Patch>>& patches = m_candidates[patch->color()];
+        patches.erase(patch);
     }
 
     std::shared_ptr<Patch> getCandidate(const cells::Color& color)
@@ -194,28 +248,31 @@ struct PatchSlot
         std::shared_ptr<Patch> returnPatch = *firstPatchIt;
 
         // multiple patch
-        for (auto i = ++firstPatchIt; i != patches.end(); ++i) {
-            std::shared_ptr<Patch> candidatePatch = *i;
-            if (candidatePatch->m_startY < returnPatch->m_startY || (candidatePatch->m_startY == returnPatch->m_startY && candidatePatch->m_startX < returnPatch->m_startX)) {
+        for (auto i = ++firstPatchIt; i != patches.end(); ) {
+            std::set<std::shared_ptr<Patch>>::iterator current = i++;
+
+            std::shared_ptr<Patch> candidatePatch = *current;
+            if (*candidatePatch < *returnPatch) {
                 auto tmp       = returnPatch;
                 returnPatch    = candidatePatch;
                 candidatePatch = tmp;
             }
-//            loggerPtr->log(DEBUG) << " - patch (" << candidatePatch.get() << ") merged to " << returnPatch.get();
-            returnPatch->merge(*candidatePatch);
-            m_deletePatchCb(candidatePatch);
+            //loggerPtr->log(DEBUG) << " - patch (" << candidatePatch.get() << ") merged to " << returnPatch.get();
+            //loggerPtr->log(DEBUG) << " - returnPatch (" << returnPatch.get() << ")";
+            //loggerPtr->logBoard(DEBUG) << returnPatch->toString() << "\n";
+            //loggerPtr->log(DEBUG) << " - candidatePatch (" << candidatePatch.get() << ")";
+            //loggerPtr->logBoard(DEBUG) << candidatePatch->toString() << "\n";
+            returnPatch->merge(candidatePatch);
+
+            //loggerPtr->log(DEBUG) << " - returnPatch (" << returnPatch.get() << ")";
+            //loggerPtr->logBoard(DEBUG) << returnPatch->toString() << "\n";
         }
 
         return returnPatch;
     }
 
-    void setDeletePatchCb(std::function<void(std::shared_ptr<Patch>)> deletePatchCb)
-    {
-        m_deletePatchCb = deletePatchCb;
-    }
-
+    PatchBoardI* m_patchBoardI = nullptr;
     std::function<void(std::shared_ptr<Patch>)> m_deletePatchCb;
-
     std::map<cells::Color, std::set<std::shared_ptr<Patch>>> m_candidates;
 };
 
@@ -229,13 +286,8 @@ class PatchBoard : public PatchBoardI
 {
 public:
     PatchBoard(const cells::Sensor& sensor) :
-        m_width(sensor.width()), m_height(sensor.height()), m_sensor(sensor)
+        m_width(sensor.width()), m_height(sensor.height()), m_sensor(sensor), m_patchSlots(m_height * m_width, PatchSlot(this))
     {
-        const int boardSize = m_height * m_width;
-        m_patchSlots.resize(boardSize);
-        for (auto& patchSlot : m_patchSlots) {
-            patchSlot.setDeletePatchCb([this](std::shared_ptr<Patch> patch) { m_patches.erase(patch); });
-        }
     }
 
     int width() const override
@@ -267,7 +319,7 @@ public:
             patch->assignId(id++);
             patch->vectorize();
             loggerPtr->log(DEBUG) << "Patch " << patch->m_id << "\n";
-            loggerPtr->logBoard(DEBUG) << patch->toString(width(), height()) << "\n";
+            loggerPtr->logBoard(DEBUG) << patch->toString() << "\n";
         }
     }
 
@@ -277,10 +329,10 @@ public:
         std::shared_ptr<Patch> candidate = patchSlot.getCandidate(color);
 
         if (candidate) {
-//            loggerPtr->log(DEBUG) << " - pixel[" << x << ", " << y << "] " << color << " - patch found " << "(" << candidate.get() << ")";
+            //loggerPtr->log(DEBUG) << " - pixel[" << x << ", " << y << "] " << color << " - patch found " << "(" << candidate.get() << ")";
         } else {
             candidate = std::make_shared<Patch>(color, this);
-//            loggerPtr->log(DEBUG) << " - pixel[" << x << ", " << y << "] " << color << " - patch created " << "(" << candidate.get() << ")";
+            //loggerPtr->log(DEBUG) << " - pixel[" << x << ", " << y << "] " << color << " - patch created " << "(" << candidate.get() << ")";
             m_patches.insert(candidate);
         }
         candidate->addPixelCoordinate(x, y);
@@ -291,8 +343,7 @@ public:
         return m_patches.size();
     }
 
-protected:
-    void subscribePatchForPixel(std::shared_ptr<Patch> patch, int x, int y)
+    void subscribePatchForPixel(std::shared_ptr<Patch> patch, int x, int y) override
     {
         subscribePatchForPixelImpl(patch, x + 1, y);
         subscribePatchForPixelImpl(patch, x + 1, y + 1);
@@ -300,12 +351,26 @@ protected:
         subscribePatchForPixelImpl(patch, x - 1, y + 1);
     }
 
+    void mergePatch(std::shared_ptr<Patch> winner, std::shared_ptr<Patch> looser) override
+    {
+        const std::set<Pixel> subscribedPixels = looser->subscribedPixels();
+        for (const Pixel& pixel : subscribedPixels) {
+            PatchSlot& patchSlot = getPatchSlot(pixel.x, pixel.y);
+            patchSlot.unRegisterCandidate(looser);
+            patchSlot.registerCandidate(winner);
+        }
+        m_patches.erase(looser);
+        //loggerPtr->log(DEBUG) << " - patch deleted (" << looser.get() << ")";
+    }
+
+protected:
     void subscribePatchForPixelImpl(std::shared_ptr<Patch> patch, int x, int y)
     {
         if (!isInRange(x, y))
             return;
         PatchSlot& patchSlot = getPatchSlot(x, y);
         patchSlot.registerCandidate(patch);
+        patch->registerSubscribedPixel(x, y);
     }
 
     PatchSlot& getPatchSlot(int x, int y)
