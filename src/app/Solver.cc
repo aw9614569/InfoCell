@@ -19,6 +19,19 @@ const std::array<cells::Color, 10> cellColors = {
     cells::Color(0x87, 0x0C, 0x25)  /* brown */
 };
 
+const std::map<const cells::Color, int> cellColorsToColorId = {
+    { cellColors[0], 0 },
+    { cellColors[1], 1 },
+    { cellColors[2], 2 },
+    { cellColors[3], 3 },
+    { cellColors[4], 4 },
+    { cellColors[5], 5 },
+    { cellColors[6], 6 },
+    { cellColors[7], 7 },
+    { cellColors[8], 8 },
+    { cellColors[9], 9 }
+};
+
 Solver::Solver(Logger& logger, const ArcTask& arcTask) :
     logger(logger), m_arcTask(arcTask)
 {
@@ -109,12 +122,6 @@ public:
     {
         m_id = id;
     }
-#if 0
-    bool operator==(const Patch& rhs) const
-    {
-        return rhs.color() == color() && rhs.m_startX == m_startX && rhs.m_startY == m_startY;
-    }
-#endif
 
     bool operator<(const Patch& rhs) const
     {
@@ -126,12 +133,18 @@ public:
     {
         int patchWidth = m_rightX - m_leftX;
         int patchHeight = m_bottomY - m_topY;
-        std::string ret((boardWidth + 1) * boardHeight, '.');
-        for (int i = 1; i <= boardHeight; ++i)
-            ret[((boardWidth + 1) * i) - 1] = '\n';
+
+        char boardColor = '0' + cellColorsToColorId.at(color());
+        std::string board(boardWidth * boardHeight, '.');
         for (const Pixel& pixel : pixels) {
-            ret[pixel.y * (boardHeight + 1) + pixel.x] = 'X';
+            board[pixel.y * boardWidth + pixel.x] = boardColor;
         }
+        std::string ret;
+        ret += std::to_string(boardWidth);
+        ret += ' ';
+        ret += std::to_string(boardHeight);
+        ret += ' ';
+        ret += board;
 
         return ret;
     }
@@ -253,8 +266,8 @@ public:
         for (std::shared_ptr<Patch> patch : sortedPatches) {
             patch->assignId(id++);
             patch->vectorize();
-            loggerPtr->log(DEBUG) << "Patch " << patch->m_id << "\n"
-                                  << patch->toString(width(), height()) << "\n";
+            loggerPtr->log(DEBUG) << "Patch " << patch->m_id << "\n";
+            loggerPtr->logBoard(DEBUG) << patch->toString(width(), height()) << "\n";
         }
     }
 

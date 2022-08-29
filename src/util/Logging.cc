@@ -5,26 +5,33 @@ namespace synth {
 
 LoggerStream Logger::log(LogLevel level)
 {
-    return LoggerStream(*this, level);
+    return LoggerStream(*this, level, STRING);
 }
 
-void Logger::log(LogLevel level, const std::string& message)
+LoggerStream Logger::logBoard(LogLevel level)
 {
-    std::ofstream logfile("F:\\Devel\\ARC\\synth\\build\\log\\logfile.txt", std::ios_base::app);
+    return LoggerStream(*this, level, BOARD);
+}
+
+const std::string logFileName = "F:\\Devel\\ARC\\synth\\build\\log\\logfile.txt";
+
+void Logger::log(LogLevel level, LogType type, const std::string& message)
+{
+    std::ofstream logfile(logFileName, std::ios_base::app);
     logfile << message << "\n";
-    m_messages.push_back(message);
+    m_messages.push_back({ level, type, message });
 }
 
 void Logger::clearLogFile()
 {
-    std::ofstream logfile("F:\\Devel\\ARC\\synth\\build\\log\\logfile.txt");
+    std::ofstream logfile(logFileName);
 }
 
 LoggerStream::~LoggerStream()
 {
     const std::string message = stream.str();
     if (!message.empty())
-        logger.log(level, message);
+        logger.log(level, type, message);
 }
 
 } // namespace synth

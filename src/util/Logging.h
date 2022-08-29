@@ -4,16 +4,9 @@
 #include <string>
 #include <sstream>
 
-namespace synth {
+#include "LogMessage.h"
 
-enum LogLevel
-{
-    TRACE,
-    DEBUG,
-    INFO,
-    WARN,
-    ERROR
-};
+namespace synth {
 
 class Logger;
 class LoggerStream
@@ -31,26 +24,28 @@ public:
 private:
     friend class Logger;
 
-    LoggerStream(Logger& logger, LogLevel level) :
-        logger(logger), level(level)
+    LoggerStream(Logger& logger, LogLevel level, LogType type) :
+        logger(logger), level(level), type(type)
     {
     }
 
     Logger& logger;
     LogLevel level;
+    LogType type;
     std::ostringstream stream;
 };
 
 class Logger
 {
 public:
-    Logger(std::vector<std::string>& messages) :
+    Logger(std::vector<LogMessage>& messages) :
         m_messages(messages) { }
     LoggerStream log(LogLevel level);
-    void log(LogLevel level, const std::string& message);
+    LoggerStream logBoard(LogLevel level);
+    void log(LogLevel level, LogType type, const std::string& message);
     void clearLogFile();
 
-    std::vector<std::string>& m_messages;
+    std::vector<LogMessage>& m_messages;
 };
 
 } // namespace synth

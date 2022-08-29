@@ -3,6 +3,7 @@ add_library(util STATIC
     Converter.h
     Logging.cc
     Logging.h
+    LogMessage.h
 )
 
 

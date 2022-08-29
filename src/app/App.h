@@ -21,17 +21,18 @@ enum class ArcColors
     fuschia,
     orange,
     teal,
-    brown
+    brown,
+    alpha
 };
 
 class App
 {
 public:
     App() :
-        solverLogger(m_solveMessages) { }
+        solverLogger(m_solvingLogs) { }
     void init(int argc, char* argv[]);
     void run();
-    static const std::array<ftxui::Color, 10> arcColors;
+    static const std::array<ftxui::Color, 11> arcColors;
 
 private:
     std::string getArcFilePathFromIndex(int index);
@@ -42,7 +43,7 @@ private:
     void solve();
 
     std::vector<std::string> m_arcFileNames;
-    std::vector<std::string> m_solveMessages;
+    std::vector<LogMessage> m_solvingLogs;
     Logger solverLogger;
 
     nlohmann::json m_arcJsonTask;

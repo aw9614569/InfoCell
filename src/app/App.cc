@@ -20,7 +20,7 @@ using namespace ftxui;
 
 namespace synth {
 
-const std::array<Color, 10> App::arcColors = {
+const std::array<Color, 11> App::arcColors = {
     Color(0x00, 0x00, 0x00), /* black */
     Color(0x00, 0x74, 0xD9), /* blue */
     Color(0xFF, 0x41, 0x36), /* red */
@@ -30,7 +30,8 @@ const std::array<Color, 10> App::arcColors = {
     Color(0xF0, 0x12, 0xBE), /* fuschia */
     Color(0xFF, 0x85, 0x1B), /* orange */
     Color(0x7F, 0xDB, 0xFF), /* teal */
-    Color(0x87, 0x0C, 0x25)  /* brown */
+    Color(0x87, 0x0C, 0x25), /* brown */
+    Color(0xFF, 0xFF, 0xFF)  /* alpha - white */
 };
 
 void App::init(int argc, char* argv[])
@@ -59,6 +60,8 @@ Element colorTile(Color p_color)
 
 Element colorTile(ArcColors arcColor)
 {
+    if (arcColor == ArcColors::alpha)
+        return text(L"╳╳") | size(WIDTH, EQUAL, 2) | size(HEIGHT, EQUAL, 1) | color(Color::GrayDark) | bgcolor(Color::GrayLight); // App::arcColors[(int)arcColor]);
     return colorTile(App::arcColors[(int)arcColor]);
 }
 
@@ -90,39 +93,72 @@ void App::loadArcFileByFileIndex()
     renderArcTestInputGrid();
 }
 
+static Element renderJsonBoard(const nlohmann::json& inputRow)
+{
+    Elements boardLines;
+    for (auto inputRowIt = inputRow.begin(); inputRowIt != inputRow.end(); ++inputRowIt) {
+        Elements arcSetInputLine;
+        for (const int val : *inputRowIt) {
+            arcSetInputLine.push_back(colorTile((ArcColors)val));
+        }
+        boardLines.push_back(hbox(arcSetInputLine));
+    }
+
+    return vbox(boardLines);
+}
+
+static std::vector<std::string> split(const std::string& txt, char ch = ' ')
+{
+    std::vector<std::string> strs;
+    size_t pos        = txt.find(ch);
+    size_t initialPos = 0;
+
+    // Decompose statement
+    while (pos != std::string::npos) {
+        strs.push_back(txt.substr(initialPos, pos - initialPos));
+        initialPos = pos + 1;
+
+        pos = txt.find(ch, initialPos);
+    }
+
+    // Add the last one
+    strs.push_back(txt.substr(initialPos, std::min(pos, txt.size()) - initialPos + 1));
+
+    return strs;
+}
+
+static Element renderBoardFromLog(const std::string& boardStr)
+{
+    auto boardParts          = split(boardStr);
+    const int width          = std::stoi(boardParts[0]);
+    const int height         = std::stoi(boardParts[1]);
+    const std::string& board = boardParts[2];
+
+    Elements boardLines;
+    for (int y = 0; y < height; ++y) {
+        Elements arcSetInputLine;
+        for (int x = 0; x < width; ++x) {
+            char boardChar             = board[y * width + x];
+            const ArcColors colorIndex = boardChar == '.' ? ArcColors::alpha : (ArcColors)(boardChar - '0');
+            arcSetInputLine.push_back(colorTile(colorIndex));
+        }
+        boardLines.push_back(hbox(arcSetInputLine));
+    }
+
+    return vbox(boardLines);
+}
+
 void App::renderArcTaskDemonstration()
 {
     auto& jTrain = m_arcJsonTask.at("train");
-    int i        = 0;
     std::vector<Elements> arcTaskDemonstrationTableData;
     arcTaskDemonstrationTableData.push_back({
         text("Input") | center,
         text("Output") | center,
     });
     for (const auto& train : m_arcJsonTask.at("train")) {
-        auto& inputRow  = train.at("input");
-        auto& outputRow = train.at("output");
-        Elements arcSet;
-
-        Elements arcSetInputLines;
-        for (auto inputRowIt = inputRow.begin(); inputRowIt != inputRow.end(); ++inputRowIt) {
-            Elements arcSetInputLine;
-            for (const int val : *inputRowIt) {
-                arcSetInputLine.push_back(colorTile((ArcColors)val));
-            }
-            arcSetInputLines.push_back(hbox(arcSetInputLine));
-        }
-        Element arcSetInputGrid = vbox(arcSetInputLines);
-
-        Elements arcSetOutputLines;
-        for (auto outputRowIt = outputRow.begin(); outputRowIt != outputRow.end(); ++outputRowIt) {
-            Elements arcSetOutputLine;
-            for (const int val : *outputRowIt) {
-                arcSetOutputLine.push_back(colorTile((ArcColors)val));
-            }
-            arcSetOutputLines.push_back(hbox(arcSetOutputLine));
-        }
-        Element arcSetOutputGrid = vbox(arcSetOutputLines);
+        Element arcSetInputGrid  = renderJsonBoard(train.at("input"));
+        Element arcSetOutputGrid = renderJsonBoard(train.at("output"));
 
         arcTaskDemonstrationTableData.push_back({ arcSetInputGrid, arcSetOutputGrid });
     }
@@ -155,8 +191,15 @@ void App::run()
 {
     int depth        = 0;
     auto menu        = Menu(&m_arcFileNames, &m_selectedArcFileIndex);
+
+    float focus_x = 0.0f;
+    float focus_y = 0.0f;
+    auto slider_x = Slider("", &focus_x, 0.f, 1.f, 0.002f);
+    auto slider_y = Slider("", &focus_y, 0.f, 1.f, 0.002f);
+
     auto buttonSolve = Button("Solve", [&] {
-        m_solveMessages.clear();
+        focus_y = 0.0f;
+        m_solvingLogs.clear();
         solve();
         depth = 1;
     });
@@ -202,29 +245,33 @@ void App::run()
 
     int logIndex = 0;
     auto solveQuitBtn     = Button("Ok", [&] { depth = 0; });
+
     auto solveLogMessages = Renderer([&] {
         Elements logItems;
-        for (const auto& logMessage : m_solveMessages) {
-            logItems.push_back(text(logMessage));
+        for (const auto& logMessage : m_solvingLogs) {
+            switch (logMessage.type) {
+            case STRING:
+                logItems.push_back(paragraph(logMessage.text));
+                break;
+            case BOARD:
+                logItems.push_back(renderBoardFromLog(logMessage.text));
+                break;
+            }
         }
 
-        return vbox(logItems) | vscroll_indicator | frame | size(HEIGHT, LESS_THAN, 25);
+        return vbox(logItems) | focusPositionRelative(focus_x, focus_y) | vscroll_indicator | yframe | flex;
     });
 
-    auto solveLogMessages2 = Menu(&m_solveMessages, &logIndex);
-
-
-    auto logContainer   = Container::Vertical({ solveLogMessages });
     auto solveContainer = Container::Vertical({
-        solveLogMessages2,
+        slider_y,
+        solveLogMessages,
         solveQuitBtn
     });
 
     auto solverScreenRenderer = Renderer(solveContainer, [&] {
         return vbox({
-                   text("The solver is solving ..."),
-                   separator(),
-                   solveLogMessages2->Render() | vscroll_indicator | frame | size(HEIGHT, LESS_THAN, 25),
+                   slider_y->Render(),
+                   solveLogMessages->Render() | flex_grow | size(WIDTH, GREATER_THAN, 120),
                    separator(),
                    solveQuitBtn->Render()
                })
@@ -239,12 +286,12 @@ void App::run()
         &depth);
 
     auto renderer = Renderer(mainContainer, [&] {
-        Element document = mainScreenRenderer->Render();
+        Element document = mainScreenRenderer->Render() | size(WIDTH, GREATER_THAN, 200);
 
         if (depth == 1) {
             document = dbox({
                 document,
-                solverScreenRenderer->Render() | clear_under | center,
+                solverScreenRenderer->Render() | clear_under | align_right,
             });
         }
         return document;
