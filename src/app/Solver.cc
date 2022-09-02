@@ -1,6 +1,8 @@
-﻿#include "Solver.h"
+﻿#include "Colors.h"
+#include "Solver.h"
 #include <array>
 #include <set>
+
 
 namespace synth {
 
@@ -40,7 +42,7 @@ Solver::Solver(Logger& logger, const ArcTask& arcTask) :
 
 enum class RotationDir
 {
-    // original    🡩
+    Degree_0,   // 🡩
     Degree_45,  // 🡭
     Degree_90,  // 🡪
     Degree_135, // 🡮
@@ -53,6 +55,10 @@ enum class RotationDir
 class Pixel
 {
 public:
+    Pixel(int x, int y) :
+        x(x), y(y)
+    { }
+
     bool operator<(const Pixel& rhs) const
     {
         return std::tie(x, y) < std::tie(rhs.x, rhs.y);
@@ -75,6 +81,11 @@ public:
         int origX = x;
         int origY = y;
         switch (rotationDir) {
+
+        // 🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩
+        case RotationDir::Degree_0:
+            // Do nothing
+            break;
 
         // 🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭
         case RotationDir::Degree_45:
@@ -127,27 +138,79 @@ public:
 class VectorShape
 {
 public:
-    VectorShape(const std::vector<Vector>& vectors, const cells::Color& color) :
-        m_vectors(vectors), m_color(color)
+    VectorShape(const std::vector<Vector>& vectors, const cells::Color& color, const Pixel& firstPixel) :
+        m_vectors(vectors), m_color(color), m_firstPixel(firstPixel)
     {
     }
-    VectorShape(std::vector<Vector>&& vectors, const cells::Color& color) :
-        m_vectors(std::move(vectors)), m_color(color)
+    VectorShape(std::vector<Vector>&& vectors, const cells::Color& color, const Pixel& firstPixel) :
+        m_vectors(std::move(vectors)), m_color(color), m_firstPixel(firstPixel)
     {
     }
 
-    void rotate(RotationDir rotationDir)
+    VectorShape rotate(RotationDir rotationDir) const
     {
-        for (Vector& vector : m_vectors) {
-            Vector oldVector = vector;
-            vector.rotate(rotationDir);
-            loggerPtr->log(DEBUG) << " rotate vector [" << oldVector.x << ", " << oldVector.y << "] => [" << vector.x << ", " << vector.y << "]";
+        std::vector<Vector> rotatedVectors;
 
+        for (const Vector& vector : m_vectors) {
+            Vector newVector = vector;
+            newVector.rotate(rotationDir);
+            rotatedVectors.push_back(newVector);
+//            loggerPtr->log(DEBUG) << " rotate vector [" << vector.x << ", " << vector.y << "] => [" << newVector.x << ", " << newVector.y << "]";
         }
+        ;
+
+        return VectorShape(std::move(rotatedVectors), m_color, m_firstPixel);
+    }
+
+    VectorShape mirror(Vector firsPixelDistance, RotationDir axisDir) const
+    {
+        std::vector<Vector> mirrorShape;
+
+        switch (axisDir) {
+        case RotationDir::Degree_0:
+        case RotationDir::Degree_180:
+            // y coordinate will be the same
+            {
+                int distance = firsPixelDistance.x;
+                Pixel firstPixel(m_firstPixel.x + distance * 2, m_firstPixel.y);
+                for (const Vector& vector : m_vectors) {
+                    mirrorShape.push_back({ -vector.x, vector.y });
+                }
+
+                return VectorShape(std::move(mirrorShape), color(), firstPixel);
+            }
+            break;
+        case RotationDir::Degree_90:
+        case RotationDir::Degree_270:
+            // y coordinate will be the same
+            {
+                int distance = firsPixelDistance.y;
+                Pixel firstPixel(m_firstPixel.x, m_firstPixel.y + distance * 2);
+                for (const Vector& vector : m_vectors) {
+                    mirrorShape.push_back({ vector.x, -vector.y });
+                }
+
+                return VectorShape(std::move(mirrorShape), color(), firstPixel);
+            }
+            break;
+        }
+
+        return *this;
+    }
+
+    const cells::Color& color() const
+    {
+        return m_color;
+    }
+
+    const Pixel& firstPixel() const
+    {
+        return m_firstPixel;
     }
 
     cells::Color m_color;
     std::vector<Vector> m_vectors;
+    Pixel m_firstPixel;
 };
 
 class Patch;
@@ -211,18 +274,18 @@ public:
         std::vector<Vector> vectors;
 
         const Pixel* prevPixel = &m_pixels.front();
-        bool firstPixel        = true;
+        bool isFirstPixel        = true;
 
         for (const auto& pixel : m_pixels) {
-            if (firstPixel) {
-                firstPixel = false;
+            if (isFirstPixel) {
+                isFirstPixel = false;
                 continue;
             }
             const Pixel* currPixel = &pixel;
             vectors.push_back({ currPixel->x - prevPixel->x, currPixel->y - prevPixel->y });
             prevPixel = currPixel;
         }
-        VectorShape vectorShape(std::move(vectors), color());
+        VectorShape vectorShape(std::move(vectors), color(), firstPixel());
 
         return vectorShape;
     }
@@ -393,8 +456,15 @@ class DrawingBoard
 {
 public:
     DrawingBoard(int width, int height) :
-        m_width(width), m_height(height), m_colors(width * height, cellColors[0])
+        m_width(width), m_height(height), m_defaultBgColor(cellColors[(int)arc::Colors::black]), m_colors(width * height, m_defaultBgColor)
     {
+    }
+
+    void clear()
+    {
+        for (cells::Color& color : m_colors) {
+            color = m_defaultBgColor;
+        }
     }
 
     void setColor(int x, int y, cells::Color color)
@@ -402,6 +472,11 @@ public:
         if (!isInRange(x, y))
             return;
         m_colors[currentIndex(x, y)] = color;
+    }
+
+    void renderVectorShape(const VectorShape& vectorShape)
+    {
+        renderVectorShape(vectorShape.firstPixel().x, vectorShape.firstPixel().y, vectorShape);
     }
 
     void renderVectorShape(int x, int y, const VectorShape& vectorShape)
@@ -452,9 +527,26 @@ private:
 
     const int m_width;
     const int m_height;
+    const cells::Color& m_defaultBgColor;
     std::vector<cells::Color> m_colors;
 };
 
+// Maybe a better algorith just
+// - has an input set of pixels (x:0, y:0, color)
+// - has a rule for grouping same pixels:
+//     + when a pixel-group (currently this is the class Patch) is started, the color of the pixel-group will be the color of the first pixel
+//     + try growing the pixel in every possible (8) direction by moving pixels from the input set to the group's set
+//     + when no more possibility for growing start a new pixel-group
+// - so this algo only dealing with one pixel-group a time
+//
+// Current algo:
+// - creating a patch candidate list for every pixel
+// - on every pixel try to grow the patch, by adding the patch pointer to the candidate list
+// - if a pixel has no candidate patch then create one
+// - if a pixel has a candidate then grow that grouo
+// - if a pixel has multiple candidates then merge the patches and the winner is who started earlier (has lovest pixel index)
+// - this is too complite but works
+//
 class PatchBoard : public PatchBoardI
 {
 public:
@@ -604,11 +696,16 @@ void Solver::solveOne(const cells::Sensor& sensor)
     }
     logger.log(DEBUG) << "Patch:";
     loggerPtr->logBoard(DEBUG) << patch->toString() << "\n";
-    for (int i = 0; i < 7; ++i) {
-        DrawingBoard drawingBoard(10, 10);
-        VectorShape vectorShape = patch->vectorize();
-        vectorShape.rotate((RotationDir)i);
-        drawingBoard.renderVectorShape(3, 3, vectorShape);
+    DrawingBoard drawingBoard(15, 15);
+    VectorShape vectorShape = patch->vectorize();
+    vectorShape.m_firstPixel.x = 3;
+    vectorShape.m_firstPixel.y = 3;
+    for (int i = 0; i < 8; ++i) {
+        drawingBoard.clear();
+        VectorShape rotatedShape = vectorShape.rotate((RotationDir)i);
+        drawingBoard.renderVectorShape(rotatedShape);
+        drawingBoard.renderVectorShape(rotatedShape.mirror({ 3, 0 }, RotationDir::Degree_0));
+        drawingBoard.renderVectorShape(rotatedShape.mirror({ 0, 3 }, RotationDir::Degree_90));
         logger.log(DEBUG) << "DrawingBoard:";
         loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
     }

@@ -58,9 +58,9 @@ Element colorTile(Color p_color)
     return text("") | size(WIDTH, EQUAL, 2) | size(HEIGHT, EQUAL, 1) | bgcolor(p_color);
 }
 
-Element colorTile(ArcColors arcColor)
+Element colorTile(arc::Colors arcColor)
 {
-    if (arcColor == ArcColors::alpha)
+    if (arcColor == arc::Colors::alpha)
         return text(L"╳╳") | size(WIDTH, EQUAL, 2) | size(HEIGHT, EQUAL, 1) | color(Color::GrayDark) | bgcolor(Color::GrayLight); // App::arcColors[(int)arcColor]);
     return colorTile(App::arcColors[(int)arcColor]);
 }
@@ -99,7 +99,7 @@ static Element renderJsonBoard(const nlohmann::json& inputRow)
     for (auto inputRowIt = inputRow.begin(); inputRowIt != inputRow.end(); ++inputRowIt) {
         Elements arcSetInputLine;
         for (const int val : *inputRowIt) {
-            arcSetInputLine.push_back(colorTile((ArcColors)val));
+            arcSetInputLine.push_back(colorTile((arc::Colors)val));
         }
         boardLines.push_back(hbox(arcSetInputLine));
     }
@@ -139,7 +139,7 @@ static Element renderBoardFromLog(const std::string& boardStr)
         Elements arcSetInputLine;
         for (int x = 0; x < width; ++x) {
             char boardChar             = board[y * width + x];
-            const ArcColors colorIndex = boardChar == '.' ? ArcColors::alpha : (ArcColors)(boardChar - '0');
+            const arc::Colors colorIndex = boardChar == '.' ? arc::Colors::alpha : (arc::Colors)(boardChar - '0');
             arcSetInputLine.push_back(colorTile(colorIndex));
         }
         boardLines.push_back(hbox(arcSetInputLine));
@@ -180,7 +180,7 @@ void App::renderArcTestInputGrid()
     for (auto inputRowIt = inputRow.begin(); inputRowIt != inputRow.end(); ++inputRowIt) {
         Elements arcSetInputLine;
         for (const int val : *inputRowIt) {
-            arcSetInputLine.push_back(colorTile((ArcColors)val));
+            arcSetInputLine.push_back(colorTile((arc::Colors)val));
         }
         arcSetInputLines.push_back(hbox(arcSetInputLine));
     }

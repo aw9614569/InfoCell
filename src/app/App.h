@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Colors.h"
 #include "util/Logging.h"
 #include "ftxui/component/component.hpp" // for Slider
 
@@ -9,21 +10,6 @@
 #include <sstream>
 
 namespace synth {
-
-enum class ArcColors
-{
-    black,
-    blue,
-    red,
-    green,
-    yellow,
-    grey,
-    fuschia,
-    orange,
-    teal,
-    brown,
-    alpha
-};
 
 class App
 {
