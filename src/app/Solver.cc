@@ -21,6 +21,11 @@ const std::array<cells::Color, 10> cellColors = {
     cells::Color(0x87, 0x0C, 0x25)  /* brown */
 };
 
+const cells::Color& color(arc::Colors c)
+{
+    return cellColors[(int)c];
+}
+
 const std::map<const cells::Color, int> cellColorsToColorId = {
     { cellColors[0], 0 },
     { cellColors[1], 1 },
@@ -76,10 +81,35 @@ public:
         return std::tie(x, y) < std::tie(rhs.x, rhs.y);
     }
 
-    void rotate(RotationDir rotationDir)
+    Vector operator+(const Vector& rhs) const
     {
-        int origX = x;
-        int origY = y;
+        return Vector({ x + rhs.x, y + rhs.y });
+    }
+
+    Vector operator-(const Vector& rhs) const
+    {
+        return Vector({ x - rhs.x, y - rhs.y });
+    }
+
+    Vector& operator+=(const Vector& rhs)
+    {
+        this->x += rhs.x;
+        this->y += rhs.y;
+
+        return *this;
+    }
+
+    Vector& operator-=(const Vector& rhs)
+    {
+        this->x -= rhs.x;
+        this->y -= rhs.y;
+
+        return *this;
+    }
+
+    Vector rotate(RotationDir rotationDir) const
+    {
+        Vector ret(x, y);
         switch (rotationDir) {
 
         // 🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩
@@ -89,46 +119,48 @@ public:
 
         // 🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭
         case RotationDir::Degree_45:
-            x = origX - origY;
-            y = origY + origX;
+            ret.x = x - y;
+            ret.y = y + x;
             break;
 
         // 🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪
         case RotationDir::Degree_90:
-            x = -origY;
-            y = origX;
+            ret.x = -y;
+            ret.y = x;
             break;
 
         // 🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮
         case RotationDir::Degree_135:
-            x = -origX - origY;
-            y = origX - origY;
+            ret.x = -x - y;
+            ret.y = x - y;
             break;
 
         // 🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫
         case RotationDir::Degree_180:
-            x = -origX;
-            y = -origY;
+            ret.x = -x;
+            ret.y = -y;
             break;
 
         // 🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯
         case RotationDir::Degree_225:
-            x = -origX + origY;
-            y = -origX - origY;
+            ret.x = -x + y;
+            ret.y = -x - y;
             break;
 
         // 🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨
         case RotationDir::Degree_270:
-            x = origY;
-            y = -origX;
+            ret.x = y;
+            ret.y = -x;
             break;
 
         // 🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬
         case RotationDir::Degree_315:
-            x = origX + origY;
-            y = -origX + origY;
+            ret.x = x + y;
+            ret.y = -x + y;
             break;
         }
+
+        return ret;
     }
 
     int x;
@@ -152,8 +184,7 @@ public:
         std::vector<Vector> rotatedVectors;
 
         for (const Vector& vector : m_vectors) {
-            Vector newVector = vector;
-            newVector.rotate(rotationDir);
+            Vector newVector = vector.rotate(rotationDir);
             rotatedVectors.push_back(newVector);
 //            loggerPtr->log(DEBUG) << " rotate vector [" << vector.x << ", " << vector.y << "] => [" << newVector.x << ", " << newVector.y << "]";
         }
@@ -162,7 +193,7 @@ public:
         return VectorShape(std::move(rotatedVectors), m_color, m_firstPixel);
     }
 
-    VectorShape mirror(Vector firsPixelDistance, RotationDir axisDir) const
+    VectorShape mirror(const Vector firsPixelDistance, RotationDir axisDir) const
     {
         std::vector<Vector> mirrorShape;
 
@@ -180,9 +211,28 @@ public:
                 return VectorShape(std::move(mirrorShape), color(), firstPixel);
             }
             break;
+
+        case RotationDir::Degree_45:
+        case RotationDir::Degree_135:
+        case RotationDir::Degree_225:
+        case RotationDir::Degree_315: {
+            Vector distanceVector = firsPixelDistance;
+            if (axisDir == RotationDir::Degree_45 || axisDir == RotationDir::Degree_225) {
+                distanceVector -= firsPixelDistance.rotate(RotationDir::Degree_90);
+            } else {
+                distanceVector += firsPixelDistance.rotate(RotationDir::Degree_90);
+            }
+            Pixel firstPixel(m_firstPixel.x + distanceVector.x, m_firstPixel.y + distanceVector.y);
+            for (const Vector& vector : m_vectors) {
+                mirrorShape.push_back({ -vector.x, -vector.y });
+            }
+
+            return VectorShape(std::move(mirrorShape), color(), firstPixel);
+        } break;
+
         case RotationDir::Degree_90:
         case RotationDir::Degree_270:
-            // y coordinate will be the same
+            // x coordinate will be the same
             {
                 int distance = firsPixelDistance.y;
                 Pixel firstPixel(m_firstPixel.x, m_firstPixel.y + distance * 2);
@@ -474,6 +524,114 @@ public:
         m_colors[currentIndex(x, y)] = color;
     }
 
+    void renderLine(int x, int y, const cells::Color& color, RotationDir direction)
+    {
+        if (!isInRange(x, y))
+            return;
+
+        switch (direction) {
+
+        // 🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩
+        // 🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫
+        case RotationDir::Degree_0:
+        case RotationDir::Degree_180:
+            for (int i = 0; i < m_height; ++i) {
+                m_colors[currentIndex(x, i)] = color;
+            }
+            break;
+
+        // 🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭
+        // 🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯
+        case RotationDir::Degree_45:
+        case RotationDir::Degree_225: {
+            int newX = 0;
+            int newY = 0;
+            int iterCount = 0;
+
+            // line equation is y = x + diffXY
+            // line equation is x = y - diffXY
+            int diffXY = x - y;
+
+            x = -diffXY; // solved X coordinate when y = 0
+            y = diffXY;  // solved y coordinate when x = 0
+
+            // one of the coordinate will be negative, we check here which coordinate is positive
+            if (x > y) {
+                // x must be a positive integer so y is a negative integer
+                newX = x - y;
+                newY = 0;
+
+                // solving y for last x coordinate of the board
+                int lastY = lastXIndex() + diffXY;
+                int iterCountY = lastY - newY;
+
+                // solving x for lastY
+                int lastX = lastY - diffXY;
+                int iterCountX = lastX - newX;
+
+                iterCount = iterCountX < iterCountY ? iterCountX : iterCountY;
+            } else if (y > x) {
+                // y must be a positive integer so x is a negative integer
+                newX = 0;
+                newY = y - x;
+
+                // solving x for last y coordinate of the board
+                int lastX = lastYIndex() - diffXY;
+                int iterCountX = lastX - newX;
+
+                // solving y for lastX
+                int lastY = lastX + diffXY;
+                int iterCountY = lastY - newY;
+
+                iterCount = iterCountX < iterCountY ? iterCountX : iterCountY;
+            } else if (x == y) {
+                iterCount = lastXIndex();
+            }
+
+            for (int i = 0; i <= iterCount; ++i) {
+                m_colors[currentIndex(newX, newY)] = color;
+                newX += 1;
+                newY += 1;
+            }
+        } break;
+
+        // 🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪
+        // 🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨
+        case RotationDir::Degree_90:
+        case RotationDir::Degree_270:
+            for (int i = 0; i < m_width; ++i) {
+                m_colors[currentIndex(i, y)] = color;
+            }
+            break;
+
+        // 🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮
+        // 🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬
+        case RotationDir::Degree_135:
+        case RotationDir::Degree_315: {
+            int newX = x;
+            int newY = y;
+            for (int i = x; i < m_width; ++i) {
+                if (!isInRange(newX, newY)) {
+                    continue;
+                }
+                m_colors[currentIndex(newX, newY)] = color;
+                newX += 1;
+                newY -= 1;
+            }
+            newX = x - 1;
+            newY = y + 1;
+            for (int i = x - 1; i >= 0; --i) {
+                if (!isInRange(newX, newY)) {
+                    continue;
+                }
+                m_colors[currentIndex(newX, newY)] = color;
+                newX -= 1;
+                newY += 1;
+            }
+        } break;
+        }
+    }
+
     void renderVectorShape(const VectorShape& vectorShape)
     {
         renderVectorShape(vectorShape.firstPixel().x, vectorShape.firstPixel().y, vectorShape);
@@ -482,12 +640,12 @@ public:
     void renderVectorShape(int x, int y, const VectorShape& vectorShape)
     {
         setColor(x, y, cellColors[2]);
-        loggerPtr->log(DEBUG) << " setColor [" << x << ", " << y << "]";
+//        loggerPtr->log(DEBUG) << " setColor [" << x << ", " << y << "]";
         for (const Vector& vector : vectorShape.m_vectors) {
             x += vector.x;
             y += vector.y;
             setColor(x, y, vectorShape.m_color);
-            loggerPtr->log(DEBUG) << " setColor [" << x << ", " << y << "]";
+//            loggerPtr->log(DEBUG) << " setColor [" << x << ", " << y << "]";
         }
     }
 
@@ -510,6 +668,16 @@ public:
         return ret;
     }
 
+    int lastXIndex() const
+    {
+        return m_width - 1;
+    }
+
+    int lastYIndex() const
+    {
+        return m_height - 1;
+    }
+
 private:
     int currentIndex(int x, int y) const
     {
@@ -518,7 +686,7 @@ private:
 
     bool isInRange(int x, int y) const
     {
-        if (y < 0 || x < 0 || x > m_width - 1 || y > m_height - 1) {
+        if (y < 0 || x < 0 || x >= m_width || y >= m_height) {
             return false;
         }
 
@@ -706,6 +874,10 @@ void Solver::solveOne(const cells::Sensor& sensor)
         drawingBoard.renderVectorShape(rotatedShape);
         drawingBoard.renderVectorShape(rotatedShape.mirror({ 3, 0 }, RotationDir::Degree_0));
         drawingBoard.renderVectorShape(rotatedShape.mirror({ 0, 3 }, RotationDir::Degree_90));
+        drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_0);
+        drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_45);
+        drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_90);
+        drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_135);
         logger.log(DEBUG) << "DrawingBoard:";
         loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
     }
