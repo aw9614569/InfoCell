@@ -2,6 +2,7 @@
 #include "Logging.h"
 
 namespace synth {
+Logger* loggerPtr = nullptr;
 
 LoggerStream Logger::log(LogLevel level)
 {

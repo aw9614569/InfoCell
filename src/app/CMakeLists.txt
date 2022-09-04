@@ -5,6 +5,7 @@ add_library(applib STATIC
     Solver.cc
     Solver.h
 )
+
 if(MSVC)
     target_compile_options(applib PUBLIC "/Zc:__cplusplus")
 endif()

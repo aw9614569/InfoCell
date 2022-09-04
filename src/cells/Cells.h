@@ -315,6 +315,8 @@ public:
     IntValue blue;
 };
 
+std::ostream& operator<<(std::ostream& os, const cells::Color& color);
+
 class Vector : public DataCell
 {
 public:

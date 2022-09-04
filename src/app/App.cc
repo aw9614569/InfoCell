@@ -5,15 +5,14 @@
 #include <iostream>
 #include <fstream>
 
-#include "cells/Cells.h"
+#include <ftxui/component/captured_mouse.hpp>     // for ftxui
+#include <ftxui/component/component.hpp>          // for Slider
+#include <ftxui/component/screen_interactive.hpp> // for ScreenInteractive
+#include <ftxui/dom/table.hpp>
+
 #include "Solver.h"
 #include "tests/UnitTester.h"
 #include "util/Converter.h"
-
-#include "ftxui/component/captured_mouse.hpp"     // for ftxui
-#include "ftxui/component/component.hpp"          // for Slider
-#include "ftxui/component/screen_interactive.hpp" // for ScreenInteractive
-#include <ftxui/dom/table.hpp>
 
 namespace fs = std::filesystem;
 using namespace nlohmann;

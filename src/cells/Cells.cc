@@ -61,6 +61,12 @@ std::vector<Cell*> IntValue::membersData   = { &members::value };
 std::vector<Cell*> StringChar::membersData = { &members::next, &members::prev, &members::value };
 std::vector<Cell*> String::membersData     = { &members::first, &members::last, &members::size };
 
+std::ostream& operator<<(std::ostream& os, const cells::Color& color)
+{
+    os << "[" << color.red.value << "," << color.green.value << "," << color.blue.value << "]";
+    return os;
+}
+
 std::string IntValue::string() const
 {
     std::string ret;

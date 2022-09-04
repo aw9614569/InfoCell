@@ -48,4 +48,6 @@ public:
     std::vector<LogMessage>& m_messages;
 };
 
+extern Logger* loggerPtr;
+
 } // namespace synth
