@@ -27,6 +27,7 @@ private:
     void renderArcTaskDemonstration();
     void renderArcTestInputGrid();
     void solve();
+    void doUnitTests();
 
     std::vector<std::string> m_arcFileNames;
     std::vector<LogMessage> m_solvingLogs;

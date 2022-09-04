@@ -7,6 +7,7 @@
 
 #include "cells/Cells.h"
 #include "Solver.h"
+#include "tests/UnitTester.h"
 #include "util/Converter.h"
 
 #include "ftxui/component/captured_mouse.hpp"     // for ftxui
@@ -203,10 +204,17 @@ void App::run()
         solve();
         depth = 1;
     });
+    auto buttonTest = Button("Tests", [&] {
+        focus_y = 0.0f;
+        m_solvingLogs.clear();
+        doUnitTests();
+        depth = 1;
+    });
     auto buttonQuit  = Button("Quit", [&] { exit(0); });
 
     auto container = Container::Vertical({
         buttonSolve,
+        buttonTest,
         buttonQuit,
         menu
     });
@@ -234,10 +242,10 @@ void App::run()
 
         auto ret = flexbox({ vbox({ hbox(text("selected = "), text(m_arcFileNames[m_selectedArcFileIndex])),
                                     separator(),
-                                    flexbox({ buttonSolve->Render() | xflex_grow, separator() | yflex_grow, buttonQuit->Render() | xflex_grow }, flexButtonsConfig),
+                                    menu->Render() | vscroll_indicator | frame | size(HEIGHT, LESS_THAN, 25),
                                     separator(),
-                                    menu->Render() | vscroll_indicator | frame | size(HEIGHT, LESS_THAN, 25) })
-                                 | border,
+                                    flexbox({ buttonSolve->Render() | xflex_grow, separator() | yflex_grow, buttonTest->Render() | xflex_grow, separator() | yflex_grow, buttonQuit->Render() | xflex_grow }, flexButtonsConfig)
+                                  }) | border,
                              m_arcTaskDemonstration | border,
                              m_arcTestInputGrid | border }, flexConfig);
         return ret;
@@ -305,6 +313,11 @@ void App::solve()
 {
     ArcTask arcTask = ConvertJsonToCell(m_arcJsonTask);
     Solver solver(solverLogger, arcTask);
+}
+
+void App::doUnitTests()
+{
+    UnitTester unitTester(solverLogger);
 }
 
 } // namespace synth

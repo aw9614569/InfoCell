@@ -6,7 +6,7 @@
 
 namespace synth {
 
-Logger* loggerPtr = nullptr;
+static Logger* loggerPtr = nullptr;
 
 const std::array<cells::Color, 10> cellColors = {
     cells::Color(0x00, 0x00, 0x00), /* black */
@@ -891,11 +891,9 @@ void Solver::solve()
         const cells::Sensor& m_output = arcDemo.m_output;
         //        logger.log(INFO) << " (" << i << ") mapping[" << m_input.m_width << ", " << m_input.m_height << "] to[" << m_output.m_width << ", " << m_output.m_height << "] ";
         solveOne(m_input);
-        break;
         solveOne(m_output);
-        i++;
     }
-    //    solveOne(m_arcTask.m_testInput);
+    solveOne(m_arcTask.m_testInput);
 
     const cells::Sensor& m_input = m_arcTask.m_testInput;
     logger.log(INFO) << "Mapping input[" << m_input.m_width << ", " << m_input.m_height << "] to ... ?";
@@ -905,11 +903,11 @@ void Solver::solveOne(const cells::Sensor& sensor)
 {
     PatchBoard patchBoard(sensor);
     patchBoard.process();
-    std::shared_ptr<Patch> patch;
-    for (std::shared_ptr<Patch> i : patchBoard.patches()) {
-        if (i->size() == 7)
-            patch = i;
+    for (std::shared_ptr<Patch> patch : patchBoard.patches()) {
+        logger.log(DEBUG) << "Patch:";
+        logger.logBoard(DEBUG) << patch->toString() << "\n";
     }
+#if 0
     logger.log(DEBUG) << "Patch:";
     loggerPtr->logBoard(DEBUG) << patch->toString() << "\n";
     DrawingBoard drawingBoard(25, 25);
@@ -937,6 +935,7 @@ void Solver::solveOne(const cells::Sensor& sensor)
         loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
         break;
     }
+#endif
 
     logger.log(DEBUG) << "Number of patches found: " << patchBoard.patches().size();
 }
