@@ -17,52 +17,173 @@ UnitTester::UnitTester(Logger& logger) :
     start();
 }
 
-struct TestCase;
-static cells::Sensor convertTestCaseToSensor(const TestCase& testBoard);
-
 struct TestCase
 {
     std::string name;
-    int width;
-    int height;
+    std::function<void()> test;
+};
+
+struct TestBoard
+{
+    int width  = 0;
+    int height = 0;
     std::vector<int> pixels;
-    std::function<void(const TestCase& testCase)> test;
 };
+static cells::Sensor convertTestCaseToSensor(const TestBoard& testBoard);
 
-static const TestCase testCase1("StretchTest", 3, 3, { 0, 7, 7, 7, 7, 7, 0, 7, 7 },
-                                 [](const TestCase& testCase) {
-                                    cells::Sensor sensor = convertTestCaseToSensor(testCase);
-                                     PatchBoard patchBoard(sensor);
-                                     patchBoard.process();
-                                     std::shared_ptr<Patch> patch;
-                                     for (std::shared_ptr<Patch> i : patchBoard.patches()) {
-                                         if (i->size() == 7)
-                                             patch = i;
-                                     }
-                                     loggerPtr->log(DEBUG) << "Patch:";
-                                     loggerPtr->logBoard(DEBUG) << patch->toString() << "\n";
-                                     DrawingBoard drawingBoard(25, 25);
-                                     VectorShape vectorShape = patch->vectorize();
-                                     vectorShape.firstPixel({ 3, 2 });
+class TestCases
+{
+public:
+    TestCases()
+    {
+        if (m_testCases.empty())
+            addTestCases();
+    }
 
-                                     drawingBoard.clear();
-                                     drawingBoard.renderVectorShape(2, 1, vectorShape.stretch(1, 1));
-                                     drawingBoard.renderVectorShape(2, 10, vectorShape.stretch(1, 2));
-                                     drawingBoard.renderVectorShape(10, 3, vectorShape.stretch(2, 1));
-                                     drawingBoard.renderVectorShape(10, 9, vectorShape.stretch(2, 2));
-                                     drawingBoard.renderVectorShape(10, 18, vectorShape.stretch(3, 3));
-                                     loggerPtr->log(DEBUG) << "DrawingBoard:";
-                                     loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+    static size_t size()
+    {
+        return m_testCases.size();
+    }
 
-                                     loggerPtr->log(DEBUG) << "Number of patches found: " << patchBoard.patches().size();
-                                 }
-);
+    static void add(const TestCase& testCase)
+    {
+        m_testCases.push_back(testCase);
+    }
 
-std::vector<TestCase> testCases = {
-    testCase1
+    static const std::vector<TestCase>& testCases()
+    {
+        return m_testCases;
+    }
+
+private:
+    static void addTestCases();
+    static std::vector<TestCase> m_testCases;
 };
+std::vector<TestCase> TestCases::m_testCases;
 
-static cells::Sensor convertTestCaseToSensor(const TestCase& testBoard)
+void TestCases::addTestCases()
+{
+    add(TestCase("PatchTest", []() {
+        TestBoard testBoard({ 3, 3, { 0, 7, 7, 7, 7, 7, 0, 7, 7 } });
+        cells::Sensor sensor = convertTestCaseToSensor(testBoard);
+        PatchBoard patchBoard(sensor);
+        patchBoard.process();
+#if 0
+        for (std::shared_ptr<Patch> patch : patchBoard.patches()) {
+            loggerPtr->log(DEBUG) << "Patch:";
+            loggerPtr->logBoard(DEBUG) << patch->toString() << "\n";
+        }
+#endif
+        loggerPtr->log(DEBUG) << "Number of patches found: " << patchBoard.patches().size();
+        assert(patchBoard.patches().size() == 3);
+    }));
+
+    add(TestCase("PatchMergeTest", []() {
+        TestBoard testBoard({ 3, 3, { 7, 0, 7, 7, 0, 7, 7, 7, 7 } });
+        cells::Sensor sensor = convertTestCaseToSensor(testBoard);
+        PatchBoard patchBoard(sensor);
+        patchBoard.process();
+#if 0
+        for (std::shared_ptr<Patch> patch : patchBoard.patches()) {
+            loggerPtr->log(DEBUG) << "Patch:";
+            loggerPtr->logBoard(DEBUG) << patch->toString() << "\n";
+        }
+#endif
+        loggerPtr->log(DEBUG) << "Number of patches found: " << patchBoard.patches().size();
+        assert(patchBoard.patches().size() == 2);
+    }));
+
+    add(TestCase("StretchTest", []() {
+        std::vector<Vector> shapeVectors = {
+            { 1, 0 },
+            { -2, 1 },
+            { 1, 0 },
+            { 1, 0 },
+            { -1, 1 },
+            { 1, 0 }
+        };
+        VectorShape vectorShape(shapeVectors, color(arc::Colors::orange), { 3, 2 });
+
+        DrawingBoard drawingBoard(18, 23);
+        drawingBoard.renderVectorShape(2, 1, vectorShape.stretch(1, 1));
+        drawingBoard.renderVectorShape(2, 10, vectorShape.stretch(1, 2));
+        drawingBoard.renderVectorShape(10, 3, vectorShape.stretch(2, 1));
+        drawingBoard.renderVectorShape(10, 9, vectorShape.stretch(2, 2));
+        drawingBoard.renderVectorShape(10, 18, vectorShape.stretch(3, 3));
+
+        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+    }));
+
+    add(TestCase("RotationTest", []() {
+        std::vector<Vector> shapeVectors = {
+            { 1, 0 },
+            { -2, 1 },
+            { 1, 0 },
+            { 1, 0 },
+            { -1, 1 },
+            { 1, 0 }
+        };
+        DrawingBoard drawingBoard(12, 10);
+        VectorShape vectorShape(shapeVectors, color(arc::Colors::orange), { 3, 2 });
+        VectorShape rotatedShape = vectorShape.rotate(RotationDir::Degree_0);
+        drawingBoard.renderVectorShape(rotatedShape);
+        drawingBoard.renderVectorShape(rotatedShape.mirror({ 3, 0 }, RotationDir::Degree_0));
+        drawingBoard.renderVectorShape(rotatedShape.mirror({ 0, 3 }, RotationDir::Degree_90));
+
+        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+    }));
+
+    add(TestCase("LineDrawing", []() {
+        DrawingBoard drawingBoard(15, 15);
+
+        drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_0);
+        drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_45);
+        drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_90);
+        drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_135);
+
+        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+    }));
+
+    add(TestCase("Mirroring vertically (0 or 180 degree)", []() {
+        std::vector<Vector> shapeVectors = {
+            { 1, 0 },
+            { -2, 1 },
+            { 1, 0 },
+            { 1, 0 },
+            { -1, 1 },
+            { 1, 0 }
+        };
+        VectorShape vectorShape(shapeVectors, color(arc::Colors::orange), { 2, 1 });
+        VectorShape mirrorShape = vectorShape.mirror({ 3, 3 }, RotationDir::Degree_0);
+        DrawingBoard drawingBoard(11, 5);
+        drawingBoard.renderLine(5, 3, color(arc::Colors::grey), RotationDir::Degree_0);
+        drawingBoard.renderVectorShape(vectorShape);
+        drawingBoard.renderVectorShape(mirrorShape);
+
+        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+    }));
+
+    add(TestCase("Mirroring vertically (90 or 270 degree)", []() {
+        std::vector<Vector> shapeVectors = {
+            { 1, 0 },
+            { -2, 1 },
+            { 1, 0 },
+            { 1, 0 },
+            { -1, 1 },
+            { 1, 0 }
+        };
+        VectorShape vectorShape(shapeVectors, color(arc::Colors::orange), { 2, 1 });
+        VectorShape mirrorShape = vectorShape.mirror({ 3, 4 }, RotationDir::Degree_90);
+        DrawingBoard drawingBoard(5, 11);
+        drawingBoard.renderLine(3, 5, color(arc::Colors::grey), RotationDir::Degree_90);
+        drawingBoard.renderVectorShape(vectorShape);
+        drawingBoard.renderVectorShape(mirrorShape);
+
+        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+    }));
+}
+
+static cells::Sensor convertTestCaseToSensor(const TestBoard& testBoard)
 {
     cells::Sensor sensor;
     const int height = testBoard.height;
@@ -81,25 +202,19 @@ static cells::Sensor convertTestCaseToSensor(const TestCase& testBoard)
     return sensor;
 }
 
-
 void UnitTester::start()
 {
+    static TestCases testCases;
+
     loggerPtr = &logger;
     logger.clearLogFile();
     logger.log(INFO) << "There are " << testCases.size() << " test cases";
-    for (const TestCase& testCase : testCases) {
-        testCase.test(testCase);
+    int i = 0;
+    for (const TestCase& testCase : testCases.testCases()) {
+        i++;
+        logger.log(INFO) << i << ". " << testCase.name;
+        testCase.test();
     }
 }
 
-#if 0
-        VectorShape rotatedShape = vectorShape.rotate((RotationDir)i);
-        drawingBoard.renderVectorShape(rotatedShape);
-        drawingBoard.renderVectorShape(rotatedShape.mirror({ 3, 0 }, RotationDir::Degree_0));
-        drawingBoard.renderVectorShape(rotatedShape.mirror({ 0, 3 }, RotationDir::Degree_90));
-        drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_0);
-        drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_45);
-        drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_90);
-        drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_135);
-#endif
 } // namespace synth
