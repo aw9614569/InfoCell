@@ -28,6 +28,10 @@ const cells::Color& color(arc::Colors c);
 class Pixel
 {
 public:
+    Pixel() :
+        x(0), y(0)
+    { }
+
     Pixel(int x, int y) :
         x(x), y(y)
     {
@@ -66,26 +70,119 @@ public:
 
     Vector rotate(RotationDir rotationDir) const;
 
-    int x;
-    int y;
+    int x = 0;
+    int y = 0;
+};
+
+// ============================================================================
+class Box
+{
+public:
+    int width() const
+    {
+        return rightX - leftX + 1;
+    }
+
+    int height() const
+    {
+        return bottomY - topY + 1;
+    }
+
+    Pixel topLeftPixel() const
+    {
+        return Pixel(leftX, topY);
+    }
+
+    Pixel topRightPixel() const
+    {
+        return Pixel(rightX, topY);
+    }
+
+    Pixel bottomLeftPixel() const
+    {
+        return Pixel(leftX, bottomY);
+    }
+
+    Pixel bottomRightPixel() const
+    {
+        return Pixel(rightX, bottomY);
+    }
+
+    int leftX   = 0;
+    int topY    = 0;
+    int rightX  = 0;
+    int bottomY = 0;
+};
+
+class VectorShape;
+class BoundingBox : public Box
+{
+public:
+    BoundingBox(const std::vector<Pixel>& pixels)
+    {
+        fromPixels(pixels);
+    }
+
+    BoundingBox(const VectorShape& vektorShape);
+    BoundingBox(const Pixel& firstPixel, const std::vector<Vector>& vectors)
+    {
+        fromVectors(firstPixel, vectors);
+    }
+
+    const Vector& toFirstPixel() const
+    {
+        return m_toFirstPixel;
+    }
+
+    const Vector& toLastPixel() const
+    {
+        return m_toLastPixel;
+    }
+
+private:
+    void fromPixels(const std::vector<Pixel>& pixels);
+    void fromVectors(const Pixel& firstPixel, const std::vector<Vector>& vectors);
+    void update(const Pixel& pixel);
+    void firstPixelVector(const Pixel& pixel);
+    void lastPixelVector(const Pixel& pixel);
+
+    Vector m_toFirstPixel;
+    Vector m_toLastPixel;
+};
+
+enum class DistanceType
+{
+    FromTopLeft,
+    FromTopRight,
+    FromBottomLeft,
+    FromBottomRight,
+    FromFirstPixel,
+    FromLastPixel
 };
 
 // ============================================================================
 class VectorShape
 {
 public:
+    VectorShape(const cells::Color& color) :
+        m_color(color)
+    {
+    }
+
     VectorShape(const std::vector<Vector>& vectors, const cells::Color& color, const Pixel& firstPixel) :
         m_vectors(vectors), m_color(color), m_firstPixel(firstPixel)
     {
     }
+
     VectorShape(std::vector<Vector>&& vectors, const cells::Color& color, const Pixel& firstPixel) :
         m_vectors(std::move(vectors)), m_color(color), m_firstPixel(firstPixel)
     {
     }
 
+    void fromPixels(const std::vector<Pixel>& pixels);
     VectorShape rotate(RotationDir rotationDir) const;
     VectorShape stretch(int horizontal, int vertical) const;
-    VectorShape mirror(const Vector firsPixelDistance, RotationDir axisDir) const;
+    VectorShape mirror(DistanceType distanceType, const Vector distance, RotationDir axisDir) const;
 
     const cells::Color& color() const
     {
@@ -142,13 +239,12 @@ public:
     void addPixelCoordinate(int x, int y);
     void merge(std::shared_ptr<Patch> other);
     void sortPixels();
-    VectorShape vectorize() const;
-    void refreshBoundaries(int x, int y);
 
     int id() const
     {
         return m_id;
     }
+
     void id(int id)
     {
         m_id = id;
@@ -174,6 +270,11 @@ public:
         return m_pixels.back();
     }
 
+    const std::vector<Pixel>& pixels() const
+    {
+        return m_pixels;
+    }
+
     int pixelIndex(const Pixel& pixel) const
     {
         return pixel.y * m_width + pixel.x;
@@ -190,16 +291,6 @@ public:
         return firstPixelIndex() < rhs.firstPixelIndex();
     }
 
-    int patchWidth() const
-    {
-        return m_rightX - m_leftX;
-    }
-
-    int patchHeight() const
-    {
-        return m_bottomY - m_topY;
-    }
-
     std::string toString() const;
 
     const std::set<Pixel>& subscribedPixels() const
@@ -208,12 +299,8 @@ public:
     }
 
 private:
-    int m_id      = 0;
-    int m_leftX   = 0;
-    int m_rightX  = 0;
-    int m_topY    = 0;
-    int m_bottomY = 0;
 
+    int m_id      = 0;
     cells::Color m_color;
     PatchBoardI* m_patchBoardI = nullptr;
     const int m_width;
@@ -246,12 +333,14 @@ public:
     void clear();
     void setColor(int x, int y, cells::Color color);
     void renderLine(int x, int y, const cells::Color& color, RotationDir direction);
+    void renderLine(int x, int y, int len, const cells::Color& color, RotationDir direction);
     void renderVectorShape(const VectorShape& vectorShape)
     {
         renderVectorShape(vectorShape.firstPixel().x, vectorShape.firstPixel().y, vectorShape);
     }
 
     void renderVectorShape(int x, int y, const VectorShape& vectorShape);
+    void renderBoundingBox(const BoundingBox& boundingBox);
 
     std::string toString() const;
 

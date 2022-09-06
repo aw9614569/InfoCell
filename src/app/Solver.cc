@@ -115,6 +115,80 @@ Vector Vector::rotate(RotationDir rotationDir) const
     return ret;
 }
 
+void BoundingBox::fromPixels(const std::vector<Pixel>& pixels)
+{
+    leftX = pixels.front().x;
+    topY  = pixels.front().y;
+    for (const Pixel& pixel : pixels) {
+        update(pixel);
+    }
+
+    firstPixelVector(pixels.front());
+    lastPixelVector(pixels.back());
+}
+
+BoundingBox::BoundingBox(const VectorShape& vektorShape)
+{
+    fromVectors(vektorShape.firstPixel(), vektorShape.vectors());
+}
+
+void BoundingBox::fromVectors(const Pixel& firstPixel, const std::vector<Vector>& vectors)
+{
+    Pixel actualPixel = firstPixel;
+
+    leftX = firstPixel.x;
+    topY  = firstPixel.y;
+    for (const Vector& vector : vectors) {
+        update(actualPixel);
+        actualPixel.x = vector.x;
+        actualPixel.y = vector.y;
+    }
+    firstPixelVector(firstPixel);
+    lastPixelVector(actualPixel);
+}
+
+void BoundingBox::update(const Pixel& pixel)
+{
+    if (pixel.x < leftX)
+        leftX = pixel.x;
+    if (pixel.x > rightX)
+        rightX = pixel.x;
+    if (pixel.y < topY)
+        topY = pixel.y;
+    if (pixel.y > bottomY)
+        bottomY = pixel.y;
+}
+
+void BoundingBox::firstPixelVector(const Pixel& pixel)
+{
+    m_toFirstPixel.x = pixel.x - leftX;
+    m_toFirstPixel.y = pixel.y - topY;
+}
+
+void BoundingBox::lastPixelVector(const Pixel& pixel)
+{
+    m_toLastPixel.x = pixel.x - leftX;
+    m_toLastPixel.y = pixel.y - topY;
+}
+
+void VectorShape::fromPixels(const std::vector<Pixel>& pixels)
+{
+    m_vectors.clear();
+    firstPixel(pixels.front());
+    const Pixel* prevPixel = &pixels.front();
+    bool isFirstPixel      = true;
+
+    for (const auto& pixel : pixels) {
+        if (isFirstPixel) {
+            isFirstPixel = false;
+            continue;
+        }
+        const Pixel* currPixel = &pixel;
+        m_vectors.push_back({ currPixel->x - prevPixel->x, currPixel->y - prevPixel->y });
+        prevPixel = currPixel;
+    }
+}
+
 VectorShape VectorShape::rotate(RotationDir rotationDir) const
 {
     std::vector<Vector> rotatedVectors;
@@ -164,7 +238,7 @@ void VectorShape::stretchPixel(std::vector<Vector>& stretchVectors, int horizont
     }
 }
 
-VectorShape VectorShape::mirror(const Vector firsPixelDistance, RotationDir axisDir) const
+VectorShape VectorShape::mirror(DistanceType distanceType, const Vector distance, RotationDir axisDir) const
 {
     std::vector<Vector> mirrorShape;
 
@@ -173,8 +247,7 @@ VectorShape VectorShape::mirror(const Vector firsPixelDistance, RotationDir axis
     case RotationDir::Degree_180:
         // y coordinate will be the same
         {
-            int distance = firsPixelDistance.x;
-            Pixel firstPixel(m_firstPixel.x + distance * 2, m_firstPixel.y);
+            Pixel firstPixel(m_firstPixel.x + distance.x * 2, m_firstPixel.y);
             for (const Vector& vector : m_vectors) {
                 mirrorShape.push_back({ -vector.x, vector.y });
             }
@@ -187,11 +260,11 @@ VectorShape VectorShape::mirror(const Vector firsPixelDistance, RotationDir axis
     case RotationDir::Degree_135:
     case RotationDir::Degree_225:
     case RotationDir::Degree_315: {
-        Vector distanceVector = firsPixelDistance;
+        Vector distanceVector = distance;
         if (axisDir == RotationDir::Degree_45 || axisDir == RotationDir::Degree_225) {
-            distanceVector -= firsPixelDistance.rotate(RotationDir::Degree_90);
+            distanceVector -= distance.rotate(RotationDir::Degree_90);
         } else {
-            distanceVector += firsPixelDistance.rotate(RotationDir::Degree_90);
+            distanceVector += distance.rotate(RotationDir::Degree_90);
         }
         Pixel firstPixel(m_firstPixel.x + distanceVector.x, m_firstPixel.y + distanceVector.y);
         for (const Vector& vector : m_vectors) {
@@ -205,8 +278,7 @@ VectorShape VectorShape::mirror(const Vector firsPixelDistance, RotationDir axis
     case RotationDir::Degree_270:
         // x coordinate will be the same
         {
-            int distance = firsPixelDistance.y;
-            Pixel firstPixel(m_firstPixel.x, m_firstPixel.y + distance * 2);
+            Pixel firstPixel(m_firstPixel.x, m_firstPixel.y + distance.y * 2);
             for (const Vector& vector : m_vectors) {
                 mirrorShape.push_back({ vector.x, -vector.y });
             }
@@ -221,7 +293,6 @@ VectorShape VectorShape::mirror(const Vector firsPixelDistance, RotationDir axis
 
 void Patch::addPixelCoordinate(int x, int y)
 {
-    refreshBoundaries(x, y);
     m_pixels.push_back({ x, y });
     m_patchBoardI->subscribePatchForPixel(shared_from_this(), x, y);
 }
@@ -241,39 +312,6 @@ void Patch::sortPixels()
     std::sort(m_pixels.begin(), m_pixels.end(), [patchBoardWidth](const Pixel& p1, const Pixel& p2) {
         return p1.y * patchBoardWidth + p1.x < p2.y * patchBoardWidth + p2.x;
     });
-}
-
-VectorShape Patch::vectorize() const
-{
-    std::vector<Vector> vectors;
-
-    const Pixel* prevPixel = &m_pixels.front();
-    bool isFirstPixel      = true;
-
-    for (const auto& pixel : m_pixels) {
-        if (isFirstPixel) {
-            isFirstPixel = false;
-            continue;
-        }
-        const Pixel* currPixel = &pixel;
-        vectors.push_back({ currPixel->x - prevPixel->x, currPixel->y - prevPixel->y });
-        prevPixel = currPixel;
-    }
-    VectorShape vectorShape(std::move(vectors), color(), firstPixel());
-
-    return vectorShape;
-}
-
-void Patch::refreshBoundaries(int x, int y)
-{
-    if (x < m_leftX)
-        m_leftX = x;
-    if (x > m_rightX)
-        m_rightX = x;
-    if (y < m_topY)
-        m_topY = y;
-    if (y > m_bottomY)
-        m_bottomY = y;
 }
 
 std::string Patch::toString() const
@@ -364,6 +402,53 @@ void DrawingBoard::setColor(int x, int y, cells::Color color)
     if (!isInRange(x, y))
         return;
     m_colors[currentIndex(x, y)] = color;
+}
+
+void DrawingBoard::renderLine(int x, int y, int len, const cells::Color& color, RotationDir direction)
+{
+    switch (direction) {
+
+    // 🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩
+    // 🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫
+    case RotationDir::Degree_0:
+    case RotationDir::Degree_180:
+        for (int i = 0; i < len; ++i) {
+            setColor(x, y + i, color);
+        }
+        break;
+
+    // 🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭
+    // 🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯
+    case RotationDir::Degree_45:
+    case RotationDir::Degree_225: {
+        int newX = x;
+        int newY = y;
+        for (int i = 0; i < len; ++i) {
+            setColor(newX++, newY++, color);
+        }
+
+    } break;
+
+    // 🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪
+    // 🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨
+    case RotationDir::Degree_90:
+    case RotationDir::Degree_270:
+        for (int i = 0; i < len; ++i) {
+            setColor(x + i, y, color);
+        }
+        break;
+
+    // 🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮
+    // 🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬
+    case RotationDir::Degree_135:
+    case RotationDir::Degree_315: {
+        int newX = x;
+        int newY = y;
+        for (int i = 0; i < len; ++i) {
+            setColor(newX++, newY--, color);
+        }
+    } break;
+    }
 }
 
 void DrawingBoard::renderLine(int x, int y, const cells::Color& color, RotationDir direction)
@@ -486,6 +571,16 @@ void DrawingBoard::renderVectorShape(int x, int y, const VectorShape& vectorShap
     }
 }
 
+void DrawingBoard::renderBoundingBox(const BoundingBox& boundingBox)
+{
+    const cells::Color pixelColor = color(arc::Colors::grey);
+    renderLine(boundingBox.leftX, boundingBox.topY, boundingBox.height(), pixelColor, RotationDir::Degree_0);
+    renderLine(boundingBox.rightX, boundingBox.topY, boundingBox.height(), pixelColor, RotationDir::Degree_0);
+
+    renderLine(boundingBox.leftX, boundingBox.topY, boundingBox.width(), pixelColor, RotationDir::Degree_90);
+    renderLine(boundingBox.leftX, boundingBox.bottomY, boundingBox.width(), pixelColor, RotationDir::Degree_90);
+}
+
 std::string DrawingBoard::toString() const
 {
     std::string board(m_width * m_height, '.');
@@ -539,7 +634,6 @@ void PatchBoard::process()
     std::sort(sortedPatches.begin(), sortedPatches.end(), [](const std::shared_ptr<Patch>& lhs, const std::shared_ptr<Patch>& rhs) { return *lhs < *rhs; });
     for (std::shared_ptr<Patch> patch : sortedPatches) {
         patch->id(id++);
-        patch->vectorize();
         loggerPtr->log(DEBUG) << "Patch " << patch->id() << "\n";
         loggerPtr->logBoard(DEBUG) << patch->toString() << "\n";
     }

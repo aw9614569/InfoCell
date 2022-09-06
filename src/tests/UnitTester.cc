@@ -127,19 +127,53 @@ void TestCases::addTestCases()
         VectorShape vectorShape(shapeVectors, color(arc::Colors::orange), { 3, 2 });
         VectorShape rotatedShape = vectorShape.rotate(RotationDir::Degree_0);
         drawingBoard.renderVectorShape(rotatedShape);
-        drawingBoard.renderVectorShape(rotatedShape.mirror({ 3, 0 }, RotationDir::Degree_0));
-        drawingBoard.renderVectorShape(rotatedShape.mirror({ 0, 3 }, RotationDir::Degree_90));
+        drawingBoard.renderVectorShape(rotatedShape.mirror(DistanceType::FromFirstPixel, { 3, 0 }, RotationDir::Degree_0));
+        drawingBoard.renderVectorShape(rotatedShape.mirror(DistanceType::FromFirstPixel, { 0, 3 }, RotationDir::Degree_90));
 
         loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
     }));
 
-    add(TestCase("LineDrawing", []() {
+    add(TestCase("LineDrawingAxisTest", []() {
         DrawingBoard drawingBoard(15, 15);
 
         drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_0);
         drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_45);
         drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_90);
         drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_135);
+
+        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+    }));
+
+    add(TestCase("LineDrawingPositionTest", []() {
+        DrawingBoard drawingBoard(15, 15);
+
+        drawingBoard.renderLine(0, 0, color(arc::Colors::grey), RotationDir::Degree_0);
+        drawingBoard.renderLine(0, 0, color(arc::Colors::grey), RotationDir::Degree_90);
+        drawingBoard.renderLine(14, 0, color(arc::Colors::grey), RotationDir::Degree_0);
+        drawingBoard.renderLine(0, 14, color(arc::Colors::grey), RotationDir::Degree_90);
+
+        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+    }));
+
+    add(TestCase("BoundingBoxTest", []() {
+        std::vector<Pixel> pixels = {
+            { 4, 2 },
+            { 4, 3 },
+            { 4, 4 },
+            { 4, 5 },
+            { 4, 6 },
+            { 3, 4 },
+            { 2, 4 },
+            { 5, 4 },
+            { 6, 4 },
+        };
+        VectorShape vectorShape(color(arc::Colors::orange));
+        vectorShape.fromPixels(pixels);
+        BoundingBox boundingBox(pixels);
+
+        DrawingBoard drawingBoard(8, 8);
+        drawingBoard.renderBoundingBox(boundingBox);
+        drawingBoard.renderVectorShape(vectorShape);
 
         loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
     }));
@@ -154,7 +188,7 @@ void TestCases::addTestCases()
             { 1, 0 }
         };
         VectorShape vectorShape(shapeVectors, color(arc::Colors::orange), { 2, 1 });
-        VectorShape mirrorShape = vectorShape.mirror({ 3, 3 }, RotationDir::Degree_0);
+        VectorShape mirrorShape = vectorShape.mirror(DistanceType::FromFirstPixel, { 3, 3 }, RotationDir::Degree_0);
         DrawingBoard drawingBoard(11, 5);
         drawingBoard.renderLine(5, 3, color(arc::Colors::grey), RotationDir::Degree_0);
         drawingBoard.renderVectorShape(vectorShape);
@@ -173,9 +207,47 @@ void TestCases::addTestCases()
             { 1, 0 }
         };
         VectorShape vectorShape(shapeVectors, color(arc::Colors::orange), { 2, 1 });
-        VectorShape mirrorShape = vectorShape.mirror({ 3, 4 }, RotationDir::Degree_90);
+        VectorShape mirrorShape = vectorShape.mirror(DistanceType::FromFirstPixel, { 3, 4 }, RotationDir::Degree_90);
         DrawingBoard drawingBoard(5, 11);
         drawingBoard.renderLine(3, 5, color(arc::Colors::grey), RotationDir::Degree_90);
+        drawingBoard.renderVectorShape(vectorShape);
+        drawingBoard.renderVectorShape(mirrorShape);
+
+        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+    }));
+
+    add(TestCase("Mirroring vertically (45 or 225 degree)", []() {
+        std::vector<Vector> shapeVectors = {
+            { 1, 0 },
+            { -2, 1 },
+            { 1, 0 },
+            { 1, 0 },
+            { -1, 1 },
+            { 1, 0 }
+        };
+        VectorShape vectorShape(shapeVectors, color(arc::Colors::orange), { 2, 1 });
+        VectorShape mirrorShape = vectorShape.mirror(DistanceType::FromFirstPixel, { 3, 4 }, RotationDir::Degree_45);
+        DrawingBoard drawingBoard(15, 12);
+        drawingBoard.renderLine(3, 5, color(arc::Colors::grey), RotationDir::Degree_45);
+        drawingBoard.renderVectorShape(vectorShape);
+        drawingBoard.renderVectorShape(mirrorShape);
+
+        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+    }));
+
+    add(TestCase("Mirroring vertically (135 or 315 degree)", []() {
+        std::vector<Vector> shapeVectors = {
+            { 1, 0 },
+            { -2, 1 },
+            { 1, 0 },
+            { 1, 0 },
+            { -1, 1 },
+            { 1, 0 }
+        };
+        VectorShape vectorShape(shapeVectors, color(arc::Colors::orange), { 2, 1 });
+        VectorShape mirrorShape = vectorShape.mirror(DistanceType::FromFirstPixel, { 3, 4 }, RotationDir::Degree_135);
+        DrawingBoard drawingBoard(15, 12);
+        drawingBoard.renderLine(3, 5, color(arc::Colors::grey), RotationDir::Degree_135);
         drawingBoard.renderVectorShape(vectorShape);
         drawingBoard.renderVectorShape(mirrorShape);
 
