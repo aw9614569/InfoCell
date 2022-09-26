@@ -58,6 +58,11 @@ std::ostream& operator<<(std::ostream& os, const Pixel& pixel);
 class Vector
 {
 public:
+    bool operator==(const Vector& rhs) const
+    {
+        return std::tie(x, y) == std::tie(rhs.x, rhs.y);
+    }
+
     bool operator<(const Vector& rhs) const
     {
         return std::tie(x, y) < std::tie(rhs.x, rhs.y);
@@ -187,6 +192,27 @@ enum class DistanceType
 };
 
 // ============================================================================
+class VectorShapeRelation
+{
+public:
+    bool isUnrelated() const
+    {
+        return !exactMatch && !isRotated && !isMirrored && !isStreched;
+    }
+
+    bool exactMatch = false;
+    bool isRotated = false;
+
+    // lhs.rotate(rotationDir) == rhs
+    RotationDir rotationDir;
+    bool isMirrored = false;
+    RotationDir mirrorAxisDir;
+    bool isStreched = false;
+    int stretchHorizontal;
+    int strechVertical;
+};
+
+// ============================================================================
 class VectorShape
 {
 public:
@@ -209,6 +235,7 @@ public:
     VectorShape rotate(RotationDir rotationDir) const;
     VectorShape stretch(int horizontal, int vertical) const;
     VectorShape mirror(DistanceType distanceType, const Vector distance, RotationDir axisDir) const;
+    VectorShapeRelation compare(const VectorShape& other);
 
     const cells::Color& color() const
     {
@@ -320,6 +347,7 @@ public:
     }
 
     std::string toString() const;
+    VectorShape toVectorShape() const;
 
     const std::set<Pixel>& subscribedPixels() const
     {
@@ -350,57 +378,6 @@ struct PatchSlot
 private:
     PatchBoardI* m_patchBoardI = nullptr;
     std::map<cells::Color, std::set<std::shared_ptr<Patch>>> m_candidates;
-};
-
-// ============================================================================
-class DrawingBoard
-{
-public:
-    DrawingBoard(int width, int height);
-
-    void clear();
-    void setColor(int x, int y, cells::Color color);
-    void renderLine(int x, int y, const cells::Color& color, RotationDir direction);
-    void renderLine(int x, int y, int len, const cells::Color& color, RotationDir direction);
-    void renderVectorShape(const VectorShape& vectorShape)
-    {
-        renderVectorShape(vectorShape.firstPixel().x, vectorShape.firstPixel().y, vectorShape);
-    }
-
-    void renderVectorShape(int x, int y, const VectorShape& vectorShape);
-    void renderBoundingBox(const BoundingBox& boundingBox);
-
-    std::string toString() const;
-
-    int lastXIndex() const
-    {
-        return m_width - 1;
-    }
-
-    int lastYIndex() const
-    {
-        return m_height - 1;
-    }
-
-private:
-    int currentIndex(int x, int y) const
-    {
-        return y * m_width + x;
-    }
-
-    bool isInRange(int x, int y) const
-    {
-        if (y < 0 || x < 0 || x >= m_width || y >= m_height) {
-            return false;
-        }
-
-        return true;
-    }
-
-    const int m_width;
-    const int m_height;
-    const cells::Color& m_defaultBgColor;
-    std::vector<cells::Color> m_colors;
 };
 
 // ============================================================================
@@ -463,13 +440,92 @@ protected:
 };
 
 // ============================================================================
+class DrawingBoard
+{
+public:
+    DrawingBoard(int width, int height);
+
+    void clear();
+    void setColor(int x, int y, cells::Color color);
+    void renderLine(int x, int y, const cells::Color& color, RotationDir direction);
+    void renderLine(int x, int y, int len, const cells::Color& color, RotationDir direction);
+    void renderVectorShape(const VectorShape& vectorShape)
+    {
+        renderVectorShape(vectorShape.firstPixel().x, vectorShape.firstPixel().y, vectorShape);
+    }
+
+    void renderVectorShape(int x, int y, const VectorShape& vectorShape);
+    void renderBoundingBox(const BoundingBox& boundingBox);
+
+    std::string toString() const;
+
+    int lastXIndex() const
+    {
+        return m_width - 1;
+    }
+
+    int lastYIndex() const
+    {
+        return m_height - 1;
+    }
+
+private:
+    int currentIndex(int x, int y) const
+    {
+        return y * m_width + x;
+    }
+
+    bool isInRange(int x, int y) const
+    {
+        if (y < 0 || x < 0 || x >= m_width || y >= m_height) {
+            return false;
+        }
+
+        return true;
+    }
+
+    const int m_width;
+    const int m_height;
+    const cells::Color& m_defaultBgColor;
+    std::vector<cells::Color> m_colors;
+};
+
+// ============================================================================
+class Grid
+{
+public:
+    Grid(std::set<std::shared_ptr<Patch>> patches);
+
+private:
+    std::vector<VectorShape> shapes;
+};
+
+// ============================================================================
+class Rules
+{
+public:
+    std::string a; // TODO placeholder
+};
+
+class Code
+{
+public:
+    std::string a; // TODO placeholder
+};
+
+// ============================================================================
 class Solver
 {
 public:
     Solver(Logger& logger, const ArcTask& arcTask);
 
     void solve();
-    void solveOne(const cells::Sensor& sensor);
+
+private:
+    Grid parse(const cells::Sensor& sensor);
+    Rules gridDiff(const Grid& input, const Grid& output);
+    Code processRules(const std::vector<Rules>& rules);
+    DrawingBoard applyCode(const Grid& input, const Code& code);
 
     Logger& logger;
     const ArcTask& m_arcTask;

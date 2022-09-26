@@ -37,12 +37,6 @@ const std::map<const cells::Color, int> cellColorsToColorId = {
     { cellColors[9], 9 }
 };
 
-Solver::Solver(Logger& logger, const ArcTask& arcTask) :
-    logger(logger), m_arcTask(arcTask)
-{
-    solve();
-}
-
 Pixel Pixel::operator+(const Vector& rhs) const
 {
     return Pixel(x + rhs.x, y + rhs.y);
@@ -372,6 +366,19 @@ VectorShape VectorShape::mirror(DistanceType distanceType, const Vector distance
     return *this;
 }
 
+VectorShapeRelation VectorShape::compare(const VectorShape& other)
+{
+    VectorShapeRelation ret;
+
+    if (vectors() == other.vectors()) {
+        ret.exactMatch = true;
+        return ret;
+    }
+    // TODO
+
+    return ret;
+}
+
 void Patch::addPixelCoordinate(int x, int y)
 {
     m_pixels.push_back({ x, y });
@@ -408,6 +415,14 @@ std::string Patch::toString() const
     ret += std::to_string(m_height);
     ret += ' ';
     ret += board;
+
+    return ret;
+}
+
+VectorShape Patch::toVectorShape() const
+{
+    VectorShape ret(color());
+    ret.fromPixels(pixels());
 
     return ret;
 }
@@ -735,34 +750,73 @@ void PatchBoard::subscribePatchForPixelImpl(std::shared_ptr<Patch> patch, int x,
     patch->registerSubscribedPixel(x, y);
 }
 
+Grid::Grid(std::set<std::shared_ptr<Patch>> patches)
+{
+    for (const auto& patch : patches) {
+        shapes.push_back(patch->toVectorShape());
+    }
+}
+
+Solver::Solver(Logger& logger, const ArcTask& arcTask) :
+    logger(logger), m_arcTask(arcTask)
+{
+    solve();
+}
+
 void Solver::solve()
 {
     loggerPtr = &logger;
     logger.clearLogFile();
     logger.log(INFO) << "There are " << m_arcTask.m_demonstrations.size() << " demo tasks";
     unsigned int i = 1;
+
+    std::vector<Rules> rules;
     for (const auto& arcDemo : m_arcTask.m_demonstrations) {
         const cells::Sensor& m_input  = arcDemo.m_input;
         const cells::Sensor& m_output = arcDemo.m_output;
         //        logger.log(INFO) << " (" << i << ") mapping[" << m_input.m_width << ", " << m_input.m_height << "] to[" << m_output.m_width << ", " << m_output.m_height << "] ";
-        solveOne(m_input);
-        solveOne(m_output);
+        const Grid& input = parse(m_input);
+        const Grid& output = parse(m_output);
+        rules.push_back(gridDiff(input, output));
     }
-    solveOne(m_arcTask.m_testInput);
+    const Grid& testInput = parse(m_arcTask.m_testInput);
+    const Code& code = processRules(rules);
+    DrawingBoard result = applyCode(testInput, code);
 
     const cells::Sensor& m_input = m_arcTask.m_testInput;
     logger.log(INFO) << "Mapping input[" << m_input.m_width << ", " << m_input.m_height << "] to ... ?";
 }
 
-void Solver::solveOne(const cells::Sensor& sensor)
+Grid Solver::parse(const cells::Sensor& sensor)
 {
     PatchBoard patchBoard(sensor);
     patchBoard.process();
     for (std::shared_ptr<Patch> patch : patchBoard.patches()) {
         logger.log(DEBUG) << "Patch:";
         logger.logBoard(DEBUG) << patch->toString() << "\n";
+        VectorShape vectorShape = patch->toVectorShape();
     }
     logger.log(DEBUG) << "Number of patches found: " << patchBoard.patches().size();
+
+    return Grid(patchBoard.patches());
+}
+
+Rules Solver::gridDiff(const Grid& input, const Grid& output)
+{
+    Rules ret;
+    return ret;
+}
+
+Code Solver::processRules(const std::vector<Rules>& rules)
+{
+    Code ret;
+    return ret;
+}
+
+DrawingBoard Solver::applyCode(const Grid& input, const Code& code)
+{
+    DrawingBoard ret(1, 1);
+    return ret;
 }
 
 /*
