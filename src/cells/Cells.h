@@ -1,26 +1,15 @@
 #pragma once
 
 #include <array>
+#include <iostream>
 #include <map>
+#include <set>
+#include <span>
 #include <sstream>
 #include <vector>
-#include <iostream>
 
 namespace synth {
 namespace cells {
-
-class Cell; // forward decl
-
-class MemberToValue
-{
-public:
-    MemberToValue() = default;
-    MemberToValue(Cell* member, Cell* value) :
-        member(member), value(value) { }
-
-    Cell* member = nullptr;
-    Cell* value  = nullptr;
-};
 
 class Cell
 {
@@ -351,7 +340,6 @@ public:
     IntValue y;
 };
 
-
 class Pixel : public DataCell
 {
 public:
@@ -417,10 +405,10 @@ public:
 };
 
 /*
-*   Color() : (red: Int, green: Int, blue: Int)
-*   Pixel() : (up: Pixel, down: Pixel, left: Pixel, right: Pixel, color: Color)
-*   Sensor(x: Int, y: Int) : (Pixel | Empty)
-*/
+ *   Color() : (red: Int, green: Int, blue: Int)
+ *   Pixel() : (up: Pixel, down: Pixel, left: Pixel, right: Pixel, color: Color)
+ *   Sensor(x: Int, y: Int) : (Pixel | Empty)
+ */
 
 struct StringChar : DataCell
 {
@@ -882,25 +870,25 @@ struct Sensor
 
     void init()
     {
-//        std::cout << "Size of pixel cell is " << sizeof(Pixel) << " bytes\n";
-//        std::cout << "Allocating vector .. ";
+        //        std::cout << "Size of pixel cell is " << sizeof(Pixel) << " bytes\n";
+        //        std::cout << "Allocating vector .. ";
         const int senzorSize = m_height * m_width;
         pixels.reserve(senzorSize);
-//        std::cout << "done\n";
-//        std::cout << "Creating cells 0%..";
+        //        std::cout << "done\n";
+        //        std::cout << "Creating cells 0%..";
         int percentage = 0;
         for (int y = 0; y < m_height; ++y) {
             for (int x = 0; x < m_width; ++x) {
                 pixels.emplace_back();
                 int newPercentage = ((int64_t(y) * m_width + x) * 100) / senzorSize;
                 if ((newPercentage % 10 == 0) && (newPercentage - percentage) > 9) {
-//                    std::cout << newPercentage << "%..";
+                    //                    std::cout << newPercentage << "%..";
                     percentage = newPercentage;
                 }
             }
         }
-//        std::cout << "100% done\n";
-//        std::cout << "Initializeing cells .. ";
+        //        std::cout << "100% done\n";
+        //        std::cout << "Initializeing cells .. ";
         for (int y = 0; y < m_height; ++y) {
             for (int x = 0; x < m_width; ++x) {
                 Pixel& pixel = pixels[currentIndex(x, y)];
@@ -910,7 +898,7 @@ struct Sensor
                 pixel.right  = rightPixel(x, y);
             }
         }
-//        std::cout << "done" << std::endl;
+        //        std::cout << "done" << std::endl;
     }
 
     Pixel& getPixel(int x, int y)
@@ -998,7 +986,8 @@ struct Item
 {
     Item(Cell& member, Cell& type) :
         m_member(member), m_type(&type)
-    { }
+    {
+    }
 
     Cell& m_member;
     Cell* m_type;
@@ -1110,7 +1099,7 @@ line can be: pixel pixel+ (in any direction)
 Direction: Left, Right, Up, Down
            TODO: 45 degrees, maybe LeftUp, LeftDown, RightUp, RightDown, so the problem is, no direct connection in this case
 
-   0 1 2 
+   0 1 2
   +-+-+-+
  0|a|b|c|
   +-+-+-+
@@ -1127,7 +1116,7 @@ Direction: Left, Right, Up, Down
     Right, p
 
 
-so 
+so
   rule1.canStart(pixel: p) {
    this.actualPixel = p
    this.shapeColor = p.color
