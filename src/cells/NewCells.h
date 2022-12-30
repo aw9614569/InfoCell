@@ -116,7 +116,7 @@ public:
 class ListItemCell : public CellI
 {
 public:
-    ListItemCell(CellI* prev, CellI* next, CellI* value);
+    ListItemCell();
 
     bool hasMember(CellI& member) override;
     CellI& member(CellI& member) override;
@@ -124,8 +124,13 @@ public:
     std::string printAs(CellPrinter& printer) override;
 
     CellI& prev();
+    void prev(ListItemCell* p);
+
     CellI& next();
+    void next(ListItemCell* n);
+
     CellI& value();
+    void value(CellI* v);
 
     static void staticInit();
     static void staticInitMembers();
@@ -140,9 +145,9 @@ protected:
     static MemberCell* s_memberNext;
     static MemberCell* s_memberValue;
 
-    CellI* m_prev;
-    CellI* m_next;
-    CellI* m_value;
+    CellI* m_prev = nullptr;
+    CellI* m_next = nullptr;
+    CellI* m_value = nullptr;
 };
 
 class ListCell : public CellI
@@ -159,29 +164,22 @@ public:
     ClassCell& reflect() override;
     std::string printAs(CellPrinter& printer) override;
 
-    std::vector<DataCell>& values();
+    std::vector<ListItemCell>& values();
 
     static void staticInit();
     static void staticInitMembers();
+
     static ClassCell& classCell();
     static MemberCell& memberFirst();
     static MemberCell& memberLast();
     static MemberCell& memberSize();
 
-    static MemberCell& memberItemPrev();
-    static MemberCell& memberItemNext();
-    static MemberCell& memberItemValue();
-
 protected:
     static std::unique_ptr<ClassCell> s_classCell;
-    static std::unique_ptr<ClassCell> s_listItemClassCell;
-    static MemberCell* s_memberItemPrev;
-    static MemberCell* s_memberItemNext;
-    static MemberCell* s_memberItemValue;
     static MemberCell* s_memberFirst;
     static MemberCell* s_memberLast;
     static MemberCell* s_memberSize;
-    std::vector<DataCell> m_items;
+    std::vector<ListItemCell> m_items;
 };
 
 class NumberCell : public CellI
@@ -216,11 +214,12 @@ protected:
 class CellPrinter
 {
 public:
-    virtual std::string print(MemberCell& cell) = 0;
-    virtual std::string print(ClassCell& cell) = 0;
-    virtual std::string print(DataCell& cell) = 0;
-    virtual std::string print(ListCell& cell) = 0;
-    virtual std::string print(NumberCell& cell) = 0;
+    virtual std::string print(MemberCell& cell)   = 0;
+    virtual std::string print(ClassCell& cell)    = 0;
+    virtual std::string print(DataCell& cell)     = 0;
+    virtual std::string print(ListItemCell& cell) = 0;
+    virtual std::string print(ListCell& cell)     = 0;
+    virtual std::string print(NumberCell& cell)   = 0;
 };
 
 class CellValuePrinter : public CellPrinter
@@ -229,6 +228,7 @@ public:
     std::string print(MemberCell& cell) override;
     std::string print(ClassCell& cell) override;
     std::string print(DataCell& cell) override;
+    std::string print(ListItemCell& cell) override;
     std::string print(ListCell& cell) override;
     std::string print(NumberCell& cell) override;
 };
@@ -239,6 +239,7 @@ public:
     std::string print(MemberCell& cell) override;
     std::string print(ClassCell& cell) override;
     std::string print(DataCell& cell) override;
+    std::string print(ListItemCell& cell) override;
     std::string print(ListCell& cell) override;
     std::string print(NumberCell& cell) override;
 

@@ -292,8 +292,7 @@ MemberCell* ListItemCell::s_memberPrev  = nullptr;
 MemberCell* ListItemCell::s_memberNext  = nullptr;
 MemberCell* ListItemCell::s_memberValue = nullptr;
 
-ListItemCell::ListItemCell(CellI* prev, CellI* next, CellI* value) :
-    m_prev(prev), m_next(next), m_value(value)
+ListItemCell::ListItemCell()
 {
 }
 
@@ -312,13 +311,22 @@ CellI& ListItemCell::member(CellI& member)
         return *s_classCell;
     }
     if (&member == s_memberPrev) {
-        return *m_prev;
+        if (m_prev)
+            return *m_prev;
+        else
+            return DataCell::emptyDataCell();
     }
     if (&member == s_memberNext) {
-        return *m_next;
+        if (m_next)
+            return *m_next;
+        else
+            return DataCell::emptyDataCell();
     }
     if (&member == s_memberValue) {
-        return *m_value;
+        if (m_value)
+            return *m_value;
+        else
+            return *m_value;
     }
 
     return DataCell::emptyDataCell();
@@ -331,8 +339,7 @@ ClassCell& ListItemCell::reflect()
 
 std::string ListItemCell::printAs(CellPrinter& printer)
 {
-    return "";
-//    return printer.print(*this);
+    return printer.print(*this);
 }
 
 CellI& ListItemCell::prev()
@@ -340,14 +347,29 @@ CellI& ListItemCell::prev()
     return *m_prev;
 }
 
+void ListItemCell::prev(ListItemCell* p)
+{
+    m_prev = p;
+}
+
 CellI& ListItemCell::next()
 {
     return *m_next;
 }
 
+void ListItemCell::next(ListItemCell* n)
+{
+    m_next = n;
+}
+
 CellI& ListItemCell::value()
 {
     return *m_value;
+}
+
+void ListItemCell::value(CellI* v)
+{
+    m_value = v;
 }
 
 void ListItemCell::staticInit()
@@ -384,11 +406,6 @@ MemberCell& ListItemCell::memberValue()
 
 // ============================================================================
 std::unique_ptr<ClassCell> ListCell::s_classCell;
-std::unique_ptr<ClassCell> ListCell::s_listItemClassCell;
-
-MemberCell* ListCell::s_memberItemPrev  = nullptr;
-MemberCell* ListCell::s_memberItemNext  = nullptr;
-MemberCell* ListCell::s_memberItemValue = nullptr;
 
 MemberCell* ListCell::s_memberFirst = nullptr;
 MemberCell* ListCell::s_memberLast  = nullptr;
@@ -398,17 +415,17 @@ template <typename T>
 ListCell::ListCell(const std::vector<T>& values)
 {
     m_items.reserve(values.size());
-    DataCell* prevListItemCell = nullptr;
+    ListItemCell* prevListItemCell = nullptr;
     for (CellI* value : values) {
-        auto& listItemCell = m_items.emplace_back(*s_listItemClassCell);
+        auto& listItemCell = m_items.emplace_back();
         if (prevListItemCell == nullptr) {
-            listItemCell.connect(*s_memberItemPrev, DataCell::emptyDataCell());
+            listItemCell.prev(nullptr);
         } else {
-            listItemCell.connect(*s_memberItemPrev, *prevListItemCell);
-            prevListItemCell->connect(*s_memberItemNext, listItemCell);
+            listItemCell.prev(prevListItemCell);
+            prevListItemCell->next(&listItemCell);
         }
-        listItemCell.connect(*s_memberItemNext, DataCell::emptyDataCell());
-        listItemCell.connect(*s_memberItemValue, *value);
+        listItemCell.next(nullptr);
+        listItemCell.value(value);
         prevListItemCell = &listItemCell;
     }
 }
@@ -417,18 +434,18 @@ template <typename T>
 ListCell::ListCell(std::map<std::string, T>& values)
 {
     m_items.reserve(values.size());
-    DataCell* prevListItemCell = nullptr;
+    ListItemCell* prevListItemCell = nullptr;
     for (auto& valuePairs : values) {
         CellI* value       = valuePairs.second;
-        auto& listItemCell = m_items.emplace_back(*s_listItemClassCell);
+        auto& listItemCell = m_items.emplace_back();
         if (prevListItemCell == nullptr) {
-            listItemCell.connect(*s_memberItemPrev, DataCell::emptyDataCell());
+            listItemCell.prev(nullptr);
         } else {
-            listItemCell.connect(*s_memberItemPrev, *prevListItemCell);
-            prevListItemCell->connect(*s_memberItemNext, listItemCell);
+            listItemCell.prev(prevListItemCell);
+            prevListItemCell->next(&listItemCell);
         }
-        listItemCell.connect(*s_memberItemNext, DataCell::emptyDataCell());
-        listItemCell.connect(*s_memberItemValue, *value);
+        listItemCell.next(nullptr);
+        listItemCell.value(value);
         prevListItemCell = &listItemCell;
     }
 }
@@ -473,7 +490,7 @@ std::string ListCell::printAs(CellPrinter& printer)
     return printer.print(*this);
 }
 
-std::vector<DataCell>& ListCell::values()
+std::vector<ListItemCell>& ListCell::values()
 {
     return m_items;
 }
@@ -481,14 +498,9 @@ std::vector<DataCell>& ListCell::values()
 void ListCell::staticInit()
 {
     s_classCell.reset(new ClassCell("List"));
-    s_listItemClassCell.reset(new ClassCell("ListItem"));
 
-    s_memberItemPrev  = &s_listItemClassCell->createMember("prev", *s_listItemClassCell);
-    s_memberItemNext  = &s_listItemClassCell->createMember("next", *s_listItemClassCell);
-    s_memberItemValue = &s_listItemClassCell->createMember("value", *s_listItemClassCell); // TODO we need the T from the List<T> here somehow
-
-    s_memberFirst = &s_classCell->createMember("first", *s_listItemClassCell);
-    s_memberLast  = &s_classCell->createMember("last", *s_listItemClassCell);
+    s_memberFirst = &s_classCell->createMember("first", ListItemCell::classCell());
+    s_memberLast  = &s_classCell->createMember("last", ListItemCell::classCell());
 }
 
 void ListCell::staticInitMembers()
@@ -514,21 +526,6 @@ MemberCell& ListCell::memberLast()
 MemberCell& ListCell::memberSize()
 {
     return *s_memberSize;
-}
-
-MemberCell& ListCell::memberItemPrev()
-{
-    return *s_memberItemPrev;
-}
-
-MemberCell& ListCell::memberItemNext()
-{
-    return *s_memberItemNext;
-}
-
-MemberCell& ListCell::memberItemValue()
-{
-    return *s_memberItemValue;
 }
 
 // ============================================================================
@@ -621,6 +618,7 @@ void StaticInitializations()
     MemberCell::staticInit();
     DataCell::staticInit();
     DigitCells::staticInit();
+    ListItemCell::staticInit();
     ListCell::staticInit();
     NumberCell::staticInit();
     ClassCell::staticInitMembers();
@@ -676,6 +674,16 @@ std::string CellValuePrinter::print(DataCell& dataCell)
     return ss.str();
 }
 
+std::string CellValuePrinter::print(ListItemCell& listItemCell)
+{
+    std::stringstream ss;
+    ss << "[";
+//    ss << listItemCell.value(); // TODO
+    ss << "]";
+
+    return ss.str();
+}
+
 std::string CellValuePrinter::print(ListCell& listCell)
 {
     std::stringstream ss;
@@ -715,6 +723,11 @@ std::string CellStructPrinter::print(ClassCell& classCell)
 std::string CellStructPrinter::print(DataCell& dataCell)
 {
     return printImpl(dataCell);
+}
+
+std::string CellStructPrinter::print(ListItemCell& listItemCell)
+{
+    return printImpl(listItemCell);
 }
 
 std::string CellStructPrinter::print(ListCell& listCell)
