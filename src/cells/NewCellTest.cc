@@ -20,11 +20,20 @@ int main(int argc, char* argv[])
     redColor.connect(greenColorMember, number_0);
     redColor.connect(blueColorMember, number_0);
 
-    std::cout << valuePrinter.print(colorClass) << std::endl;
-    std::cout << valuePrinter.print(redColorMember) << std::endl;
-    std::cout << valuePrinter.print(redColor) << std::endl;
-    std::cout << valuePrinter.print(number_0) << std::endl;
+    std::cout << colorClass.printAs(valuePrinter) << std::endl;
+    std::cout << redColorMember.printAs(valuePrinter) << std::endl;
+    std::cout << redColor.printAs(valuePrinter) << std::endl;
+    std::cout << number_0.printAs(valuePrinter) << std::endl;
+    std::cout << number_0.member(NumberCell::memberValue()).member(ListCell::memberFirst()).member(ListCell::memberItemValue()).printAs(valuePrinter) << std::endl;
 
-    std::cout << structPrinter.print(redColor) << std::endl;
-    std::cout << structPrinter.print(number_0) << std::endl;
+    std::cout << redColor.printAs(structPrinter) << std::endl;
+    std::cout << redColorMember.printAs(structPrinter) << std::endl;
+    std::cout << colorClass.printAs(structPrinter) << std::endl;
+    std::cout << number_0.printAs(structPrinter) << std::endl;
+    std::cout << number_0.member(NumberCell::memberSign()).printAs(structPrinter) << std::endl;
+    std::cout << number_0.member(NumberCell::memberValue()).printAs(structPrinter) << std::endl;
+    std::cout << number_0.member(NumberCell::memberValue()).member(ListCell::memberFirst()).printAs(structPrinter) << std::endl;
+    std::cout << number_0.member(NumberCell::memberValue()).member(ListCell::memberFirst()).member(ListCell::memberItemValue()).printAs(structPrinter) << std::endl;
+    std::cout << number_0.member(NumberCell::memberValue()).member(ListCell::memberLast()).printAs(structPrinter) << std::endl;
+    std::cout << number_0.member(NumberCell::memberValue()).member(ListCell::memberSize()).printAs(structPrinter) << std::endl;
 }

@@ -4,7 +4,6 @@
 #include <iostream>
 #include <map>
 #include <set>
-#include <span>
 #include <sstream>
 #include <vector>
 
@@ -33,15 +32,22 @@ public:
     std::string printAs(CellPrinter& printer) override;
 
     static void staticInit();
+    static void staticInitMembers();
+    static MemberCell& memberConnectionClass();
+    static MemberCell& memberName();
+
     const std::string& name() const;
-    ClassCell& classCell();
+    ClassCell& connectionClass();
 
 protected:
     static std::unique_ptr<ClassCell> s_classCell;
+    static MemberCell* s_memberConnectionClass;
+    static MemberCell* s_memberName;
     std::string m_name;
-    ClassCell& m_classCell; // the class of the connected cell
+    ClassCell& m_connectionClass; // the class of the connected cell
 };
 
+class ListCell;
 class ClassCell : public CellI
 {
 public:
@@ -53,6 +59,7 @@ public:
     std::string printAs(CellPrinter& printer) override;
 
     static void staticInit();
+    static void staticInitMembers();
     const std::string& name() const;
     MemberCell& createMember(const std::string& name, ClassCell& classCell);
     void referenceMember(const std::string& name, MemberCell& memberCell);
@@ -60,14 +67,17 @@ public:
     MemberCell& getMember(const std::string& name);
     std::map<std::string, MemberCell*>& members();
     static ClassCell& classCell();
-    static MemberCell& classMember();
+    static MemberCell& memberClass();
+    static MemberCell& memberMembers();
 
 protected:
     static std::unique_ptr<ClassCell> s_classCell;
-    static std::unique_ptr<MemberCell> s_classMember;
+    static MemberCell* s_memberClass;
+    static MemberCell* s_memberMembers;
     std::map<std::string, MemberCell> m_memberCells;
     std::map<std::string, MemberCell*> m_memberRefs;
     std::string m_name;
+    std::unique_ptr<ListCell> m_membersListCell;
 };
 
 class DataCell : public CellI
@@ -85,9 +95,11 @@ public:
     std::map<MemberCell*, CellI*>& members();
     void connect(MemberCell& memberCell, CellI& value);
 
-    static DataCell emptyDataCell;
+    static void staticInit();
+    static DataCell& emptyDataCell();
 
 protected:
+    static std::unique_ptr<DataCell> s_emptyDataCell;
     std::string m_name;
     ClassCell& m_classCell;
     std::map<MemberCell*, CellI*> m_members;
@@ -97,16 +109,50 @@ class DigitCells
 {
 public:
     static void staticInit();
-    static ClassCell s_digitClassCell;
-    static std::array<DataCell, 10> s_digits;
+    static std::unique_ptr<ClassCell> s_digitClassCell;
+    static std::vector<DataCell> s_digits;
 };
 
+class ListItemCell : public CellI
+{
+public:
+    ListItemCell(CellI* prev, CellI* next, CellI* value);
+
+    bool hasMember(CellI& member) override;
+    CellI& member(CellI& member) override;
+    ClassCell& reflect() override;
+    std::string printAs(CellPrinter& printer) override;
+
+    CellI& prev();
+    CellI& next();
+    CellI& value();
+
+    static void staticInit();
+    static void staticInitMembers();
+    static ClassCell& classCell();
+    static MemberCell& memberPrev();
+    static MemberCell& memberNext();
+    static MemberCell& memberValue();
+
+protected:
+    static std::unique_ptr<ClassCell> s_classCell;
+    static MemberCell* s_memberPrev;
+    static MemberCell* s_memberNext;
+    static MemberCell* s_memberValue;
+
+    CellI* m_prev;
+    CellI* m_next;
+    CellI* m_value;
+};
 
 class ListCell : public CellI
 {
 public:
-    template<typename T>
-    ListCell(std::span<T> values);
+    template <typename T>
+    ListCell(const std::vector<T>& values);
+
+    template <typename T>
+    ListCell(std::map<std::string, T>& values);
 
     bool hasMember(CellI& member) override;
     CellI& member(CellI& member) override;
@@ -116,18 +162,26 @@ public:
     std::vector<DataCell>& values();
 
     static void staticInit();
+    static void staticInitMembers();
     static ClassCell& classCell();
+    static MemberCell& memberFirst();
+    static MemberCell& memberLast();
+    static MemberCell& memberSize();
+
+    static MemberCell& memberItemPrev();
+    static MemberCell& memberItemNext();
+    static MemberCell& memberItemValue();
 
 protected:
-    static ClassCell s_classCell;
-    static ClassCell s_listItemClassCell;
-    static MemberCell* s_listItemPrevMember;
-    static MemberCell* s_listItemNextMember;
-    static MemberCell* s_listItemValueMember;
-    static MemberCell* s_firstMember;
-    static MemberCell* s_lastMember;
-    static MemberCell* s_sizeMember;
-    std::vector<DataCell> m_values;
+    static std::unique_ptr<ClassCell> s_classCell;
+    static std::unique_ptr<ClassCell> s_listItemClassCell;
+    static MemberCell* s_memberItemPrev;
+    static MemberCell* s_memberItemNext;
+    static MemberCell* s_memberItemValue;
+    static MemberCell* s_memberFirst;
+    static MemberCell* s_memberLast;
+    static MemberCell* s_memberSize;
+    std::vector<DataCell> m_items;
 };
 
 class NumberCell : public CellI
@@ -144,13 +198,15 @@ public:
 
     static void staticInit();
     static ClassCell& classCell();
+    static MemberCell& memberSign();
+    static MemberCell& memberValue();
 
 protected:
     void calculateDigits();
 
-    static ClassCell s_classCell;
-    static MemberCell* s_valueMember;
-    static MemberCell* s_signMember;
+    static std::unique_ptr<ClassCell> s_classCell;
+    static MemberCell* s_memberSign;
+    static MemberCell* s_memberValue ;
 
     int m_value;
     std::vector<DataCell*> m_digits;

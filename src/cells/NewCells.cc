@@ -3,22 +3,37 @@
 namespace synth {
 namespace newcell {
 
-std::unique_ptr<ClassCell> MemberCell::s_classCell;
-
 // ============================================================================
+std::unique_ptr<ClassCell> MemberCell::s_classCell;
+MemberCell* MemberCell::s_memberConnectionClass = nullptr;
+MemberCell* MemberCell::s_memberName = nullptr;
+
 MemberCell::MemberCell(const std::string& name, ClassCell& classCell) :
-    m_name(name), m_classCell(classCell)
+    m_name(name), m_connectionClass(classCell)
 {
 }
 
 bool MemberCell::hasMember(CellI& member)
 {
-    return false; // TODO
+    if (&member == &ClassCell::memberClass() || &member == s_memberConnectionClass || &member == s_memberName) {
+        return true;
+    }
+    return false;
+
 }
 
 CellI& MemberCell::member(CellI& member)
 {
-    return *this; // TODO
+    if (&member == &ClassCell::memberClass()) {
+        return *s_classCell;
+    }
+    if (&member == s_memberConnectionClass) {
+        return m_connectionClass;
+    }
+    if (&member == s_memberName) {
+        return DataCell::emptyDataCell(); // TODO should give back StringCell(m_name)
+    }
+    return DataCell::emptyDataCell();
 }
 
 ClassCell& MemberCell::reflect()
@@ -33,7 +48,23 @@ std::string MemberCell::printAs(CellPrinter& printer)
 
 void MemberCell::staticInit()
 {
-    s_classCell.reset(new ClassCell("Class"));
+    s_classCell.reset(new ClassCell("Member"));
+}
+
+void MemberCell::staticInitMembers()
+{
+    s_memberConnectionClass = &s_classCell->createMember("connectionClass", ClassCell::classCell());
+    //s_memberName = s_classCell->createMember("name", StringCell::classCell());
+}
+
+MemberCell& MemberCell::memberName()
+{
+    return *s_memberName;
+}
+
+MemberCell& MemberCell::memberConnectionClass()
+{
+    return *s_memberConnectionClass;
 }
 
 const std::string& MemberCell::name() const
@@ -41,29 +72,47 @@ const std::string& MemberCell::name() const
     return m_name;
 }
 
-ClassCell& MemberCell::classCell()
+ClassCell& MemberCell::connectionClass()
 {
-    return m_classCell;
+    return m_connectionClass;
 }
 
 // ============================================================================
 std::unique_ptr<ClassCell> ClassCell::s_classCell;
-std::unique_ptr<MemberCell> ClassCell::s_classMember;
+MemberCell* ClassCell::s_memberClass = nullptr;
+MemberCell* ClassCell::s_memberMembers = nullptr;
 
 ClassCell::ClassCell(const std::string& name) :
     m_name(name)
 {
-    referenceMember("class", *s_classMember);
+    if (!s_memberClass) {
+        return;
+    }
+    referenceMember("class", *s_memberClass);
 }
 
 bool ClassCell::hasMember(CellI& member)
 {
-    return false; // TODO
+    if (&member == &memberClass() || &member == s_memberMembers) {
+        return true;
+    }
+
+    return false;
 }
 
 CellI& ClassCell::member(CellI& member)
 {
-    return *this; // TODO
+    if (&member == &memberClass()) {
+        return *s_classCell;
+    }
+    if (&member == s_memberMembers) {
+        if (!m_membersListCell)
+            m_membersListCell.reset(new ListCell(m_memberRefs));
+
+        return *m_membersListCell;
+    }
+
+    return DataCell::emptyDataCell();
 }
 
 ClassCell& ClassCell::reflect()
@@ -79,7 +128,13 @@ std::string ClassCell::printAs(CellPrinter& printer)
 void ClassCell::staticInit()
 {
     s_classCell.reset(new ClassCell("Class"));
-    s_classMember.reset(new MemberCell("class", *s_classCell));
+    s_memberClass = &s_classCell->createMember("class", *s_classCell);
+    s_classCell->referenceMember("class", *s_memberClass);
+}
+
+void ClassCell::staticInitMembers()
+{
+    s_memberMembers = &s_classCell->createMember("members", ListCell::classCell());
 }
 
 const std::string& ClassCell::name() const
@@ -91,14 +146,14 @@ MemberCell& ClassCell::createMember(const std::string& name, ClassCell& classCel
 {
     auto memberIt = m_memberRefs.find(name);
     if (memberIt != m_memberRefs.end()) {
-        if (&memberIt->second->classCell() != &classCell) {
+        if (&memberIt->second->connectionClass() != &classCell) {
             throw "Member name already registered with an other class";
         }
         return *memberIt->second;
     } else {
-        auto it = m_memberCells.emplace(std::piecewise_construct,
-                                        std::forward_as_tuple(name),
-                                        std::forward_as_tuple(name, classCell));
+        auto it            = m_memberCells.emplace(std::piecewise_construct,
+                                                   std::forward_as_tuple(name),
+                                                   std::forward_as_tuple(name, classCell));
         m_memberRefs[name] = &it.first->second;
 
         return it.first->second;
@@ -134,29 +189,34 @@ ClassCell& ClassCell::classCell()
     return *s_classCell;
 }
 
-MemberCell& ClassCell::classMember()
+MemberCell& ClassCell::memberClass()
 {
-    return *s_classMember;
+    return *s_memberClass;
+}
+
+MemberCell& ClassCell::memberMembers()
+{
+    return *s_memberMembers;
 }
 
 // ============================================================================
-ClassCell emptyClass("Empty");
-DataCell DataCell::emptyDataCell(emptyClass);
+std::unique_ptr<DataCell> DataCell::s_emptyDataCell;
 
-DataCell::DataCell(ClassCell& classCell) : DataCell("", classCell)
+DataCell::DataCell(ClassCell& classCell) :
+    DataCell("", classCell)
 {
 }
 
 DataCell::DataCell(const std::string& name, ClassCell& classCell) :
     m_name(name), m_classCell(classCell)
 {
-    m_members[&ClassCell::classMember()] = &classCell;
+    m_members[&ClassCell::memberClass()] = &classCell;
 }
 
 bool DataCell::hasMember(CellI& member)
 {
     MemberCell* memberCell = static_cast<MemberCell*>(&member);
-    if (memberCell == &ClassCell::classMember())
+    if (memberCell == &ClassCell::memberClass())
         return true;
     if (!memberCell)
         return false;
@@ -168,10 +228,10 @@ CellI& DataCell::member(CellI& member)
 {
     MemberCell* memberCell = static_cast<MemberCell*>(&member);
     if (!memberCell)
-        return emptyDataCell;
+        return emptyDataCell();
     auto findIt = m_members.find(memberCell);
     if (findIt == m_members.end())
-        return emptyDataCell;
+        return emptyDataCell();
 
     return *findIt->second;
 }
@@ -201,59 +261,181 @@ void DataCell::connect(MemberCell& memberCell, CellI& value)
     m_members[&memberCell] = &value;
 }
 
+void DataCell::staticInit()
+{
+    static ClassCell emptyClass("Empty");
+    s_emptyDataCell.reset(new DataCell(emptyClass));
+}
+
+DataCell& DataCell::emptyDataCell()
+{
+    return *s_emptyDataCell;
+}
+
 // ============================================================================
+std::unique_ptr<ClassCell> DigitCells::s_digitClassCell;
+std::vector<DataCell> DigitCells::s_digits;
+
 void DigitCells::staticInit()
+{
+     s_digitClassCell.reset(new ClassCell("Digit"));
+    for (int i = 0; i < 10; ++i) {
+        std::string digitName = "Digit_" + std::to_string(i);
+        s_digits.push_back({ digitName , *s_digitClassCell });
+    }
+}
+
+// ============================================================================
+std::unique_ptr<ClassCell> ListItemCell::s_classCell;
+
+MemberCell* ListItemCell::s_memberPrev  = nullptr;
+MemberCell* ListItemCell::s_memberNext  = nullptr;
+MemberCell* ListItemCell::s_memberValue = nullptr;
+
+ListItemCell::ListItemCell(CellI* prev, CellI* next, CellI* value) :
+    m_prev(prev), m_next(next), m_value(value)
 {
 }
 
-ClassCell DigitCells::s_digitClassCell("Digit");
+bool ListItemCell::hasMember(CellI& member)
+{
+    if (&member == &ClassCell::memberClass() || &member == s_memberPrev || &member == s_memberNext || &member == s_memberValue) {
+        return true;
+    }
 
-std::array<DataCell, 10> DigitCells::s_digits = {
-    s_digitClassCell,
-    s_digitClassCell,
-    s_digitClassCell,
-    s_digitClassCell,
-    s_digitClassCell,
-    s_digitClassCell,
-    s_digitClassCell,
-    s_digitClassCell,
-    s_digitClassCell,
-    s_digitClassCell
-};
+    return false;
+}
+
+CellI& ListItemCell::member(CellI& member)
+{
+    if (&member == &ClassCell::memberClass()) {
+        return *s_classCell;
+    }
+    if (&member == s_memberPrev) {
+        return *m_prev;
+    }
+    if (&member == s_memberNext) {
+        return *m_next;
+    }
+    if (&member == s_memberValue) {
+        return *m_value;
+    }
+
+    return DataCell::emptyDataCell();
+}
+
+ClassCell& ListItemCell::reflect()
+{
+    return *s_classCell;
+}
+
+std::string ListItemCell::printAs(CellPrinter& printer)
+{
+    return "";
+//    return printer.print(*this);
+}
+
+CellI& ListItemCell::prev()
+{
+    return *m_prev;
+}
+
+CellI& ListItemCell::next()
+{
+    return *m_next;
+}
+
+CellI& ListItemCell::value()
+{
+    return *m_value;
+}
+
+void ListItemCell::staticInit()
+{
+    s_classCell.reset(new ClassCell("ListItem"));
+
+    s_memberPrev  = &s_classCell->createMember("prev", *s_classCell);
+    s_memberNext  = &s_classCell->createMember("next", *s_classCell);
+    s_memberValue = &s_classCell->createMember("value", *s_classCell); // TODO we need the T from the List<T> here somehow
+}
+
+void ListItemCell::staticInitMembers()
+{
+}
+
+ClassCell& ListItemCell::classCell()
+{
+    return *s_classCell;
+}
+
+MemberCell& ListItemCell::memberPrev()
+{
+    return *s_memberPrev;
+}
+MemberCell& ListItemCell::memberNext()
+{
+    return *s_memberNext;
+}
+
+MemberCell& ListItemCell::memberValue()
+{
+    return *s_memberValue;
+}
 
 // ============================================================================
-ClassCell ListCell::s_classCell("List");
-ClassCell ListCell::s_listItemClassCell("ListItem");
+std::unique_ptr<ClassCell> ListCell::s_classCell;
+std::unique_ptr<ClassCell> ListCell::s_listItemClassCell;
 
-MemberCell* ListCell::s_listItemPrevMember  = nullptr;
-MemberCell* ListCell::s_listItemNextMember  = nullptr;
-MemberCell* ListCell::s_listItemValueMember = nullptr;
+MemberCell* ListCell::s_memberItemPrev  = nullptr;
+MemberCell* ListCell::s_memberItemNext  = nullptr;
+MemberCell* ListCell::s_memberItemValue = nullptr;
 
-MemberCell* ListCell::s_firstMember = nullptr;
-MemberCell* ListCell::s_lastMember  = nullptr;
-MemberCell* ListCell::s_sizeMember  = nullptr;
+MemberCell* ListCell::s_memberFirst = nullptr;
+MemberCell* ListCell::s_memberLast  = nullptr;
+MemberCell* ListCell::s_memberSize  = nullptr;
 
 template <typename T>
-ListCell::ListCell(std::span<T> values)
+ListCell::ListCell(const std::vector<T>& values)
 {
+    m_items.reserve(values.size());
     DataCell* prevListItemCell = nullptr;
     for (CellI* value : values) {
-        auto& listItemCell = m_values.emplace_back(s_listItemClassCell);
+        auto& listItemCell = m_items.emplace_back(*s_listItemClassCell);
         if (prevListItemCell == nullptr) {
-            listItemCell.connect(*s_listItemPrevMember, DataCell::emptyDataCell);
+            listItemCell.connect(*s_memberItemPrev, DataCell::emptyDataCell());
         } else {
-            listItemCell.connect(*s_listItemPrevMember, *prevListItemCell);
-            prevListItemCell->connect(*s_listItemNextMember, listItemCell);
+            listItemCell.connect(*s_memberItemPrev, *prevListItemCell);
+            prevListItemCell->connect(*s_memberItemNext, listItemCell);
         }
-        listItemCell.connect(*s_listItemNextMember, DataCell::emptyDataCell);
-        listItemCell.connect(*s_listItemValueMember, *value);
+        listItemCell.connect(*s_memberItemNext, DataCell::emptyDataCell());
+        listItemCell.connect(*s_memberItemValue, *value);
+        prevListItemCell = &listItemCell;
+    }
+}
+
+template <typename T>
+ListCell::ListCell(std::map<std::string, T>& values)
+{
+    m_items.reserve(values.size());
+    DataCell* prevListItemCell = nullptr;
+    for (auto& valuePairs : values) {
+        CellI* value       = valuePairs.second;
+        auto& listItemCell = m_items.emplace_back(*s_listItemClassCell);
+        if (prevListItemCell == nullptr) {
+            listItemCell.connect(*s_memberItemPrev, DataCell::emptyDataCell());
+        } else {
+            listItemCell.connect(*s_memberItemPrev, *prevListItemCell);
+            prevListItemCell->connect(*s_memberItemNext, listItemCell);
+        }
+        listItemCell.connect(*s_memberItemNext, DataCell::emptyDataCell());
+        listItemCell.connect(*s_memberItemValue, *value);
         prevListItemCell = &listItemCell;
     }
 }
 
 bool ListCell::hasMember(CellI& member)
 {
-    if (&member == s_firstMember || &member == s_lastMember || &member == s_sizeMember) {
+    if (&member == s_memberFirst || &member == s_memberLast || &member == s_memberSize || &member == &ClassCell::memberClass()) {
         return true;
     }
     return false;
@@ -261,27 +443,29 @@ bool ListCell::hasMember(CellI& member)
 
 CellI& ListCell::member(CellI& member)
 {
-    if (&member == s_firstMember) {
-        if (m_values.empty()) {
-            return DataCell::emptyDataCell;
+    if (&member == &ClassCell::memberClass()) {
+        return *s_classCell;
+    } else if (&member == s_memberFirst) {
+        if (m_items.empty()) {
+            return DataCell::emptyDataCell();
         }
-        return m_values.front();
-    } else if (&member == s_lastMember) {
-        if (m_values.empty()) {
-            return DataCell::emptyDataCell;
+        return m_items.front();
+    } else if (&member == s_memberLast) {
+        if (m_items.empty()) {
+            return DataCell::emptyDataCell();
         }
-        return m_values.back();
-    } else if (&member == s_sizeMember) {
-        // TODO
-        return DataCell::emptyDataCell;
+        return m_items.back();
+    } else if (&member == s_memberSize) {
+        NumberCell* numberCell = new NumberCell((int)m_items.size());
+        return *numberCell;
     }
 
-    return DataCell::emptyDataCell;
+    return DataCell::emptyDataCell();
 }
 
 ClassCell& ListCell::reflect()
 {
-    return s_classCell;
+    return *s_classCell;
 }
 
 std::string ListCell::printAs(CellPrinter& printer)
@@ -291,29 +475,66 @@ std::string ListCell::printAs(CellPrinter& printer)
 
 std::vector<DataCell>& ListCell::values()
 {
-    return m_values;
+    return m_items;
 }
 
 void ListCell::staticInit()
 {
-    s_listItemPrevMember = &s_listItemClassCell.createMember("prev", s_listItemClassCell);
-    s_listItemNextMember = &s_listItemClassCell.createMember("next", s_listItemClassCell);
-    s_listItemValueMember = &s_listItemClassCell.createMember("value", s_listItemClassCell); // TODO we need the T from the List<T> here somehow
+    s_classCell.reset(new ClassCell("List"));
+    s_listItemClassCell.reset(new ClassCell("ListItem"));
 
-    s_firstMember = &s_classCell.createMember("first", s_listItemClassCell);
-    s_lastMember  = &s_classCell.createMember("last", s_listItemClassCell);
-    s_sizeMember  = &s_classCell.createMember("size", NumberCell::classCell());
+    s_memberItemPrev  = &s_listItemClassCell->createMember("prev", *s_listItemClassCell);
+    s_memberItemNext  = &s_listItemClassCell->createMember("next", *s_listItemClassCell);
+    s_memberItemValue = &s_listItemClassCell->createMember("value", *s_listItemClassCell); // TODO we need the T from the List<T> here somehow
+
+    s_memberFirst = &s_classCell->createMember("first", *s_listItemClassCell);
+    s_memberLast  = &s_classCell->createMember("last", *s_listItemClassCell);
+}
+
+void ListCell::staticInitMembers()
+{
+    s_memberSize = &s_classCell->createMember("size", NumberCell::classCell());
 }
 
 ClassCell& ListCell::classCell()
 {
-    return s_classCell;
+    return *s_classCell;
+}
+
+MemberCell& ListCell::memberFirst()
+{
+    return *s_memberFirst;
+}
+
+MemberCell& ListCell::memberLast()
+{
+    return *s_memberLast;
+}
+
+MemberCell& ListCell::memberSize()
+{
+    return *s_memberSize;
+}
+
+MemberCell& ListCell::memberItemPrev()
+{
+    return *s_memberItemPrev;
+}
+
+MemberCell& ListCell::memberItemNext()
+{
+    return *s_memberItemNext;
+}
+
+MemberCell& ListCell::memberItemValue()
+{
+    return *s_memberItemValue;
 }
 
 // ============================================================================
-ClassCell NumberCell::s_classCell("Number");
-MemberCell* NumberCell::s_valueMember = nullptr;
-MemberCell* NumberCell::s_signMember = nullptr;
+std::unique_ptr<ClassCell> NumberCell::s_classCell;
+MemberCell* NumberCell::s_memberValue = nullptr;
+MemberCell* NumberCell::s_memberSign = nullptr;
 
 NumberCell::NumberCell(int value) :
     m_value(value)
@@ -322,7 +543,7 @@ NumberCell::NumberCell(int value) :
 
 bool NumberCell::hasMember(CellI& member)
 {
-    if (&member == s_valueMember || &member == s_signMember) {
+    if (&member == s_memberValue || &member == s_memberSign || &member == &ClassCell::memberClass()) {
         return true;
     }
     return false;
@@ -330,21 +551,23 @@ bool NumberCell::hasMember(CellI& member)
 
 CellI& NumberCell::member(CellI& member)
 {
-    if (&member == s_valueMember) {
+    if (&member == &ClassCell::memberClass()) {
+        return *s_classCell;
+    } else if (&member == s_memberValue) {
         if (m_digits.empty()) {
             calculateDigits();
-            m_digitsListCell.reset(new ListCell(std::span<DataCell*>(m_digits.begin(), m_digits.end())));
+            m_digitsListCell.reset(new ListCell(m_digits));
         }
 
         return *m_digitsListCell;
     } else {
-        return DataCell::emptyDataCell;
+        return DataCell::emptyDataCell();
     }
 }
 
 ClassCell& NumberCell::reflect()
 {
-    return s_classCell;
+    return *s_classCell;
 }
 
 std::string NumberCell::printAs(CellPrinter& printer)
@@ -359,13 +582,24 @@ int NumberCell::value() const
 
 void NumberCell::staticInit()
 {
-    s_valueMember = &s_classCell.createMember("value", ListCell::classCell());
-    s_signMember = &s_classCell.createMember("sign", NumberCell::classCell()); // TODO
+    s_classCell.reset(new ClassCell("Number"));
+    s_memberValue = &s_classCell->createMember("value", ListCell::classCell());
+    s_memberSign = &s_classCell->createMember("sign", NumberCell::classCell()); // TODO
 }
 
 ClassCell& NumberCell::classCell()
 {
-    return s_classCell;
+    return *s_classCell;
+}
+
+MemberCell& NumberCell::memberSign()
+{
+    return *s_memberSign;
+}
+
+MemberCell& NumberCell::memberValue()
+{
+    return *s_memberValue;
 }
 
 void NumberCell::calculateDigits()
@@ -383,18 +617,22 @@ void NumberCell::calculateDigits()
 
 void StaticInitializations()
 {
-    MemberCell::staticInit();
     ClassCell::staticInit();
+    MemberCell::staticInit();
+    DataCell::staticInit();
     DigitCells::staticInit();
     ListCell::staticInit();
     NumberCell::staticInit();
+    ClassCell::staticInitMembers();
+    MemberCell::staticInitMembers();
+    ListCell::staticInitMembers();
 }
 
 // ============================================================================
 std::string CellValuePrinter::print(MemberCell& memberCell)
 {
     std::stringstream ss;
-    ss << memberCell.name() << ": " << memberCell.classCell().name();
+    ss << memberCell.name() << ": " << memberCell.connectionClass().name();
 
     return ss.str();
 }
@@ -410,7 +648,7 @@ std::string CellValuePrinter::print(ClassCell& classCell)
         } else {
             ss << ", ";
         }
-        ss << memberI.first << ": " << memberI.second->classCell().name();
+        ss << memberI.first << ": " << memberI.second->connectionClass().name();
     }
     ss << " }";
 
@@ -420,6 +658,9 @@ std::string CellValuePrinter::print(ClassCell& classCell)
 std::string CellValuePrinter::print(DataCell& dataCell)
 {
     std::stringstream ss;
+    if (!dataCell.name().empty()) {
+        ss << dataCell.name() << ": ";
+    }
     ss << dataCell.reflect().name() << " { ";
     bool isFirst = true;
     for (auto& memberI : dataCell.members()) {
@@ -490,12 +731,15 @@ std::string CellStructPrinter::printImpl(CellI& cell)
 {
     std::stringstream ss;
     ClassCell& classCell = cell.reflect();
-    ss << "(" << classCell.name() << ") ID" << (void*)this << std::endl;
+    ss << "(" << classCell.name() << ") ID" << &cell << std::endl;
     for (auto& memberI : classCell.members()) {
-        if (!cell.hasMember(*memberI.second)) {
+        const std::string& memberName = memberI.first;
+        MemberCell& memberCell = *memberI.second;
+
+        if (!cell.hasMember(memberCell)) {
             continue;
         }
-        ss << "    +--(" << memberI.first << ")--> ID" << &cell.member(*memberI.second) << std::endl;
+        ss << "    +--(" << memberName << ")--> (" << static_cast<ClassCell&>(memberCell.member(MemberCell::memberConnectionClass())).name() << ") ID" << &cell.member(memberCell) << std::endl;
     }
     return ss.str();
 }
