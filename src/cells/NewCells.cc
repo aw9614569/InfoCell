@@ -1,12 +1,18 @@
 #include "NewCells.h"
 
+#include <format>
+
+#pragma warning(disable : 4996)
+#include <utf8.h>
+
 namespace synth {
 namespace newcell {
 
 // ============================================================================
 std::unique_ptr<ClassCell> MemberCell::s_classCell;
 MemberCell* MemberCell::s_memberConnectWith = nullptr;
-MemberCell* MemberCell::s_memberName = nullptr;
+MemberCell* MemberCell::s_memberName        = nullptr;
+MemberCell* MemberCell::s_memberSemantic    = nullptr;
 
 MemberCell::MemberCell(const std::string& name, ClassCell& classCell) :
     m_name(name), m_connectionClass(classCell)
@@ -19,7 +25,6 @@ bool MemberCell::hasMember(CellI& member)
         return true;
     }
     return false;
-
 }
 
 CellI& MemberCell::member(CellI& member)
@@ -31,8 +36,15 @@ CellI& MemberCell::member(CellI& member)
         return m_connectionClass;
     }
     if (&member == s_memberName) {
-        return DataCell::emptyDataCell(); // TODO should give back StringCell(m_name)
+        if (!m_classNameListCell) {
+            m_classNameListCell.reset(new StringCell(m_name));
+        }
+        return *m_classNameListCell;
     }
+    if (&member == s_memberSemantic) {
+        return *s_memberSemantic;
+    }
+
     return DataCell::emptyDataCell();
 }
 
@@ -59,7 +71,8 @@ void MemberCell::staticInit()
 void MemberCell::staticInitMembers()
 {
     s_memberConnectWith = &s_classCell->createMember("connectWith", ClassCell::classCell());
-    //s_memberName = s_classCell->createMember("name", StringCell::classCell());
+    s_memberName        = &s_classCell->createMember("name", StringCell::classCell());
+    s_memberSemantic    = &s_classCell->createMember("semantic", ClassCell::anyClassCell());
 }
 
 MemberCell& MemberCell::memberName()
@@ -72,6 +85,11 @@ MemberCell& MemberCell::memberConnectWith()
     return *s_memberConnectWith;
 }
 
+MemberCell& MemberCell::memberSemantic()
+{
+    return *s_memberSemantic;
+}
+
 ClassCell& MemberCell::connectionClass()
 {
     return m_connectionClass;
@@ -79,8 +97,9 @@ ClassCell& MemberCell::connectionClass()
 
 // ============================================================================
 std::unique_ptr<ClassCell> ClassCell::s_classCell;
-MemberCell* ClassCell::s_memberClass = nullptr;
+MemberCell* ClassCell::s_memberClass   = nullptr;
 MemberCell* ClassCell::s_memberMembers = nullptr;
+std::unique_ptr<ClassCell> ClassCell::s_anyClassCell;
 
 ClassCell::ClassCell(const std::string& name) :
     m_name(name)
@@ -135,6 +154,7 @@ void ClassCell::staticInit()
     s_classCell.reset(new ClassCell("Class"));
     s_memberClass = &s_classCell->createMember("class", *s_classCell);
     s_classCell->referenceMember("class", *s_memberClass);
+    s_anyClassCell.reset(new ClassCell("AnyClass"));
 }
 
 void ClassCell::staticInitMembers()
@@ -197,6 +217,11 @@ MemberCell& ClassCell::memberClass()
 MemberCell& ClassCell::memberMembers()
 {
     return *s_memberMembers;
+}
+
+ClassCell& ClassCell::anyClassCell()
+{
+    return *s_anyClassCell;
 }
 
 // ============================================================================
@@ -273,19 +298,6 @@ DataCell& DataCell::emptyDataCell()
 }
 
 // ============================================================================
-std::unique_ptr<ClassCell> DigitCells::s_digitClassCell;
-std::vector<DataCell> DigitCells::s_digits;
-
-void DigitCells::staticInit()
-{
-     s_digitClassCell.reset(new ClassCell("Digit"));
-    for (int i = 0; i < 10; ++i) {
-        std::string digitName = "Digit_" + std::to_string(i);
-        s_digits.push_back({ digitName , *s_digitClassCell });
-    }
-}
-
-// ============================================================================
 std::unique_ptr<ClassCell> ListItemCell::s_classCell;
 
 MemberCell* ListItemCell::s_memberPrev  = nullptr;
@@ -342,7 +354,8 @@ std::string ListItemCell::printAs(CellPrinter& printer)
     return printer.print(*this);
 }
 
-std::string ListItemCell::name() const {
+std::string ListItemCell::name() const
+{
     std::stringstream ss;
     if (m_value) {
         ss << "\"" << m_value->name() << "\"";
@@ -545,9 +558,22 @@ MemberCell& ListCell::memberSize()
 }
 
 // ============================================================================
+std::unique_ptr<ClassCell> DigitCells::s_digitClassCell;
+std::vector<DataCell> DigitCells::s_digits;
+
+void DigitCells::staticInit()
+{
+    s_digitClassCell.reset(new ClassCell("Digit"));
+    for (int i = 0; i < 10; ++i) {
+        std::string digitName = "Digit_" + std::to_string(i);
+        s_digits.push_back({ digitName, *s_digitClassCell });
+    }
+}
+
+// ============================================================================
 std::unique_ptr<ClassCell> NumberCell::s_classCell;
 MemberCell* NumberCell::s_memberValue = nullptr;
-MemberCell* NumberCell::s_memberSign = nullptr;
+MemberCell* NumberCell::s_memberSign  = nullptr;
 
 NumberCell::NumberCell(int value) :
     m_value(value)
@@ -602,7 +628,7 @@ void NumberCell::staticInit()
 {
     s_classCell.reset(new ClassCell("Number"));
     s_memberValue = &s_classCell->createMember("value", ListCell::classCell());
-    s_memberSign = &s_classCell->createMember("sign", NumberCell::classCell()); // TODO
+    s_memberSign  = &s_classCell->createMember("sign", NumberCell::classCell()); // TODO
 }
 
 ClassCell& NumberCell::classCell()
@@ -634,6 +660,124 @@ void NumberCell::calculateDigits()
     std::reverse(m_digits.begin(), m_digits.end());
 }
 
+// ============================================================================
+std::unique_ptr<ClassCell> UnicodeCells::s_unicodeClassCell;
+std::map<char32_t, DataCell> UnicodeCells::s_characters;
+
+void UnicodeCells::staticInit()
+{
+    s_unicodeClassCell.reset(new ClassCell("UnicodeCharacter"));
+    createUnicodeCells(0x020, 0x07e);
+    createUnicodeCells(0x080, 0x0ff);
+    createUnicodeCells(0x100, 0x17f);
+}
+
+DataCell& UnicodeCells::unicodeValueToCell(char32_t utf32Char)
+{
+    auto unicodeCellIt = s_characters.find(utf32Char);
+    if (unicodeCellIt != s_characters.end()) {
+        return unicodeCellIt->second;
+    } else {
+        return DataCell::emptyDataCell();
+    }
+}
+
+ClassCell& UnicodeCells::unicodeClassCell()
+{
+    return *s_unicodeClassCell;
+}
+
+void UnicodeCells::createUnicodeCells(char32_t from, char32_t to)
+{
+    for (char32_t unicodeValue = from; unicodeValue <= to; ++unicodeValue) {
+        std::string characterName = std::format("Unicode_{:#04x}", (int)unicodeValue);
+        s_characters.emplace(std::piecewise_construct,
+                             std::forward_as_tuple(unicodeValue),
+                             std::forward_as_tuple(characterName, *s_unicodeClassCell));
+    }
+}
+
+// ============================================================================
+std::unique_ptr<ClassCell> StringCell::s_classCell;
+MemberCell* StringCell::s_memberCharacters = nullptr;
+
+StringCell::StringCell(const std::string& str) :
+    m_value(str)
+{
+}
+
+bool StringCell::hasMember(CellI& member)
+{
+    if (&member == s_memberCharacters || &member == &ClassCell::memberClass()) {
+        return true;
+    }
+    return false;
+}
+
+CellI& StringCell::member(CellI& member)
+{
+    if (&member == &ClassCell::memberClass()) {
+        return *s_classCell;
+    } else if (&member == s_memberCharacters) {
+        if (m_characters.empty()) {
+            calculateCharacters();
+            m_charactersListCell.reset(new ListCell(m_characters));
+        }
+
+        return *m_charactersListCell;
+    } else {
+        return DataCell::emptyDataCell();
+    }
+}
+
+ClassCell& StringCell::reflect()
+{
+    return *s_classCell;
+}
+
+std::string StringCell::printAs(CellPrinter& printer)
+{
+    return printer.print(*this);
+}
+
+std::string StringCell::name() const
+{
+    return m_value;
+}
+
+const std::string& StringCell::value() const
+{
+    return m_value;
+}
+
+void StringCell::staticInit()
+{
+    s_classCell.reset(new ClassCell("String"));
+    s_memberCharacters = &s_classCell->createMember("value", ListCell::classCell());
+}
+
+ClassCell& StringCell::classCell()
+{
+    return *s_classCell;
+}
+
+MemberCell& StringCell::memberCharacters()
+{
+    return *s_memberCharacters;
+}
+
+void StringCell::calculateCharacters()
+{
+    utf8::iterator<const char*> valueIt(m_value.data(), m_value.data(), m_value.data() + m_value.size());
+    utf8::iterator<const char*> valueEndIt(m_value.data() + m_value.size(), m_value.data(), m_value.data() + m_value.size());
+
+    for (auto& it = valueIt; it != valueEndIt; ++valueIt) {
+        char32_t unicodeValue = *it;
+        m_characters.push_back(&UnicodeCells::unicodeValueToCell(unicodeValue));
+    }
+}
+
+// ============================================================================
 void StaticInitializations()
 {
     ClassCell::staticInit();
@@ -643,6 +787,8 @@ void StaticInitializations()
     ListItemCell::staticInit();
     ListCell::staticInit();
     NumberCell::staticInit();
+    UnicodeCells::staticInit();
+    StringCell::staticInit();
     ClassCell::staticInitMembers();
     MemberCell::staticInitMembers();
     ListCell::staticInitMembers();
@@ -699,8 +845,10 @@ std::string CellValuePrinter::print(DataCell& dataCell)
 std::string CellValuePrinter::print(ListItemCell& listItemCell)
 {
     std::stringstream ss;
-    ss << "[";
-//    ss << listItemCell.value(); // TODO
+    ss << "[ ";
+    if (!listItemCell.value().name().empty()) {
+        ss << listItemCell.value().name() << " ";
+    }
     ss << "]";
 
     return ss.str();
@@ -731,6 +879,15 @@ std::string CellValuePrinter::print(NumberCell& cell)
 
     return ss.str();
 }
+
+std::string CellValuePrinter::print(StringCell& cell)
+{
+    std::stringstream ss;
+    ss << "(String) " << cell.value();
+
+    return ss.str();
+}
+
 // ============================================================================
 std::string CellStructPrinter::print(MemberCell& cell)
 {
@@ -765,19 +922,24 @@ std::string CellStructPrinter::print(DataCell& cell)
     return ss.str();
 }
 
-std::string CellStructPrinter::print(ListItemCell& listItemCell)
+std::string CellStructPrinter::print(ListItemCell& cell)
 {
-    return printImpl(listItemCell);
+    return printImpl(cell);
 }
 
-std::string CellStructPrinter::print(ListCell& listCell)
+std::string CellStructPrinter::print(ListCell& cell)
 {
-    return printImpl(listCell);
+    return printImpl(cell);
 }
 
-std::string CellStructPrinter::print(NumberCell& numberCell)
+std::string CellStructPrinter::print(NumberCell& cell)
 {
-    return printImpl(numberCell);
+    return printImpl(cell);
+}
+
+std::string CellStructPrinter::print(StringCell& cell)
+{
+    return printImpl(cell);
 }
 
 std::string CellStructPrinter::printImpl(CellI& cell)

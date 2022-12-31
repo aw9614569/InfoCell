@@ -24,17 +24,17 @@ int main(int argc, char* argv[])
     std::cout << colorClass.printAs(valuePrinter) << std::endl;
     std::cout << redColorMember.printAs(valuePrinter) << std::endl;
     std::cout << redColor.printAs(valuePrinter) << std::endl;
-    std::cout << number_0.printAs(valuePrinter) << std::endl;
-    std::cout << number_0.member(NumberCell::memberValue()).member(ListCell::memberFirst()).member(ListItemCell::memberValue()).printAs(valuePrinter) << std::endl;
+    std::cout << number_255.printAs(valuePrinter) << std::endl;
+    std::cout << number_255.member(NumberCell::memberValue()).member(ListCell::memberFirst()).member(ListItemCell::memberValue()).printAs(valuePrinter) << std::endl;
 
     std::cout << redColor.printAs(structPrinter) << std::endl;
     std::cout << redColorMember.printAs(structPrinter) << std::endl;
     std::cout << colorClass.printAs(structPrinter) << std::endl;
     std::cout << number_255.printAs(structPrinter) << std::endl;
-    std::cout << number_0.member(NumberCell::memberSign()).printAs(structPrinter) << std::endl;
-    std::cout << number_0.member(NumberCell::memberValue()).printAs(structPrinter) << std::endl;
-    std::cout << number_0.member(NumberCell::memberValue()).member(ListCell::memberFirst()).printAs(structPrinter) << std::endl;
-    std::cout << number_0.member(NumberCell::memberValue()).member(ListCell::memberFirst()).member(ListItemCell::memberValue()).printAs(structPrinter) << std::endl;
-    std::cout << number_0.member(NumberCell::memberValue()).member(ListCell::memberLast()).printAs(structPrinter) << std::endl;
+    std::cout << number_255.member(NumberCell::memberSign()).printAs(structPrinter) << std::endl;
+    std::cout << number_255.member(NumberCell::memberValue()).printAs(structPrinter) << std::endl;
+    std::cout << number_255.member(NumberCell::memberValue()).member(ListCell::memberFirst()).printAs(structPrinter) << std::endl;
+    std::cout << number_255.member(NumberCell::memberValue()).member(ListCell::memberFirst()).member(ListItemCell::memberValue()).printAs(structPrinter) << std::endl;
+    std::cout << number_255.member(NumberCell::memberValue()).member(ListCell::memberLast()).printAs(structPrinter) << std::endl;
     std::cout << number_255.member(NumberCell::memberValue()).member(ListCell::memberSize()).printAs(structPrinter) << std::endl;
 }

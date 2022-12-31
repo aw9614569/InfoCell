@@ -22,6 +22,7 @@ public:
     virtual std::string name() const                  = 0;
 };
 
+class StringCell;
 class MemberCell : public CellI
 {
 public:
@@ -37,6 +38,7 @@ public:
     static void staticInitMembers();
     static MemberCell& memberConnectWith();
     static MemberCell& memberName();
+    static MemberCell& memberSemantic();
 
     ClassCell& connectionClass();
 
@@ -44,7 +46,9 @@ protected:
     static std::unique_ptr<ClassCell> s_classCell;
     static MemberCell* s_memberConnectWith;
     static MemberCell* s_memberName;
+    static MemberCell* s_memberSemantic;
     std::string m_name;
+    std::unique_ptr<StringCell> m_classNameListCell;
     ClassCell& m_connectionClass; // the class of the connected cell
 };
 
@@ -70,11 +74,13 @@ public:
     static ClassCell& classCell();
     static MemberCell& memberClass();
     static MemberCell& memberMembers();
+    static ClassCell& anyClassCell();
 
 protected:
     static std::unique_ptr<ClassCell> s_classCell;
     static MemberCell* s_memberClass;
     static MemberCell* s_memberMembers;
+    static std::unique_ptr<ClassCell> s_anyClassCell;
     std::map<std::string, MemberCell> m_memberCells;
     std::map<std::string, MemberCell*> m_memberRefs;
     std::string m_name;
@@ -215,6 +221,47 @@ protected:
     std::unique_ptr<ListCell> m_digitsListCell;
 };
 
+class UnicodeCells
+{
+public:
+    static void staticInit();
+    static DataCell& unicodeValueToCell(char32_t utf32Char);
+    static ClassCell& unicodeClassCell();
+
+protected:
+    static void createUnicodeCells(char32_t from, char32_t to);
+    static std::unique_ptr<ClassCell> s_unicodeClassCell;
+    static std::map<char32_t, DataCell> s_characters; // Unicode value to Cell
+};
+
+class StringCell : public CellI
+{
+public:
+    StringCell(const std::string& str);
+
+    bool hasMember(CellI& member) override;
+    CellI& member(CellI& member) override;
+    ClassCell& reflect() override;
+    std::string printAs(CellPrinter& printer) override;
+    std::string name() const override;
+
+    const std::string& value() const;
+
+    static void staticInit();
+    static ClassCell& classCell();
+    static MemberCell& memberCharacters();
+
+protected:
+    void calculateCharacters();
+
+    static std::unique_ptr<ClassCell> s_classCell;
+    static MemberCell* s_memberCharacters;
+
+    std::string m_value;
+    std::vector<DataCell*> m_characters;
+    std::unique_ptr<ListCell> m_charactersListCell;
+};
+
 class CellPrinter
 {
 public:
@@ -224,6 +271,7 @@ public:
     virtual std::string print(ListItemCell& cell) = 0;
     virtual std::string print(ListCell& cell)     = 0;
     virtual std::string print(NumberCell& cell)   = 0;
+    virtual std::string print(StringCell& cell)   = 0;
 };
 
 class CellValuePrinter : public CellPrinter
@@ -235,6 +283,7 @@ public:
     std::string print(ListItemCell& cell) override;
     std::string print(ListCell& cell) override;
     std::string print(NumberCell& cell) override;
+    std::string print(StringCell& cell) override;
 };
 
 class CellStructPrinter : public CellPrinter
@@ -246,6 +295,7 @@ public:
     std::string print(ListItemCell& cell) override;
     std::string print(ListCell& cell) override;
     std::string print(NumberCell& cell) override;
+    std::string print(StringCell& cell) override;
 
     std::string printImpl(CellI& cell);
 };
