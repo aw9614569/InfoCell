@@ -5,7 +5,7 @@ namespace newcell {
 
 // ============================================================================
 std::unique_ptr<ClassCell> MemberCell::s_classCell;
-MemberCell* MemberCell::s_memberConnectionClass = nullptr;
+MemberCell* MemberCell::s_memberConnectWith = nullptr;
 MemberCell* MemberCell::s_memberName = nullptr;
 
 MemberCell::MemberCell(const std::string& name, ClassCell& classCell) :
@@ -15,7 +15,7 @@ MemberCell::MemberCell(const std::string& name, ClassCell& classCell) :
 
 bool MemberCell::hasMember(CellI& member)
 {
-    if (&member == &ClassCell::memberClass() || &member == s_memberConnectionClass || &member == s_memberName) {
+    if (&member == &ClassCell::memberClass() || &member == s_memberConnectWith || &member == s_memberName) {
         return true;
     }
     return false;
@@ -27,7 +27,7 @@ CellI& MemberCell::member(CellI& member)
     if (&member == &ClassCell::memberClass()) {
         return *s_classCell;
     }
-    if (&member == s_memberConnectionClass) {
+    if (&member == s_memberConnectWith) {
         return m_connectionClass;
     }
     if (&member == s_memberName) {
@@ -46,6 +46,11 @@ std::string MemberCell::printAs(CellPrinter& printer)
     return printer.print(*this);
 }
 
+std::string MemberCell::name() const
+{
+    return m_name;
+}
+
 void MemberCell::staticInit()
 {
     s_classCell.reset(new ClassCell("Member"));
@@ -53,7 +58,7 @@ void MemberCell::staticInit()
 
 void MemberCell::staticInitMembers()
 {
-    s_memberConnectionClass = &s_classCell->createMember("connectionClass", ClassCell::classCell());
+    s_memberConnectWith = &s_classCell->createMember("connectWith", ClassCell::classCell());
     //s_memberName = s_classCell->createMember("name", StringCell::classCell());
 }
 
@@ -62,14 +67,9 @@ MemberCell& MemberCell::memberName()
     return *s_memberName;
 }
 
-MemberCell& MemberCell::memberConnectionClass()
+MemberCell& MemberCell::memberConnectWith()
 {
-    return *s_memberConnectionClass;
-}
-
-const std::string& MemberCell::name() const
-{
-    return m_name;
+    return *s_memberConnectWith;
 }
 
 ClassCell& MemberCell::connectionClass()
@@ -125,6 +125,11 @@ std::string ClassCell::printAs(CellPrinter& printer)
     return printer.print(*this);
 }
 
+std::string ClassCell::name() const
+{
+    return m_name;
+}
+
 void ClassCell::staticInit()
 {
     s_classCell.reset(new ClassCell("Class"));
@@ -135,11 +140,6 @@ void ClassCell::staticInit()
 void ClassCell::staticInitMembers()
 {
     s_memberMembers = &s_classCell->createMember("members", ListCell::classCell());
-}
-
-const std::string& ClassCell::name() const
-{
-    return m_name;
 }
 
 MemberCell& ClassCell::createMember(const std::string& name, ClassCell& classCell)
@@ -246,7 +246,7 @@ std::string DataCell::printAs(CellPrinter& printer)
     return printer.print(*this);
 }
 
-const std::string& DataCell::name() const
+std::string DataCell::name() const
 {
     return m_name;
 }
@@ -340,6 +340,14 @@ ClassCell& ListItemCell::reflect()
 std::string ListItemCell::printAs(CellPrinter& printer)
 {
     return printer.print(*this);
+}
+
+std::string ListItemCell::name() const {
+    std::stringstream ss;
+    if (m_value) {
+        ss << "\"" << m_value->name() << "\"";
+    }
+    return ss.str();
 }
 
 CellI& ListItemCell::prev()
@@ -490,7 +498,15 @@ std::string ListCell::printAs(CellPrinter& printer)
     return printer.print(*this);
 }
 
-std::vector<ListItemCell>& ListCell::values()
+std::string ListCell::name() const
+{
+    std::stringstream ss;
+    ss << "List<>" << std::endl;
+
+    return ss.str();
+}
+
+std::vector<ListItemCell>& ListCell::items()
 {
     return m_items;
 }
@@ -572,6 +588,11 @@ std::string NumberCell::printAs(CellPrinter& printer)
     return printer.print(*this);
 }
 
+std::string NumberCell::name() const
+{
+    return std::to_string(m_value);
+}
+
 int NumberCell::value() const
 {
     return m_value;
@@ -610,6 +631,7 @@ void NumberCell::calculateDigits()
         m_digits.push_back(&DigitCells::s_digits[value % 10]);
         value /= 10;
     }
+    std::reverse(m_digits.begin(), m_digits.end());
 }
 
 void StaticInitializations()
@@ -687,17 +709,17 @@ std::string CellValuePrinter::print(ListItemCell& listItemCell)
 std::string CellValuePrinter::print(ListCell& listCell)
 {
     std::stringstream ss;
-    ss << "{";
+    ss << "[";
     bool isFirst = true;
-    for (auto& value : listCell.values()) {
+    for (auto& item : listCell.items()) {
         if (isFirst) {
             isFirst = false;
         } else {
-            ss << ", ";
+            ss << ",";
         }
-        ss << value.reflect().name();
+        ss << " " << item.value().name();
     }
-    ss << "}";
+    ss << " ]";
 
     return ss.str();
 }
@@ -710,19 +732,37 @@ std::string CellValuePrinter::print(NumberCell& cell)
     return ss.str();
 }
 // ============================================================================
-std::string CellStructPrinter::print(MemberCell& memberCell)
+std::string CellStructPrinter::print(MemberCell& cell)
 {
-    return printImpl(memberCell);
+    std::stringstream ss;
+    if (!cell.name().empty()) {
+        ss << cell.name() << ": ";
+    }
+    ss << printImpl(cell);
+
+    return ss.str();
 }
 
-std::string CellStructPrinter::print(ClassCell& classCell)
+std::string CellStructPrinter::print(ClassCell& cell)
 {
-    return printImpl(classCell);
+    std::stringstream ss;
+    if (!cell.name().empty()) {
+        ss << cell.name() << ": ";
+    }
+    ss << printImpl(cell);
+
+    return ss.str();
 }
 
-std::string CellStructPrinter::print(DataCell& dataCell)
+std::string CellStructPrinter::print(DataCell& cell)
 {
-    return printImpl(dataCell);
+    std::stringstream ss;
+    if (!cell.name().empty()) {
+        ss << cell.name() << ": ";
+    }
+    ss << printImpl(cell);
+
+    return ss.str();
 }
 
 std::string CellStructPrinter::print(ListItemCell& listItemCell)
@@ -752,7 +792,10 @@ std::string CellStructPrinter::printImpl(CellI& cell)
         if (!cell.hasMember(memberCell)) {
             continue;
         }
-        ss << "    +--(" << memberName << ")--> (" << static_cast<ClassCell&>(memberCell.member(MemberCell::memberConnectionClass())).name() << ") ID" << &cell.member(memberCell) << std::endl;
+        CellValuePrinter valuePrinter;
+        ClassCell& connectWith = static_cast<ClassCell&>(memberCell.member(MemberCell::memberConnectWith()));
+        CellI& connectedNode = cell.member(memberCell);
+        ss << "    +--(" << memberName << ")--> (" << connectWith.name() << ") ID" << &connectedNode << " // " << connectedNode.printAs(valuePrinter) << std::endl;
     }
     return ss.str();
 }

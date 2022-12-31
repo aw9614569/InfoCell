@@ -19,6 +19,7 @@ public:
     virtual CellI& member(CellI& member)              = 0;
     virtual ClassCell& reflect()                      = 0;
     virtual std::string printAs(CellPrinter& printer) = 0;
+    virtual std::string name() const                  = 0;
 };
 
 class MemberCell : public CellI
@@ -30,18 +31,18 @@ public:
     CellI& member(CellI& member) override;
     ClassCell& reflect() override;
     std::string printAs(CellPrinter& printer) override;
+    std::string name() const override;
 
     static void staticInit();
     static void staticInitMembers();
-    static MemberCell& memberConnectionClass();
+    static MemberCell& memberConnectWith();
     static MemberCell& memberName();
 
-    const std::string& name() const;
     ClassCell& connectionClass();
 
 protected:
     static std::unique_ptr<ClassCell> s_classCell;
-    static MemberCell* s_memberConnectionClass;
+    static MemberCell* s_memberConnectWith;
     static MemberCell* s_memberName;
     std::string m_name;
     ClassCell& m_connectionClass; // the class of the connected cell
@@ -57,10 +58,10 @@ public:
     CellI& member(CellI& member) override;
     ClassCell& reflect() override;
     std::string printAs(CellPrinter& printer) override;
+    std::string name() const override;
 
     static void staticInit();
     static void staticInitMembers();
-    const std::string& name() const;
     MemberCell& createMember(const std::string& name, ClassCell& classCell);
     void referenceMember(const std::string& name, MemberCell& memberCell);
     bool hasMember(const std::string& name) const;
@@ -90,8 +91,8 @@ public:
     CellI& member(CellI& member) override;
     ClassCell& reflect() override;
     std::string printAs(CellPrinter& printer) override;
+    std::string name() const override;
 
-    const std::string& name() const;
     std::map<MemberCell*, CellI*>& members();
     void connect(MemberCell& memberCell, CellI& value);
 
@@ -122,6 +123,7 @@ public:
     CellI& member(CellI& member) override;
     ClassCell& reflect() override;
     std::string printAs(CellPrinter& printer) override;
+    std::string name() const override;
 
     CellI& prev();
     void prev(ListItemCell* p);
@@ -163,8 +165,9 @@ public:
     CellI& member(CellI& member) override;
     ClassCell& reflect() override;
     std::string printAs(CellPrinter& printer) override;
+    std::string name() const override;
 
-    std::vector<ListItemCell>& values();
+    std::vector<ListItemCell>& items();
 
     static void staticInit();
     static void staticInitMembers();
@@ -191,6 +194,7 @@ public:
     CellI& member(CellI& member) override;
     ClassCell& reflect() override;
     std::string printAs(CellPrinter& printer) override;
+    std::string name() const override;
 
     int value() const;
 
