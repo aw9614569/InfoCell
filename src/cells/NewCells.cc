@@ -12,7 +12,7 @@ namespace newcell {
 std::unique_ptr<Type> Slot::s_type;
 Slot* Slot::s_slotSlotType = nullptr;
 Slot* Slot::s_slotSlotName = nullptr;
-Slot* Slot::s_slotSemantic = nullptr;
+Slot* Slot::s_slotSlotRole = nullptr;
 
 Slot::Slot(const std::string& name, Type& classCell) :
     m_name(name), m_connectionClass(classCell)
@@ -41,19 +41,19 @@ CellI& Slot::slot(CellI& slot)
         }
         return *m_slotNameString;
     }
-    if (&slot == s_slotSemantic) {
-        return *s_slotSemantic;
+    if (&slot == s_slotSlotRole) {
+        return *s_slotSlotRole;
     }
 
     return Object::emptyObject();
 }
 
-Type& Slot::reflect()
+Type& Slot::type()
 {
     return *s_type;
 }
 
-std::string Slot::printAs(CellPrinter& printer)
+std::string Slot::printAs(Printer& printer)
 {
     return printer.print(*this);
 }
@@ -70,9 +70,14 @@ void Slot::staticInit()
 
 void Slot::staticInitMembers()
 {
-    s_slotSlotType = &s_type->createSlot("slotType", Type::type());
-    s_slotSlotName = &s_type->createSlot("slotName", String::type());
-    s_slotSemantic = &s_type->createSlot("semantic", Type::anyType());
+    s_slotSlotType = &s_type->createSlot("slotType", Type::t());
+    s_slotSlotName = &s_type->createSlot("slotName", String::t());
+    s_slotSlotRole = &s_type->createSlot("slotRole", Type::anyType());
+}
+
+Type& Slot::t()
+{
+    return *s_type;
 }
 
 Slot& Slot::slotSlotName()
@@ -85,9 +90,9 @@ Slot& Slot::slotSlotType()
     return *s_slotSlotType;
 }
 
-Slot& Slot::slotSemantic()
+Slot& Slot::slotSlotRole()
 {
-    return *s_slotSemantic;
+    return *s_slotSlotRole;
 }
 
 Type& Slot::connectionClass()
@@ -134,12 +139,12 @@ CellI& Type::slot(CellI& slot)
     return Object::emptyObject();
 }
 
-Type& Type::reflect()
+Type& Type::type()
 {
     return *s_type;
 }
 
-std::string Type::printAs(CellPrinter& printer)
+std::string Type::printAs(Printer& printer)
 {
     return printer.print(*this);
 }
@@ -159,7 +164,17 @@ void Type::staticInit()
 
 void Type::staticInitMembers()
 {
-    s_slotSlots = &s_type->createSlot("slots", List::type());
+    static Type listItemForSlot("ListItem<Slot>");
+    listItemForSlot.createSlot("prev", listItemForSlot);
+    listItemForSlot.createSlot("next", listItemForSlot);
+    listItemForSlot.createSlot("value", Slot::t());
+
+    static Type listOfSlots("List<Slot>");
+    listOfSlots.createSlot("first", listItemForSlot);
+    listOfSlots.createSlot("last", listItemForSlot);
+    listOfSlots.createSlot("size", Number::t());
+
+    s_slotSlots = &s_type->createSlot("slots", listOfSlots);
 }
 
 Slot& Type::createSlot(const std::string& name, Type& classCell)
@@ -194,7 +209,7 @@ bool Type::hasSlot(const std::string& name) const
 Slot& Type::getSlot(const std::string& name)
 {
     auto findIt = m_slotRefs.find(name);
-    if (findIt != m_slotRefs.end())
+    if (findIt == m_slotRefs.end())
         throw "emptyMember";
 
     return *findIt->second;
@@ -205,7 +220,7 @@ std::map<std::string, Slot*>& Type::slots()
     return m_slotRefs;
 }
 
-Type& Type::type()
+Type& Type::t()
 {
     return *s_type;
 }
@@ -262,12 +277,12 @@ CellI& Object::slot(CellI& slot)
     return *findIt->second;
 }
 
-Type& Object::reflect()
+Type& Object::type()
 {
     return m_type;
 }
 
-std::string Object::printAs(CellPrinter& printer)
+std::string Object::printAs(Printer& printer)
 {
     return printer.print(*this);
 }
@@ -299,19 +314,17 @@ Object& Object::emptyObject()
 }
 
 // ============================================================================
-std::unique_ptr<Type> ListItem::s_type;
-
-Slot* ListItem::s_slotPrev  = nullptr;
-Slot* ListItem::s_slotNext  = nullptr;
-Slot* ListItem::s_slotValue = nullptr;
-
-ListItem::ListItem()
+ListItem::ListItem(Type& t) :
+    m_type(t)
 {
+    m_slotPrev  = &t.getSlot("prev");
+    m_slotNext  = &t.getSlot("next");
+    m_slotValue = &t.getSlot("value");
 }
 
 bool ListItem::hasSlot(CellI& slot)
 {
-    if (&slot == &Type::slotType() || &slot == s_slotPrev || &slot == s_slotNext || &slot == s_slotValue) {
+    if (&slot == &Type::slotType() || &slot == m_slotPrev || &slot == m_slotNext || &slot == m_slotValue) {
         return true;
     }
 
@@ -321,21 +334,21 @@ bool ListItem::hasSlot(CellI& slot)
 CellI& ListItem::slot(CellI& slot)
 {
     if (&slot == &Type::slotType()) {
-        return *s_type;
+        return m_type;
     }
-    if (&slot == s_slotPrev) {
+    if (&slot == m_slotPrev) {
         if (m_prev)
             return *m_prev;
         else
             return Object::emptyObject();
     }
-    if (&slot == s_slotNext) {
+    if (&slot == m_slotNext) {
         if (m_next)
             return *m_next;
         else
             return Object::emptyObject();
     }
-    if (&slot == s_slotValue) {
+    if (&slot == m_slotValue) {
         if (m_value)
             return *m_value;
         else
@@ -345,12 +358,12 @@ CellI& ListItem::slot(CellI& slot)
     return Object::emptyObject();
 }
 
-Type& ListItem::reflect()
+Type& ListItem::type()
 {
-    return *s_type;
+    return m_type;
 }
 
-std::string ListItem::printAs(CellPrinter& printer)
+std::string ListItem::printAs(Printer& printer)
 {
     return printer.print(*this);
 }
@@ -394,52 +407,39 @@ void ListItem::value(CellI* v)
     m_value = v;
 }
 
-void ListItem::staticInit()
-{
-    s_type.reset(new Type("ListItem"));
-
-    s_slotPrev  = &s_type->createSlot("prev", *s_type);
-    s_slotNext  = &s_type->createSlot("next", *s_type);
-    s_slotValue = &s_type->createSlot("value", *s_type); // TODO we need the T from the List<T> here somehow
-}
-
-void ListItem::staticInitMembers()
-{
-}
-
-Type& ListItem::type()
-{
-    return *s_type;
-}
-
 Slot& ListItem::slotPrev()
 {
-    return *s_slotPrev;
+    return *m_slotPrev;
 }
 Slot& ListItem::slotNext()
 {
-    return *s_slotNext;
+    return *m_slotNext;
 }
 
 Slot& ListItem::slotValue()
 {
-    return *s_slotValue;
+    return *m_slotValue;
 }
 
 // ============================================================================
-std::unique_ptr<Type> List::s_type;
-
-Slot* List::s_slotFirst = nullptr;
-Slot* List::s_slotLast  = nullptr;
-Slot* List::s_slotSize  = nullptr;
-
 template <typename T>
-List::List(const std::vector<T>& values)
+List::List(const std::vector<T>& values) :
+    m_listType("List<T>"),
+    m_itemType("ListItem<T>")
 {
+    m_slotFirst = &m_listType.createSlot("first", m_itemType);
+    m_slotLast  = &m_listType.createSlot("last", m_itemType);
+    m_slotSize  = &m_listType.createSlot("size", Number::t());
+
+    Type& valueType = values.front()->type();
+    m_itemType.createSlot("prev", m_itemType);
+    m_itemType.createSlot("next", m_itemType);
+    m_itemType.createSlot("value", valueType);
+
     m_items.reserve(values.size());
     ListItem* prevListItem = nullptr;
     for (CellI* value : values) {
-        auto& listItem = m_items.emplace_back();
+        auto& listItem = m_items.emplace_back(m_itemType);
         if (prevListItem == nullptr) {
             listItem.prev(nullptr);
         } else {
@@ -453,13 +453,24 @@ List::List(const std::vector<T>& values)
 }
 
 template <typename T>
-List::List(std::map<std::string, T>& values)
+List::List(std::map<std::string, T>& values) :
+    m_listType("List<T>"),
+    m_itemType("ListItem<T>")
 {
+    m_slotFirst = &m_listType.createSlot("first", m_itemType);
+    m_slotLast  = &m_listType.createSlot("last", m_itemType);
+    m_slotSize  = &m_listType.createSlot("size", Number::t());
+
+    Type& valueType = (*values.begin()).second->type();
+    m_itemType.createSlot("prev", m_itemType);
+    m_itemType.createSlot("next", m_itemType);
+    m_itemType.createSlot("value", valueType);
+
     m_items.reserve(values.size());
     ListItem* prevListItem = nullptr;
     for (auto& valuePairs : values) {
         CellI* value       = valuePairs.second;
-        auto& listItemCell = m_items.emplace_back();
+        auto& listItemCell = m_items.emplace_back(m_itemType);
         if (prevListItem == nullptr) {
             listItemCell.prev(nullptr);
         } else {
@@ -474,7 +485,7 @@ List::List(std::map<std::string, T>& values)
 
 bool List::hasSlot(CellI& slot)
 {
-    if (&slot == s_slotFirst || &slot == s_slotLast || &slot == s_slotSize || &slot == &Type::slotType()) {
+    if (&slot == m_slotFirst || &slot == m_slotLast || &slot == m_slotSize || &slot == &Type::slotType()) {
         return true;
     }
     return false;
@@ -483,18 +494,18 @@ bool List::hasSlot(CellI& slot)
 CellI& List::slot(CellI& slot)
 {
     if (&slot == &Type::slotType()) {
-        return *s_type;
-    } else if (&slot == s_slotFirst) {
+        return m_listType;
+    } else if (&slot == m_slotFirst) {
         if (m_items.empty()) {
             return Object::emptyObject();
         }
         return m_items.front();
-    } else if (&slot == s_slotLast) {
+    } else if (&slot == m_slotLast) {
         if (m_items.empty()) {
             return Object::emptyObject();
         }
         return m_items.back();
-    } else if (&slot == s_slotSize) {
+    } else if (&slot == m_slotSize) {
         Number* number = new Number((int)m_items.size());
         return *number;
     }
@@ -502,12 +513,12 @@ CellI& List::slot(CellI& slot)
     return Object::emptyObject();
 }
 
-Type& List::reflect()
+Type& List::type()
 {
-    return *s_type;
+    return m_listType;
 }
 
-std::string List::printAs(CellPrinter& printer)
+std::string List::printAs(Printer& printer)
 {
     return printer.print(*this);
 }
@@ -525,37 +536,19 @@ std::vector<ListItem>& List::items()
     return m_items;
 }
 
-void List::staticInit()
-{
-    s_type.reset(new Type("List"));
-
-    s_slotFirst = &s_type->createSlot("first", ListItem::type());
-    s_slotLast  = &s_type->createSlot("last", ListItem::type());
-}
-
-void List::staticInitMembers()
-{
-    s_slotSize = &s_type->createSlot("size", Number::type());
-}
-
-Type& List::type()
-{
-    return *s_type;
-}
-
 Slot& List::slotFirst()
 {
-    return *s_slotFirst;
+    return *m_slotFirst;
 }
 
 Slot& List::slotLast()
 {
-    return *s_slotLast;
+    return *m_slotLast;
 }
 
 Slot& List::slotSize()
 {
-    return *s_slotSize;
+    return *m_slotSize;
 }
 
 // ============================================================================
@@ -605,12 +598,12 @@ CellI& Number::slot(CellI& slot)
     }
 }
 
-Type& Number::reflect()
+Type& Number::type()
 {
     return *s_type;
 }
 
-std::string Number::printAs(CellPrinter& printer)
+std::string Number::printAs(Printer& printer)
 {
     return printer.print(*this);
 }
@@ -628,11 +621,12 @@ int Number::value() const
 void Number::staticInit()
 {
     s_type.reset(new Type("Number"));
-    s_slotValue = &s_type->createSlot("value", List::type());
-    s_slotSign  = &s_type->createSlot("sign", Number::type()); // TODO
+//    s_slotValue = &s_type->createSlot("value", List::t()); // TODO
+    s_slotValue = &s_type->createSlot("value", Type::anyType());
+    s_slotSign  = &s_type->createSlot("sign", Number::t()); // TODO
 }
 
-Type& Number::type()
+Type& Number::t()
 {
     return *s_type;
 }
@@ -659,6 +653,20 @@ void Number::calculateDigits()
         value /= 10;
     }
     std::reverse(m_digits.begin(), m_digits.end());
+}
+
+// ============================================================================
+std::map<int, Number> Numbers::s_numbers;
+
+Number& Numbers::get(int number)
+{
+    auto numberIt = s_numbers.find(number);
+    if (numberIt != s_numbers.end()) {
+        return numberIt->second;
+    } else {
+        auto it = s_numbers.emplace(number, number);
+        return it.first->second;
+    }
 }
 
 // ============================================================================
@@ -731,12 +739,12 @@ CellI& String::slot(CellI& slot)
     }
 }
 
-Type& String::reflect()
+Type& String::type()
 {
     return *s_type;
 }
 
-std::string String::printAs(CellPrinter& printer)
+std::string String::printAs(Printer& printer)
 {
     return printer.print(*this);
 }
@@ -754,10 +762,11 @@ const std::string& String::value() const
 void String::staticInit()
 {
     s_type.reset(new Type("String"));
-    s_slotCharacters = &s_type->createSlot("value", List::type());
+//    s_slotCharacters = &s_type->createSlot("value", List::t());
+    s_slotCharacters = &s_type->createSlot("value", Type::anyType()); // TODO
 }
 
-Type& String::type()
+Type& String::t()
 {
     return *s_type;
 }
@@ -785,14 +794,11 @@ void StaticInitializations()
     Slot::staticInit();
     Object::staticInit();
     Digits::staticInit();
-    ListItem::staticInit();
-    List::staticInit();
     Number::staticInit();
     UnicodeCells::staticInit();
     String::staticInit();
     Type::staticInitMembers();
     Slot::staticInitMembers();
-    List::staticInitMembers();
 }
 
 // ============================================================================
@@ -828,7 +834,7 @@ std::string CellValuePrinter::print(Object& dataCell)
     if (!dataCell.name().empty()) {
         ss << dataCell.name() << ": ";
     }
-    ss << dataCell.reflect().name() << " { ";
+    ss << dataCell.type().name() << " { ";
     bool isFirst = true;
     for (auto& slotI : dataCell.slots()) {
         if (isFirst) {
@@ -946,7 +952,7 @@ std::string CellStructPrinter::print(String& cell)
 std::string CellStructPrinter::printImpl(CellI& cell)
 {
     std::stringstream ss;
-    Type& classCell = cell.reflect();
+    Type& classCell = cell.type();
     ss << "(" << classCell.name() << ") ID" << &cell << std::endl;
     for (auto& slotI : classCell.slots()) {
         const std::string& slotSlotName = slotI.first;

@@ -11,15 +11,15 @@ namespace synth {
 namespace newcell {
 
 class Type;
-class CellPrinter;
+class Printer;
 class CellI
 {
 public:
-    virtual bool hasSlot(CellI& slot)                 = 0;
-    virtual CellI& slot(CellI& slot)                  = 0;
-    virtual Type& reflect()                           = 0;
-    virtual std::string printAs(CellPrinter& printer) = 0;
-    virtual std::string name() const                  = 0;
+    virtual bool hasSlot(CellI& slot)             = 0;
+    virtual CellI& slot(CellI& slot)              = 0;
+    virtual Type& type()                          = 0;
+    virtual std::string printAs(Printer& printer) = 0;
+    virtual std::string name() const              = 0;
 };
 
 class String;
@@ -30,15 +30,16 @@ public:
 
     bool hasSlot(CellI& slot) override;
     CellI& slot(CellI& slot) override;
-    Type& reflect() override;
-    std::string printAs(CellPrinter& printer) override;
+    Type& type() override;
+    std::string printAs(Printer& printer) override;
     std::string name() const override;
 
     static void staticInit();
     static void staticInitMembers();
+    static Type& t();
     static Slot& slotSlotType();
     static Slot& slotSlotName();
-    static Slot& slotSemantic();
+    static Slot& slotSlotRole();
 
     Type& connectionClass();
 
@@ -46,7 +47,7 @@ protected:
     static std::unique_ptr<Type> s_type;
     static Slot* s_slotSlotType;
     static Slot* s_slotSlotName;
-    static Slot* s_slotSemantic;
+    static Slot* s_slotSlotRole;
     std::string m_name;
     std::unique_ptr<String> m_slotNameString;
     Type& m_connectionClass; // the class of the connected cell
@@ -60,8 +61,8 @@ public:
 
     bool hasSlot(CellI& slot) override;
     CellI& slot(CellI& slot) override;
-    Type& reflect() override;
-    std::string printAs(CellPrinter& printer) override;
+    Type& type() override;
+    std::string printAs(Printer& printer) override;
     std::string name() const override;
 
     static void staticInit();
@@ -71,7 +72,7 @@ public:
     bool hasSlot(const std::string& name) const;
     Slot& getSlot(const std::string& name);
     std::map<std::string, Slot*>& slots();
-    static Type& type();
+    static Type& t();
     static Slot& slotType();
     static Slot& slotSlots();
     static Type& anyType();
@@ -95,8 +96,8 @@ public:
 
     bool hasSlot(CellI& slot) override;
     CellI& slot(CellI& slot) override;
-    Type& reflect() override;
-    std::string printAs(CellPrinter& printer) override;
+    Type& type() override;
+    std::string printAs(Printer& printer) override;
     std::string name() const override;
 
     std::map<Slot*, CellI*>& slots();
@@ -112,23 +113,15 @@ protected:
     std::map<Slot*, CellI*> m_slots;
 };
 
-class Digits
-{
-public:
-    static void staticInit();
-    static std::unique_ptr<Type> s_digitClassCell;
-    static std::vector<Object> s_digits;
-};
-
 class ListItem : public CellI
 {
 public:
-    ListItem();
+    ListItem(Type& type);
 
     bool hasSlot(CellI& slot) override;
     CellI& slot(CellI& slot) override;
-    Type& reflect() override;
-    std::string printAs(CellPrinter& printer) override;
+    Type& type() override;
+    std::string printAs(Printer& printer) override;
     std::string name() const override;
 
     CellI& prev();
@@ -140,19 +133,16 @@ public:
     CellI& value();
     void value(CellI* v);
 
-    static void staticInit();
-    static void staticInitMembers();
-    static Type& type();
-    static Slot& slotPrev();
-    static Slot& slotNext();
-    static Slot& slotValue();
+    Slot& slotPrev();
+    Slot& slotNext();
+    Slot& slotValue();
 
 protected:
-    static std::unique_ptr<Type> s_type;
-    static Slot* s_slotPrev;
-    static Slot* s_slotNext;
-    static Slot* s_slotValue;
+    Slot* m_slotPrev;
+    Slot* m_slotNext;
+    Slot* m_slotValue;
 
+    Type& m_type;
     CellI* m_prev  = nullptr;
     CellI* m_next  = nullptr;
     CellI* m_value = nullptr;
@@ -169,26 +159,31 @@ public:
 
     bool hasSlot(CellI& slot) override;
     CellI& slot(CellI& slot) override;
-    Type& reflect() override;
-    std::string printAs(CellPrinter& printer) override;
+    Type& type() override;
+    std::string printAs(Printer& printer) override;
     std::string name() const override;
 
     std::vector<ListItem>& items();
 
-    static void staticInit();
-    static void staticInitMembers();
-
-    static Type& type();
-    static Slot& slotFirst();
-    static Slot& slotLast();
-    static Slot& slotSize();
+    Slot& slotFirst();
+    Slot& slotLast();
+    Slot& slotSize();
 
 protected:
-    static std::unique_ptr<Type> s_type;
-    static Slot* s_slotFirst;
-    static Slot* s_slotLast;
-    static Slot* s_slotSize;
+    Slot* m_slotFirst;
+    Slot* m_slotLast;
+    Slot* m_slotSize;
+    Type m_listType;
+    Type m_itemType;
     std::vector<ListItem> m_items;
+};
+
+class Digits
+{
+public:
+    static void staticInit();
+    static std::unique_ptr<Type> s_digitClassCell;
+    static std::vector<Object> s_digits;
 };
 
 class Number : public CellI
@@ -198,14 +193,14 @@ public:
 
     bool hasSlot(CellI& slot) override;
     CellI& slot(CellI& slot) override;
-    Type& reflect() override;
-    std::string printAs(CellPrinter& printer) override;
+    Type& type() override;
+    std::string printAs(Printer& printer) override;
     std::string name() const override;
 
     int value() const;
 
     static void staticInit();
-    static Type& type();
+    static Type& t();
     static Slot& slotSign();
     static Slot& slotValue();
 
@@ -219,6 +214,15 @@ protected:
     int m_value;
     std::vector<Object*> m_digits;
     std::unique_ptr<List> m_digitsList;
+};
+
+class Numbers
+{
+public:
+    static Number& get(int number);
+
+protected:
+    static std::map<int, Number> s_numbers;
 };
 
 class UnicodeCells
@@ -241,14 +245,14 @@ public:
 
     bool hasSlot(CellI& slot) override;
     CellI& slot(CellI& slot) override;
-    Type& reflect() override;
-    std::string printAs(CellPrinter& printer) override;
+    Type& type() override;
+    std::string printAs(Printer& printer) override;
     std::string name() const override;
 
     const std::string& value() const;
 
     static void staticInit();
-    static Type& type();
+    static Type& t();
     static Slot& slotCharacters();
 
 protected:
@@ -262,7 +266,7 @@ protected:
     std::unique_ptr<List> m_charactersList;
 };
 
-class CellPrinter
+class Printer
 {
 public:
     virtual std::string print(Slot& cell)     = 0;
@@ -274,7 +278,7 @@ public:
     virtual std::string print(String& cell)   = 0;
 };
 
-class CellValuePrinter : public CellPrinter
+class CellValuePrinter : public Printer
 {
 public:
     std::string print(Slot& cell) override;
@@ -286,7 +290,7 @@ public:
     std::string print(String& cell) override;
 };
 
-class CellStructPrinter : public CellPrinter
+class CellStructPrinter : public Printer
 {
 public:
     std::string print(Slot& cell) override;
