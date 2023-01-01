@@ -15,8 +15,8 @@ class Printer;
 class CellI
 {
 public:
-    virtual bool hasSlot(CellI& slot)             = 0;
-    virtual CellI& slot(CellI& slot)              = 0;
+    virtual bool hasRole(CellI& role)             = 0;
+    virtual CellI& operator[](CellI& role)        = 0;
     virtual Type& type()                          = 0;
     virtual std::string printAs(Printer& printer) = 0;
     virtual std::string name() const              = 0;
@@ -26,10 +26,10 @@ class String;
 class Slot : public CellI
 {
 public:
-    Slot(const std::string& name, Type& type);
+    Slot(const std::string& name, Type& type, CellI& role);
 
-    bool hasSlot(CellI& slot) override;
-    CellI& slot(CellI& slot) override;
+    bool hasRole(CellI& role) override;
+    CellI& operator[](CellI& role) override;
     Type& type() override;
     std::string printAs(Printer& printer) override;
     std::string name() const override;
@@ -41,7 +41,8 @@ public:
     static Slot& slotSlotName();
     static Slot& slotSlotRole();
 
-    Type& connectionClass();
+    Type& slotType();
+    CellI& slotRole();
 
 protected:
     static std::unique_ptr<Type> s_type;
@@ -50,7 +51,8 @@ protected:
     static Slot* s_slotSlotRole;
     std::string m_name;
     std::unique_ptr<String> m_slotNameString;
-    Type& m_connectionClass; // the class of the connected cell
+    Type& m_slotType;
+    CellI& m_slotRole;
 };
 
 class List;
@@ -59,18 +61,22 @@ class Type : public CellI
 public:
     explicit Type(const std::string& name);
 
-    bool hasSlot(CellI& slot) override;
-    CellI& slot(CellI& slot) override;
+    bool hasRole(CellI& role) override;
+    CellI& operator[](CellI& role) override;
     Type& type() override;
     std::string printAs(Printer& printer) override;
     std::string name() const override;
 
     static void staticInit();
     static void staticInitMembers();
-    Slot& createSlot(const std::string& name, Type& classCell);
+    Slot& createSlot(const std::string& name, Type& classCell, CellI& role);
     void referenceSlot(const std::string& name, Slot& slotCell);
-    bool hasSlot(const std::string& name) const;
+
+    bool hasRole(const std::string& name) const;
+
+    Slot& getSlot(CellI& role);
     Slot& getSlot(const std::string& name);
+
     std::map<std::string, Slot*>& slots();
     static Type& t();
     static Slot& slotType();
@@ -84,6 +90,7 @@ protected:
     static std::unique_ptr<Type> s_anyType;
     std::map<std::string, Slot> m_slots;
     std::map<std::string, Slot*> m_slotRefs;
+    std::map<CellI*, Slot*> m_roles;
     std::string m_name;
     std::unique_ptr<List> m_slotsList;
 };
@@ -94,14 +101,14 @@ public:
     Object(Type& classCell);
     Object(const std::string& name, Type& classCell);
 
-    bool hasSlot(CellI& slot) override;
-    CellI& slot(CellI& slot) override;
+    bool hasRole(CellI& role) override;
+    CellI& operator[](CellI& role) override;
     Type& type() override;
     std::string printAs(Printer& printer) override;
     std::string name() const override;
 
-    std::map<Slot*, CellI*>& slots();
-    void connect(Slot& slotCell, CellI& value);
+    std::map<CellI*, CellI*>& roles();
+    void set(CellI& role, CellI& value);
 
     static void staticInit();
     static Object& emptyObject();
@@ -110,7 +117,7 @@ protected:
     static std::unique_ptr<Object> s_emptyObject;
     std::string m_name;
     Type& m_type;
-    std::map<Slot*, CellI*> m_slots;
+    std::map<CellI*, CellI*> m_roles;
 };
 
 class ListItem : public CellI
@@ -118,8 +125,8 @@ class ListItem : public CellI
 public:
     ListItem(Type& type);
 
-    bool hasSlot(CellI& slot) override;
-    CellI& slot(CellI& slot) override;
+    bool hasRole(CellI& role) override;
+    CellI& operator[](CellI& role) override;
     Type& type() override;
     std::string printAs(Printer& printer) override;
     std::string name() const override;
@@ -157,8 +164,8 @@ public:
     template <typename T>
     List(std::map<std::string, T>& values);
 
-    bool hasSlot(CellI& slot) override;
-    CellI& slot(CellI& slot) override;
+    bool hasRole(CellI& role) override;
+    CellI& operator[](CellI& role) override;
     Type& type() override;
     std::string printAs(Printer& printer) override;
     std::string name() const override;
@@ -191,8 +198,8 @@ class Number : public CellI
 public:
     Number(int value);
 
-    bool hasSlot(CellI& slot) override;
-    CellI& slot(CellI& slot) override;
+    bool hasRole(CellI& role) override;
+    CellI& operator[](CellI& role) override;
     Type& type() override;
     std::string printAs(Printer& printer) override;
     std::string name() const override;
@@ -225,17 +232,17 @@ protected:
     static std::map<int, Number> s_numbers;
 };
 
-class UnicodeCells
+class Chars
 {
 public:
     static void staticInit();
-    static Object& unicodeValueToCell(char32_t utf32Char);
-    static Type& unicodeTypeCell();
+    static Object& get(char32_t utf32Char);
+    static Type& type();
 
 protected:
     static void createUnicodeCells(char32_t from, char32_t to);
-    static std::unique_ptr<Type> s_unicodeClassCell;
-    static std::map<char32_t, Object> s_characters; // Unicode value to Cell
+    static std::unique_ptr<Type> s_type;
+    static std::map<char32_t, Object> s_characters;
 };
 
 class String : public CellI
@@ -243,8 +250,8 @@ class String : public CellI
 public:
     String(const std::string& str);
 
-    bool hasSlot(CellI& slot) override;
-    CellI& slot(CellI& slot) override;
+    bool hasRole(CellI& role) override;
+    CellI& operator[](CellI& role) override;
     Type& type() override;
     std::string printAs(Printer& printer) override;
     std::string name() const override;
@@ -265,6 +272,21 @@ protected:
     std::vector<Object*> m_characters;
     std::unique_ptr<List> m_charactersList;
 };
+
+namespace cells {
+extern Object slotType;
+extern Object slotName;
+extern Object slotRole;
+extern Object previous;
+extern Object next;
+extern Object value;
+extern Object first;
+extern Object last;
+extern Object size;
+extern Object type;
+extern Object slots;
+extern Object sign;
+} // namespace cells
 
 class Printer
 {
