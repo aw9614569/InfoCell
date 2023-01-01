@@ -10,292 +10,292 @@
 namespace synth {
 namespace newcell {
 
-class ClassCell;
+class Type;
 class CellPrinter;
 class CellI
 {
 public:
-    virtual bool hasMember(CellI& member)             = 0;
-    virtual CellI& member(CellI& member)              = 0;
-    virtual ClassCell& reflect()                      = 0;
+    virtual bool hasSlot(CellI& slot)                 = 0;
+    virtual CellI& slot(CellI& slot)                  = 0;
+    virtual Type& reflect()                           = 0;
     virtual std::string printAs(CellPrinter& printer) = 0;
     virtual std::string name() const                  = 0;
 };
 
-class StringCell;
-class MemberCell : public CellI
+class String;
+class Slot : public CellI
 {
 public:
-    MemberCell(const std::string& name, ClassCell& classCell);
+    Slot(const std::string& name, Type& type);
 
-    bool hasMember(CellI& member) override;
-    CellI& member(CellI& member) override;
-    ClassCell& reflect() override;
+    bool hasSlot(CellI& slot) override;
+    CellI& slot(CellI& slot) override;
+    Type& reflect() override;
     std::string printAs(CellPrinter& printer) override;
     std::string name() const override;
 
     static void staticInit();
     static void staticInitMembers();
-    static MemberCell& memberConnectWith();
-    static MemberCell& memberName();
-    static MemberCell& memberSemantic();
+    static Slot& slotSlotType();
+    static Slot& slotSlotName();
+    static Slot& slotSemantic();
 
-    ClassCell& connectionClass();
+    Type& connectionClass();
 
 protected:
-    static std::unique_ptr<ClassCell> s_classCell;
-    static MemberCell* s_memberConnectWith;
-    static MemberCell* s_memberName;
-    static MemberCell* s_memberSemantic;
+    static std::unique_ptr<Type> s_type;
+    static Slot* s_slotSlotType;
+    static Slot* s_slotSlotName;
+    static Slot* s_slotSemantic;
     std::string m_name;
-    std::unique_ptr<StringCell> m_classNameListCell;
-    ClassCell& m_connectionClass; // the class of the connected cell
+    std::unique_ptr<String> m_slotNameString;
+    Type& m_connectionClass; // the class of the connected cell
 };
 
-class ListCell;
-class ClassCell : public CellI
+class List;
+class Type : public CellI
 {
 public:
-    explicit ClassCell(const std::string& name);
+    explicit Type(const std::string& name);
 
-    bool hasMember(CellI& member) override;
-    CellI& member(CellI& member) override;
-    ClassCell& reflect() override;
+    bool hasSlot(CellI& slot) override;
+    CellI& slot(CellI& slot) override;
+    Type& reflect() override;
     std::string printAs(CellPrinter& printer) override;
     std::string name() const override;
 
     static void staticInit();
     static void staticInitMembers();
-    MemberCell& createMember(const std::string& name, ClassCell& classCell);
-    void referenceMember(const std::string& name, MemberCell& memberCell);
-    bool hasMember(const std::string& name) const;
-    MemberCell& getMember(const std::string& name);
-    std::map<std::string, MemberCell*>& members();
-    static ClassCell& classCell();
-    static MemberCell& memberClass();
-    static MemberCell& memberMembers();
-    static ClassCell& anyClassCell();
+    Slot& createSlot(const std::string& name, Type& classCell);
+    void referenceSlot(const std::string& name, Slot& slotCell);
+    bool hasSlot(const std::string& name) const;
+    Slot& getSlot(const std::string& name);
+    std::map<std::string, Slot*>& slots();
+    static Type& type();
+    static Slot& slotType();
+    static Slot& slotSlots();
+    static Type& anyType();
 
 protected:
-    static std::unique_ptr<ClassCell> s_classCell;
-    static MemberCell* s_memberClass;
-    static MemberCell* s_memberMembers;
-    static std::unique_ptr<ClassCell> s_anyClassCell;
-    std::map<std::string, MemberCell> m_memberCells;
-    std::map<std::string, MemberCell*> m_memberRefs;
+    static std::unique_ptr<Type> s_type;
+    static Slot* s_slotType;
+    static Slot* s_slotSlots;
+    static std::unique_ptr<Type> s_anyType;
+    std::map<std::string, Slot> m_slots;
+    std::map<std::string, Slot*> m_slotRefs;
     std::string m_name;
-    std::unique_ptr<ListCell> m_membersListCell;
+    std::unique_ptr<List> m_slotsList;
 };
 
-class DataCell : public CellI
+class Object : public CellI
 {
 public:
-    DataCell(ClassCell& classCell);
-    DataCell(const std::string& name, ClassCell& classCell);
+    Object(Type& classCell);
+    Object(const std::string& name, Type& classCell);
 
-    bool hasMember(CellI& member) override;
-    CellI& member(CellI& member) override;
-    ClassCell& reflect() override;
+    bool hasSlot(CellI& slot) override;
+    CellI& slot(CellI& slot) override;
+    Type& reflect() override;
     std::string printAs(CellPrinter& printer) override;
     std::string name() const override;
 
-    std::map<MemberCell*, CellI*>& members();
-    void connect(MemberCell& memberCell, CellI& value);
+    std::map<Slot*, CellI*>& slots();
+    void connect(Slot& slotCell, CellI& value);
 
     static void staticInit();
-    static DataCell& emptyDataCell();
+    static Object& emptyObject();
 
 protected:
-    static std::unique_ptr<DataCell> s_emptyDataCell;
+    static std::unique_ptr<Object> s_emptyObject;
     std::string m_name;
-    ClassCell& m_classCell;
-    std::map<MemberCell*, CellI*> m_members;
+    Type& m_type;
+    std::map<Slot*, CellI*> m_slots;
 };
 
-class DigitCells
+class Digits
 {
 public:
     static void staticInit();
-    static std::unique_ptr<ClassCell> s_digitClassCell;
-    static std::vector<DataCell> s_digits;
+    static std::unique_ptr<Type> s_digitClassCell;
+    static std::vector<Object> s_digits;
 };
 
-class ListItemCell : public CellI
+class ListItem : public CellI
 {
 public:
-    ListItemCell();
+    ListItem();
 
-    bool hasMember(CellI& member) override;
-    CellI& member(CellI& member) override;
-    ClassCell& reflect() override;
+    bool hasSlot(CellI& slot) override;
+    CellI& slot(CellI& slot) override;
+    Type& reflect() override;
     std::string printAs(CellPrinter& printer) override;
     std::string name() const override;
 
     CellI& prev();
-    void prev(ListItemCell* p);
+    void prev(ListItem* p);
 
     CellI& next();
-    void next(ListItemCell* n);
+    void next(ListItem* n);
 
     CellI& value();
     void value(CellI* v);
 
     static void staticInit();
     static void staticInitMembers();
-    static ClassCell& classCell();
-    static MemberCell& memberPrev();
-    static MemberCell& memberNext();
-    static MemberCell& memberValue();
+    static Type& type();
+    static Slot& slotPrev();
+    static Slot& slotNext();
+    static Slot& slotValue();
 
 protected:
-    static std::unique_ptr<ClassCell> s_classCell;
-    static MemberCell* s_memberPrev;
-    static MemberCell* s_memberNext;
-    static MemberCell* s_memberValue;
+    static std::unique_ptr<Type> s_type;
+    static Slot* s_slotPrev;
+    static Slot* s_slotNext;
+    static Slot* s_slotValue;
 
-    CellI* m_prev = nullptr;
-    CellI* m_next = nullptr;
+    CellI* m_prev  = nullptr;
+    CellI* m_next  = nullptr;
     CellI* m_value = nullptr;
 };
 
-class ListCell : public CellI
+class List : public CellI
 {
 public:
     template <typename T>
-    ListCell(const std::vector<T>& values);
+    List(const std::vector<T>& values);
 
     template <typename T>
-    ListCell(std::map<std::string, T>& values);
+    List(std::map<std::string, T>& values);
 
-    bool hasMember(CellI& member) override;
-    CellI& member(CellI& member) override;
-    ClassCell& reflect() override;
+    bool hasSlot(CellI& slot) override;
+    CellI& slot(CellI& slot) override;
+    Type& reflect() override;
     std::string printAs(CellPrinter& printer) override;
     std::string name() const override;
 
-    std::vector<ListItemCell>& items();
+    std::vector<ListItem>& items();
 
     static void staticInit();
     static void staticInitMembers();
 
-    static ClassCell& classCell();
-    static MemberCell& memberFirst();
-    static MemberCell& memberLast();
-    static MemberCell& memberSize();
+    static Type& type();
+    static Slot& slotFirst();
+    static Slot& slotLast();
+    static Slot& slotSize();
 
 protected:
-    static std::unique_ptr<ClassCell> s_classCell;
-    static MemberCell* s_memberFirst;
-    static MemberCell* s_memberLast;
-    static MemberCell* s_memberSize;
-    std::vector<ListItemCell> m_items;
+    static std::unique_ptr<Type> s_type;
+    static Slot* s_slotFirst;
+    static Slot* s_slotLast;
+    static Slot* s_slotSize;
+    std::vector<ListItem> m_items;
 };
 
-class NumberCell : public CellI
+class Number : public CellI
 {
 public:
-    NumberCell(int value);
+    Number(int value);
 
-    bool hasMember(CellI& member) override;
-    CellI& member(CellI& member) override;
-    ClassCell& reflect() override;
+    bool hasSlot(CellI& slot) override;
+    CellI& slot(CellI& slot) override;
+    Type& reflect() override;
     std::string printAs(CellPrinter& printer) override;
     std::string name() const override;
 
     int value() const;
 
     static void staticInit();
-    static ClassCell& classCell();
-    static MemberCell& memberSign();
-    static MemberCell& memberValue();
+    static Type& type();
+    static Slot& slotSign();
+    static Slot& slotValue();
 
 protected:
     void calculateDigits();
 
-    static std::unique_ptr<ClassCell> s_classCell;
-    static MemberCell* s_memberSign;
-    static MemberCell* s_memberValue ;
+    static std::unique_ptr<Type> s_type;
+    static Slot* s_slotSign;
+    static Slot* s_slotValue;
 
     int m_value;
-    std::vector<DataCell*> m_digits;
-    std::unique_ptr<ListCell> m_digitsListCell;
+    std::vector<Object*> m_digits;
+    std::unique_ptr<List> m_digitsList;
 };
 
 class UnicodeCells
 {
 public:
     static void staticInit();
-    static DataCell& unicodeValueToCell(char32_t utf32Char);
-    static ClassCell& unicodeClassCell();
+    static Object& unicodeValueToCell(char32_t utf32Char);
+    static Type& unicodeTypeCell();
 
 protected:
     static void createUnicodeCells(char32_t from, char32_t to);
-    static std::unique_ptr<ClassCell> s_unicodeClassCell;
-    static std::map<char32_t, DataCell> s_characters; // Unicode value to Cell
+    static std::unique_ptr<Type> s_unicodeClassCell;
+    static std::map<char32_t, Object> s_characters; // Unicode value to Cell
 };
 
-class StringCell : public CellI
+class String : public CellI
 {
 public:
-    StringCell(const std::string& str);
+    String(const std::string& str);
 
-    bool hasMember(CellI& member) override;
-    CellI& member(CellI& member) override;
-    ClassCell& reflect() override;
+    bool hasSlot(CellI& slot) override;
+    CellI& slot(CellI& slot) override;
+    Type& reflect() override;
     std::string printAs(CellPrinter& printer) override;
     std::string name() const override;
 
     const std::string& value() const;
 
     static void staticInit();
-    static ClassCell& classCell();
-    static MemberCell& memberCharacters();
+    static Type& type();
+    static Slot& slotCharacters();
 
 protected:
     void calculateCharacters();
 
-    static std::unique_ptr<ClassCell> s_classCell;
-    static MemberCell* s_memberCharacters;
+    static std::unique_ptr<Type> s_type;
+    static Slot* s_slotCharacters;
 
     std::string m_value;
-    std::vector<DataCell*> m_characters;
-    std::unique_ptr<ListCell> m_charactersListCell;
+    std::vector<Object*> m_characters;
+    std::unique_ptr<List> m_charactersList;
 };
 
 class CellPrinter
 {
 public:
-    virtual std::string print(MemberCell& cell)   = 0;
-    virtual std::string print(ClassCell& cell)    = 0;
-    virtual std::string print(DataCell& cell)     = 0;
-    virtual std::string print(ListItemCell& cell) = 0;
-    virtual std::string print(ListCell& cell)     = 0;
-    virtual std::string print(NumberCell& cell)   = 0;
-    virtual std::string print(StringCell& cell)   = 0;
+    virtual std::string print(Slot& cell)     = 0;
+    virtual std::string print(Type& cell)     = 0;
+    virtual std::string print(Object& cell)   = 0;
+    virtual std::string print(ListItem& cell) = 0;
+    virtual std::string print(List& cell)     = 0;
+    virtual std::string print(Number& cell)   = 0;
+    virtual std::string print(String& cell)   = 0;
 };
 
 class CellValuePrinter : public CellPrinter
 {
 public:
-    std::string print(MemberCell& cell) override;
-    std::string print(ClassCell& cell) override;
-    std::string print(DataCell& cell) override;
-    std::string print(ListItemCell& cell) override;
-    std::string print(ListCell& cell) override;
-    std::string print(NumberCell& cell) override;
-    std::string print(StringCell& cell) override;
+    std::string print(Slot& cell) override;
+    std::string print(Type& cell) override;
+    std::string print(Object& cell) override;
+    std::string print(ListItem& cell) override;
+    std::string print(List& cell) override;
+    std::string print(Number& cell) override;
+    std::string print(String& cell) override;
 };
 
 class CellStructPrinter : public CellPrinter
 {
 public:
-    std::string print(MemberCell& cell) override;
-    std::string print(ClassCell& cell) override;
-    std::string print(DataCell& cell) override;
-    std::string print(ListItemCell& cell) override;
-    std::string print(ListCell& cell) override;
-    std::string print(NumberCell& cell) override;
-    std::string print(StringCell& cell) override;
+    std::string print(Slot& cell) override;
+    std::string print(Type& cell) override;
+    std::string print(Object& cell) override;
+    std::string print(ListItem& cell) override;
+    std::string print(List& cell) override;
+    std::string print(Number& cell) override;
+    std::string print(String& cell) override;
 
     std::string printImpl(CellI& cell);
 };

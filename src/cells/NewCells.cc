@@ -9,352 +9,353 @@ namespace synth {
 namespace newcell {
 
 // ============================================================================
-std::unique_ptr<ClassCell> MemberCell::s_classCell;
-MemberCell* MemberCell::s_memberConnectWith = nullptr;
-MemberCell* MemberCell::s_memberName        = nullptr;
-MemberCell* MemberCell::s_memberSemantic    = nullptr;
+std::unique_ptr<Type> Slot::s_type;
+Slot* Slot::s_slotSlotType = nullptr;
+Slot* Slot::s_slotSlotName = nullptr;
+Slot* Slot::s_slotSemantic = nullptr;
 
-MemberCell::MemberCell(const std::string& name, ClassCell& classCell) :
+Slot::Slot(const std::string& name, Type& classCell) :
     m_name(name), m_connectionClass(classCell)
 {
 }
 
-bool MemberCell::hasMember(CellI& member)
+bool Slot::hasSlot(CellI& slot)
 {
-    if (&member == &ClassCell::memberClass() || &member == s_memberConnectWith || &member == s_memberName) {
+    if (&slot == &Type::slotType() || &slot == s_slotSlotType || &slot == s_slotSlotName) {
         return true;
     }
     return false;
 }
 
-CellI& MemberCell::member(CellI& member)
+CellI& Slot::slot(CellI& slot)
 {
-    if (&member == &ClassCell::memberClass()) {
-        return *s_classCell;
+    if (&slot == &Type::slotType()) {
+        return *s_type;
     }
-    if (&member == s_memberConnectWith) {
+    if (&slot == s_slotSlotType) {
         return m_connectionClass;
     }
-    if (&member == s_memberName) {
-        if (!m_classNameListCell) {
-            m_classNameListCell.reset(new StringCell(m_name));
+    if (&slot == s_slotSlotName) {
+        if (!m_slotNameString) {
+            m_slotNameString.reset(new String(m_name));
         }
-        return *m_classNameListCell;
+        return *m_slotNameString;
     }
-    if (&member == s_memberSemantic) {
-        return *s_memberSemantic;
+    if (&slot == s_slotSemantic) {
+        return *s_slotSemantic;
     }
 
-    return DataCell::emptyDataCell();
+    return Object::emptyObject();
 }
 
-ClassCell& MemberCell::reflect()
+Type& Slot::reflect()
 {
-    return *s_classCell;
+    return *s_type;
 }
 
-std::string MemberCell::printAs(CellPrinter& printer)
+std::string Slot::printAs(CellPrinter& printer)
 {
     return printer.print(*this);
 }
 
-std::string MemberCell::name() const
+std::string Slot::name() const
 {
     return m_name;
 }
 
-void MemberCell::staticInit()
+void Slot::staticInit()
 {
-    s_classCell.reset(new ClassCell("Member"));
+    s_type.reset(new Type("Member"));
 }
 
-void MemberCell::staticInitMembers()
+void Slot::staticInitMembers()
 {
-    s_memberConnectWith = &s_classCell->createMember("connectWith", ClassCell::classCell());
-    s_memberName        = &s_classCell->createMember("name", StringCell::classCell());
-    s_memberSemantic    = &s_classCell->createMember("semantic", ClassCell::anyClassCell());
+    s_slotSlotType = &s_type->createSlot("slotType", Type::type());
+    s_slotSlotName = &s_type->createSlot("slotName", String::type());
+    s_slotSemantic = &s_type->createSlot("semantic", Type::anyType());
 }
 
-MemberCell& MemberCell::memberName()
+Slot& Slot::slotSlotName()
 {
-    return *s_memberName;
+    return *s_slotSlotName;
 }
 
-MemberCell& MemberCell::memberConnectWith()
+Slot& Slot::slotSlotType()
 {
-    return *s_memberConnectWith;
+    return *s_slotSlotType;
 }
 
-MemberCell& MemberCell::memberSemantic()
+Slot& Slot::slotSemantic()
 {
-    return *s_memberSemantic;
+    return *s_slotSemantic;
 }
 
-ClassCell& MemberCell::connectionClass()
+Type& Slot::connectionClass()
 {
     return m_connectionClass;
 }
 
 // ============================================================================
-std::unique_ptr<ClassCell> ClassCell::s_classCell;
-MemberCell* ClassCell::s_memberClass   = nullptr;
-MemberCell* ClassCell::s_memberMembers = nullptr;
-std::unique_ptr<ClassCell> ClassCell::s_anyClassCell;
+std::unique_ptr<Type> Type::s_type;
+Slot* Type::s_slotType  = nullptr;
+Slot* Type::s_slotSlots = nullptr;
+std::unique_ptr<Type> Type::s_anyType;
 
-ClassCell::ClassCell(const std::string& name) :
+Type::Type(const std::string& name) :
     m_name(name)
 {
-    if (!s_memberClass) {
+    if (!s_slotType) {
         return;
     }
-    referenceMember("class", *s_memberClass);
+    referenceSlot("type", *s_slotType);
 }
 
-bool ClassCell::hasMember(CellI& member)
+bool Type::hasSlot(CellI& slot)
 {
-    if (&member == &memberClass() || &member == s_memberMembers) {
+    if (&slot == &slotType() || &slot == s_slotSlots) {
         return true;
     }
 
     return false;
 }
 
-CellI& ClassCell::member(CellI& member)
+CellI& Type::slot(CellI& slot)
 {
-    if (&member == &memberClass()) {
-        return *s_classCell;
+    if (&slot == &slotType()) {
+        return *s_type;
     }
-    if (&member == s_memberMembers) {
-        if (!m_membersListCell)
-            m_membersListCell.reset(new ListCell(m_memberRefs));
+    if (&slot == s_slotSlots) {
+        if (!m_slotsList)
+            m_slotsList.reset(new List(m_slotRefs));
 
-        return *m_membersListCell;
+        return *m_slotsList;
     }
 
-    return DataCell::emptyDataCell();
+    return Object::emptyObject();
 }
 
-ClassCell& ClassCell::reflect()
+Type& Type::reflect()
 {
-    return *s_classCell;
+    return *s_type;
 }
 
-std::string ClassCell::printAs(CellPrinter& printer)
+std::string Type::printAs(CellPrinter& printer)
 {
     return printer.print(*this);
 }
 
-std::string ClassCell::name() const
+std::string Type::name() const
 {
     return m_name;
 }
 
-void ClassCell::staticInit()
+void Type::staticInit()
 {
-    s_classCell.reset(new ClassCell("Class"));
-    s_memberClass = &s_classCell->createMember("class", *s_classCell);
-    s_classCell->referenceMember("class", *s_memberClass);
-    s_anyClassCell.reset(new ClassCell("AnyClass"));
+    s_type.reset(new Type("Type"));
+    s_slotType = &s_type->createSlot("type", *s_type);
+    s_type->referenceSlot("type", *s_slotType);
+    s_anyType.reset(new Type("AnyType"));
 }
 
-void ClassCell::staticInitMembers()
+void Type::staticInitMembers()
 {
-    s_memberMembers = &s_classCell->createMember("members", ListCell::classCell());
+    s_slotSlots = &s_type->createSlot("slots", List::type());
 }
 
-MemberCell& ClassCell::createMember(const std::string& name, ClassCell& classCell)
+Slot& Type::createSlot(const std::string& name, Type& classCell)
 {
-    auto memberIt = m_memberRefs.find(name);
-    if (memberIt != m_memberRefs.end()) {
-        if (&memberIt->second->connectionClass() != &classCell) {
+    auto slotIt = m_slotRefs.find(name);
+    if (slotIt != m_slotRefs.end()) {
+        if (&slotIt->second->connectionClass() != &classCell) {
             throw "Member name already registered with an other class";
         }
-        return *memberIt->second;
+        return *slotIt->second;
     } else {
-        auto it            = m_memberCells.emplace(std::piecewise_construct,
-                                                   std::forward_as_tuple(name),
-                                                   std::forward_as_tuple(name, classCell));
-        m_memberRefs[name] = &it.first->second;
+        auto it = m_slots.emplace(std::piecewise_construct,
+                                  std::forward_as_tuple(name),
+                                  std::forward_as_tuple(name, classCell));
+
+        m_slotRefs[name] = &it.first->second;
 
         return it.first->second;
     }
 }
 
-void ClassCell::referenceMember(const std::string& name, MemberCell& memberCell)
+void Type::referenceSlot(const std::string& name, Slot& slotCell)
 {
-    m_memberRefs[name] = &memberCell;
+    m_slotRefs[name] = &slotCell;
 }
 
-bool ClassCell::hasMember(const std::string& name) const
+bool Type::hasSlot(const std::string& name) const
 {
-    return m_memberRefs.find(name) != m_memberRefs.end();
+    return m_slotRefs.find(name) != m_slotRefs.end();
 }
 
-MemberCell& ClassCell::getMember(const std::string& name)
+Slot& Type::getSlot(const std::string& name)
 {
-    auto findIt = m_memberRefs.find(name);
-    if (findIt != m_memberRefs.end())
+    auto findIt = m_slotRefs.find(name);
+    if (findIt != m_slotRefs.end())
         throw "emptyMember";
 
     return *findIt->second;
 }
 
-std::map<std::string, MemberCell*>& ClassCell::members()
+std::map<std::string, Slot*>& Type::slots()
 {
-    return m_memberRefs;
+    return m_slotRefs;
 }
 
-ClassCell& ClassCell::classCell()
+Type& Type::type()
 {
-    return *s_classCell;
+    return *s_type;
 }
 
-MemberCell& ClassCell::memberClass()
+Slot& Type::slotType()
 {
-    return *s_memberClass;
+    return *s_slotType;
 }
 
-MemberCell& ClassCell::memberMembers()
+Slot& Type::slotSlots()
 {
-    return *s_memberMembers;
+    return *s_slotSlots;
 }
 
-ClassCell& ClassCell::anyClassCell()
+Type& Type::anyType()
 {
-    return *s_anyClassCell;
+    return *s_anyType;
 }
 
 // ============================================================================
-std::unique_ptr<DataCell> DataCell::s_emptyDataCell;
+std::unique_ptr<Object> Object::s_emptyObject;
 
-DataCell::DataCell(ClassCell& classCell) :
-    DataCell("", classCell)
+Object::Object(Type& classCell) :
+    Object("", classCell)
 {
 }
 
-DataCell::DataCell(const std::string& name, ClassCell& classCell) :
-    m_name(name), m_classCell(classCell)
+Object::Object(const std::string& name, Type& classCell) :
+    m_name(name), m_type(classCell)
 {
-    m_members[&ClassCell::memberClass()] = &classCell;
+    m_slots[&Type::slotType()] = &classCell;
 }
 
-bool DataCell::hasMember(CellI& member)
+bool Object::hasSlot(CellI& slot)
 {
-    MemberCell* memberCell = static_cast<MemberCell*>(&member);
-    if (memberCell == &ClassCell::memberClass())
+    Slot* slotCell = static_cast<Slot*>(&slot);
+    if (slotCell == &Type::slotType())
         return true;
-    if (!memberCell)
+    if (!slotCell)
         return false;
 
-    return m_members.find(memberCell) != m_members.end();
+    return m_slots.find(slotCell) != m_slots.end();
 }
 
-CellI& DataCell::member(CellI& member)
+CellI& Object::slot(CellI& slot)
 {
-    MemberCell* memberCell = static_cast<MemberCell*>(&member);
-    if (!memberCell)
-        return emptyDataCell();
-    auto findIt = m_members.find(memberCell);
-    if (findIt == m_members.end())
-        return emptyDataCell();
+    Slot* slotCell = static_cast<Slot*>(&slot);
+    if (!slotCell)
+        return emptyObject();
+    auto findIt = m_slots.find(slotCell);
+    if (findIt == m_slots.end())
+        return emptyObject();
 
     return *findIt->second;
 }
 
-ClassCell& DataCell::reflect()
+Type& Object::reflect()
 {
-    return m_classCell;
+    return m_type;
 }
 
-std::string DataCell::printAs(CellPrinter& printer)
+std::string Object::printAs(CellPrinter& printer)
 {
     return printer.print(*this);
 }
 
-std::string DataCell::name() const
+std::string Object::name() const
 {
     return m_name;
 }
 
-std::map<MemberCell*, CellI*>& DataCell::members()
+std::map<Slot*, CellI*>& Object::slots()
 {
-    return m_members;
+    return m_slots;
 }
 
-void DataCell::connect(MemberCell& memberCell, CellI& value)
+void Object::connect(Slot& slotCell, CellI& value)
 {
-    m_members[&memberCell] = &value;
+    m_slots[&slotCell] = &value;
 }
 
-void DataCell::staticInit()
+void Object::staticInit()
 {
-    static ClassCell emptyClass("Empty");
-    s_emptyDataCell.reset(new DataCell(emptyClass));
+    static Type emptyClass("Empty");
+    s_emptyObject.reset(new Object(emptyClass));
 }
 
-DataCell& DataCell::emptyDataCell()
+Object& Object::emptyObject()
 {
-    return *s_emptyDataCell;
+    return *s_emptyObject;
 }
 
 // ============================================================================
-std::unique_ptr<ClassCell> ListItemCell::s_classCell;
+std::unique_ptr<Type> ListItem::s_type;
 
-MemberCell* ListItemCell::s_memberPrev  = nullptr;
-MemberCell* ListItemCell::s_memberNext  = nullptr;
-MemberCell* ListItemCell::s_memberValue = nullptr;
+Slot* ListItem::s_slotPrev  = nullptr;
+Slot* ListItem::s_slotNext  = nullptr;
+Slot* ListItem::s_slotValue = nullptr;
 
-ListItemCell::ListItemCell()
+ListItem::ListItem()
 {
 }
 
-bool ListItemCell::hasMember(CellI& member)
+bool ListItem::hasSlot(CellI& slot)
 {
-    if (&member == &ClassCell::memberClass() || &member == s_memberPrev || &member == s_memberNext || &member == s_memberValue) {
+    if (&slot == &Type::slotType() || &slot == s_slotPrev || &slot == s_slotNext || &slot == s_slotValue) {
         return true;
     }
 
     return false;
 }
 
-CellI& ListItemCell::member(CellI& member)
+CellI& ListItem::slot(CellI& slot)
 {
-    if (&member == &ClassCell::memberClass()) {
-        return *s_classCell;
+    if (&slot == &Type::slotType()) {
+        return *s_type;
     }
-    if (&member == s_memberPrev) {
+    if (&slot == s_slotPrev) {
         if (m_prev)
             return *m_prev;
         else
-            return DataCell::emptyDataCell();
+            return Object::emptyObject();
     }
-    if (&member == s_memberNext) {
+    if (&slot == s_slotNext) {
         if (m_next)
             return *m_next;
         else
-            return DataCell::emptyDataCell();
+            return Object::emptyObject();
     }
-    if (&member == s_memberValue) {
+    if (&slot == s_slotValue) {
         if (m_value)
             return *m_value;
         else
             return *m_value;
     }
 
-    return DataCell::emptyDataCell();
+    return Object::emptyObject();
 }
 
-ClassCell& ListItemCell::reflect()
+Type& ListItem::reflect()
 {
-    return *s_classCell;
+    return *s_type;
 }
 
-std::string ListItemCell::printAs(CellPrinter& printer)
+std::string ListItem::printAs(CellPrinter& printer)
 {
     return printer.print(*this);
 }
 
-std::string ListItemCell::name() const
+std::string ListItem::name() const
 {
     std::stringstream ss;
     if (m_value) {
@@ -363,155 +364,155 @@ std::string ListItemCell::name() const
     return ss.str();
 }
 
-CellI& ListItemCell::prev()
+CellI& ListItem::prev()
 {
     return *m_prev;
 }
 
-void ListItemCell::prev(ListItemCell* p)
+void ListItem::prev(ListItem* p)
 {
     m_prev = p;
 }
 
-CellI& ListItemCell::next()
+CellI& ListItem::next()
 {
     return *m_next;
 }
 
-void ListItemCell::next(ListItemCell* n)
+void ListItem::next(ListItem* n)
 {
     m_next = n;
 }
 
-CellI& ListItemCell::value()
+CellI& ListItem::value()
 {
     return *m_value;
 }
 
-void ListItemCell::value(CellI* v)
+void ListItem::value(CellI* v)
 {
     m_value = v;
 }
 
-void ListItemCell::staticInit()
+void ListItem::staticInit()
 {
-    s_classCell.reset(new ClassCell("ListItem"));
+    s_type.reset(new Type("ListItem"));
 
-    s_memberPrev  = &s_classCell->createMember("prev", *s_classCell);
-    s_memberNext  = &s_classCell->createMember("next", *s_classCell);
-    s_memberValue = &s_classCell->createMember("value", *s_classCell); // TODO we need the T from the List<T> here somehow
+    s_slotPrev  = &s_type->createSlot("prev", *s_type);
+    s_slotNext  = &s_type->createSlot("next", *s_type);
+    s_slotValue = &s_type->createSlot("value", *s_type); // TODO we need the T from the List<T> here somehow
 }
 
-void ListItemCell::staticInitMembers()
+void ListItem::staticInitMembers()
 {
 }
 
-ClassCell& ListItemCell::classCell()
+Type& ListItem::type()
 {
-    return *s_classCell;
+    return *s_type;
 }
 
-MemberCell& ListItemCell::memberPrev()
+Slot& ListItem::slotPrev()
 {
-    return *s_memberPrev;
+    return *s_slotPrev;
 }
-MemberCell& ListItemCell::memberNext()
+Slot& ListItem::slotNext()
 {
-    return *s_memberNext;
+    return *s_slotNext;
 }
 
-MemberCell& ListItemCell::memberValue()
+Slot& ListItem::slotValue()
 {
-    return *s_memberValue;
+    return *s_slotValue;
 }
 
 // ============================================================================
-std::unique_ptr<ClassCell> ListCell::s_classCell;
+std::unique_ptr<Type> List::s_type;
 
-MemberCell* ListCell::s_memberFirst = nullptr;
-MemberCell* ListCell::s_memberLast  = nullptr;
-MemberCell* ListCell::s_memberSize  = nullptr;
+Slot* List::s_slotFirst = nullptr;
+Slot* List::s_slotLast  = nullptr;
+Slot* List::s_slotSize  = nullptr;
 
 template <typename T>
-ListCell::ListCell(const std::vector<T>& values)
+List::List(const std::vector<T>& values)
 {
     m_items.reserve(values.size());
-    ListItemCell* prevListItemCell = nullptr;
+    ListItem* prevListItem = nullptr;
     for (CellI* value : values) {
-        auto& listItemCell = m_items.emplace_back();
-        if (prevListItemCell == nullptr) {
-            listItemCell.prev(nullptr);
+        auto& listItem = m_items.emplace_back();
+        if (prevListItem == nullptr) {
+            listItem.prev(nullptr);
         } else {
-            listItemCell.prev(prevListItemCell);
-            prevListItemCell->next(&listItemCell);
+            listItem.prev(prevListItem);
+            prevListItem->next(&listItem);
         }
-        listItemCell.next(nullptr);
-        listItemCell.value(value);
-        prevListItemCell = &listItemCell;
+        listItem.next(nullptr);
+        listItem.value(value);
+        prevListItem = &listItem;
     }
 }
 
 template <typename T>
-ListCell::ListCell(std::map<std::string, T>& values)
+List::List(std::map<std::string, T>& values)
 {
     m_items.reserve(values.size());
-    ListItemCell* prevListItemCell = nullptr;
+    ListItem* prevListItem = nullptr;
     for (auto& valuePairs : values) {
         CellI* value       = valuePairs.second;
         auto& listItemCell = m_items.emplace_back();
-        if (prevListItemCell == nullptr) {
+        if (prevListItem == nullptr) {
             listItemCell.prev(nullptr);
         } else {
-            listItemCell.prev(prevListItemCell);
-            prevListItemCell->next(&listItemCell);
+            listItemCell.prev(prevListItem);
+            prevListItem->next(&listItemCell);
         }
         listItemCell.next(nullptr);
         listItemCell.value(value);
-        prevListItemCell = &listItemCell;
+        prevListItem = &listItemCell;
     }
 }
 
-bool ListCell::hasMember(CellI& member)
+bool List::hasSlot(CellI& slot)
 {
-    if (&member == s_memberFirst || &member == s_memberLast || &member == s_memberSize || &member == &ClassCell::memberClass()) {
+    if (&slot == s_slotFirst || &slot == s_slotLast || &slot == s_slotSize || &slot == &Type::slotType()) {
         return true;
     }
     return false;
 }
 
-CellI& ListCell::member(CellI& member)
+CellI& List::slot(CellI& slot)
 {
-    if (&member == &ClassCell::memberClass()) {
-        return *s_classCell;
-    } else if (&member == s_memberFirst) {
+    if (&slot == &Type::slotType()) {
+        return *s_type;
+    } else if (&slot == s_slotFirst) {
         if (m_items.empty()) {
-            return DataCell::emptyDataCell();
+            return Object::emptyObject();
         }
         return m_items.front();
-    } else if (&member == s_memberLast) {
+    } else if (&slot == s_slotLast) {
         if (m_items.empty()) {
-            return DataCell::emptyDataCell();
+            return Object::emptyObject();
         }
         return m_items.back();
-    } else if (&member == s_memberSize) {
-        NumberCell* numberCell = new NumberCell((int)m_items.size());
-        return *numberCell;
+    } else if (&slot == s_slotSize) {
+        Number* number = new Number((int)m_items.size());
+        return *number;
     }
 
-    return DataCell::emptyDataCell();
+    return Object::emptyObject();
 }
 
-ClassCell& ListCell::reflect()
+Type& List::reflect()
 {
-    return *s_classCell;
+    return *s_type;
 }
 
-std::string ListCell::printAs(CellPrinter& printer)
+std::string List::printAs(CellPrinter& printer)
 {
     return printer.print(*this);
 }
 
-std::string ListCell::name() const
+std::string List::name() const
 {
     std::stringstream ss;
     ss << "List<>" << std::endl;
@@ -519,51 +520,51 @@ std::string ListCell::name() const
     return ss.str();
 }
 
-std::vector<ListItemCell>& ListCell::items()
+std::vector<ListItem>& List::items()
 {
     return m_items;
 }
 
-void ListCell::staticInit()
+void List::staticInit()
 {
-    s_classCell.reset(new ClassCell("List"));
+    s_type.reset(new Type("List"));
 
-    s_memberFirst = &s_classCell->createMember("first", ListItemCell::classCell());
-    s_memberLast  = &s_classCell->createMember("last", ListItemCell::classCell());
+    s_slotFirst = &s_type->createSlot("first", ListItem::type());
+    s_slotLast  = &s_type->createSlot("last", ListItem::type());
 }
 
-void ListCell::staticInitMembers()
+void List::staticInitMembers()
 {
-    s_memberSize = &s_classCell->createMember("size", NumberCell::classCell());
+    s_slotSize = &s_type->createSlot("size", Number::type());
 }
 
-ClassCell& ListCell::classCell()
+Type& List::type()
 {
-    return *s_classCell;
+    return *s_type;
 }
 
-MemberCell& ListCell::memberFirst()
+Slot& List::slotFirst()
 {
-    return *s_memberFirst;
+    return *s_slotFirst;
 }
 
-MemberCell& ListCell::memberLast()
+Slot& List::slotLast()
 {
-    return *s_memberLast;
+    return *s_slotLast;
 }
 
-MemberCell& ListCell::memberSize()
+Slot& List::slotSize()
 {
-    return *s_memberSize;
+    return *s_slotSize;
 }
 
 // ============================================================================
-std::unique_ptr<ClassCell> DigitCells::s_digitClassCell;
-std::vector<DataCell> DigitCells::s_digits;
+std::unique_ptr<Type> Digits::s_digitClassCell;
+std::vector<Object> Digits::s_digits;
 
-void DigitCells::staticInit()
+void Digits::staticInit()
 {
-    s_digitClassCell.reset(new ClassCell("Digit"));
+    s_digitClassCell.reset(new Type("Digit"));
     for (int i = 0; i < 10; ++i) {
         std::string digitName = "Digit_" + std::to_string(i);
         s_digits.push_back({ digitName, *s_digitClassCell });
@@ -571,118 +572,118 @@ void DigitCells::staticInit()
 }
 
 // ============================================================================
-std::unique_ptr<ClassCell> NumberCell::s_classCell;
-MemberCell* NumberCell::s_memberValue = nullptr;
-MemberCell* NumberCell::s_memberSign  = nullptr;
+std::unique_ptr<Type> Number::s_type;
+Slot* Number::s_slotValue = nullptr;
+Slot* Number::s_slotSign  = nullptr;
 
-NumberCell::NumberCell(int value) :
+Number::Number(int value) :
     m_value(value)
 {
 }
 
-bool NumberCell::hasMember(CellI& member)
+bool Number::hasSlot(CellI& slot)
 {
-    if (&member == s_memberValue || &member == s_memberSign || &member == &ClassCell::memberClass()) {
+    if (&slot == s_slotValue || &slot == s_slotSign || &slot == &Type::slotType()) {
         return true;
     }
     return false;
 }
 
-CellI& NumberCell::member(CellI& member)
+CellI& Number::slot(CellI& slot)
 {
-    if (&member == &ClassCell::memberClass()) {
-        return *s_classCell;
-    } else if (&member == s_memberValue) {
+    if (&slot == &Type::slotType()) {
+        return *s_type;
+    } else if (&slot == s_slotValue) {
         if (m_digits.empty()) {
             calculateDigits();
-            m_digitsListCell.reset(new ListCell(m_digits));
+            m_digitsList.reset(new List(m_digits));
         }
 
-        return *m_digitsListCell;
+        return *m_digitsList;
     } else {
-        return DataCell::emptyDataCell();
+        return Object::emptyObject();
     }
 }
 
-ClassCell& NumberCell::reflect()
+Type& Number::reflect()
 {
-    return *s_classCell;
+    return *s_type;
 }
 
-std::string NumberCell::printAs(CellPrinter& printer)
+std::string Number::printAs(CellPrinter& printer)
 {
     return printer.print(*this);
 }
 
-std::string NumberCell::name() const
+std::string Number::name() const
 {
     return std::to_string(m_value);
 }
 
-int NumberCell::value() const
+int Number::value() const
 {
     return m_value;
 }
 
-void NumberCell::staticInit()
+void Number::staticInit()
 {
-    s_classCell.reset(new ClassCell("Number"));
-    s_memberValue = &s_classCell->createMember("value", ListCell::classCell());
-    s_memberSign  = &s_classCell->createMember("sign", NumberCell::classCell()); // TODO
+    s_type.reset(new Type("Number"));
+    s_slotValue = &s_type->createSlot("value", List::type());
+    s_slotSign  = &s_type->createSlot("sign", Number::type()); // TODO
 }
 
-ClassCell& NumberCell::classCell()
+Type& Number::type()
 {
-    return *s_classCell;
+    return *s_type;
 }
 
-MemberCell& NumberCell::memberSign()
+Slot& Number::slotSign()
 {
-    return *s_memberSign;
+    return *s_slotSign;
 }
 
-MemberCell& NumberCell::memberValue()
+Slot& Number::slotValue()
 {
-    return *s_memberValue;
+    return *s_slotValue;
 }
 
-void NumberCell::calculateDigits()
+void Number::calculateDigits()
 {
     if (m_value == 0) {
-        m_digits.push_back(&DigitCells::s_digits[0]);
+        m_digits.push_back(&Digits::s_digits[0]);
         return;
     }
     int value = m_value;
     while (value) {
-        m_digits.push_back(&DigitCells::s_digits[value % 10]);
+        m_digits.push_back(&Digits::s_digits[value % 10]);
         value /= 10;
     }
     std::reverse(m_digits.begin(), m_digits.end());
 }
 
 // ============================================================================
-std::unique_ptr<ClassCell> UnicodeCells::s_unicodeClassCell;
-std::map<char32_t, DataCell> UnicodeCells::s_characters;
+std::unique_ptr<Type> UnicodeCells::s_unicodeClassCell;
+std::map<char32_t, Object> UnicodeCells::s_characters;
 
 void UnicodeCells::staticInit()
 {
-    s_unicodeClassCell.reset(new ClassCell("UnicodeCharacter"));
+    s_unicodeClassCell.reset(new Type("UnicodeCharacter"));
     createUnicodeCells(0x020, 0x07e);
     createUnicodeCells(0x080, 0x0ff);
     createUnicodeCells(0x100, 0x17f);
 }
 
-DataCell& UnicodeCells::unicodeValueToCell(char32_t utf32Char)
+Object& UnicodeCells::unicodeValueToCell(char32_t utf32Char)
 {
     auto unicodeCellIt = s_characters.find(utf32Char);
     if (unicodeCellIt != s_characters.end()) {
         return unicodeCellIt->second;
     } else {
-        return DataCell::emptyDataCell();
+        return Object::emptyObject();
     }
 }
 
-ClassCell& UnicodeCells::unicodeClassCell()
+Type& UnicodeCells::unicodeTypeCell()
 {
     return *s_unicodeClassCell;
 }
@@ -698,75 +699,75 @@ void UnicodeCells::createUnicodeCells(char32_t from, char32_t to)
 }
 
 // ============================================================================
-std::unique_ptr<ClassCell> StringCell::s_classCell;
-MemberCell* StringCell::s_memberCharacters = nullptr;
+std::unique_ptr<Type> String::s_type;
+Slot* String::s_slotCharacters = nullptr;
 
-StringCell::StringCell(const std::string& str) :
+String::String(const std::string& str) :
     m_value(str)
 {
 }
 
-bool StringCell::hasMember(CellI& member)
+bool String::hasSlot(CellI& slot)
 {
-    if (&member == s_memberCharacters || &member == &ClassCell::memberClass()) {
+    if (&slot == s_slotCharacters || &slot == &Type::slotType()) {
         return true;
     }
     return false;
 }
 
-CellI& StringCell::member(CellI& member)
+CellI& String::slot(CellI& slot)
 {
-    if (&member == &ClassCell::memberClass()) {
-        return *s_classCell;
-    } else if (&member == s_memberCharacters) {
+    if (&slot == &Type::slotType()) {
+        return *s_type;
+    } else if (&slot == s_slotCharacters) {
         if (m_characters.empty()) {
             calculateCharacters();
-            m_charactersListCell.reset(new ListCell(m_characters));
+            m_charactersList.reset(new List(m_characters));
         }
 
-        return *m_charactersListCell;
+        return *m_charactersList;
     } else {
-        return DataCell::emptyDataCell();
+        return Object::emptyObject();
     }
 }
 
-ClassCell& StringCell::reflect()
+Type& String::reflect()
 {
-    return *s_classCell;
+    return *s_type;
 }
 
-std::string StringCell::printAs(CellPrinter& printer)
+std::string String::printAs(CellPrinter& printer)
 {
     return printer.print(*this);
 }
 
-std::string StringCell::name() const
+std::string String::name() const
 {
     return m_value;
 }
 
-const std::string& StringCell::value() const
+const std::string& String::value() const
 {
     return m_value;
 }
 
-void StringCell::staticInit()
+void String::staticInit()
 {
-    s_classCell.reset(new ClassCell("String"));
-    s_memberCharacters = &s_classCell->createMember("value", ListCell::classCell());
+    s_type.reset(new Type("String"));
+    s_slotCharacters = &s_type->createSlot("value", List::type());
 }
 
-ClassCell& StringCell::classCell()
+Type& String::type()
 {
-    return *s_classCell;
+    return *s_type;
 }
 
-MemberCell& StringCell::memberCharacters()
+Slot& String::slotCharacters()
 {
-    return *s_memberCharacters;
+    return *s_slotCharacters;
 }
 
-void StringCell::calculateCharacters()
+void String::calculateCharacters()
 {
     utf8::iterator<const char*> valueIt(m_value.data(), m_value.data(), m_value.data() + m_value.size());
     utf8::iterator<const char*> valueEndIt(m_value.data() + m_value.size(), m_value.data(), m_value.data() + m_value.size());
@@ -780,48 +781,48 @@ void StringCell::calculateCharacters()
 // ============================================================================
 void StaticInitializations()
 {
-    ClassCell::staticInit();
-    MemberCell::staticInit();
-    DataCell::staticInit();
-    DigitCells::staticInit();
-    ListItemCell::staticInit();
-    ListCell::staticInit();
-    NumberCell::staticInit();
+    Type::staticInit();
+    Slot::staticInit();
+    Object::staticInit();
+    Digits::staticInit();
+    ListItem::staticInit();
+    List::staticInit();
+    Number::staticInit();
     UnicodeCells::staticInit();
-    StringCell::staticInit();
-    ClassCell::staticInitMembers();
-    MemberCell::staticInitMembers();
-    ListCell::staticInitMembers();
+    String::staticInit();
+    Type::staticInitMembers();
+    Slot::staticInitMembers();
+    List::staticInitMembers();
 }
 
 // ============================================================================
-std::string CellValuePrinter::print(MemberCell& memberCell)
+std::string CellValuePrinter::print(Slot& slotCell)
 {
     std::stringstream ss;
-    ss << memberCell.name() << ": " << memberCell.connectionClass().name();
+    ss << slotCell.name() << ": " << slotCell.connectionClass().name();
 
     return ss.str();
 }
 
-std::string CellValuePrinter::print(ClassCell& classCell)
+std::string CellValuePrinter::print(Type& classCell)
 {
     std::stringstream ss;
     ss << "class " << classCell.name() << " { ";
     bool isFirst = true;
-    for (auto& memberI : classCell.members()) {
+    for (auto& slotI : classCell.slots()) {
         if (isFirst) {
             isFirst = false;
         } else {
             ss << ", ";
         }
-        ss << memberI.first << ": " << memberI.second->connectionClass().name();
+        ss << slotI.first << ": " << slotI.second->connectionClass().name();
     }
     ss << " }";
 
     return ss.str();
 }
 
-std::string CellValuePrinter::print(DataCell& dataCell)
+std::string CellValuePrinter::print(Object& dataCell)
 {
     std::stringstream ss;
     if (!dataCell.name().empty()) {
@@ -829,20 +830,20 @@ std::string CellValuePrinter::print(DataCell& dataCell)
     }
     ss << dataCell.reflect().name() << " { ";
     bool isFirst = true;
-    for (auto& memberI : dataCell.members()) {
+    for (auto& slotI : dataCell.slots()) {
         if (isFirst) {
             isFirst = false;
         } else {
             ss << ", ";
         }
-        ss << "." << memberI.first->name() << ": " << memberI.second->printAs(*this);
+        ss << "." << slotI.first->name() << ": " << slotI.second->printAs(*this);
     }
     ss << " }";
 
     return ss.str();
 }
 
-std::string CellValuePrinter::print(ListItemCell& listItemCell)
+std::string CellValuePrinter::print(ListItem& listItemCell)
 {
     std::stringstream ss;
     ss << "[ ";
@@ -854,12 +855,12 @@ std::string CellValuePrinter::print(ListItemCell& listItemCell)
     return ss.str();
 }
 
-std::string CellValuePrinter::print(ListCell& listCell)
+std::string CellValuePrinter::print(List& List)
 {
     std::stringstream ss;
     ss << "[";
     bool isFirst = true;
-    for (auto& item : listCell.items()) {
+    for (auto& item : List.items()) {
         if (isFirst) {
             isFirst = false;
         } else {
@@ -872,7 +873,7 @@ std::string CellValuePrinter::print(ListCell& listCell)
     return ss.str();
 }
 
-std::string CellValuePrinter::print(NumberCell& cell)
+std::string CellValuePrinter::print(Number& cell)
 {
     std::stringstream ss;
     ss << "(Number) " << cell.value();
@@ -880,7 +881,7 @@ std::string CellValuePrinter::print(NumberCell& cell)
     return ss.str();
 }
 
-std::string CellValuePrinter::print(StringCell& cell)
+std::string CellValuePrinter::print(String& cell)
 {
     std::stringstream ss;
     ss << "(String) " << cell.value();
@@ -889,7 +890,7 @@ std::string CellValuePrinter::print(StringCell& cell)
 }
 
 // ============================================================================
-std::string CellStructPrinter::print(MemberCell& cell)
+std::string CellStructPrinter::print(Slot& cell)
 {
     std::stringstream ss;
     if (!cell.name().empty()) {
@@ -900,7 +901,7 @@ std::string CellStructPrinter::print(MemberCell& cell)
     return ss.str();
 }
 
-std::string CellStructPrinter::print(ClassCell& cell)
+std::string CellStructPrinter::print(Type& cell)
 {
     std::stringstream ss;
     if (!cell.name().empty()) {
@@ -911,7 +912,7 @@ std::string CellStructPrinter::print(ClassCell& cell)
     return ss.str();
 }
 
-std::string CellStructPrinter::print(DataCell& cell)
+std::string CellStructPrinter::print(Object& cell)
 {
     std::stringstream ss;
     if (!cell.name().empty()) {
@@ -922,22 +923,22 @@ std::string CellStructPrinter::print(DataCell& cell)
     return ss.str();
 }
 
-std::string CellStructPrinter::print(ListItemCell& cell)
+std::string CellStructPrinter::print(ListItem& cell)
 {
     return printImpl(cell);
 }
 
-std::string CellStructPrinter::print(ListCell& cell)
+std::string CellStructPrinter::print(List& cell)
 {
     return printImpl(cell);
 }
 
-std::string CellStructPrinter::print(NumberCell& cell)
+std::string CellStructPrinter::print(Number& cell)
 {
     return printImpl(cell);
 }
 
-std::string CellStructPrinter::print(StringCell& cell)
+std::string CellStructPrinter::print(String& cell)
 {
     return printImpl(cell);
 }
@@ -945,19 +946,19 @@ std::string CellStructPrinter::print(StringCell& cell)
 std::string CellStructPrinter::printImpl(CellI& cell)
 {
     std::stringstream ss;
-    ClassCell& classCell = cell.reflect();
+    Type& classCell = cell.reflect();
     ss << "(" << classCell.name() << ") ID" << &cell << std::endl;
-    for (auto& memberI : classCell.members()) {
-        const std::string& memberName = memberI.first;
-        MemberCell& memberCell = *memberI.second;
+    for (auto& slotI : classCell.slots()) {
+        const std::string& slotSlotName = slotI.first;
+        Slot& slot                      = *slotI.second;
 
-        if (!cell.hasMember(memberCell)) {
+        if (!cell.hasSlot(slot)) {
             continue;
         }
         CellValuePrinter valuePrinter;
-        ClassCell& connectWith = static_cast<ClassCell&>(memberCell.member(MemberCell::memberConnectWith()));
-        CellI& connectedNode = cell.member(memberCell);
-        ss << "    +--(" << memberName << ")--> (" << connectWith.name() << ") ID" << &connectedNode << " // " << connectedNode.printAs(valuePrinter) << std::endl;
+        Type& slotType       = static_cast<Type&>(slot.slot(Slot::slotSlotType()));
+        CellI& connectedCell = cell.slot(slot);
+        ss << "    +--(" << slotSlotName << ")--> (" << slotType.name() << ") ID" << &connectedCell << " // " << connectedCell.printAs(valuePrinter) << std::endl;
     }
     return ss.str();
 }

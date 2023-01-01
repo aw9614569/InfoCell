@@ -9,14 +9,14 @@ int main(int argc, char* argv[])
     CellValuePrinter valuePrinter;
     CellStructPrinter structPrinter;
 
-    ClassCell colorClass("Color");
-    MemberCell& redColorMember   = colorClass.createMember("red", NumberCell::classCell());
-    MemberCell& greenColorMember = colorClass.createMember("green", NumberCell::classCell());
-    MemberCell& blueColorMember  = colorClass.createMember("blue", NumberCell::classCell());
-    NumberCell number_0(0);
-    NumberCell number_255(255);
+    Type colorClass("Color");
+    Slot& redColorMember   = colorClass.createSlot("red", Number::type());
+    Slot& greenColorMember = colorClass.createSlot("green", Number::type());
+    Slot& blueColorMember  = colorClass.createSlot("blue", Number::type());
+    Number number_0(0);
+    Number number_255(255);
 
-    DataCell redColor("redColor",  colorClass);
+    Object redColor("redColor",  colorClass);
     redColor.connect(redColorMember, number_255);
     redColor.connect(greenColorMember, number_0);
     redColor.connect(blueColorMember, number_0);
@@ -25,16 +25,16 @@ int main(int argc, char* argv[])
     std::cout << redColorMember.printAs(valuePrinter) << std::endl;
     std::cout << redColor.printAs(valuePrinter) << std::endl;
     std::cout << number_255.printAs(valuePrinter) << std::endl;
-    std::cout << number_255.member(NumberCell::memberValue()).member(ListCell::memberFirst()).member(ListItemCell::memberValue()).printAs(valuePrinter) << std::endl;
+    std::cout << number_255.slot(Number::slotValue()).slot(List::slotFirst()).slot(ListItem::slotValue()).printAs(valuePrinter) << std::endl;
 
     std::cout << redColor.printAs(structPrinter) << std::endl;
     std::cout << redColorMember.printAs(structPrinter) << std::endl;
     std::cout << colorClass.printAs(structPrinter) << std::endl;
     std::cout << number_255.printAs(structPrinter) << std::endl;
-    std::cout << number_255.member(NumberCell::memberSign()).printAs(structPrinter) << std::endl;
-    std::cout << number_255.member(NumberCell::memberValue()).printAs(structPrinter) << std::endl;
-    std::cout << number_255.member(NumberCell::memberValue()).member(ListCell::memberFirst()).printAs(structPrinter) << std::endl;
-    std::cout << number_255.member(NumberCell::memberValue()).member(ListCell::memberFirst()).member(ListItemCell::memberValue()).printAs(structPrinter) << std::endl;
-    std::cout << number_255.member(NumberCell::memberValue()).member(ListCell::memberLast()).printAs(structPrinter) << std::endl;
-    std::cout << number_255.member(NumberCell::memberValue()).member(ListCell::memberSize()).printAs(structPrinter) << std::endl;
+    std::cout << number_255.slot(Number::slotSign()).printAs(structPrinter) << std::endl;
+    std::cout << number_255.slot(Number::slotValue()).printAs(structPrinter) << std::endl;
+    std::cout << number_255.slot(Number::slotValue()).slot(List::slotFirst()).printAs(structPrinter) << std::endl;
+    std::cout << number_255.slot(Number::slotValue()).slot(List::slotFirst()).slot(ListItem::slotValue()).printAs(structPrinter) << std::endl;
+    std::cout << number_255.slot(Number::slotValue()).slot(List::slotLast()).printAs(structPrinter) << std::endl;
+    std::cout << number_255.slot(Number::slotValue()).slot(List::slotSize()).printAs(structPrinter) << std::endl;
 }
