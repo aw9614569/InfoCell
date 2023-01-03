@@ -1,15 +1,18 @@
 #pragma once
-
 #include <array>
 #include <iostream>
 #include <map>
 #include <set>
 #include <sstream>
+#include <span>
 #include <vector>
+
+#include "app/Screen.h"
 
 namespace synth {
 namespace newcell {
 
+// ============================================================================
 class Type;
 class Printer;
 class CellI
@@ -24,8 +27,9 @@ public:
     virtual std::string name() const              = 0;
 };
 
+// ============================================================================
 class String;
-class SlotRef
+class SlotRef // Only exists to bypass the non-movable std::initalizer_list limitations
 {
 public:
     SlotRef(const std::string& name, Type& type, CellI& role);
@@ -69,6 +73,7 @@ protected:
     CellI& m_slotRole;
 };
 
+// ============================================================================
 class List;
 class Type : public CellI
 {
@@ -116,6 +121,7 @@ protected:
     std::unique_ptr<List> m_slotsList;
 };
 
+// ============================================================================
 class Object : public CellI
 {
 public:
@@ -142,6 +148,7 @@ protected:
     std::map<CellI*, CellI*> m_roles;
 };
 
+// ============================================================================
 class ListItem : public CellI
 {
 public:
@@ -179,6 +186,7 @@ protected:
     CellI* m_value = nullptr;
 };
 
+// ============================================================================
 class List : public CellI
 {
 public:
@@ -211,6 +219,7 @@ protected:
     std::vector<ListItem> m_items;
 };
 
+// ============================================================================
 class Digits
 {
 public:
@@ -219,6 +228,7 @@ public:
     static std::vector<Object> s_digits;
 };
 
+// ============================================================================
 class Number : public CellI
 {
 public:
@@ -251,6 +261,7 @@ protected:
     std::unique_ptr<List> m_digitsList;
 };
 
+// ============================================================================
 class Numbers
 {
 public:
@@ -260,6 +271,7 @@ protected:
     static std::map<int, Number> s_numbers;
 };
 
+// ============================================================================
 class Chars
 {
 public:
@@ -273,6 +285,7 @@ protected:
     static std::map<char32_t, Object> s_characters;
 };
 
+// ============================================================================
 class String : public CellI
 {
 public:
@@ -303,16 +316,123 @@ protected:
     std::unique_ptr<List> m_charactersList;
 };
 
+// ============================================================================
+class PixelRef : public CellI
+{
+public:
+    PixelRef(const input::Pixel& inputPixel);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    std::string printAs(Printer& printer) override;
+    std::string name() const override;
+
+    static void staticInit();
+    static Type& t();
+
+    static Slot& slotUp();
+    static Slot& slotDown();
+    static Slot& slotLeft();
+    static Slot& slotRight();
+    static Slot& slotRed();
+    static Slot& slotGreen();
+    static Slot& slotBlue();
+
+    const input::Pixel& m_inputPixel;
+
+    PixelRef* m_up    = nullptr;
+    PixelRef* m_down  = nullptr;
+    PixelRef* m_left  = nullptr;
+    PixelRef* m_right = nullptr;
+
+private:
+    static std::unique_ptr<Type> s_type;
+    static Slot* s_slotUp;
+    static Slot* s_slotDown;
+    static Slot* s_slotLeft;
+    static Slot* s_slotRight;
+    static Slot* s_slotRed;
+    static Slot* s_slotGreen;
+    static Slot* s_slotBlue;
+};
+
+// ============================================================================
+class Sensor : public CellI
+{
+public:
+    Sensor(const std::string& name, int width, int height, const std::vector<input::Pixel>& pixels);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    std::string printAs(Printer& printer) override;
+    std::string name() const override;
+
+    static void staticInit();
+    static Type& t();
+
+    static Slot& slotWidth();
+    static Slot& slotHeight();
+    static Slot& slotFirstPixel();
+    static Slot& slotLastPixel();
+
+    PixelRef& getPixel(int x, int y);
+    int currentIndex(int x, int y) const;
+    bool isInRange(int x, int y) const;
+    PixelRef* upPixel(int x, int y);
+    PixelRef* downPixel(int x, int y);
+    PixelRef* leftPixel(int x, int y);
+    PixelRef* rightPixel(int x, int y);
+
+protected:
+    static std::unique_ptr<Type> s_type;
+    static Slot* s_slotWidth;
+    static Slot* s_slotHeight;
+    static Slot* s_slotFirstPixel;
+    static Slot* s_slotLastPixel;
+
+    std::string m_name;
+    const int m_width;
+    const int m_height;
+    Number& m_widthCell;
+    Number& m_heightCell;
+    std::vector<PixelRef> m_pixelRefs;
+};
+
+// ============================================================================
 namespace cells {
 extern Object slotType;
 extern Object slotName;
 extern Object slotRole;
-extern Object previous;
-extern Object next;
-extern Object value;
+
 extern Object first;
 extern Object last;
+extern Object previous;
+extern Object next;
+
+namespace directions {
+extern Object up;
+extern Object down;
+extern Object left;
+extern Object right;
+} // namespace directions
+
+namespace colors {
+extern Object red;
+extern Object green;
+extern Object blue;
+} // namespace colors
+
+extern Object width;
+extern Object height;
+
 extern Object size;
+extern Object value;
 extern Object type;
 extern Object slots;
 extern Object sign;
@@ -328,6 +448,8 @@ public:
     virtual std::string print(List& cell)     = 0;
     virtual std::string print(Number& cell)   = 0;
     virtual std::string print(String& cell)   = 0;
+    virtual std::string print(PixelRef& cell) = 0;
+    virtual std::string print(Sensor& cell)   = 0;
 };
 
 class CellValuePrinter : public Printer
@@ -340,6 +462,8 @@ public:
     std::string print(List& cell) override;
     std::string print(Number& cell) override;
     std::string print(String& cell) override;
+    std::string print(PixelRef& cell) override;
+    std::string print(Sensor& cell) override;
 };
 
 class CellStructPrinter : public Printer
@@ -352,6 +476,8 @@ public:
     std::string print(List& cell) override;
     std::string print(Number& cell) override;
     std::string print(String& cell) override;
+    std::string print(PixelRef& cell) override;
+    std::string print(Sensor& cell) override;
 
     std::string printImpl(CellI& cell);
 };

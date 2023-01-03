@@ -2,6 +2,8 @@ add_library(applib STATIC
     App.cc
     App.h
     Colors.h
+    Screen.cc
+    Screen.h
     Solver.cc
     Solver.h
 )

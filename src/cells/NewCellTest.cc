@@ -1,11 +1,21 @@
 #include "NewCells.h"
+#include "SVGPrinter.h"
 
+using namespace synth;
 using namespace synth::newcell;
 using namespace synth::newcell::cells;
 
+
 int main(int argc, char* argv[])
 {
+    svg::Printer svgPrinter;
+//    svgPrinter.test();
+
     StaticInitializations();
+
+    input::Screen inputScreen("input");
+    inputScreen.loadFromJsonArray("[[0, 7, 0], [7, 7, 7], [0, 7, 0]]");
+    Sensor sensor("input", inputScreen.width(), inputScreen.height(), inputScreen.pixels());
 
     CellValuePrinter valuePrinter;
     CellStructPrinter structPrinter;

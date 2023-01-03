@@ -19,6 +19,7 @@ target_link_libraries(cellslib
 add_library(newcellslib STATIC
     NewCells.cc
     NewCells.h
+    SVGPrinter.cc
 )
 if(MSVC)
     target_compile_options(newcellslib PUBLIC "/Zc:__cplusplus")
@@ -32,6 +33,7 @@ target_link_libraries(newcellslib
 	PUBLIC
 		CONAN_PKG::utfcpp
 		CONAN_PKG::boost
+		CONAN_PKG::freetype
 )
 
 
@@ -39,4 +41,5 @@ add_executable(newcelltest newcelltest.cc)
 target_link_libraries(newcelltest
 PRIVATE
     newcellslib
+    applib
 )
