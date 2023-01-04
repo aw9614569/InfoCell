@@ -6,25 +6,25 @@
 
 namespace synth {
 
-const std::array<cells::Color, 10> cellColors = {
-    cells::Color(0x00, 0x00, 0x00), /* black */
-    cells::Color(0x00, 0x74, 0xD9), /* blue */
-    cells::Color(0xFF, 0x41, 0x36), /* red */
-    cells::Color(0x2E, 0xCC, 0x40), /* green */
-    cells::Color(0xFF, 0xDC, 0x00), /* yellow */
-    cells::Color(0xAA, 0xAA, 0xAA), /* grey */
-    cells::Color(0xF0, 0x12, 0xBE), /* fuschia */
-    cells::Color(0xFF, 0x85, 0x1B), /* orange */
-    cells::Color(0x7F, 0xDB, 0xFF), /* teal */
-    cells::Color(0x87, 0x0C, 0x25)  /* brown */
+const std::array<input::Color, 10> cellColors = {
+    input::Color(0x00, 0x00, 0x00), /* black */
+    input::Color(0x00, 0x74, 0xD9), /* blue */
+    input::Color(0xFF, 0x41, 0x36), /* red */
+    input::Color(0x2E, 0xCC, 0x40), /* green */
+    input::Color(0xFF, 0xDC, 0x00), /* yellow */
+    input::Color(0xAA, 0xAA, 0xAA), /* grey */
+    input::Color(0xF0, 0x12, 0xBE), /* fuschia */
+    input::Color(0xFF, 0x85, 0x1B), /* orange */
+    input::Color(0x7F, 0xDB, 0xFF), /* teal */
+    input::Color(0x87, 0x0C, 0x25)  /* brown */
 };
 
-const cells::Color& color(arc::Colors c)
+const input::Color& color(arc::Colors c)
 {
     return cellColors[(int)c];
 }
 
-const std::map<const cells::Color, int> cellColorsToColorId = {
+const std::map<const input::Color, int> cellColorsToColorId = {
     { cellColors[0], 0 },
     { cellColors[1], 1 },
     { cellColors[2], 2 },
@@ -439,7 +439,7 @@ void PatchSlot::unRegisterCandidate(std::shared_ptr<Patch> patch)
     patches.erase(patch);
 }
 
-std::shared_ptr<Patch> PatchSlot::getCandidate(const cells::Color& color)
+std::shared_ptr<Patch> PatchSlot::getCandidate(const input::Color& color)
 {
     auto findIt = m_candidates.find(color);
 
@@ -488,19 +488,19 @@ DrawingBoard::DrawingBoard(int width, int height) :
 
 void DrawingBoard::clear()
 {
-    for (cells::Color& color : m_colors) {
+    for (input::Color& color : m_colors) {
         color = m_defaultBgColor;
     }
 }
 
-void DrawingBoard::setColor(int x, int y, cells::Color color)
+void DrawingBoard::setColor(int x, int y, input::Color color)
 {
     if (!isInRange(x, y))
         return;
     m_colors[currentIndex(x, y)] = color;
 }
 
-void DrawingBoard::renderLine(int x, int y, int len, const cells::Color& color, RotationDir direction)
+void DrawingBoard::renderLine(int x, int y, int len, const input::Color& color, RotationDir direction)
 {
     switch (direction) {
 
@@ -547,7 +547,7 @@ void DrawingBoard::renderLine(int x, int y, int len, const cells::Color& color, 
     }
 }
 
-void DrawingBoard::renderLine(int x, int y, const cells::Color& color, RotationDir direction)
+void DrawingBoard::renderLine(int x, int y, const input::Color& color, RotationDir direction)
 {
     if (!isInRange(x, y))
         return;
@@ -640,7 +640,7 @@ void DrawingBoard::renderVectorShape(int x, int y, const VectorShape& vectorShap
 
 void DrawingBoard::renderBoundingBox(const BoundingBox& boundingBox)
 {
-    const cells::Color pixelColor = color(arc::Colors::grey);
+    const input::Color pixelColor = color(arc::Colors::grey);
     renderLine(boundingBox.leftX, boundingBox.topY, boundingBox.height(), pixelColor, RotationDir::Degree_0);
     renderLine(boundingBox.rightX, boundingBox.topY, boundingBox.height(), pixelColor, RotationDir::Degree_0);
 
@@ -688,9 +688,9 @@ void PatchBoard::process()
 {
     for (int y = 0; y < height(); ++y) {
         for (int x = 0; x < width(); ++x) {
-            const cells::Pixel& pixel = m_sensor.getPixel(x, y);
+            const cells::PixelRef& pixel = m_sensor.getPixel(x, y);
             //                logger.log(DEBUG) << "Processing pixel[" << x << ", " << y << "]" << pixel.color;
-            processPixel(x, y, pixel.color);
+            processPixel(x, y, pixel.color());
         }
     }
     int id = 1;
@@ -706,7 +706,7 @@ void PatchBoard::process()
     }
 }
 
-void PatchBoard::processPixel(int x, int y, const cells::Color& color)
+void PatchBoard::processPixel(int x, int y, const input::Color& color)
 {
     PatchSlot& patchSlot             = getPatchSlot(x, y);
     std::shared_ptr<Patch> candidate = patchSlot.getCandidate(color);
@@ -784,7 +784,7 @@ void Solver::solve()
     DrawingBoard result = applyCode(testInput, code);
 
     const cells::Sensor& m_input = m_arcTask.m_testInput;
-    logger.log(INFO) << "Mapping input[" << m_input.m_width << ", " << m_input.m_height << "] to ... ?";
+    logger.log(INFO) << "Mapping input[" << m_input.width() << ", " << m_input.height() << "] to ... ?";
 }
 
 Grid Solver::parse(const cells::Sensor& sensor)

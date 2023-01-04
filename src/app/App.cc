@@ -20,7 +20,7 @@ using namespace ftxui;
 
 namespace synth {
 
-const std::array<Color, 11> App::arcColors = {
+const std::array<ftxui::Color, 11> App::arcColors = {
     Color(0x00, 0x00, 0x00), /* black */
     Color(0x00, 0x74, 0xD9), /* blue */
     Color(0xFF, 0x41, 0x36), /* red */

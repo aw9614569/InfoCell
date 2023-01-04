@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "Screen.h"
 #include "cells/Cells.h"
 #include "util/ArcTask.h"
 #include "util/Logging.h"
@@ -20,9 +21,9 @@ enum class RotationDir
     Degree_315  // 🡬
 };
 
-extern const std::array<cells::Color, 10> cellColors;
-extern const std::map<const cells::Color, int> cellColorsToColorId;
-const cells::Color& color(arc::Colors c);
+extern const std::array<input::Color, 10> cellColors;
+extern const std::map<const input::Color, int> cellColorsToColorId;
+const input::Color& color(arc::Colors c);
 
 class Vector;
 
@@ -32,7 +33,8 @@ class Pixel
 public:
     Pixel() :
         x(0), y(0)
-    { }
+    {
+    }
 
     Pixel(int x, int y) :
         x(x), y(y)
@@ -201,7 +203,7 @@ public:
     }
 
     bool exactMatch = false;
-    bool isRotated = false;
+    bool isRotated  = false;
 
     // lhs.rotate(rotationDir) == rhs
     RotationDir rotationDir;
@@ -216,17 +218,17 @@ public:
 class VectorShape
 {
 public:
-    VectorShape(const cells::Color& color) :
+    VectorShape(const input::Color& color) :
         m_color(color)
     {
     }
 
-    VectorShape(const std::vector<Vector>& vectors, const cells::Color& color, const Pixel& firstPixel) :
+    VectorShape(const std::vector<Vector>& vectors, const input::Color& color, const Pixel& firstPixel) :
         m_vectors(vectors), m_color(color), m_firstPixel(firstPixel)
     {
     }
 
-    VectorShape(std::vector<Vector>&& vectors, const cells::Color& color, const Pixel& firstPixel) :
+    VectorShape(std::vector<Vector>&& vectors, const input::Color& color, const Pixel& firstPixel) :
         m_vectors(std::move(vectors)), m_color(color), m_firstPixel(firstPixel)
     {
     }
@@ -237,7 +239,7 @@ public:
     VectorShape mirror(DistanceType distanceType, const Vector distance, RotationDir axisDir) const;
     VectorShapeRelation compare(const VectorShape& other);
 
-    const cells::Color& color() const
+    const input::Color& color() const
     {
         return m_color;
     }
@@ -262,7 +264,7 @@ public:
 private:
     static void stretchPixel(std::vector<Vector>& stretchVectors, int horizontal, int vertical);
 
-    cells::Color m_color;
+    input::Color m_color;
     std::vector<Vector> m_vectors;
     Pixel m_firstPixel;
 };
@@ -283,7 +285,7 @@ public:
 class Patch : public std::enable_shared_from_this<Patch>
 {
 public:
-    Patch(cells::Color color, PatchBoardI* patchBoardI) :
+    Patch(input::Color color, PatchBoardI* patchBoardI) :
         m_color(color), m_patchBoardI(patchBoardI), m_width(patchBoardI->width()), m_height(patchBoardI->height()) { }
 
     void registerSubscribedPixel(int x, int y)
@@ -305,7 +307,7 @@ public:
         m_id = id;
     }
 
-    const cells::Color& color() const
+    const input::Color& color() const
     {
         return m_color;
     }
@@ -355,9 +357,8 @@ public:
     }
 
 private:
-
-    int m_id      = 0;
-    cells::Color m_color;
+    int m_id = 0;
+    input::Color m_color;
     PatchBoardI* m_patchBoardI = nullptr;
     const int m_width;
     const int m_height;
@@ -373,11 +374,11 @@ struct PatchSlot
 
     void registerCandidate(std::shared_ptr<Patch> patch);
     void unRegisterCandidate(std::shared_ptr<Patch> patch);
-    std::shared_ptr<Patch> getCandidate(const cells::Color& color);
+    std::shared_ptr<Patch> getCandidate(const input::Color& color);
 
 private:
     PatchBoardI* m_patchBoardI = nullptr;
-    std::map<cells::Color, std::set<std::shared_ptr<Patch>>> m_candidates;
+    std::map<input::Color, std::set<std::shared_ptr<Patch>>> m_candidates;
 };
 
 // ============================================================================
@@ -400,7 +401,7 @@ public:
     }
 
     void process();
-    void processPixel(int x, int y, const cells::Color& color);
+    void processPixel(int x, int y, const input::Color& color);
 
     const std::set<std::shared_ptr<Patch>>& patches() const
     {
@@ -446,9 +447,9 @@ public:
     DrawingBoard(int width, int height);
 
     void clear();
-    void setColor(int x, int y, cells::Color color);
-    void renderLine(int x, int y, const cells::Color& color, RotationDir direction);
-    void renderLine(int x, int y, int len, const cells::Color& color, RotationDir direction);
+    void setColor(int x, int y, input::Color color);
+    void renderLine(int x, int y, const input::Color& color, RotationDir direction);
+    void renderLine(int x, int y, int len, const input::Color& color, RotationDir direction);
     void renderVectorShape(const VectorShape& vectorShape)
     {
         renderVectorShape(vectorShape.firstPixel().x, vectorShape.firstPixel().y, vectorShape);
@@ -486,8 +487,8 @@ private:
 
     const int m_width;
     const int m_height;
-    const cells::Color& m_defaultBgColor;
-    std::vector<cells::Color> m_colors;
+    const input::Color& m_defaultBgColor;
+    std::vector<input::Color> m_colors;
 };
 
 // ============================================================================

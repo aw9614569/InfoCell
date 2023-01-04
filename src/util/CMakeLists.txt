@@ -1,4 +1,6 @@
 add_library(util STATIC
+    ArcTask.cc
+    ArcTask.h
     Converter.cc
     Converter.h
     Logging.cc

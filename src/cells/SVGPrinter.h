@@ -1,8 +1,7 @@
-#include "NewCells.h"
-
+#include "Cells.h"
 
 namespace synth {
-namespace newcell {
+namespace cells {
 namespace svg {
 
 class Point
@@ -12,7 +11,7 @@ public:
     int y;
 };
 
-class Printer : public newcell::Printer
+class Printer : public cells::Printer
 {
 public:
     Printer();
@@ -39,5 +38,5 @@ protected:
 };
 
 } // namespace svg
-} // namespace newcell
+} // namespace cells
 } // namespace synth

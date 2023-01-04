@@ -1,8 +1,8 @@
 #include "SVGPrinter.h"
 
-#include <iostream>
 #include <format>
 #include <ft2build.h>
+#include <iostream>
 #include FT_FREETYPE_H
 
 class BoxSize
@@ -73,7 +73,7 @@ static BoxSize stringBB(const std::string& str, int fontSize, const std::string&
 }
 
 namespace synth {
-namespace newcell {
+namespace cells {
 namespace svg {
 
 Printer::Printer()
@@ -85,7 +85,7 @@ Printer::Printer()
 
 std::string Printer::svgDrawBox(Point start, Point end)
 {
-    int width = end.x - start.x;
+    int width  = end.x - start.x;
     int height = end.y - start.y;
     return std::format("<polygon points=\"{},{} {},{} {},{} {},{}\" style=\"fill:lime;stroke:purple;stroke-width:1\"/>", start.x, start.y, start.x + width, start.y, start.x + width, start.y + height, start.x, start.y + height);
 }
@@ -165,5 +165,5 @@ void Printer::test()
 }
 
 } // namespace svg
-} // namespace newcell
+} // namespace cells
 } // namespace synth

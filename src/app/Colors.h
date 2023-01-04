@@ -1,3 +1,5 @@
+#pragma once
+
 namespace synth {
 namespace arc {
 enum class Colors

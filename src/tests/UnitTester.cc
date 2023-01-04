@@ -64,8 +64,8 @@ std::vector<TestCase> TestCases::m_testCases;
 void TestCases::addTestCases()
 {
     add(TestCase("PatchTest", []() {
-        TestBoard testBoard({ 3, 3, { 0, 7, 7, 7, 7, 7, 0, 7, 7 } });
-        cells::Sensor sensor = convertTestCaseToSensor(testBoard);
+        input::Screen screen("test", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
+        cells::Sensor sensor(screen);
         PatchBoard patchBoard(sensor);
         patchBoard.process();
 #if 0
@@ -79,8 +79,8 @@ void TestCases::addTestCases()
     }));
 
     add(TestCase("PatchMergeTest", []() {
-        TestBoard testBoard({ 3, 3, { 7, 0, 7, 7, 0, 7, 7, 7, 7 } });
-        cells::Sensor sensor = convertTestCaseToSensor(testBoard);
+        input::Screen screen("test", "[[7, 0, 7], [7, 0, 7], [7, 7, 7]]");
+        cells::Sensor sensor(screen);
         PatchBoard patchBoard(sensor);
         patchBoard.process();
 #if 0
@@ -302,25 +302,6 @@ void TestCases::addTestCases()
 
         loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
     }));
-}
-
-static cells::Sensor convertTestCaseToSensor(const TestBoard& testBoard)
-{
-    cells::Sensor sensor;
-    const int height = testBoard.height;
-    const int width  = testBoard.width;
-    sensor.width(width).height(height).init();
-
-    assert(testBoard.pixels.size() == width * height);
-
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            cells::Pixel& pixel = sensor.getPixel(x, y);
-            pixel.color         = color((arc::Colors)(testBoard.pixels[y * width + x]));
-        }
-    }
-
-    return sensor;
 }
 
 void UnitTester::start()

@@ -1,9 +1,9 @@
-#include "NewCells.h"
+#include "Cells.h"
 #include "SVGPrinter.h"
 
 using namespace synth;
-using namespace synth::newcell;
-using namespace synth::newcell::cells;
+using namespace synth::cells;
+using namespace synth::cells::data;
 
 
 int main(int argc, char* argv[])
@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 
     input::Screen inputScreen("input");
     inputScreen.loadFromJsonArray("[[0, 7, 0], [7, 7, 7], [0, 7, 0]]");
-    Sensor sensor("input", inputScreen.width(), inputScreen.height(), inputScreen.pixels());
+    Sensor sensor(inputScreen);
 
     CellValuePrinter valuePrinter;
     CellStructPrinter structPrinter;
