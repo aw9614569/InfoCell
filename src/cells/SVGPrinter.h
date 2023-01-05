@@ -24,8 +24,9 @@ public:
     std::string print(List& cell) override;
     std::string print(Number& cell) override;
     std::string print(String& cell) override;
-    std::string print(PixelRef& cell) override;
-    std::string print(Sensor& cell) override;
+    std::string print(hybrid::Color& cell) override;
+    std::string print(hybrid::Pixel& cell) override;
+    std::string print(hybrid::Sensor& cell) override;
 
 protected:
     std::string printImpl(CellI& cell);

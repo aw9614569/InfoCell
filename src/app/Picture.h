@@ -28,14 +28,14 @@ public:
     int m_blue = 0;
 };
 
-class Screen
+class Picture
 {
 public:
-    Screen(const std::string& name);
-    Screen(const std::string& name, const std::string& jsonStr);
+    Picture(const std::string& name);
+    Picture(const std::string& name, const std::string& jsonStr);
 
-    Screen& loadFromJsonArray(const std::string& jsonStr);
-    Screen& loadFromVector(int width, int height, const std::vector<int>& pixels);
+    Picture& loadFromJsonArray(const std::string& jsonStr);
+    Picture& loadFromVector(int width, int height, const std::vector<int>& pixels);
     const std::string& name() const;
     int width() const;
     int height() const;

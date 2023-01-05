@@ -1,4 +1,4 @@
-#include "Screen.h"
+#include "Picture.h"
 
 #include <nlohmann/json.hpp>
 
@@ -18,17 +18,17 @@ const std::array<Color, 10> arcColors = {
     Color(0x87, 0x0C, 0x25)  /* brown */
 };
 
-Screen::Screen(const std::string& name) :
+Picture::Picture(const std::string& name) :
     m_name(name)
 {
 }
-Screen::Screen(const std::string& name, const std::string& jsonStr) :
+Picture::Picture(const std::string& name, const std::string& jsonStr) :
     m_name(name)
 {
     loadFromJsonArray(jsonStr);
 }
 
-Screen& Screen::loadFromJsonArray(const std::string& jsonStr)
+Picture& Picture::loadFromJsonArray(const std::string& jsonStr)
 {
     nlohmann::json arcMatrix = nlohmann::json::parse(jsonStr);
     size_t matrixHeight = arcMatrix.size();
@@ -47,7 +47,7 @@ Screen& Screen::loadFromJsonArray(const std::string& jsonStr)
     return *this;
 }
 
-Screen& Screen::loadFromVector(int width, int height, const std::vector<int>& pixelColors)
+Picture& Picture::loadFromVector(int width, int height, const std::vector<int>& pixelColors)
 {
     m_width  = width;
     m_height = height;
@@ -59,27 +59,27 @@ Screen& Screen::loadFromVector(int width, int height, const std::vector<int>& pi
     return *this;
 }
 
-const std::string& Screen::name() const
+const std::string& Picture::name() const
 {
     return m_name;
 }
 
-int Screen::width() const
+int Picture::width() const
 {
     return m_width;
 }
 
-int Screen::height() const
+int Picture::height() const
 {
     return m_height;
 }
 
-std::vector<Color>& Screen::pixels()
+std::vector<Color>& Picture::pixels()
 {
     return m_pixels;
 }
 
-const std::vector<Color>& Screen::pixels() const
+const std::vector<Color>& Picture::pixels() const
 {
     return m_pixels;
 }

@@ -13,9 +13,9 @@ int main(int argc, char* argv[])
 
     StaticInitializations();
 
-    input::Screen inputScreen("input");
-    inputScreen.loadFromJsonArray("[[0, 7, 0], [7, 7, 7], [0, 7, 0]]");
-    Sensor sensor(inputScreen);
+    input::Picture inputPicture("input");
+    inputPicture.loadFromJsonArray("[[0, 7, 0], [7, 7, 7], [0, 7, 0]]");
+    hybrid::Sensor sensor(inputPicture);
 
     CellValuePrinter valuePrinter;
     CellStructPrinter structPrinter;

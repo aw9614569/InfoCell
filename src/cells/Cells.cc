@@ -213,6 +213,13 @@ void Type::staticInitMembers()
     s_slotSlots = &s_type->createSlot("slots", listOfSlots, data::slots);
 }
 
+void Type::addSlots(std::initializer_list<SlotRef> slots)
+{
+    for (const SlotRef& slotRef : slots) {
+        createSlot(slotRef.m_name, slotRef.m_type, slotRef.m_role);
+    }
+}
+
 Slot& Type::createSlot(const std::string& name, Type& type, CellI& role)
 {
     auto slotIt = m_slotRefs.find(name);
@@ -910,22 +917,92 @@ void String::calculateCharacters()
     }
 }
 
+namespace hybrid {
 // ============================================================================
-std::unique_ptr<Type> PixelRef::s_type;
-Slot* PixelRef::s_slotUp    = nullptr;
-Slot* PixelRef::s_slotDown  = nullptr;
-Slot* PixelRef::s_slotLeft  = nullptr;
-Slot* PixelRef::s_slotRight = nullptr;
-Slot* PixelRef::s_slotRed   = nullptr;
-Slot* PixelRef::s_slotGreen = nullptr;
-Slot* PixelRef::s_slotBlue  = nullptr;
-
-PixelRef::PixelRef(const input::Color& inputColor) :
+Color::Color(const input::Color& inputColor) :
     m_inputColor(inputColor)
 {
 }
 
-bool PixelRef::has(CellI& role)
+bool Color::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::colors::red || &role == &data::colors::green || &role == &data::colors::blue) {
+        return true;
+    }
+
+    return false;
+}
+
+void Color::set(CellI& role, CellI& value)
+{
+    throw "Setting a generated pixelRef cell is not possible";
+}
+
+void Color::operator()()
+{
+    // Do nothing
+}
+
+CellI& Color::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::colors::red) {
+        return Numbers::get(m_inputColor.m_red);
+    }
+    if (&role == &data::colors::green) {
+        return Numbers::get(m_inputColor.m_green);
+    }
+    if (&role == &data::colors::blue) {
+        return Numbers::get(m_inputColor.m_blue);
+    }
+
+    return Object::emptyObject();
+}
+
+Type& Color::type()
+{
+    return t();
+}
+
+std::string Color::printAs(Printer& printer)
+{
+    return printer.print(*this);
+}
+
+std::string Color::name() const
+{
+    std::stringstream ss;
+    ss << "Color(" << m_inputColor.m_red << ", " << m_inputColor.m_green << ", " << m_inputColor.m_blue << ")";
+    return ss.str();
+}
+
+Type& Color::t()
+{
+    return type::Color;
+}
+
+const input::Color& Color::color() const
+{
+    return m_inputColor;
+}
+
+// ============================================================================
+std::unique_ptr<Type> Pixel::s_type;
+
+Pixel::Pixel(int x, int y, const input::Color& inputColor) :
+    m_x(Numbers::get(x)),
+    m_y(Numbers::get(y)),
+    m_color(inputColor),
+    m_inputColor(inputColor)
+{
+}
+
+bool Pixel::has(CellI& role)
 {
     if (&role == &data::type) {
         return true;
@@ -942,24 +1019,27 @@ bool PixelRef::has(CellI& role)
     if (&role == &data::directions::right && m_right) {
         return true;
     }
-    if (&role == &data::colors::red || &role == &data::colors::green || &role == &data::colors::blue) {
+    if (&role == &data::coordinates::x) {
+        return true;
+    }
+    if (&role == &data::coordinates::y) {
         return true;
     }
 
     return false;
 }
 
-void PixelRef::set(CellI& role, CellI& value)
+void Pixel::set(CellI& role, CellI& value)
 {
     throw "Setting a generated pixelRef cell is not possible";
 }
 
-void PixelRef::operator()()
+void Pixel::operator()()
 {
     // Do nothing
 }
 
-CellI& PixelRef::operator[](CellI& role)
+CellI& Pixel::operator[](CellI& role)
 {
     if (&role == &data::type) {
         return *s_type;
@@ -976,89 +1056,53 @@ CellI& PixelRef::operator[](CellI& role)
     if (&role == &data::directions::right && m_right) {
         return *m_right;
     }
-    if (&role == &data::colors::red) {
-        return Numbers::get(m_inputColor.m_red);
+    if (&role == &data::color) {
+        return m_color;
     }
-    if (&role == &data::colors::green) {
-        return Numbers::get(m_inputColor.m_green);
+    if (&role == &data::coordinates::x) {
+        return m_x;
     }
-    if (&role == &data::colors::blue) {
-        return Numbers::get(m_inputColor.m_blue);
+    if (&role == &data::coordinates::y) {
+        return m_y;
     }
 
     return Object::emptyObject();
 }
 
-Type& PixelRef::type()
+Type& Pixel::type()
 {
     return *s_type;
 }
 
-std::string PixelRef::printAs(Printer& printer)
+std::string Pixel::printAs(Printer& printer)
 {
     return printer.print(*this);
 }
 
-std::string PixelRef::name() const
+std::string Pixel::name() const
 {
     std::stringstream ss;
-    ss << "Pixel(" << m_inputColor.m_red << ", " << m_inputColor.m_green << ", " << m_inputColor.m_blue << ")";
+    ss << "Pixel[" << m_x.value() << ", " << m_y.value() << "](" << m_inputColor.m_red << ", " << m_inputColor.m_green << ", " << m_inputColor.m_blue << ")";
     return ss.str();
 }
 
-void PixelRef::staticInit()
+void Pixel::staticInit()
 {
-    s_type = std::unique_ptr<Type>(new Type("PixelRef",
-                                            { { "red", Number::t(), data::colors::red },
-                                              { "green", Number::t(), data::colors::green },
-                                              { "blue", Number::t(), data::colors::blue } }));
-    s_type->createSlot("up", *s_type, data::directions::up);
+    s_type = std::unique_ptr<Type>(new Type("Pixel"));
+    &s_type->createSlot("up", *s_type, data::directions::up);
     s_type->createSlot("down", *s_type, data::directions::down);
     s_type->createSlot("left", *s_type, data::directions::left);
     s_type->createSlot("right", *s_type, data::directions::right);
+    s_type->createSlot("x", Number::t(), data::coordinates::x);
+    s_type->createSlot("y", Number::t(), data::coordinates::y);
 }
 
-Type& PixelRef::t()
+Type& Pixel::t()
 {
     return *s_type;
 }
 
-Slot& PixelRef::slotUp()
-{
-    return *s_slotUp;
-}
-
-Slot& PixelRef::slotDown()
-{
-    return *s_slotDown;
-}
-
-Slot& PixelRef::slotLeft()
-{
-    return *s_slotLeft;
-}
-
-Slot& PixelRef::slotRight()
-{
-    return *s_slotRight;
-}
-
-Slot& PixelRef::slotRed()
-{
-    return *s_slotRed;
-}
-
-Slot& PixelRef::slotGreen()
-{
-    return *s_slotGreen;
-}
-
-Slot& PixelRef::slotBlue()
-{
-    return *s_slotBlue;
-}
-
-const input::Color& PixelRef::color() const
+const input::Color& Pixel::color() const
 {
     return m_inputColor;
 }
@@ -1066,25 +1110,29 @@ const input::Color& PixelRef::color() const
 // ============================================================================
 
 std::unique_ptr<Type> Sensor::s_type;
-Slot* Sensor::s_slotWidth      = nullptr;
-Slot* Sensor::s_slotHeight     = nullptr;
-Slot* Sensor::s_slotFirstPixel = nullptr;
-Slot* Sensor::s_slotLastPixel  = nullptr;
 
-Sensor::Sensor(input::Screen& screen) :
-    m_name(screen.name()), m_width(screen.width()), m_height(screen.height()), m_widthCell(Numbers::get(m_width)), m_heightCell(Numbers::get(m_height))
+Sensor::Sensor(input::Picture& picture) :
+    m_name(picture.name()), m_width(picture.width()), m_height(picture.height()), m_widthCell(Numbers::get(m_width)), m_heightCell(Numbers::get(m_height))
 {
     const int senzorSize = m_height * m_width;
 
-    m_pixelRefs.clear();
-    m_pixelRefs.reserve(senzorSize);
+    m_pixels.clear();
+    m_pixels.reserve(senzorSize);
 
-    for (const input::Color& pixel : screen.pixels()) {
-        m_pixelRefs.emplace_back(pixel);
+    int x = 0;
+    int y = 0;
+
+    for (const input::Color& pixel : picture.pixels()) {
+        m_pixels.emplace_back(x++, y, pixel);
+        if (x == m_width) {
+            x = 0;
+            y += 1;
+        }
     }
-    for (int y = 0; y < m_height; ++y) {
-        for (int x = 0; x < m_width; ++x) {
-            PixelRef& pixel = m_pixelRefs[currentIndex(x, y)];
+
+    for (y = 0; y < m_height; ++y) {
+        for (x = 0; x < m_width; ++x) {
+            Pixel& pixel = m_pixels[currentIndex(x, y)];
             pixel.m_up      = upPixel(x, y);
             pixel.m_down    = downPixel(x, y);
             pixel.m_left    = leftPixel(x, y);
@@ -1123,10 +1171,10 @@ CellI& Sensor::operator[](CellI& role)
         return m_heightCell;
     }
     if (&role == &data::first) {
-        return m_pixelRefs.front();
+        return m_pixels.front();
     }
     if (&role == &data::last) {
-        return m_pixelRefs.back();
+        return m_pixels.back();
     }
 
     return Object::emptyObject();
@@ -1152,8 +1200,8 @@ void Sensor::staticInit()
     s_type = std::unique_ptr<Type>(new Type("Sensor",
                                             { { "width", Number::t(), data::width },
                                               { "height", Number::t(), data::height },
-                                              { "firstPixel", PixelRef::t(), data::first },
-                                              { "lastPixel", PixelRef::t(), data::last } }));
+                                              { "firstPixel", Pixel::t(), data::first },
+                                              { "lastPixel", Pixel::t(), data::last } }));
 }
 
 Type& Sensor::t()
@@ -1161,32 +1209,14 @@ Type& Sensor::t()
     return *s_type;
 }
 
-Slot& Sensor::slotWidth()
+Pixel& Sensor::getPixel(int x, int y)
 {
-    return *s_slotWidth;
+    return m_pixels[currentIndex(x, y)];
 }
 
-Slot& Sensor::slotHeight()
+const Pixel& Sensor::getPixel(int x, int y) const
 {
-    return *s_slotHeight;
-}
-Slot& Sensor::slotFirstPixel()
-{
-    return *s_slotFirstPixel;
-}
-Slot& Sensor::slotLastPixel()
-{
-    return *s_slotLastPixel;
-}
-
-PixelRef& Sensor::getPixel(int x, int y)
-{
-    return m_pixelRefs[currentIndex(x, y)];
-}
-
-const PixelRef& Sensor::getPixel(int x, int y) const
-{
-    return m_pixelRefs.at(currentIndex(x, y));
+    return m_pixels.at(currentIndex(x, y));
 }
 
 int Sensor::currentIndex(int x, int y) const
@@ -1220,40 +1250,40 @@ m_height = 5
 
  */
 
-PixelRef* Sensor::upPixel(int x, int y)
+Pixel* Sensor::upPixel(int x, int y)
 {
     if (!isInRange(x, y) || y == 0) {
         return nullptr;
     }
     int upIndex = (y - 1) * m_width + x;
-    return &m_pixelRefs[upIndex];
+    return &m_pixels[upIndex];
 }
 
-PixelRef* Sensor::downPixel(int x, int y)
+Pixel* Sensor::downPixel(int x, int y)
 {
     if (!isInRange(x, y) || y == m_height - 1) {
         return nullptr;
     } else {
         int downIndex = (y + 1) * m_width + x;
-        return &m_pixelRefs[downIndex];
+        return &m_pixels[downIndex];
     }
 }
 
-PixelRef* Sensor::leftPixel(int x, int y)
+Pixel* Sensor::leftPixel(int x, int y)
 {
     if (!isInRange(x, y) || x == 0) {
         return nullptr;
     } else {
-        return &m_pixelRefs[y * m_width + x - 1];
+        return &m_pixels[y * m_width + x - 1];
     }
 }
 
-PixelRef* Sensor::rightPixel(int x, int y)
+Pixel* Sensor::rightPixel(int x, int y)
 {
     if (!isInRange(x, y) || x == m_width - 1) {
         return nullptr;
     } else {
-        return &m_pixelRefs[y * m_width + x + 1];
+        return &m_pixels[y * m_width + x + 1];
     }
 }
 
@@ -1267,6 +1297,25 @@ int Sensor::height() const
     return m_height;
 }
 
+} // namespace hybrid
+
+namespace type {
+Type Color("Color");
+Type Sensor("Sensor");
+} // namespace type
+
+static void staticInitClasses()
+{
+    type::Color.addSlots(
+        { { "red", Number::t(), data::colors::red },
+          { "green", Number::t(), data::colors::green },
+          { "blue", Number::t(), data::colors::blue } });
+    type::Sensor.addSlots(
+        { { "width", Number::t(), data::width },
+          { "height", Number::t(), data::height },
+          { "firstPixel", hybrid::Pixel::t(), data::first },
+          { "lastPixel", hybrid::Pixel::t(), data::last } });
+}
 
 namespace data {
 Object slotType(Type::anyType());
@@ -1285,6 +1334,12 @@ Object left(Type::anyType());
 Object right(Type::anyType());
 } // namespace directions
 
+namespace coordinates {
+Object x(Type::anyType());
+Object y(Type::anyType());
+} // namespace coordinates
+
+extern Object color(Type::anyType());
 namespace colors {
 Object red(Type::anyType());
 Object green(Type::anyType());
@@ -1314,7 +1369,8 @@ void StaticInitializations()
     Type::staticInitMembers();
     Slot::staticInitMembers();
 
-    PixelRef::staticInit();
+    staticInitClasses();
+    hybrid::Pixel::staticInit();
 }
 
 // ============================================================================
@@ -1411,15 +1467,23 @@ std::string CellValuePrinter::print(String& cell)
     return ss.str();
 }
 
-std::string CellValuePrinter::print(PixelRef& cell)
+std::string CellValuePrinter::print(hybrid::Color& cell)
 {
     std::stringstream ss;
-    ss << "(PixelRef) [" << cell.color().m_red << ", " << cell.color().m_green << "" << cell.color().m_blue << "]";
+    ss << "(Color) [" << cell.color().m_red << ", " << cell.color().m_green << "" << cell.color().m_blue << "]";
 
     return ss.str();
 }
 
-std::string CellValuePrinter::print(Sensor& cell)
+std::string CellValuePrinter::print(hybrid::Pixel& cell)
+{
+    std::stringstream ss;
+    ss << "(Pixel) [" << cell.color().m_red << ", " << cell.color().m_green << "" << cell.color().m_blue << "]";
+
+    return ss.str();
+}
+
+std::string CellValuePrinter::print(hybrid::Sensor& cell)
 {
     std::stringstream ss;
     ss << "(Sensor) " << cell.name();
@@ -1481,12 +1545,17 @@ std::string CellStructPrinter::print(String& cell)
     return printImpl(cell);
 }
 
-std::string CellStructPrinter::print(PixelRef& cell)
+std::string CellStructPrinter::print(hybrid::Color& cell)
 {
     return printImpl(cell);
 }
 
-std::string CellStructPrinter::print(Sensor& cell)
+std::string CellStructPrinter::print(hybrid::Pixel& cell)
+{
+    return printImpl(cell);
+}
+
+std::string CellStructPrinter::print(hybrid::Sensor& cell)
 {
     return printImpl(cell);
 }

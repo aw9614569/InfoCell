@@ -688,7 +688,7 @@ void PatchBoard::process()
 {
     for (int y = 0; y < height(); ++y) {
         for (int x = 0; x < width(); ++x) {
-            const cells::PixelRef& pixel = m_sensor.getPixel(x, y);
+            const cells::hybrid::Pixel& pixel = m_sensor.getPixel(x, y);
             //                logger.log(DEBUG) << "Processing pixel[" << x << ", " << y << "]" << pixel.color;
             processPixel(x, y, pixel.color());
         }
@@ -772,8 +772,8 @@ void Solver::solve()
 
     std::vector<Rules> rules;
     for (const auto& arcDemo : m_arcTask.m_demonstrations) {
-        const cells::Sensor& m_input  = arcDemo.m_input;
-        const cells::Sensor& m_output = arcDemo.m_output;
+        const cells::hybrid::Sensor& m_input = arcDemo.m_input;
+        const cells::hybrid::Sensor& m_output = arcDemo.m_output;
         //        logger.log(INFO) << " (" << i << ") mapping[" << m_input.m_width << ", " << m_input.m_height << "] to[" << m_output.m_width << ", " << m_output.m_height << "] ";
         const Grid& input = parse(m_input);
         const Grid& output = parse(m_output);
@@ -783,11 +783,11 @@ void Solver::solve()
     const Code& code = processRules(rules);
     DrawingBoard result = applyCode(testInput, code);
 
-    const cells::Sensor& m_input = m_arcTask.m_testInput;
+    const cells::hybrid::Sensor& m_input = m_arcTask.m_testInput;
     logger.log(INFO) << "Mapping input[" << m_input.width() << ", " << m_input.height() << "] to ... ?";
 }
 
-Grid Solver::parse(const cells::Sensor& sensor)
+Grid Solver::parse(const cells::hybrid::Sensor& sensor)
 {
     PatchBoard patchBoard(sensor);
     patchBoard.process();

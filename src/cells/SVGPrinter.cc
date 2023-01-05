@@ -137,13 +137,19 @@ std::string Printer::print(String& cell)
     return ss.str();
 }
 
-std::string Printer::print(PixelRef& cell)
+std::string Printer::print(hybrid::Color& cell)
 {
     std::stringstream ss;
     return ss.str();
 }
 
-std::string Printer::print(Sensor& cell)
+std::string Printer::print(hybrid::Pixel& cell)
+{
+    std::stringstream ss;
+    return ss.str();
+}
+
+std::string Printer::print(hybrid::Sensor& cell)
 {
     std::stringstream ss;
     return ss.str();

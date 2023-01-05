@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Screen.h"
+#include "Picture.h"
 #include "cells/Cells.h"
 #include "util/ArcTask.h"
 #include "util/Logging.h"
@@ -385,7 +385,7 @@ private:
 class PatchBoard : public PatchBoardI
 {
 public:
-    PatchBoard(const cells::Sensor& sensor) :
+    PatchBoard(const cells::hybrid::Sensor& sensor) :
         m_width(sensor.width()), m_height(sensor.height()), m_sensor(sensor), m_patchSlots(m_height * m_width, PatchSlot(this))
     {
     }
@@ -435,7 +435,7 @@ protected:
 
     const int m_width;
     const int m_height;
-    const cells::Sensor& m_sensor;
+    const cells::hybrid::Sensor& m_sensor;
     std::vector<PatchSlot> m_patchSlots;
     std::set<std::shared_ptr<Patch>> m_patches;
 };
@@ -523,7 +523,7 @@ public:
     void solve();
 
 private:
-    Grid parse(const cells::Sensor& sensor);
+    Grid parse(const cells::hybrid::Sensor& sensor);
     Rules gridDiff(const Grid& input, const Grid& output);
     Code processRules(const std::vector<Rules>& rules);
     DrawingBoard applyCode(const Grid& input, const Code& code);

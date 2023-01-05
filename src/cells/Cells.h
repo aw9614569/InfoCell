@@ -7,7 +7,7 @@
 #include <sstream>
 #include <vector>
 
-#include "app/Screen.h"
+#include "app/Picture.h"
 
 namespace synth {
 namespace cells {
@@ -91,7 +91,8 @@ public:
 
     static void staticInit();
     static void staticInitMembers();
-    Slot& createSlot(const std::string& name, Type& classCell, CellI& role);
+    void addSlots(std::initializer_list<SlotRef> slots);
+    Slot& createSlot(const std::string& name, Type& type, CellI& role);
     void referenceSlot(const std::string& name, Slot& slotCell);
 
     bool has(const std::string& name) const;
@@ -316,11 +317,34 @@ protected:
     std::unique_ptr<List> m_charactersList;
 };
 
-// ============================================================================
-class PixelRef : public CellI
+namespace hybrid {
+
+class Color : public CellI
 {
 public:
-    PixelRef(const input::Color& inputColor);
+    Color(const input::Color& inputColor);
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    std::string printAs(Printer& printer) override;
+    std::string name() const override;
+
+    static void staticInit();
+    static Type& t();
+
+    const input::Color& color() const;
+
+private:
+    const input::Color& m_inputColor;
+};
+
+// ============================================================================
+class Pixel : public CellI
+{
+public:
+    Pixel(int x, int y, const input::Color& inputColor);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -333,30 +357,18 @@ public:
     static void staticInit();
     static Type& t();
 
-    static Slot& slotUp();
-    static Slot& slotDown();
-    static Slot& slotLeft();
-    static Slot& slotRight();
-    static Slot& slotRed();
-    static Slot& slotGreen();
-    static Slot& slotBlue();
-
     const input::Color& color() const;
 
-    PixelRef* m_up    = nullptr;
-    PixelRef* m_down  = nullptr;
-    PixelRef* m_left  = nullptr;
-    PixelRef* m_right = nullptr;
+    Pixel* m_up    = nullptr;
+    Pixel* m_down  = nullptr;
+    Pixel* m_left  = nullptr;
+    Pixel* m_right = nullptr;
+    Number& m_x;
+    Number& m_y;
 
 private:
     static std::unique_ptr<Type> s_type;
-    static Slot* s_slotUp;
-    static Slot* s_slotDown;
-    static Slot* s_slotLeft;
-    static Slot* s_slotRight;
-    static Slot* s_slotRed;
-    static Slot* s_slotGreen;
-    static Slot* s_slotBlue;
+    Color m_color;
 
     const input::Color& m_inputColor;
 };
@@ -365,7 +377,7 @@ private:
 class Sensor : public CellI
 {
 public:
-    Sensor(input::Screen& screen);
+    Sensor(input::Picture& screen);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -378,39 +390,39 @@ public:
     static void staticInit();
     static Type& t();
 
-    static Slot& slotWidth();
-    static Slot& slotHeight();
-    static Slot& slotFirstPixel();
-    static Slot& slotLastPixel();
-
-    PixelRef& getPixel(int x, int y);
-    const PixelRef& getPixel(int x, int y) const;
+    Pixel& getPixel(int x, int y);
+    const Pixel& getPixel(int x, int y) const;
 
     int currentIndex(int x, int y) const;
     bool isInRange(int x, int y) const;
-    PixelRef* upPixel(int x, int y);
-    PixelRef* downPixel(int x, int y);
-    PixelRef* leftPixel(int x, int y);
-    PixelRef* rightPixel(int x, int y);
+    Pixel* upPixel(int x, int y);
+    Pixel* downPixel(int x, int y);
+    Pixel* leftPixel(int x, int y);
+    Pixel* rightPixel(int x, int y);
     int width() const;
     int height() const;
 
 protected:
     static std::unique_ptr<Type> s_type;
-    static Slot* s_slotWidth;
-    static Slot* s_slotHeight;
-    static Slot* s_slotFirstPixel;
-    static Slot* s_slotLastPixel;
 
     std::string m_name;
     int m_width;
     int m_height;
     Number& m_widthCell;
     Number& m_heightCell;
-    std::vector<PixelRef> m_pixelRefs;
+    std::vector<Pixel> m_pixels;
 };
 
+} // namespace hybrid
+
 // ============================================================================
+
+namespace type
+{
+extern Type Color;
+extern Type Sensor;
+};
+
 namespace data {
 extern Object slotType;
 extern Object slotName;
@@ -428,6 +440,12 @@ extern Object left;
 extern Object right;
 } // namespace directions
 
+namespace coordinates {
+extern Object x;
+extern Object y;
+} // namespace coordinates
+
+extern Object color;
 namespace colors {
 extern Object red;
 extern Object green;
@@ -454,8 +472,9 @@ public:
     virtual std::string print(List& cell)     = 0;
     virtual std::string print(Number& cell)   = 0;
     virtual std::string print(String& cell)   = 0;
-    virtual std::string print(PixelRef& cell) = 0;
-    virtual std::string print(Sensor& cell)   = 0;
+    virtual std::string print(hybrid::Color& cell) = 0;
+    virtual std::string print(hybrid::Pixel& cell) = 0;
+    virtual std::string print(hybrid::Sensor& cell)   = 0;
 };
 
 class CellValuePrinter : public Printer
@@ -468,8 +487,9 @@ public:
     std::string print(List& cell) override;
     std::string print(Number& cell) override;
     std::string print(String& cell) override;
-    std::string print(PixelRef& cell) override;
-    std::string print(Sensor& cell) override;
+    std::string print(hybrid::Color& cell) override;
+    std::string print(hybrid::Pixel& cell) override;
+    std::string print(hybrid::Sensor& cell) override;
 };
 
 class CellStructPrinter : public Printer
@@ -482,8 +502,9 @@ public:
     std::string print(List& cell) override;
     std::string print(Number& cell) override;
     std::string print(String& cell) override;
-    std::string print(PixelRef& cell) override;
-    std::string print(Sensor& cell) override;
+    std::string print(hybrid::Color& cell) override;
+    std::string print(hybrid::Pixel& cell) override;
+    std::string print(hybrid::Sensor& cell) override;
 
     std::string printImpl(CellI& cell);
 };

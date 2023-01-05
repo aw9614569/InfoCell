@@ -1,7 +1,8 @@
 ﻿#include "ArcTask.h"
 
-#include "app/Screen.h"
+#include "app/Picture.h"
 #include <array>
+#include <format>
 
 using namespace nlohmann;
 using namespace synth::input;
@@ -21,25 +22,26 @@ static const std::array<Color, 10> cellColors = {
     Color(0x87, 0x0C, 0x25)  /* brown */
 };
 
-ArcDemonstration::ArcDemonstration(const std::string& input, const std::string& output) :
-    m_inputScreen("input"),
-    m_outputScreen("output"),
-    m_input(m_inputScreen.loadFromJsonArray(input)),
-    m_output(m_outputScreen.loadFromJsonArray(output))
+ArcDemonstration::ArcDemonstration(int number, const std::string& input, const std::string& output) :
+    m_number(number),
+    m_inputPicture(std::format("Train input {}", number)),
+    m_outputPicture(std::format("Train output {}", number)),
+    m_input(m_inputPicture.loadFromJsonArray(input)),
+    m_output(m_outputPicture.loadFromJsonArray(output))
 {
 }
 
 ArcTask::ArcTask(const nlohmann::json& jsonArcFile) :
-    m_inputScreen("input"),
-    m_outputScreen("output"),
-    m_testInput(m_inputScreen.loadFromJsonArray(to_string(jsonArcFile["/test/0/input"_json_pointer]))),
-    m_testSolution(m_outputScreen.loadFromJsonArray(to_string(jsonArcFile["/test/0/output"_json_pointer])))
+    m_inputPicture("Test input"),
+    m_outputPicture("Test solution"),
+    m_testInput(m_inputPicture.loadFromJsonArray(to_string(jsonArcFile["/test/0/input"_json_pointer]))),
+    m_testSolution(m_outputPicture.loadFromJsonArray(to_string(jsonArcFile["/test/0/output"_json_pointer])))
 {
     const nlohmann::json& jsonTrainSet = jsonArcFile.at("train");
-    int size                           = jsonTrainSet.size();
-    m_demonstrations.reserve(size);
+    m_demonstrations.reserve(jsonTrainSet.size());
+    int number = 1;
     for (const auto& train : jsonTrainSet) {
-        m_demonstrations.emplace_back(to_string(train.at("input")), to_string(train.at("output")));
+        m_demonstrations.emplace_back(number++, to_string(train.at("input")), to_string(train.at("output")));
     }
 }
 
