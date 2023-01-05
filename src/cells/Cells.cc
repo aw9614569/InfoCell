@@ -1446,7 +1446,7 @@ std::string CellValuePrinter::print(Number& cell)
 std::string CellValuePrinter::print(String& cell)
 {
     std::stringstream ss;
-    ss << "(String) " << cell.value();
+    ss << "(String) \"" << cell.value() << "\"";
 
     return ss.str();
 }
@@ -1454,7 +1454,7 @@ std::string CellValuePrinter::print(String& cell)
 std::string CellValuePrinter::print(hybrid::Color& cell)
 {
     std::stringstream ss;
-    ss << "(Color) [" << cell.color().m_red << ", " << cell.color().m_green << "" << cell.color().m_blue << "]";
+    ss << "(Color) rgb(" << cell.color().m_red << ", " << cell.color().m_green << "" << cell.color().m_blue << ")";
 
     return ss.str();
 }
@@ -1470,7 +1470,7 @@ std::string CellValuePrinter::print(hybrid::Pixel& cell)
 std::string CellValuePrinter::print(hybrid::Sensor& cell)
 {
     std::stringstream ss;
-    ss << "(Sensor) " << cell.name();
+    ss << "(Sensor)" << cell.name() << "[" << cell.width() << ", " << cell.height() << "]";
 
     return ss.str();
 }
