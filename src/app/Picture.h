@@ -23,6 +23,21 @@ public:
         return std::tie(m_red, m_green, m_blue) < std::tie(rhs.m_red, rhs.m_green, rhs.m_blue);
     }
 
+    int red() const
+    {
+        return m_red;
+    }
+
+    int green() const
+    {
+        return m_green;
+    }
+
+    int blue() const
+    {
+        return m_blue;
+    }
+
     int m_red = 0;
     int m_green = 0;
     int m_blue = 0;

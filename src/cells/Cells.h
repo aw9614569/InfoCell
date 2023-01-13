@@ -192,7 +192,7 @@ class List : public CellI
 {
 public:
     template <typename T>
-    List(const std::vector<T>& values);
+    List(std::vector<T>& values);
 
     template <typename T>
     List(std::map<std::string, T>& values);
@@ -394,6 +394,8 @@ public:
     Pixel* downPixel(int x, int y);
     Pixel* leftPixel(int x, int y);
     Pixel* rightPixel(int x, int y);
+    const std::vector<Pixel>& pixels() const;
+
     int width() const;
     int height() const;
 
@@ -404,18 +406,118 @@ protected:
     Number& m_widthCell;
     Number& m_heightCell;
     std::vector<Pixel> m_pixels;
+    std::unique_ptr<List> m_pixelsList;
 };
 
 } // namespace hybrid
+
+namespace control {
+class Same : public CellI
+{
+public:
+    Same(CellI& lhs, CellI& rhs, CellI& outCell, CellI& outRole);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    std::string printAs(Printer& printer) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    CellI& m_lhs;
+    CellI& m_rhs;
+    CellI& m_outCell;
+    CellI& m_outRole;
+};
+
+namespace pipeline {
+
+class Node : public CellI
+{
+public:
+    Node();
+    Node(CellI& input);
+    Node(CellI& input, CellI& next);
+    Node(const std::string& name, CellI& input);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    std::string printAs(Printer& printer) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    std::string m_name;
+    CellI& m_input;
+    CellI* m_op    = nullptr;
+    CellI* m_next  = nullptr;
+    CellI* m_value = nullptr;
+};
+
+class IfThen;
+class Switch;
+class DoWhile;
+class While;
+} // namespace pipeline
+
+} // namespace control
 
 // ============================================================================
 
 namespace type
 {
+extern Type Boolean;
 extern Type Color;
 extern Type Pixel;
 extern Type Sensor;
-};
+
+namespace op {
+extern Type Same;
+extern Type NotSame;
+extern Type Equal;
+extern Type NotEqual;
+
+extern Type New;
+extern Type Delete;
+
+extern Type Has;
+extern Type Get;
+extern Type Set;
+
+namespace logic {
+extern Type And;
+extern Type Or;
+extern Type Not;
+} // namespace logic
+
+namespace math {
+extern Type Add;
+extern Type Subtract;
+extern Type Multiply;
+extern Type Divide;
+extern Type LessThan;
+extern Type GreaterThan;
+} // namespace math
+
+namespace pipeline {
+extern Type Node;
+extern Type IfThen;
+extern Type Switch;
+extern Type DoWhile;
+extern Type While;
+} // namespace pipeline
+
+} // namespace control
+} // namespace type
+
 
 namespace data {
 extern Object slotType;
@@ -426,6 +528,26 @@ extern Object first;
 extern Object last;
 extern Object previous;
 extern Object next;
+
+extern Object listOfPixels;
+
+namespace coding {
+extern Object name;
+extern Object value;
+extern Object cell;
+extern Object outCell;
+extern Object outRole;
+extern Object input;
+extern Object output;
+extern Object result;
+extern Object argument;
+extern Object op;
+} // namespace coding
+
+namespace equation {
+extern Object lhs;
+extern Object rhs;
+} // namespace equation
 
 namespace directions {
 extern Object up;
@@ -445,6 +567,11 @@ extern Object red;
 extern Object green;
 extern Object blue;
 } // namespace colors
+
+namespace boolean {
+extern Object _true;
+extern Object _false;
+} // namespace boolean
 
 extern Object width;
 extern Object height;

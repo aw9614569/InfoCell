@@ -513,7 +513,13 @@ Slot& ListItem::slotValue()
 
 // ============================================================================
 template <typename T>
-List::List(const std::vector<T>& values) :
+T* ptr(T& obj) { return &obj; }
+
+template <typename T>
+T* ptr(T* obj) { return obj; }
+
+template <typename T>
+List::List(std::vector<T>& values) :
     m_listType("List<T>"),
     m_itemType("ListItem<T>")
 {
@@ -521,14 +527,15 @@ List::List(const std::vector<T>& values) :
     m_slotLast  = &m_listType.createSlot("last", m_itemType, data::last);
     m_slotSize  = &m_listType.createSlot("size", Number::t(), data::size);
 
-    Type& valueType = values.front()->type();
+    Type& valueType = ptr(values.front())->type();
     m_itemType.createSlot("prev", m_itemType, data::previous);
     m_itemType.createSlot("next", m_itemType, data::next);
     m_itemType.createSlot("value", valueType, data::value);
 
     m_items.reserve(values.size());
     ListItem* prevListItem = nullptr;
-    for (CellI* value : values) {
+    for (auto& valueT : values) {
+        CellI* value   = ptr(valueT);
         auto& listItem = m_items.emplace_back(m_itemType);
         if (prevListItem == nullptr) {
             listItem.prev(nullptr);
@@ -547,11 +554,13 @@ List::List(std::map<std::string, T>& values) :
     m_listType("List<T>"),
     m_itemType("ListItem<T>")
 {
+    Type& valueType = (*values.begin()).second->type();
+
     m_slotFirst = &m_listType.createSlot("first", m_itemType, data::first);
     m_slotLast  = &m_listType.createSlot("last", m_itemType, data::last);
     m_slotSize  = &m_listType.createSlot("size", Number::t(), data::size);
+    m_listType.createSlot("valueType", valueType, data::size);
 
-    Type& valueType = (*values.begin()).second->type();
     m_itemType.createSlot("prev", m_itemType, data::previous);
     m_itemType.createSlot("next", m_itemType, data::next);
     m_itemType.createSlot("value", valueType, data::value);
@@ -663,7 +672,7 @@ void Digits::staticInit()
     s_digitClassCell.reset(new Type("Digit"));
     for (int i = 0; i < 10; ++i) {
         std::string digitName = "Digit_" + std::to_string(i);
-        s_digits.push_back({ digitName, *s_digitClassCell });
+        s_digits.emplace_back(digitName, *s_digitClassCell);
     }
 }
 
@@ -1116,18 +1125,19 @@ Sensor::Sensor(input::Picture& picture) :
 
     for (y = 0; y < m_height; ++y) {
         for (x = 0; x < m_width; ++x) {
-            Pixel& pixel = m_pixels[currentIndex(x, y)];
+            Pixel& pixel    = m_pixels[currentIndex(x, y)];
             pixel.m_up      = upPixel(x, y);
             pixel.m_down    = downPixel(x, y);
             pixel.m_left    = leftPixel(x, y);
             pixel.m_right   = rightPixel(x, y);
         }
     }
+    m_pixelsList.reset(new List(m_pixels));
 }
 
 bool Sensor::has(CellI& role)
 {
-    if (&role == &data::type || &role == &data::width || &role == &data::height || &role == &data::first || &role == &data::last) {
+    if (&role == &data::type || &role == &data::width || &role == &data::height || &role == &data::listOfPixels) {
         return true;
     }
 
@@ -1154,11 +1164,8 @@ CellI& Sensor::operator[](CellI& role)
     if (&role == &data::height) {
         return m_heightCell;
     }
-    if (&role == &data::first) {
-        return m_pixels.front();
-    }
-    if (&role == &data::last) {
-        return m_pixels.back();
+    if (&role == &data::listOfPixels) {
+        return *m_pixelsList;
     }
 
     return Object::emptyObject();
@@ -1262,6 +1269,11 @@ Pixel* Sensor::rightPixel(int x, int y)
     }
 }
 
+const std::vector<Pixel>& Sensor::pixels() const
+{
+    return m_pixels;
+}
+
 int Sensor::width() const
 {
     return m_width;
@@ -1274,20 +1286,237 @@ int Sensor::height() const
 
 } // namespace hybrid
 
+namespace control {
+Same::Same(CellI& lhs, CellI& rhs, CellI& outCell, CellI& outRole) :
+    m_lhs(lhs), m_rhs(rhs), m_outCell(outCell), m_outRole(outRole)
+{
+}
+
+bool Same::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::equation::lhs) {
+        return true;
+    }
+    if (&role == &data::equation::rhs) {
+        return true;
+    }
+    if (&role == &data::coding::outCell) {
+        return true;
+    }
+    if (&role == &data::coding::outRole) {
+        return true;
+    }
+
+    return false;
+}
+
+void Same::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Same::operator()()
+{
+    if (&m_lhs == &m_rhs) {
+        m_outCell.set(m_outRole, cells::data::boolean::_true);
+    } else {
+        m_outCell.set(m_outRole, cells::data::boolean::_false);
+    }
+}
+
+CellI& Same::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::equation::lhs) {
+        return m_lhs;
+    }
+    if (&role == &data::equation::rhs) {
+        return m_rhs;
+    }
+    if (&role == &data::coding::outCell) {
+        return m_outCell;
+    }
+    if (&role == &data::coding::outRole) {
+        return m_outRole;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& Same::type()
+{
+    return t();
+}
+
+std::string Same::printAs(Printer& printer)
+{
+    return ""; // TODO
+}
+
+std::string Same::name() const
+{
+    return "Same"; // TODO
+}
+
+Type& Same::t()
+{
+    return type::op::Same;
+}
+
+namespace pipeline {
+Node::Node() :
+    m_input(Object::emptyObject())
+{
+}
+
+Node::Node(CellI& input) :
+    m_input(input)
+{
+}
+
+Node::Node(CellI& input, CellI& next) :
+    m_input(input), m_next(&next)
+{
+}
+
+bool Node::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::coding::input) {
+        return true;
+    }
+    if (&role == &data::coding::op) {
+        return m_op;
+    }
+    if (&role == &data::next) {
+        return m_next;
+    }
+    if (&role == &data::coding::value) {
+        return m_value;
+    }
+
+    return false;
+}
+
+void Node::set(CellI& role, CellI& value)
+{
+}
+
+void Node::operator()()
+{
+    if (!m_op) {
+        return;
+    }
+    (*m_op)();
+    if (m_next) {
+        (*m_next)();
+    }
+}
+
+CellI& Node::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::coding::input) {
+        return m_input;
+    }
+    if (&role == &data::coding::op) {
+        return m_op ? *m_op : Object::emptyObject();
+    }
+    if (&role == &data::next) {
+        return m_next ? *m_next : Object::emptyObject();
+    }
+    if (&role == &data::coding::value) {
+        return m_next ? *m_value : Object::emptyObject();
+    }
+
+    return Object::emptyObject();
+}
+
+Type& Node::type()
+{
+    return t();
+}
+
+std::string Node::printAs(Printer& printer)
+{
+    return "Node"; // TODO
+}
+
+std::string Node::name() const
+{
+    return m_name;
+}
+
+Type& Node::t()
+{
+    return type::op::pipeline::Node;
+}
+
+} // namespace pipeline
+
+} // namespace control
+
 namespace type {
+Type Boolean("Boolean");
 Type Color("Color");
 Type Pixel("Pixel");
 Type Sensor("Sensor");
-} // namespace type
 
-static void staticInitClasses()
+namespace op {
+Type Same("Same");
+Type NotSame("NotSame");
+Type Equal("Equal");
+Type NotEqual("NotEqual");
+
+Type New("New");
+Type Delete("Delete");
+
+Type Has("Has");
+Type Get("Get");
+Type Set("Set");
+
+namespace logic {
+Type And("And");
+Type Or("Or");
+Type Not("Not");
+} // namespace logic
+
+namespace math {
+Type Add("Add");
+Type Subtract("Subtract");
+Type Multiply("Multiply");
+Type Divide("Divide");
+Type LessThan("LessThan");
+Type GreaterThan("GreaterThan");
+} // namespace math
+
+namespace pipeline {
+Type Node("Node");
+Type IfThen("IfThen");
+Type Switch("Switch");
+Type DoWhile("DoWhile");
+Type While("While");
+} // namespace pipeline
+
+} // namespace control
+
+static void staticInit()
 {
-    type::Color.addSlots(
+    Color.addSlots(
         { { "red", Number::t(), data::colors::red },
           { "green", Number::t(), data::colors::green },
           { "blue", Number::t(), data::colors::blue } });
 
-    type::Pixel.addSlots(
+    Pixel.addSlots(
         { { "up", hybrid::Pixel::t(), data::directions::up },
           { "down", hybrid::Pixel::t(), data::directions::down },
           { "left", hybrid::Pixel::t(), data::directions::left },
@@ -1295,12 +1524,56 @@ static void staticInitClasses()
           { "x", Number::t(), data::coordinates::x },
           { "y", Number::t(), data::coordinates::y } });
 
-    type::Sensor.addSlots(
+    Sensor.addSlots(
         { { "width", Number::t(), data::width },
           { "height", Number::t(), data::height },
-          { "firstPixel", hybrid::Pixel::t(), data::first },
-          { "lastPixel", hybrid::Pixel::t(), data::last } });
+          { "lastPixel", hybrid::Pixel::t(), data::listOfPixels } });
+
+    op::Same.addSlots({ { "lhs", Type::anyType(), data::equation::lhs },
+                        { "rhs", Type::anyType(), data::equation::rhs },
+                        { "outCell", Type::anyType(), data::coding::outCell },
+                        { "outRole", Type::anyType(), data::coding::outRole } });
+
+    // Example add
+    //  Expr:
+    //   1 + 2 + 3
+    //
+    //  Solution1:
+    //   ps = pipeline::start(input = 1);
+    //   pn1 = pipeline::node(input = ps);
+    //   pe = pipeline::end(input = pn1);
+    //
+    //   ps.op = control::math::Add(ps, 2, pn1);
+    //   pn1.op = control::math::Add(pn1, 3, pe);
+    //
+    //  Solution2:
+    //   pipline.add({ 1, Add(_, 2), Add(_, 3) }); ?
+    //   pipeline.result
+    //
+    // Example fn
+    //  Expr:
+    //   ps1: fn testFn(input = 2) {
+    //   pn1:    if (input > 3) {
+    //   ps1:        input += 4;
+    //           } else {
+    //   pe2:        input += 5; } }
+    //
+    //  Solution1:
+    //   ps = pipeline::start("testFn", input = 2);
+    //   pn1 = pipeline::node(input = ps);
+    //   pn2 = pipeline::if(input = ps);
+    //   pe1 = pipeline::end(input = pn2.true);
+    //   pe2 = pipeline::end(input = pn2.false);
+    //
+    //   ps.op = control::math::Add(ps, 2, pn1);
+    //   pn1.op = control::math::Add(pn1, 3, pe);
+    op::pipeline::Node.addSlots({ { "input", Type::anyType(), data::coding::input },
+                                  { "next", Type::anyType(), data::next },
+                                  { "op", Type::anyType(), data::coding::op },
+                                  { "value", Type::anyType(), data::coding::value } });
 }
+
+} // namespace type
 
 namespace data {
 Object slotType(Type::anyType());
@@ -1311,6 +1584,26 @@ Object first(Type::anyType());
 Object last(Type::anyType());
 Object previous(Type::anyType());
 Object next(Type::anyType());
+
+Object listOfPixels(Type::anyType());
+
+namespace coding {
+Object name(Type::anyType());
+Object value(Type::anyType());
+Object cell(Type::anyType());
+Object outCell(Type::anyType());
+Object outRole(Type::anyType());
+Object input(Type::anyType());
+Object output(Type::anyType());
+Object result(Type::anyType());
+Object argument(Type::anyType());
+Object op(Type::anyType());
+} // namespace coding
+
+namespace equation {
+Object lhs(Type::anyType());
+Object rhs(Type::anyType());
+} // namespace equation
 
 namespace directions {
 Object up(Type::anyType());
@@ -1330,6 +1623,11 @@ Object red(Type::anyType());
 Object green(Type::anyType());
 Object blue(Type::anyType());
 } // namespace colors
+
+namespace boolean {
+Object _true("true", type::Boolean);
+Object _false("false", type::Boolean);
+} // namespace boolean
 
 Object width(Type::anyType());
 Object height(Type::anyType());
@@ -1354,7 +1652,7 @@ void StaticInitializations()
     Type::staticInitMembers();
     Slot::staticInitMembers();
 
-    staticInitClasses();
+    type::staticInit();
 }
 
 // ============================================================================

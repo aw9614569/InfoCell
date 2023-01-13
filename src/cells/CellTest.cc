@@ -1,5 +1,6 @@
 #include "Cells.h"
 #include "SVGPrinter.h"
+#include <fstream>
 
 using namespace synth;
 using namespace synth::cells;
@@ -8,8 +9,10 @@ using namespace synth::cells::data;
 
 int main(int argc, char* argv[])
 {
-    svg::Printer svgPrinter;
-//    svgPrinter.test();
+    svg::Printer svgPrinter(800, 600);
+    CellValuePrinter valuePrinter;
+    CellStructPrinter structPrinter;
+    //    svgPrinter.test();
 
     StaticInitializations();
 
@@ -17,8 +20,22 @@ int main(int argc, char* argv[])
     inputPicture.loadFromJsonArray("[[0, 7, 0], [7, 7, 7], [0, 7, 0]]");
     hybrid::Sensor sensor(inputPicture);
 
-    CellValuePrinter valuePrinter;
-    CellStructPrinter structPrinter;
+//    svgFile << sensor.printAs(svgPrinter) << "\n";
+    sensor[data::listOfPixels].printAs(svgPrinter);
+    svgPrinter.writeFile("F:\\Devel\\ARC\\synth\\1.svg");
+
+
+    Type Variable("Color",
+                  { { "name", String::t(), data::coding::name },
+                    { "value", Number::t(), data::coding::value } });
+    Object var1("var1", Variable);
+
+    control::pipeline::Node pipeNode1;
+    control::Same sameOp(sensor, sensor, pipeNode1, data::coding::value);
+    pipeNode1();
+    std::cout << "SameOp: " << var1[data::coding::value].printAs(valuePrinter) << std::endl;
+    std::cout << sensor[data::listOfPixels].printAs(valuePrinter) << "\n";
+
 
     Object colorRed(Type::anyType());
     Object colorGreen(Type::anyType());

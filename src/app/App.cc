@@ -10,6 +10,7 @@
 #include <ftxui/component/screen_interactive.hpp> // for ScreenInteractive
 #include <ftxui/dom/table.hpp>
 
+#include "Scroller.h"
 #include "Solver.h"
 #include "tests/UnitTester.h"
 
@@ -183,7 +184,7 @@ void App::renderArcTestInputGrid()
         }
         arcSetInputLines.push_back(hbox(arcSetInputLine));
     }
-    m_arcTestInputGrid = vbox({ text("Test") | center, separator(), vbox(arcSetInputLines) });
+    m_arcTestInputGrid = vbox(text("Test") | center, separator(), vbox(arcSetInputLines));
 }
 
 void App::run()
@@ -238,12 +239,12 @@ void App::run()
             m_previusSelectedArcFileIndex = m_selectedArcFileIndex;
         }
 
-        auto ret = flexbox({ vbox({ hbox(text("selected = "), text(m_arcFileNames[m_selectedArcFileIndex])),
+        auto ret = flexbox({ vbox(hbox(text("selected = "), text(m_arcFileNames[m_selectedArcFileIndex])),
                                     separator(),
                                     menu->Render() | vscroll_indicator | frame | size(HEIGHT, LESS_THAN, 25),
                                     separator(),
                                     flexbox({ buttonSolve->Render() | xflex_grow, separator() | yflex_grow, buttonTest->Render() | xflex_grow, separator() | yflex_grow, buttonQuit->Render() | xflex_grow }, flexButtonsConfig)
-                                  }) | border,
+                                  ) | border,
                              m_arcTaskDemonstration | border,
                              m_arcTestInputGrid | border }, flexConfig);
         return ret;
@@ -268,16 +269,18 @@ void App::run()
         return vbox(logItems) | focusPositionRelative(focus_x, focus_y) | vscroll_indicator | yframe | flex;
     });
 
-    auto solveContainer = Container::Vertical({
-        slider_y,
-        solveLogMessages,
-        solveQuitBtn
-    });
+    auto scroller = Scroller(solveLogMessages);
+
+    auto solveContainer = Container::Vertical({ slider_y,
+//                                                solveLogMessages,
+                                                scroller,
+                                                solveQuitBtn });
 
     auto solverScreenRenderer = Renderer(solveContainer, [&] {
         return vbox({
-                   slider_y->Render(),
-                   solveLogMessages->Render() | flex_grow | size(WIDTH, GREATER_THAN, 120),
+//                   slider_y->Render(),
+//                   solveLogMessages->Render() | flex_grow | size(WIDTH, GREATER_THAN, 120),
+                   scroller->Render() | flex_grow | size(WIDTH, GREATER_THAN, 120),
                    separator(),
                    solveQuitBtn->Render()
                })

@@ -1,7 +1,6 @@
 add_library(cellslib STATIC
     Cells.cc
     Cells.h
-    SVGPrinter.cc
 )
 if(MSVC)
     target_compile_options(cellslib PUBLIC "/Zc:__cplusplus")
@@ -18,9 +17,13 @@ target_link_libraries(cellslib
 		CONAN_PKG::freetype
 )
 
-add_executable(celltest celltest.cc)
+add_executable(celltest
+    SVGPrinter.cc
+    CellTest.cc
+)
 target_link_libraries(celltest
 PRIVATE
     cellslib
     applib
+	fsvguilib
 )

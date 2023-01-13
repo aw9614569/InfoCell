@@ -1,4 +1,7 @@
+#include <filesystem>
+
 #include "Cells.h"
+#include "fsvgui/dom/elements.h"
 
 namespace synth {
 namespace cells {
@@ -14,7 +17,7 @@ public:
 class Printer : public cells::Printer
 {
 public:
-    Printer();
+    Printer(int width, int height);
 
     void test();
     std::string print(Slot& cell) override;
@@ -28,14 +31,15 @@ public:
     std::string print(hybrid::Pixel& cell) override;
     std::string print(hybrid::Sensor& cell) override;
 
+    void writeFile(const std::filesystem::path& path);
+
 protected:
     std::string printImpl(CellI& cell);
-    std::string svgDrawBox(Point start, Point end);
-    std::string svgDrawText(const std::string& str, Point point);
 
-    int fontSize;
-    std::string fontName;
-    std::string fontPath;
+    int m_fontSize;
+    std::string m_fontName;
+    std::string m_fontPath;
+    fsvgui::Screen m_screen;
 };
 
 } // namespace svg

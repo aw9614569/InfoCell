@@ -4,6 +4,8 @@ add_library(applib STATIC
     Colors.h
     Picture.cc
     Picture.h
+    Scroller.cc
+    Scroller.h
     Solver.cc
     Solver.h
 )
