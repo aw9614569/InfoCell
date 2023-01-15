@@ -63,10 +63,14 @@ int main(int argc, char* argv[])
                     { "value", Number::t(), data::coding::value } });
     Object var1("var1", Variable);
 
-    control::pipeline::Node pipeNode1;
-    control::Same sameOp(sensor, sensor, pipeNode1, data::coding::value);
-    pipeNode1();
+    control::pipeline::StartNode mainStartNode(sensor);
+    control::pipeline::RefNode paramInputNode1(mainStartNode);
+    control::pipeline::RefNode paramInputNode2(mainStartNode);
+    control::pipeline::Node node1(mainStartNode, control::Same::t(), paramInputNode1, paramInputNode2);
+    mainStartNode();
+
     std::cout << "SameOp: ";
+    printAs.value(node1[data::coding::value]);
     printAs.value(var1[data::coding::value]);
     printAs.value(sensor[data::listOfPixels]);
 

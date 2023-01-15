@@ -1,7 +1,6 @@
 #include "Cells.h"
 
 #include <format>
-
 #pragma warning(disable : 4996)
 #include <utf8.h>
 
@@ -9,7 +8,6 @@ namespace synth {
 namespace cells {
 
 // ============================================================================
-
 SlotRef::SlotRef(const std::string& name, Type& type, CellI& role) :
     m_name(name), m_type(type), m_role(role)
 {
@@ -664,15 +662,13 @@ Slot& List::slotSize()
 }
 
 // ============================================================================
-std::unique_ptr<Type> Digits::s_digitClassCell;
 std::vector<Object> Digits::s_digits;
 
 void Digits::staticInit()
 {
-    s_digitClassCell.reset(new Type("Digit"));
     for (int i = 0; i < 10; ++i) {
         std::string digitName = "Digit_" + std::to_string(i);
-        s_digits.emplace_back(digitName, *s_digitClassCell);
+        s_digits.emplace_back(digitName, type::Digit);
     }
 }
 
@@ -798,12 +794,10 @@ Number& Numbers::get(int number)
 }
 
 // ============================================================================
-std::unique_ptr<Type> Chars::s_type;
 std::map<char32_t, Object> Chars::s_characters;
 
 void Chars::staticInit()
 {
-    s_type.reset(new Type("UnicodeCharacter"));
     // These are enough for me currently
     registerUnicodeBlock(0x020, 0x07e); // Basic Latin - without the DEL (0x7f) control character
     registerUnicodeBlock(0x080, 0x0ff); // Latin-1 Supplement
@@ -822,7 +816,7 @@ Object& Chars::get(char32_t utf32Char)
 
 Type& Chars::type()
 {
-    return *s_type;
+    return type::Char;
 }
 
 void Chars::registerUnicodeBlock(char32_t from, char32_t to)
@@ -831,7 +825,7 @@ void Chars::registerUnicodeBlock(char32_t from, char32_t to)
         std::string characterName = std::format("Unicode_{:#04x}", (int)unicodeValue);
         s_characters.emplace(std::piecewise_construct,
                              std::forward_as_tuple(unicodeValue),
-                             std::forward_as_tuple(characterName, *s_type));
+                             std::forward_as_tuple(characterName, type::Char));
     }
 }
 
@@ -1287,8 +1281,9 @@ int Sensor::height() const
 } // namespace hybrid
 
 namespace control {
-Same::Same(CellI& lhs, CellI& rhs, CellI& outCell, CellI& outRole) :
-    m_lhs(lhs), m_rhs(rhs), m_outCell(outCell), m_outRole(outRole)
+// ============================================================================
+Same::Same(CellI& output, CellI& lhs, CellI& rhs) :
+    m_output(output), m_lhs(lhs), m_rhs(rhs)
 {
 }
 
@@ -1303,10 +1298,7 @@ bool Same::has(CellI& role)
     if (&role == &data::equation::rhs) {
         return true;
     }
-    if (&role == &data::coding::outCell) {
-        return true;
-    }
-    if (&role == &data::coding::outRole) {
+    if (&role == &data::coding::output) {
         return true;
     }
 
@@ -1320,10 +1312,14 @@ void Same::set(CellI& role, CellI& value)
 
 void Same::operator()()
 {
-    if (&m_lhs == &m_rhs) {
-        m_outCell.set(m_outRole, cells::data::boolean::_true);
+    m_lhs();
+    m_rhs();
+    CellI& lhsValue = m_lhs[data::coding::value];
+    CellI& rhsValue = m_rhs[data::coding::value];
+    if (&lhsValue == &rhsValue) {
+        m_output.set(data::coding::value, cells::data::boolean::_true);
     } else {
-        m_outCell.set(m_outRole, cells::data::boolean::_false);
+        m_output.set(data::coding::value, cells::data::boolean::_false);
     }
 }
 
@@ -1338,11 +1334,8 @@ CellI& Same::operator[](CellI& role)
     if (&role == &data::equation::rhs) {
         return m_rhs;
     }
-    if (&role == &data::coding::outCell) {
-        return m_outCell;
-    }
-    if (&role == &data::coding::outRole) {
-        return m_outRole;
+    if (&role == &data::coding::output) {
+        return m_output;
     }
 
     return Object::emptyObject();
@@ -1369,21 +1362,209 @@ Type& Same::t()
 }
 
 namespace pipeline {
-Node::Node() :
-    m_input(Object::emptyObject())
+// ============================================================================
+void BaseNode::addNext(BaseNode& cell)
+{
+    m_next = &cell;
+}
+
+// ============================================================================
+StartNode::StartNode(CellI& input, const std::string& name) :
+    m_name(name), m_value(input)
 {
 }
 
-Node::Node(CellI& input) :
-    m_input(input)
+bool StartNode::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::next) {
+        return m_next;
+    }
+    if (&role == &data::coding::value) {
+        return true;
+    }
+
+    return false;
+}
+
+void StartNode::set(CellI& role, CellI& value)
 {
 }
 
-Node::Node(CellI& input, CellI& next) :
-    m_input(input), m_next(&next)
+void StartNode::operator()()
+{
+    if (m_next) {
+        (*m_next)();
+    }
+}
+
+CellI& StartNode::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::next && m_next) {
+        return *m_next;
+    }
+    if (&role == &data::coding::value) {
+        return m_value;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& StartNode::type()
+{
+    return t();
+}
+
+void StartNode::accept(Visitor& visitor)
+{
+    //    visitor.visit(*this);
+}
+
+std::string StartNode::name() const
+{
+    return m_name;
+}
+
+Type& StartNode::t()
+{
+    return type::op::pipeline::StartNode;
+}
+
+// ============================================================================
+RefNode::RefNode(BaseNode& input, const std::string& name) :
+    m_input(input), m_name(name)
 {
 }
 
+bool RefNode::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::next) {
+        return m_next;
+    }
+    if (&role == &data::coding::value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void RefNode::set(CellI& role, CellI& value)
+{
+}
+
+void RefNode::operator()()
+{
+    m_value = &m_input[data::coding::value];
+    if (m_next) {
+        (*m_next)();
+    }
+}
+
+CellI& RefNode::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::next && m_next) {
+        return *m_next;
+    }
+    if (&role == &data::coding::value && m_value) {
+        return *m_value;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& RefNode::type()
+{
+    return t();
+}
+
+void RefNode::accept(Visitor& visitor)
+{
+    //    visitor.visit(*this);
+}
+
+std::string RefNode::name() const
+{
+    return m_name;
+}
+
+Type& RefNode::t()
+{
+    return type::op::pipeline::RefNode;
+}
+
+// ============================================================================
+EmptyNode::EmptyNode(const std::string& name) :
+    m_name(name)
+{
+}
+
+bool EmptyNode::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::next) {
+        return m_next;
+    }
+
+    return false;
+}
+
+void EmptyNode::set(CellI& role, CellI& value)
+{
+}
+
+void EmptyNode::operator()()
+{
+    if (m_next) {
+        (*m_next)();
+    }
+}
+
+CellI& EmptyNode::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::next && m_next) {
+        return *m_next;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& EmptyNode::type()
+{
+    return t();
+}
+
+void EmptyNode::accept(Visitor& visitor)
+{
+    //    visitor.visit(*this);
+}
+
+std::string EmptyNode::name() const
+{
+    return m_name;
+}
+
+Type& EmptyNode::t()
+{
+    return type::op::pipeline::EmptyNode;
+}
+
+// ============================================================================
 bool Node::has(CellI& role)
 {
     if (&role == &data::type) {
@@ -1393,7 +1574,7 @@ bool Node::has(CellI& role)
         return true;
     }
     if (&role == &data::coding::op) {
-        return m_op;
+        return true;
     }
     if (&role == &data::next) {
         return m_next;
@@ -1407,13 +1588,14 @@ bool Node::has(CellI& role)
 
 void Node::set(CellI& role, CellI& value)
 {
+    if (&role == &data::coding::value) {
+        m_value = &value;
+    }
 }
 
 void Node::operator()()
 {
-    if (!m_op) {
-        return;
-    }
+    m_value = &m_input[data::coding::value];
     (*m_op)();
     if (m_next) {
         (*m_next)();
@@ -1429,13 +1611,13 @@ CellI& Node::operator[](CellI& role)
         return m_input;
     }
     if (&role == &data::coding::op) {
-        return m_op ? *m_op : Object::emptyObject();
+        return *m_op;
     }
-    if (&role == &data::next) {
-        return m_next ? *m_next : Object::emptyObject();
+    if (&role == &data::next && m_next) {
+        return *m_next;
     }
-    if (&role == &data::coding::value) {
-        return m_next ? *m_value : Object::emptyObject();
+    if (&role == &data::coding::value && m_value) {
+        return *m_value;
     }
 
     return Object::emptyObject();
@@ -1461,12 +1643,294 @@ Type& Node::t()
     return type::op::pipeline::Node;
 }
 
-} // namespace pipeline
+// ============================================================================
+IfThen::IfThen(BaseNode& inputNode, const std::string& name) :
+    m_name(name), m_input(inputNode)
+{
+}
 
+bool IfThen::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::next) {
+        return m_next;
+    }
+    if (&role == &data::coding::condition) {
+        return m_condition;
+    }
+    if (&role == &data::coding::then) {
+        return m_thenBranch;
+    }
+    if (&role == &data::coding::else_) {
+        return m_elseBranch;
+    }
+
+    return false;
+}
+
+void IfThen::set(CellI& role, CellI& value)
+{
+    if (&role == &data::coding::value) {
+        m_value = &value;
+    }
+}
+
+void IfThen::operator()()
+{
+    (*m_condition)();
+    if (m_value == &data::boolean::_true) {
+        (*m_thenBranch)();
+    } else {
+        if (m_elseBranch) {
+            (*m_elseBranch)();
+        }
+    }
+    if (m_next) {
+        (*m_next)();
+    }
+}
+
+CellI& IfThen::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::coding::condition && m_condition) {
+        return *m_condition;
+    }
+    if (&role == &data::coding::then && m_thenBranch) {
+        return *m_thenBranch;
+    }
+    if (&role == &data::coding::else_ && m_elseBranch) {
+        return *m_elseBranch;
+    }
+    if (&role == &data::coding::value && m_value) {
+        return *m_value;
+    }
+    if (&role == &data::next && m_next) {
+        return *m_next;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& IfThen::type()
+{
+    return t();
+}
+
+void IfThen::accept(Visitor& visitor)
+{
+    //    visitor.visit(*this);
+}
+
+std::string IfThen::name() const
+{
+    return m_name;
+}
+
+Type& IfThen::t()
+{
+    return type::op::pipeline::IfThen;
+}
+
+void IfThen::addCondition(BaseNode& cell)
+{
+    m_condition = &cell;
+}
+
+void IfThen::addThenBranch(BaseNode& cell)
+{
+    m_thenBranch = &cell;
+}
+
+void IfThen::addElseBranch(BaseNode& cell)
+{
+    m_elseBranch = &cell;
+}
+
+// ============================================================================
+DoWhile::DoWhile(BaseNode& inputNode, const std::string& name) :
+    m_name(name), m_input(inputNode)
+{
+}
+
+bool DoWhile::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::next) {
+        return m_next;
+    }
+    if (&role == &data::coding::condition) {
+        return m_condition;
+    }
+    if (&role == &data::coding::statement) {
+        return m_statement;
+    }
+
+    return false;
+}
+
+void DoWhile::set(CellI& role, CellI& value)
+{
+    if (&role == &data::coding::value) {
+        m_value = &value;
+    }
+}
+
+void DoWhile::operator()()
+{
+    do {
+        (*m_statement)();
+        (*m_condition)();
+    } while (m_value == &data::boolean::_true);
+
+    if (m_next) {
+        (*m_next)();
+    }
+}
+
+CellI& DoWhile::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::coding::condition && m_condition) {
+        return *m_condition;
+    }
+    if (&role == &data::coding::statement && m_statement) {
+        return *m_statement;
+    }
+    if (&role == &data::coding::value && m_value) {
+        return *m_value;
+    }
+    if (&role == &data::next && m_next) {
+        return *m_next;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& DoWhile::type()
+{
+    return t();
+}
+
+void DoWhile::accept(Visitor& visitor)
+{
+    //    visitor.visit(*this);
+}
+
+std::string DoWhile::name() const
+{
+    return m_name;
+}
+
+Type& DoWhile::t()
+{
+    return type::op::pipeline::DoWhile;
+}
+
+// ============================================================================
+While::While(BaseNode& inputNode, const std::string& name) :
+    m_name(name), m_input(inputNode)
+{
+}
+
+bool While::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::next) {
+        return m_next;
+    }
+    if (&role == &data::coding::condition) {
+        return m_condition;
+    }
+    if (&role == &data::coding::statement) {
+        return m_statement;
+    }
+
+    return false;
+}
+
+void While::set(CellI& role, CellI& value)
+{
+    if (&role == &data::coding::value) {
+        m_value = &value;
+    }
+}
+
+void While::operator()()
+{
+    (*m_condition)();
+    while (m_value == &data::boolean::_true)
+    {
+        (*m_statement)();
+        (*m_condition)();
+    };
+
+    if (m_next) {
+        (*m_next)();
+    }
+}
+
+CellI& While::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::coding::condition && m_condition) {
+        return *m_condition;
+    }
+    if (&role == &data::coding::statement && m_statement) {
+        return *m_statement;
+    }
+    if (&role == &data::coding::value && m_value) {
+        return *m_value;
+    }
+    if (&role == &data::next && m_next) {
+        return *m_next;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& While::type()
+{
+    return t();
+}
+
+void While::accept(Visitor& visitor)
+{
+    //    visitor.visit(*this);
+}
+
+std::string While::name() const
+{
+    return m_name;
+}
+
+Type& While::t()
+{
+    return type::op::pipeline::While;
+}
+
+} // namespace pipeline
 } // namespace control
 
+// ============================================================================
 namespace type {
 Type Boolean("Boolean");
+Type Digit("Digit");
+Type Number("Number");
+Type Char("Char");
+Type String("String");
 Type Color("Color");
 Type Pixel("Pixel");
 Type Sensor("Sensor");
@@ -1500,9 +1964,11 @@ Type GreaterThan("GreaterThan");
 } // namespace math
 
 namespace pipeline {
+Type StartNode("StartNode");
+Type RefNode("RefNode");
+Type EmptyNode("EmptyNode");
 Type Node("Node");
 Type IfThen("IfThen");
-Type Switch("Switch");
 Type DoWhile("DoWhile");
 Type While("While");
 } // namespace pipeline
@@ -1531,8 +1997,7 @@ static void staticInit()
 
     op::Same.addSlots({ { "lhs", Type::anyType(), data::equation::lhs },
                         { "rhs", Type::anyType(), data::equation::rhs },
-                        { "outCell", Type::anyType(), data::coding::outCell },
-                        { "outRole", Type::anyType(), data::coding::outRole } });
+                        { "output", Type::anyType(), data::coding::output } });
 
     // Example add
     //  Expr:
@@ -1567,6 +2032,16 @@ static void staticInit()
     //
     //   ps.op = control::math::Add(ps, 2, pn1);
     //   pn1.op = control::math::Add(pn1, 3, pe);
+    /*
+    * input = 1
+    * while (input < 5) {
+    *   input += 1;
+    * }
+    *
+    * pinput = pipeline::start(input = 1);
+    * pn1 = pipeline::while(pinput, LessThen(pinput, 5), Add(pinput, 1));
+    *
+    */
     op::pipeline::Node.addSlots({ { "input", Type::anyType(), data::coding::input },
                                   { "next", Type::anyType(), data::next },
                                   { "op", Type::anyType(), data::coding::op },
@@ -1591,13 +2066,15 @@ namespace coding {
 Object name(Type::anyType());
 Object value(Type::anyType());
 Object cell(Type::anyType());
-Object outCell(Type::anyType());
-Object outRole(Type::anyType());
 Object input(Type::anyType());
 Object output(Type::anyType());
 Object result(Type::anyType());
 Object argument(Type::anyType());
 Object op(Type::anyType());
+Object condition(Type::anyType());
+Object statement(Type::anyType());
+Object then(Type::anyType());
+Object else_(Type::anyType());
 } // namespace coding
 
 namespace equation {

@@ -225,7 +225,6 @@ class Digits
 {
 public:
     static void staticInit();
-    static std::unique_ptr<Type> s_digitClassCell;
     static std::vector<Object> s_digits;
 };
 
@@ -282,7 +281,6 @@ public:
 
 protected:
     static void registerUnicodeBlock(char32_t from, char32_t to);
-    static std::unique_ptr<Type> s_type;
     static std::map<char32_t, Object> s_characters;
 };
 
@@ -319,6 +317,7 @@ protected:
 
 namespace hybrid {
 
+// ============================================================================
 class Color : public CellI
 {
 public:
@@ -412,10 +411,11 @@ protected:
 } // namespace hybrid
 
 namespace control {
+// ============================================================================
 class Same : public CellI
 {
 public:
-    Same(CellI& lhs, CellI& rhs, CellI& outCell, CellI& outRole);
+    Same(CellI& m_output, CellI& lhs, CellI& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -428,21 +428,36 @@ public:
     static Type& t();
 
 protected:
+    CellI& m_output;
     CellI& m_lhs;
     CellI& m_rhs;
-    CellI& m_outCell;
-    CellI& m_outRole;
 };
 
 namespace pipeline {
 
-class Node : public CellI
+// ============================================================================
+class BaseNode : public CellI
 {
 public:
-    Node();
-    Node(CellI& input);
-    Node(CellI& input, CellI& next);
-    Node(const std::string& name, CellI& input);
+    bool has(CellI& role) override = 0;
+    void set(CellI& role, CellI& value) override = 0;
+    void operator()() override = 0;
+    CellI& operator[](CellI& role) override = 0;
+    Type& type() override = 0;
+    void accept(Visitor& visitor) override = 0;
+    std::string name() const override = 0;
+
+    void addNext(BaseNode& cell);
+
+protected:
+    BaseNode* m_next = nullptr;
+};
+
+// ============================================================================
+class StartNode : public BaseNode
+{
+public:
+    StartNode(CellI& input, const std::string& name = "RefNode");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -456,18 +471,179 @@ public:
 
 protected:
     std::string m_name;
-    CellI& m_input;
-    CellI* m_op    = nullptr;
-    CellI* m_next  = nullptr;
+    CellI& m_value;
+};
+
+// ============================================================================
+class RefNode : public BaseNode
+{
+public:
+    RefNode(BaseNode& input, const std::string& name = "RefNode");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    BaseNode& m_input;
+    CellI* m_value = nullptr;
+    std::string m_name;
+};
+
+// ============================================================================
+class EmptyNode : public BaseNode
+{
+public:
+    EmptyNode(const std::string& name = "EmptyNode");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    std::string m_name;
+};
+
+// ============================================================================
+class Node : public BaseNode
+{
+public:
+    template <typename... T>
+    Node(BaseNode& inputNode, CellI& op, T&... args) :
+        m_input(inputNode)
+    {
+        init(op, args...);
+    }
+
+    template <typename... T>
+    Node(BaseNode& inputNode, const std::string& name, CellI& op, T&... args) :
+        m_name(name), m_input(inputNode)
+    {
+        init(op, args...);
+    }
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    template <typename... T>
+    void init(CellI& op, T&... args)
+    {
+        if (&op == &control::Same::t()) {
+            m_op = std::make_unique<Same>(*this, args...);
+        }
+        m_input.addNext(*this);
+    }
+
+    std::string m_name;
+    BaseNode& m_input;
+    std::unique_ptr<CellI> m_op;
     CellI* m_value = nullptr;
 };
 
-class IfThen;
-class Switch;
-class DoWhile;
-class While;
-} // namespace pipeline
+// ============================================================================
+class IfThen : public BaseNode
+{
+public:
+    IfThen(BaseNode& inputNode, const std::string& name = "IfThen");
 
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+    void addCondition(BaseNode& cell);
+    void addThenBranch(BaseNode& cell);
+    void addElseBranch(BaseNode& cell);
+
+protected:
+    std::string m_name;
+    CellI& m_input;
+    BaseNode* m_condition  = nullptr;
+    BaseNode* m_thenBranch = nullptr;
+    BaseNode* m_elseBranch = nullptr;
+    CellI* m_value         = nullptr;
+};
+
+// ============================================================================
+class DoWhile : public BaseNode
+{
+public:
+    DoWhile(BaseNode& inputNode, const std::string& name = "DoWhile");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+    void addCondition(BaseNode& cell);
+    void addStatement(BaseNode& cell);
+
+protected:
+    std::string m_name;
+    CellI& m_input;
+    BaseNode* m_condition = nullptr;
+    BaseNode* m_statement = nullptr;
+    CellI* m_value        = nullptr;
+};
+
+// ============================================================================
+class While : public BaseNode
+{
+public:
+    While(BaseNode& inputNode, const std::string& name = "While");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+    void addCondition(BaseNode& cell);
+    void addStatement(BaseNode& cell);
+
+protected:
+    std::string m_name;
+    CellI& m_input;
+    BaseNode* m_condition = nullptr;
+    BaseNode* m_statement = nullptr;
+    CellI* m_value        = nullptr;
+};
+
+} // namespace pipeline
 } // namespace control
 
 // ============================================================================
@@ -475,6 +651,10 @@ class While;
 namespace type
 {
 extern Type Boolean;
+extern Type Digit;
+extern Type Number;
+extern Type Char;
+extern Type String;
 extern Type Color;
 extern Type Pixel;
 extern Type Sensor;
@@ -508,9 +688,11 @@ extern Type GreaterThan;
 } // namespace math
 
 namespace pipeline {
+extern Type StartNode;
+extern Type RefNode;
+extern Type EmptyNode;
 extern Type Node;
 extern Type IfThen;
-extern Type Switch;
 extern Type DoWhile;
 extern Type While;
 } // namespace pipeline
@@ -535,13 +717,15 @@ namespace coding {
 extern Object name;
 extern Object value;
 extern Object cell;
-extern Object outCell;
-extern Object outRole;
 extern Object input;
 extern Object output;
 extern Object result;
 extern Object argument;
 extern Object op;
+extern Object condition;
+extern Object statement;
+extern Object then;
+extern Object else_;
 } // namespace coding
 
 namespace equation {
