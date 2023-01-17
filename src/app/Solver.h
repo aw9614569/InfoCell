@@ -385,8 +385,8 @@ private:
 class PatchBoard : public PatchBoardI
 {
 public:
-    PatchBoard(const cells::hybrid::Sensor& sensor) :
-        m_width(sensor.width()), m_height(sensor.height()), m_sensor(sensor), m_patchSlots(m_height * m_width, PatchSlot(this))
+    PatchBoard(const cells::hybrid::Picture& picture) :
+        m_width(picture.width()), m_height(picture.height()), m_picture(picture), m_patchSlots(m_height * m_width, PatchSlot(this))
     {
     }
 
@@ -435,7 +435,7 @@ protected:
 
     const int m_width;
     const int m_height;
-    const cells::hybrid::Sensor& m_sensor;
+    const cells::hybrid::Picture& m_picture;
     std::vector<PatchSlot> m_patchSlots;
     std::set<std::shared_ptr<Patch>> m_patches;
 };
@@ -523,7 +523,7 @@ public:
     void solve();
 
 private:
-    Grid parse(const cells::hybrid::Sensor& sensor);
+    Grid parse(const cells::hybrid::Picture& picture);
     Rules gridDiff(const Grid& input, const Grid& output);
     Code processRules(const std::vector<Rules>& rules);
     DrawingBoard applyCode(const Grid& input, const Code& code);

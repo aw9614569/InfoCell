@@ -18,7 +18,7 @@ public:
     void visit(String& cell) override;
     void visit(hybrid::Color& cell) override;
     void visit(hybrid::Pixel& cell) override;
-    void visit(hybrid::Sensor& cell) override;
+    void visit(hybrid::Picture& cell) override;
 
     std::string print() const;
 

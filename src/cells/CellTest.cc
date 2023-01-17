@@ -57,10 +57,10 @@ int main(int argc, char* argv[])
 
     input::Picture inputPicture("input");
     inputPicture.loadFromJsonArray("[[0, 7, 0], [7, 7, 7], [0, 7, 0]]");
-    hybrid::Sensor sensor(inputPicture);
+    hybrid::Picture picture(inputPicture);
 
-    printAs.svg(sensor);
-    printAs.svg(sensor[data::listOfPixels]);
+    printAs.svg(picture);
+    printAs.svg(picture[data::listOfPixels]);
 
 
     Type Variable("Color",
@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
                     { "value", Number::t(), data::coding::value } });
     Object var1("var1", Variable);
 
-    Start mainStartNode(sensor);
+    Start mainStartNode(picture);
     Node node1(mainStartNode, Same::t(), mainStartNode, mainStartNode);
     mainStartNode();
     std::cout << "SameOp: ";
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
     printAs.value(add10[data::coding::value]);
 
     printAs.value(var1[data::coding::value]);
-    printAs.value(sensor[data::listOfPixels]);
+    printAs.value(picture[data::listOfPixels]);
 
 
     Object colorRed(Type::anyType());

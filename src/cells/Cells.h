@@ -367,10 +367,10 @@ private:
 };
 
 // ============================================================================
-class Sensor : public CellI
+class Picture : public CellI
 {
 public:
-    Sensor(input::Picture& screen);
+    Picture(input::Picture& screen);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -1100,7 +1100,7 @@ public:
 
     virtual void visit(hybrid::Color&)  = 0;
     virtual void visit(hybrid::Pixel&)  = 0;
-    virtual void visit(hybrid::Sensor&) = 0;
+    virtual void visit(hybrid::Picture&) = 0;
 
     virtual void visit(control::op::Same&) { }
     virtual void visit(control::op::NotSame&) { }
@@ -1137,7 +1137,7 @@ extern Type Char;
 extern Type String;
 extern Type Color;
 extern Type Pixel;
-extern Type Sensor;
+extern Type Picture;
 
 namespace op {
 extern Type Same;

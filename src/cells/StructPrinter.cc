@@ -59,7 +59,7 @@ void CellStructPrinter::visit(hybrid::Pixel& cell)
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(hybrid::Sensor& cell)
+void CellStructPrinter::visit(hybrid::Picture& cell)
 {
     printImpl(cell);
 }

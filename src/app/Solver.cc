@@ -688,7 +688,7 @@ void PatchBoard::process()
 {
     for (int y = 0; y < height(); ++y) {
         for (int x = 0; x < width(); ++x) {
-            const cells::hybrid::Pixel& pixel = m_sensor.getPixel(x, y);
+            const cells::hybrid::Pixel& pixel = m_picture.getPixel(x, y);
             //                logger.log(DEBUG) << "Processing pixel[" << x << ", " << y << "]" << pixel.color;
             processPixel(x, y, pixel.color());
         }
@@ -772,8 +772,8 @@ void Solver::solve()
 
     std::vector<Rules> rules;
     for (const auto& arcDemo : m_arcTask.m_demonstrations) {
-        const cells::hybrid::Sensor& m_input = arcDemo.m_input;
-        const cells::hybrid::Sensor& m_output = arcDemo.m_output;
+        const cells::hybrid::Picture& m_input = arcDemo.m_input;
+        const cells::hybrid::Picture& m_output = arcDemo.m_output;
         //        logger.log(INFO) << " (" << i << ") mapping[" << m_input.m_width << ", " << m_input.m_height << "] to[" << m_output.m_width << ", " << m_output.m_height << "] ";
         const Grid& input = parse(m_input);
         const Grid& output = parse(m_output);
@@ -783,13 +783,13 @@ void Solver::solve()
     const Code& code = processRules(rules);
     DrawingBoard result = applyCode(testInput, code);
 
-    const cells::hybrid::Sensor& m_input = m_arcTask.m_testInput;
+    const cells::hybrid::Picture& m_input = m_arcTask.m_testInput;
     logger.log(INFO) << "Mapping input[" << m_input.width() << ", " << m_input.height() << "] to ... ?";
 }
 
-Grid Solver::parse(const cells::hybrid::Sensor& sensor)
+Grid Solver::parse(const cells::hybrid::Picture& picture)
 {
-    PatchBoard patchBoard(sensor);
+    PatchBoard patchBoard(picture);
     patchBoard.process();
     for (std::shared_ptr<Patch> patch : patchBoard.patches()) {
         logger.log(DEBUG) << "Patch:";
@@ -985,14 +985,14 @@ Az első transzformációs lépés, hogy a bemenő pixeleket szín alapján csop
 Ez azért jó, mert egy ilyen alakzat már lehet transtformálni, pl. forgatni, mozgatni, nagyítani, kicsinyíteni, átszinezni.
 Ez már le is van kódolva,
 
-    const cells::Sensor& sensor = input;
-    PatchBoard patchBoard(sensor);
+    const cells::Picture& picture = input;
+    PatchBoard patchBoard(picture);
     patchBoard.process();
     for (auto patch : patchBoard.patches()) ...
 
 Felmerül a kérdés, hogy ezt az algoritmust biztos nekünk kell leprogramozni? Mi lenne, ha ezt az algoritmust egy általánosabb algoritmus készítené, hisz valamelyik fázisában a programnak, valahol kell ilyet csinálnia.
 
-Szóval a feldolgozási sor a következő: Sensor (ami pixelek halmaza) amiből készítünk PatchBoard-ot (ami Patch-ek halmaza)
+Szóval a feldolgozási sor a következő: Picture (ami pixelek halmaza) amiből készítünk PatchBoard-ot (ami Patch-ek halmaza)
 
 Valahogy az algoritmusnak rá kellene jönnie, hogy azonos színű összekapcsolódott pixelhalmazokat hozunk létre.
 

@@ -1127,7 +1127,7 @@ const input::Color& Pixel::color() const
 }
 
 // ============================================================================
-Sensor::Sensor(input::Picture& picture) :
+Picture::Picture(input::Picture& picture) :
     m_name(picture.name()), m_width(picture.width()), m_height(picture.height()), m_widthCell(Numbers::get(m_width)), m_heightCell(Numbers::get(m_height))
 {
     const int senzorSize = m_height * m_width;
@@ -1158,7 +1158,7 @@ Sensor::Sensor(input::Picture& picture) :
     m_pixelsList.reset(new List(m_pixels));
 }
 
-bool Sensor::has(CellI& role)
+bool Picture::has(CellI& role)
 {
     if (&role == &data::type || &role == &data::width || &role == &data::height || &role == &data::listOfPixels) {
         return true;
@@ -1167,16 +1167,16 @@ bool Sensor::has(CellI& role)
     return false;
 }
 
-void Sensor::set(CellI& role, CellI& value)
+void Picture::set(CellI& role, CellI& value)
 {
-    throw "Setting a generated Sensor cell is not possible";
+    throw "Setting a generated Picture cell is not possible";
 }
 
-void Sensor::operator()()
+void Picture::operator()()
 {
 }
 
-CellI& Sensor::operator[](CellI& role)
+CellI& Picture::operator[](CellI& role)
 {
     if (&role == &data::type) {
         return t();
@@ -1194,42 +1194,42 @@ CellI& Sensor::operator[](CellI& role)
     return Object::emptyObject();
 }
 
-Type& Sensor::type()
+Type& Picture::type()
 {
     return t();
 }
 
-void Sensor::accept(Visitor& visitor)
+void Picture::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 
-std::string Sensor::name() const
+std::string Picture::name() const
 {
     return m_name;
 }
 
-Type& Sensor::t()
+Type& Picture::t()
 {
-    return type::Sensor;
+    return type::Picture;
 }
 
-Pixel& Sensor::getPixel(int x, int y)
+Pixel& Picture::getPixel(int x, int y)
 {
     return m_pixels[currentIndex(x, y)];
 }
 
-const Pixel& Sensor::getPixel(int x, int y) const
+const Pixel& Picture::getPixel(int x, int y) const
 {
     return m_pixels.at(currentIndex(x, y));
 }
 
-int Sensor::currentIndex(int x, int y) const
+int Picture::currentIndex(int x, int y) const
 {
     return y * m_width + x;
 }
 
-bool Sensor::isInRange(int x, int y) const
+bool Picture::isInRange(int x, int y) const
 {
     if (y < 0 || x < 0 || x > m_width - 1 || y > m_height - 1) {
         return false;
@@ -1255,7 +1255,7 @@ m_height = 5
 
  */
 
-Pixel* Sensor::upPixel(int x, int y)
+Pixel* Picture::upPixel(int x, int y)
 {
     if (!isInRange(x, y) || y == 0) {
         return nullptr;
@@ -1264,7 +1264,7 @@ Pixel* Sensor::upPixel(int x, int y)
     return &m_pixels[upIndex];
 }
 
-Pixel* Sensor::downPixel(int x, int y)
+Pixel* Picture::downPixel(int x, int y)
 {
     if (!isInRange(x, y) || y == m_height - 1) {
         return nullptr;
@@ -1274,7 +1274,7 @@ Pixel* Sensor::downPixel(int x, int y)
     }
 }
 
-Pixel* Sensor::leftPixel(int x, int y)
+Pixel* Picture::leftPixel(int x, int y)
 {
     if (!isInRange(x, y) || x == 0) {
         return nullptr;
@@ -1283,7 +1283,7 @@ Pixel* Sensor::leftPixel(int x, int y)
     }
 }
 
-Pixel* Sensor::rightPixel(int x, int y)
+Pixel* Picture::rightPixel(int x, int y)
 {
     if (!isInRange(x, y) || x == m_width - 1) {
         return nullptr;
@@ -1292,17 +1292,17 @@ Pixel* Sensor::rightPixel(int x, int y)
     }
 }
 
-std::vector<Pixel>& Sensor::pixels()
+std::vector<Pixel>& Picture::pixels()
 {
     return m_pixels;
 }
 
-int Sensor::width() const
+int Picture::width() const
 {
     return m_width;
 }
 
-int Sensor::height() const
+int Picture::height() const
 {
     return m_height;
 }
@@ -3234,7 +3234,7 @@ Type Char("Char");
 Type String("String");
 Type Color("Color");
 Type Pixel("Pixel");
-Type Sensor("Sensor");
+Type Picture("Picture");
 
 namespace op {
 Type Same("Same");
@@ -3293,7 +3293,7 @@ static void staticInit()
           { "x", Number::t(), data::coordinates::x },
           { "y", Number::t(), data::coordinates::y } });
 
-    Sensor.addSlots(
+    Picture.addSlots(
         { { "width", Number::t(), data::width },
           { "height", Number::t(), data::height },
           { "lastPixel", hybrid::Pixel::t(), data::listOfPixels } });
@@ -3301,6 +3301,18 @@ static void staticInit()
     op::Same.addSlots({ { "lhs", Type::anyType(), data::equation::lhs },
                         { "rhs", Type::anyType(), data::equation::rhs },
                         { "output", Type::anyType(), data::coding::output } });
+
+    op::NotSame.addSlots({ { "lhs", Type::anyType(), data::equation::lhs },
+                           { "rhs", Type::anyType(), data::equation::rhs },
+                           { "output", Type::anyType(), data::coding::output } });
+
+    op::Equal.addSlots({ { "lhs", Type::anyType(), data::equation::lhs },
+                         { "rhs", Type::anyType(), data::equation::rhs },
+                         { "output", Type::anyType(), data::coding::output } });
+
+    op::NotEqual.addSlots({ { "lhs", Type::anyType(), data::equation::lhs },
+                            { "rhs", Type::anyType(), data::equation::rhs },
+                            { "output", Type::anyType(), data::coding::output } });
 
     op::pipeline::Node.addSlots({ { "input", Type::anyType(), data::coding::input },
                                   { "next", Type::anyType(), data::next },

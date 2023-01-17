@@ -95,16 +95,16 @@ void Printer::visit(hybrid::Pixel& cell)
     m_stack.push(rect(pixelWidth, pixelHeight)->color({ cell.color().red(), cell.color().green(), cell.color().blue() }));
 }
 
-void Printer::visit(hybrid::Sensor& sensor)
+void Printer::visit(hybrid::Picture& picture)
 {
-    int width = sensor.width();
-    int height = sensor.width();
+    int width  = picture.width();
+    int height = picture.width();
     int x      = 0;
     int y      = 0;
 
     Elements columns;
     Elements row;
-    for (hybrid::Pixel& pixel : sensor.pixels()) {
+    for (hybrid::Pixel& pixel : picture.pixels()) {
         visit(pixel);
         if (!row.empty()) {
             row.push_back(filler() | size(WIDTH, EQUAL, 1));

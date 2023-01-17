@@ -88,9 +88,9 @@ void CellValuePrinter::visit(hybrid::Pixel& cell)
     m_ss << "(Pixel) [" << (int)cell.color().m_red << ", " << (int)cell.color().m_green << "" << (int)cell.color().m_blue << "]";
 }
 
-void CellValuePrinter::visit(hybrid::Sensor& cell)
+void CellValuePrinter::visit(hybrid::Picture& cell)
 {
-    m_ss << "(Sensor)" << cell.name() << "[" << cell.width() << ", " << cell.height() << "]";
+    m_ss << "(Picture)" << cell.name() << "[" << cell.width() << ", " << cell.height() << "]";
 }
 
 std::string CellValuePrinter::print() const

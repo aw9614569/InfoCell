@@ -14,8 +14,8 @@ public:
     const int m_number;
     input::Picture m_inputPicture;
     input::Picture m_outputPicture;
-    cells::hybrid::Sensor m_input;
-    cells::hybrid::Sensor m_output;
+    cells::hybrid::Picture m_input;
+    cells::hybrid::Picture m_output;
 };
 
 class ArcTask
@@ -26,8 +26,8 @@ public:
     std::vector<ArcDemonstration> m_demonstrations;
     input::Picture m_inputPicture;
     input::Picture m_outputPicture;
-    cells::hybrid::Sensor m_testInput;
-    cells::hybrid::Sensor m_testSolution;
+    cells::hybrid::Picture m_testInput;
+    cells::hybrid::Picture m_testSolution;
 };
 
 } // namespace synth

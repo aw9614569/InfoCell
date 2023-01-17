@@ -29,7 +29,7 @@ public:
     void visit(String& cell) override;
     void visit(hybrid::Color& cell) override;
     void visit(hybrid::Pixel& cell) override;
-    void visit(hybrid::Sensor& cell) override;
+    void visit(hybrid::Picture& cell) override;
 
     void showcaseLastResult(const std::string& caseName);
     std::string print();

@@ -29,7 +29,7 @@ struct TestBoard
     int height = 0;
     std::vector<int> pixels;
 };
-static cells::hybrid::Sensor convertTestCaseToSensor(const TestBoard& testBoard);
+static cells::hybrid::Picture convertTestCaseToPicture(const TestBoard& testBoard);
 
 class TestCases
 {
@@ -64,9 +64,9 @@ std::vector<TestCase> TestCases::m_testCases;
 void TestCases::addTestCases()
 {
     add(TestCase("PatchTest", []() {
-        input::Picture picture("test", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
-        cells::hybrid::Sensor sensor(picture);
-        PatchBoard patchBoard(sensor);
+        input::Picture inputPicture("test", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
+        cells::hybrid::Picture picture(inputPicture);
+        PatchBoard patchBoard(picture);
         patchBoard.process();
 #if 0
         for (std::shared_ptr<Patch> patch : patchBoard.patches()) {
@@ -79,9 +79,9 @@ void TestCases::addTestCases()
     }));
 
     add(TestCase("PatchMergeTest", []() {
-        input::Picture picture("test", "[[7, 0, 7], [7, 0, 7], [7, 7, 7]]");
-        cells::hybrid::Sensor sensor(picture);
-        PatchBoard patchBoard(sensor);
+        input::Picture inputPicture("test", "[[7, 0, 7], [7, 0, 7], [7, 7, 7]]");
+        cells::hybrid::Picture picture(inputPicture);
+        PatchBoard patchBoard(picture);
         patchBoard.process();
 #if 0
         for (std::shared_ptr<Patch> patch : patchBoard.patches()) {
