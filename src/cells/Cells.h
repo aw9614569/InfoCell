@@ -76,7 +76,7 @@ class List;
 class Type : public CellI
 {
 public:
-    explicit Type(const std::string& name);
+    explicit Type(const std::string& name = "Type");
     Type(const std::string& name, std::initializer_list<SlotRef> slots);
 
     bool has(CellI& role) override;
@@ -230,7 +230,7 @@ public:
 class Number : public CellI
 {
 public:
-    Number(int value);
+    explicit Number(int value = 0);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -286,7 +286,7 @@ protected:
 class String : public CellI
 {
 public:
-    String(const std::string& str);
+    explicit String(const std::string& str = "");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -863,7 +863,7 @@ protected:
 class New : public Base
 {
 public:
-    New(Type& type, const std::string& name = "New");
+    New(Type& objectType, const std::string& name = "New");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -877,7 +877,7 @@ public:
 
 protected:
     std::string m_name;
-    Type& m_type;
+    Type& m_objectType;
     CellI* m_value = nullptr;
 };
 
@@ -899,7 +899,7 @@ public:
 
 protected:
     std::string m_name;
-    CellI* m_value = nullptr;
+    CellI* m_input = nullptr;
 };
 
 // ============================================================================

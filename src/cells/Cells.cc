@@ -2733,6 +2733,148 @@ Type& Empty::t()
 }
 
 // ============================================================================
+New::New(Type& objectType, const std::string& name) :
+    m_name(name), m_objectType(objectType)
+{
+}
+
+bool New::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::next) {
+        return m_next;
+    }
+    if (&role == &data::coding::objectType) {
+        return true;
+    }
+
+    return false;
+}
+
+void New::set(CellI& role, CellI& value)
+{
+    if (&role == &data::coding::objectType && &value.type() == &Type::t()) {
+        m_value = &value;
+    }
+}
+
+void New::operator()()
+{
+    if (&m_objectType == &Type::t()) {
+        m_value = new Type();
+    }
+    if (&m_objectType == &Number::t()) {
+        m_value = new Number();
+    }
+    if (&m_objectType == &String::t()) {
+        m_value = new String();
+    }
+    if (m_next) {
+        (*m_next)();
+    }
+}
+
+CellI& New::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::next && m_next) {
+        return *m_next;
+    }
+    if (&role == &data::coding::objectType) {
+        return m_objectType;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& New::type()
+{
+    return t();
+}
+
+void New::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+std::string New::name() const
+{
+    return m_name;
+}
+
+Type& New::t()
+{
+    return type::op::pipeline::New;
+}
+
+// ============================================================================
+Delete::Delete(Base& input, const std::string& name) :
+    m_name(name), m_input(&input)
+{
+}
+
+bool Delete::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::coding::input) {
+        return true;
+    }
+
+    return false;
+}
+
+void Delete::set(CellI& role, CellI& value)
+{
+    if (&role == &data::coding::input) {
+        m_input = &value;
+    }
+}
+
+void Delete::operator()()
+{
+    CellI* cell = &(*m_input)[data::coding::value];
+    delete cell;
+}
+
+CellI& Delete::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::coding::input && m_input) {
+        return *m_input;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& Delete::type()
+{
+    return t();
+}
+
+void Delete::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+std::string Delete::name() const
+{
+    return m_name;
+}
+
+Type& Delete::t()
+{
+    return type::op::pipeline::Delete;
+}
+
+// ============================================================================
 bool Node::has(CellI& role)
 {
     if (&role == &data::type) {
