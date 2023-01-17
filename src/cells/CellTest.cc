@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
     hybrid::Picture picture(inputPicture);
 
     printAs.svg(picture);
-    printAs.svg(picture[data::listOfPixels]);
+    printAs.svg(picture[data::pixels]);
 
 
     Type Variable("Color",
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
     printAs.value(add10[data::coding::value]);
 
     printAs.value(var1[data::coding::value]);
-    printAs.value(picture[data::listOfPixels]);
+    printAs.value(picture[data::pixels]);
 
 
     Object colorRed(Type::anyType());

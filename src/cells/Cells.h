@@ -209,6 +209,8 @@ public:
     Slot& slotLast();
     Slot& slotSize();
 
+    static void createListType(Type& valueType, Type& listType, Type& listItemType);
+
 protected:
     Slot* m_slotFirst;
     Slot* m_slotLast;
@@ -250,7 +252,6 @@ public:
 protected:
     void calculateDigits();
 
-    static std::unique_ptr<Type> s_type;
     static Slot* s_slotSign;
     static Slot* s_slotValue;
 
@@ -300,13 +301,12 @@ public:
 
     static void staticInit();
     static Type& t();
-    static Slot& slotCharacters();
+    static Slot& slotValue();
 
 protected:
     void calculateCharacters();
 
-    static std::unique_ptr<Type> s_type;
-    static Slot* s_slotCharacters;
+    static Slot* s_slotValue;
 
     std::string m_value;
     std::vector<Object*> m_characters;
@@ -381,6 +381,7 @@ public:
     std::string name() const override;
 
     static Type& t();
+    static Type& pixelsType();
 
     Pixel& getPixel(int x, int y);
     const Pixel& getPixel(int x, int y) const;
@@ -1189,7 +1190,7 @@ extern Object last;
 extern Object previous;
 extern Object next;
 
-extern Object listOfPixels;
+extern Object pixels;
 
 namespace coding {
 extern Object argument;

@@ -609,6 +609,18 @@ List::List(std::map<std::string, T>& values) :
     }
 }
 
+void List::createListType(Type& valueType, Type& listType, Type& listItemType)
+{
+    listType.createSlot("first", listItemType, data::first);
+    listType.createSlot("last", listItemType, data::last);
+    listType.createSlot("size", Number::t(), data::size);
+    listType.createSlot("valueType", valueType, data::coding::objectType);
+
+    listItemType.createSlot("prev", listItemType, data::previous);
+    listItemType.createSlot("next", listItemType, data::next);
+    listItemType.createSlot("value", valueType, data::value);
+}
+
 bool List::has(CellI& role)
 {
     if (&role == &data::type || &role == &data::first || &role == &data::last || &role == &data::size) {
@@ -702,7 +714,6 @@ void Digits::staticInit()
 }
 
 // ============================================================================
-std::unique_ptr<Type> Number::s_type;
 Slot* Number::s_slotValue = nullptr;
 Slot* Number::s_slotSign  = nullptr;
 
@@ -732,7 +743,7 @@ void Number::operator()()
 CellI& Number::operator[](CellI& role)
 {
     if (&role == &data::type) {
-        return *s_type;
+        return t();
     }
 
     if (&role == &data::sign) {
@@ -753,7 +764,7 @@ CellI& Number::operator[](CellI& role)
 
 Type& Number::type()
 {
-    return *s_type;
+    return t();
 }
 
 void Number::accept(Visitor& visitor)
@@ -773,15 +784,16 @@ int Number::value() const
 
 void Number::staticInit()
 {
-    s_type.reset(new Type("Number"));
-    //    s_slotValue = &s_type->createSlot("value", List::t()); // TODO
-    s_slotValue = &s_type->createSlot("value", Type::anyType(), data::value);
-    s_slotSign  = &s_type->createSlot("sign", Number::t(), data::sign); // TODO
+    static Type digitListType("List<Digit>");
+    static Type digitListItemType("ListItem<Digit>");
+    List::createListType(type::Digit, digitListType, digitListItemType);
+    s_slotValue = &t().createSlot("value", digitListType, data::value);
+    s_slotSign  = &t().createSlot("sign", Number::t(), data::sign); // TODO
 }
 
 Type& Number::t()
 {
-    return *s_type;
+    return type::Number;
 }
 
 Slot& Number::slotSign()
@@ -859,8 +871,7 @@ void Chars::registerUnicodeBlock(char32_t from, char32_t to)
 }
 
 // ============================================================================
-std::unique_ptr<Type> String::s_type;
-Slot* String::s_slotCharacters = nullptr;
+Slot* String::s_slotValue = nullptr;
 
 String::String(const std::string& str) :
     m_value(str)
@@ -888,7 +899,7 @@ void String::operator()()
 CellI& String::operator[](CellI& role)
 {
     if (&role == &data::type) {
-        return *s_type;
+        return t();
     } else if (&role == &data::value) {
         if (m_characters.empty()) {
             calculateCharacters();
@@ -903,7 +914,7 @@ CellI& String::operator[](CellI& role)
 
 Type& String::type()
 {
-    return *s_type;
+    return t();
 }
 
 void String::accept(Visitor& visitor)
@@ -923,19 +934,20 @@ const std::string& String::value() const
 
 void String::staticInit()
 {
-    s_type.reset(new Type("String"));
-    //    s_slotCharacters = &s_type->createSlot("value", List::t());
-    s_slotCharacters = &s_type->createSlot("value", Type::anyType(), data::value); // TODO
+    static Type charListType("List<Char>");
+    static Type charListItemType("ListItem<Char>");
+    List::createListType(type::Char, charListType, charListItemType);
+    s_slotValue = &t().createSlot("value", charListType, data::value);
 }
 
 Type& String::t()
 {
-    return *s_type;
+    return type::String;
 }
 
-Slot& String::slotCharacters()
+Slot& String::slotValue()
 {
-    return *s_slotCharacters;
+    return *s_slotValue;
 }
 
 void String::calculateCharacters()
@@ -1160,7 +1172,7 @@ Picture::Picture(input::Picture& picture) :
 
 bool Picture::has(CellI& role)
 {
-    if (&role == &data::type || &role == &data::width || &role == &data::height || &role == &data::listOfPixels) {
+    if (&role == &data::type || &role == &data::width || &role == &data::height || &role == &data::pixels) {
         return true;
     }
 
@@ -1187,7 +1199,7 @@ CellI& Picture::operator[](CellI& role)
     if (&role == &data::height) {
         return m_heightCell;
     }
-    if (&role == &data::listOfPixels) {
+    if (&role == &data::pixels) {
         return *m_pixelsList;
     }
 
@@ -1197,6 +1209,14 @@ CellI& Picture::operator[](CellI& role)
 Type& Picture::type()
 {
     return t();
+}
+
+Type& Picture::pixelsType()
+{
+    static Type pixelListType("List<Pixel>");
+    static Type pixelListItemType("ListItem<Pixel>");
+    List::createListType(type::Pixel, pixelListType, pixelListItemType);
+    return pixelListType;
 }
 
 void Picture::accept(Visitor& visitor)
@@ -3296,7 +3316,7 @@ static void staticInit()
     Picture.addSlots(
         { { "width", Number::t(), data::width },
           { "height", Number::t(), data::height },
-          { "lastPixel", hybrid::Pixel::t(), data::listOfPixels } });
+          { "pixels", hybrid::Picture::pixelsType(), data::pixels } });
 
     op::Same.addSlots({ { "lhs", Type::anyType(), data::equation::lhs },
                         { "rhs", Type::anyType(), data::equation::rhs },
@@ -3331,7 +3351,7 @@ Object last(Type::anyType());
 Object previous(Type::anyType());
 Object next(Type::anyType());
 
-Object listOfPixels(Type::anyType());
+Object pixels(Type::anyType());
 
 namespace coding {
 Object argument(Type::anyType());
