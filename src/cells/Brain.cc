@@ -64,7 +64,35 @@ Operations::Operations(brain::Brain& kb) :
 
 } // namespace type
 
+TypeInit::TypeInit(Types& types)
+{
+    // This is the first type, breaking the infinite init loop here with pre initializing a List<Slot> and ListItem<Slot> here
+    // Every type has a list of Slots, so it needs a List<Slot>
+    Brain& kb       = types.kb;
+    Type& type      = types.kb.type.Slot;
+    auto listItemIt = types.m_listItemTypes.emplace(std::piecewise_construct,
+                                                    std::forward_as_tuple(&type),
+                                                    std::forward_as_tuple(kb, "ListItem<Slot>", true));
+
+    Type& itemType = listItemIt.first->second;
+    itemType.addSlots({ { "type", kb.type.Type_, kb.cells.type },
+                        { "prev", itemType, kb.sequence.previous },
+                        { "next", itemType, kb.sequence.next },
+                        { "value", type, kb.coding.value } });
+
+    auto listIt    = types.m_listTypes.emplace(std::piecewise_construct,
+                                               std::forward_as_tuple(&type),
+                                               std::forward_as_tuple(kb, "List<Slot>", true));
+    Type& listType = listIt.first->second;
+    listType.addSlots({ { "type", kb.type.Type_, kb.cells.type },
+                        { "first", itemType, kb.sequence.first },
+                        { "last", itemType, kb.sequence.last },
+                        { "size", kb.type.Number, kb.dimensions.size } });
+    type.manualInit();
+}
+
 Types::Types(brain::Brain& kb) :
+    m_init(*this),
     Type_(kb, "Type"),
     Slot(kb, "Slot"),
     Void(kb, "Void"),
@@ -79,7 +107,7 @@ Types::Types(brain::Brain& kb) :
     Picture(kb, "Picture"),
     op(kb),
     pipeline(kb),
-    m_kb(kb)
+    kb(kb)
 {
 }
 
@@ -87,12 +115,36 @@ Type& Types::ListOf(Type& type)
 {
     auto numberIt = m_listTypes.find(&type);
     if (numberIt != m_listTypes.end()) {
-        return numberIt->second.listType();
+        return numberIt->second;
     } else {
         auto it = m_listTypes.emplace(std::piecewise_construct,
-                                    std::forward_as_tuple(&type),
-                                    std::forward_as_tuple(m_kb, type));
-        return it.first->second.listType();
+                                      std::forward_as_tuple(&type),
+                                      std::forward_as_tuple(kb, "List<T>"));
+        Type& listType = it.first->second;
+        Type& itemType = ListItemOf(type);
+        listType.addSlots({ { "first", itemType, kb.sequence.first },
+                            { "last", itemType, kb.sequence.last },
+                            { "size", kb.type.Number, kb.dimensions.size } });
+
+        return it.first->second;
+    }
+}
+
+Type& Types::ListItemOf(Type& type)
+{
+    auto listItemIt = m_listItemTypes.find(&type);
+    if (listItemIt != m_listItemTypes.end()) {
+        return listItemIt->second;
+    } else {
+        auto it = m_listItemTypes.emplace(std::piecewise_construct,
+                                          std::forward_as_tuple(&type),
+                                          std::forward_as_tuple(kb, "ListItem<T>"));
+
+        Type& itemType = it.first->second;
+        itemType.addSlots({ { "prev", itemType, kb.sequence.previous },
+                            { "next", itemType, kb.sequence.next },
+                            { "value", type, kb.coding.value } });
+        return itemType;
     }
 }
 

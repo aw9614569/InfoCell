@@ -60,11 +60,27 @@ struct Operations
 };
 
 } // namespace type
+
+struct Types;
+struct TypeInit
+{
+    TypeInit(Types& types);
+};
+
 struct Types
 {
     Types(brain::Brain& kb);
     Type& ListOf(Type& type);
+    Type& ListItemOf(Type& type);
 
+protected:
+    brain::Brain& kb;
+    std::map<Type*, Type> m_listTypes;
+    std::map<Type*, Type> m_listItemTypes;
+    TypeInit m_init;
+    friend struct TypeInit;
+
+public:
     Type Type_;
     Type Slot;
     Type Void;
@@ -81,9 +97,6 @@ struct Types
     type::Operations op;
     type::Pipelines pipeline;
 
-protected:
-    brain::Brain& m_kb;
-    std::map<Type*, List> m_listTypes;
 };
 
 struct Cells

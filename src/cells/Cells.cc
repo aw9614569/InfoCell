@@ -118,14 +118,22 @@ CellI& Slot::slotRole()
 // ============================================================================
 Type::Type(brain::Brain& kb, const std::string& name) :
     CellI(kb),
-    m_name(name)
+    m_name(name),
+    m_slotsList(new List(kb, kb.type.Slot))
 {
     createSlot("type", kb.type.Type_, kb.cells.type);
 }
 
-Type::Type(brain::Brain& kb, const std::string& name, std::initializer_list<SlotRef> slots) :
+Type::Type(brain::Brain& kb, const std::string& name, bool firstType) :
     CellI(kb),
     m_name(name)
+{
+}
+
+Type::Type(brain::Brain& kb, const std::string& name, std::initializer_list<SlotRef> slots) :
+    CellI(kb),
+    m_name(name),
+    m_slotsList(new List(kb, kb.type.Slot))
 {
     createSlot("type", kb.type.Type_, kb.cells.type);
     for (const SlotRef& slotRef : slots) {
@@ -158,9 +166,6 @@ CellI& Type::operator[](CellI& role)
         return type();
     }
     if (&role == &kb.cells.slots) {
-        if (!m_slotsList)
-            m_slotsList.reset(new List(kb, m_slots));
-
         return *m_slotsList;
     }
 
@@ -204,9 +209,20 @@ Slot& Type::createSlot(const std::string& name, Type& type, CellI& role)
 
         Slot& slot     = it.first->second;
         m_roles[&role] = &slot;
+        if (m_slotsList) {
+            m_slotsList->add(slot);
+        }
 
         return slot;
     }
+}
+
+void Type::manualInit()
+{
+    if (m_slotsList) {
+        return;
+    }
+    m_slotsList = std::make_unique<List>(kb, m_slots);
 }
 
 bool Type::has(const std::string& name) const
@@ -427,16 +443,9 @@ T* ptr(T* obj) { return obj; }
 List::List(brain::Brain& kb, Type& valueType) :
     CellI(kb),
     m_valueType(valueType),
-    m_listType(kb, "List<T>"),
-    m_itemType(kb, "ListItem<T>")
+    m_listType(kb.type.ListOf(valueType)),
+    m_itemType(kb.type.ListItemOf(valueType))
 {
-    m_itemType.addSlots({ { "prev", m_itemType, kb.sequence.previous },
-                          { "next", m_itemType, kb.sequence.next },
-                          { "value", valueType, kb.coding.value } });
-    m_listType.addSlots({
-        { "first", m_itemType, kb.sequence.first },
-        { "last", m_itemType, kb.sequence.last },
-        { "size", kb.type.Number, kb.dimensions.size } });
 }
 
 template <typename T>

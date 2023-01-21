@@ -74,6 +74,7 @@ class Type : public CellI
 {
 public:
     explicit Type(brain::Brain& kb, const std::string& name = "Type");
+    Type(brain::Brain& kb, const std::string& name, bool firstType);
     Type(brain::Brain& kb, const std::string& name, std::initializer_list<SlotRef> slots);
 
     bool has(CellI& role) override;
@@ -86,6 +87,7 @@ public:
 
     void addSlots(std::initializer_list<SlotRef> slots);
     Slot& createSlot(const std::string& name, Type& type, CellI& role);
+    void manualInit();
 
     bool has(const std::string& name) const;
 
@@ -184,8 +186,8 @@ public:
 
 protected:
     Type& m_valueType;
-    Type m_listType;
-    Type m_itemType;
+    Type& m_listType;
+    Type& m_itemType;
     std::list<ListItem> m_items;
 };
 
