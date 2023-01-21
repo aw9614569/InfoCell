@@ -534,9 +534,9 @@ std::list<ListItem>& List::items()
 
 void List::add(CellI& value)
 {
-//    if (m_valueType != value.type()) {
-//        return;
-//    }
+    if (kb.isInitialized() && m_valueType != value.type()) {
+        throw "Type error!";
+    }
 
     ListItem* prevListItem = m_items.empty() ? nullptr : &m_items.back();
     auto& listItemCell     = m_items.emplace_back(kb, m_itemType);

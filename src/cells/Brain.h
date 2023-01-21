@@ -5,8 +5,9 @@ namespace cells {
 namespace brain {
 namespace type {
 
-struct Pipelines
+class Pipelines
 {
+public:
     Pipelines(brain::Brain& kb);
     Type Base;
     Type Void;
@@ -21,16 +22,18 @@ struct Pipelines
 };
 
 namespace op {
-struct Logic
+class Logic
 {
+public:
     Logic(brain::Brain& kb);
     Type And;
     Type Or;
     Type Not;
 };
 
-struct Math
+class Math
 {
+public:
     Math(brain::Brain& kb);
     Type Add;
     Type Subtract;
@@ -41,8 +44,9 @@ struct Math
 };
 } // namespace op
 
-struct Operations
+class Operations
 {
+public:
     Operations(brain::Brain& kb);
     Type Base;
 
@@ -61,14 +65,16 @@ struct Operations
 
 } // namespace type
 
-struct Types;
-struct TypeInit
+class Types;
+class TypeInit
 {
+public:
     TypeInit(Types& types);
 };
 
-struct Types
+class Types
 {
+public:
     Types(brain::Brain& kb);
     Type& ListOf(Type& type);
     Type& ListItemOf(Type& type);
@@ -78,7 +84,7 @@ protected:
     std::map<Type*, Type> m_listTypes;
     std::map<Type*, Type> m_listItemTypes;
     TypeInit m_init;
-    friend struct TypeInit;
+    friend class TypeInit;
 
 public:
     Type Type_;
@@ -96,12 +102,12 @@ public:
 
     type::Operations op;
     type::Pipelines pipeline;
-
 };
 
-struct Cells
+class Cells
 {
-Cells(brain::Brain& kb, Type& voidType, Type& anyType);
+public:
+    Cells(brain::Brain& kb, Type& voidType, Type& anyType);
     Object type;
     Object slots;
     Object slotType;
@@ -110,9 +116,10 @@ Cells(brain::Brain& kb, Type& voidType, Type& anyType);
     Object emptyObject;
 };
 
-struct Coding
+class Coding
 {
-Coding(brain::Brain& kb, Type& anyType);
+public:
+    Coding(brain::Brain& kb, Type& anyType);
     Object argument;
     Object branch;
     Object cell;
@@ -130,9 +137,10 @@ Coding(brain::Brain& kb, Type& anyType);
     Object value;
 };
 
-struct Sequence
+class Sequence
 {
-Sequence(brain::Brain& kb, Type& anyType);
+public:
+    Sequence(brain::Brain& kb, Type& anyType);
     Object first;
     Object last;
     Object previous;
@@ -140,62 +148,70 @@ Sequence(brain::Brain& kb, Type& anyType);
     Object current;
 };
 
-struct Equation
+class Equation
 {
-Equation(brain::Brain& kb, Type& anyType);
+public:
+    Equation(brain::Brain& kb, Type& anyType);
     Object lhs;
     Object rhs;
 };
 
-struct Directions
+class Directions
 {
-Directions(brain::Brain& kb, Type& anyType);
+public:
+    Directions(brain::Brain& kb, Type& anyType);
     Object up;
     Object down;
     Object left;
     Object right;
 };
 
-struct Coordinates
+class Coordinates
 {
-Coordinates(brain::Brain& kb, Type& anyType);
+public:
+    Coordinates(brain::Brain& kb, Type& anyType);
     Object x;
     Object y;
 };
 
-struct Colors
+class Colors
 {
-Colors(brain::Brain& kb, Type& anyType);
+public:
+    Colors(brain::Brain& kb, Type& anyType);
     Object red;
     Object green;
     Object blue;
 };
 
-struct Boolean
+class Boolean
 {
-Boolean(brain::Brain& kb);
+public:
+    Boolean(brain::Brain& kb);
     Object true_;
     Object false_;
 };
 
-struct Dimensions
+class Dimensions
 {
-Dimensions(brain::Brain& kb, Type& anyType);
+public:
+    Dimensions(brain::Brain& kb, Type& anyType);
     Object width;
     Object height;
     Object size;
 };
 
-struct Visualization
+class Visualization
 {
-Visualization(brain::Brain& kb, Type& anyType);
+public:
+    Visualization(brain::Brain& kb, Type& anyType);
     Object color;
     Object pixels;
 };
 
-struct Numbers
+class Numbers
 {
-Numbers(brain::Brain& kb, Type& anyType);
+public:
+    Numbers(brain::Brain& kb, Type& anyType);
     Object sign;
     Object positive;
     Object negative;
@@ -241,16 +257,21 @@ protected:
 
 } // namespace pools
 
-struct Pools
+class Pools
 {
+public:
     Pools(brain::Brain& kb, Type& charType, Object& emptyObject, Type& digit);
     pools::Chars chars;
     pools::Digits digits;
     pools::Numbers numbers;
 };
 
-struct Brain
+class Brain
 {
+protected:
+    bool m_initialized = false;
+
+public:
     Brain();
     Types type;
     Cells cells;
@@ -267,6 +288,8 @@ struct Brain
     Numbers numbers;
 
     CellI& toKbBool(bool value);
+    bool isInitialized();
+
 };
 
 } // namespace brain

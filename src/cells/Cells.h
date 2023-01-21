@@ -10,7 +10,7 @@
 namespace synth {
 namespace cells {
 namespace brain {
-struct Brain;
+class Brain;
 }
 
 // ============================================================================
@@ -718,7 +718,7 @@ public:
     void accept(Visitor& visitor) override;
     std::string name() const override;
 
- protected:
+protected:
     std::string m_name;
     CellI* m_value;
     Base* m_current;
@@ -738,7 +738,7 @@ public:
     void accept(Visitor& visitor) override;
     std::string name() const override;
 
- protected:
+protected:
     std::string m_name;
     Type& m_objectType;
     CellI* m_value = nullptr;

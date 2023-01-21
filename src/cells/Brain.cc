@@ -117,9 +117,9 @@ Type& Types::ListOf(Type& type)
     if (numberIt != m_listTypes.end()) {
         return numberIt->second;
     } else {
-        auto it = m_listTypes.emplace(std::piecewise_construct,
-                                      std::forward_as_tuple(&type),
-                                      std::forward_as_tuple(kb, "List<T>"));
+        auto it        = m_listTypes.emplace(std::piecewise_construct,
+                                             std::forward_as_tuple(&type),
+                                             std::forward_as_tuple(kb, "List<T>"));
         Type& listType = it.first->second;
         Type& itemType = ListItemOf(type);
         listType.addSlots({ { "first", itemType, kb.sequence.first },
@@ -476,11 +476,17 @@ Brain::Brain() :
                                    { "input", type.pipeline.Base, coding.input },
                                    { "condition", type.pipeline.Base, coding.condition },
                                    { "statement", type.op.Base, coding.statement } });
+    m_initialized = true;
 }
 
 CellI& Brain::toKbBool(bool value)
 {
     return value ? boolean.true_ : boolean.false_;
+}
+
+bool Brain::isInitialized()
+{
+    return m_initialized;
 }
 
 } // namespace brain

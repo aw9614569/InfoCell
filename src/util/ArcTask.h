@@ -7,7 +7,7 @@
 namespace synth {
 namespace cells {
 namespace brain {
-struct Brain;
+class Brain;
 } // namespace brain
 } // namespace cells
 

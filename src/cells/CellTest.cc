@@ -1,7 +1,6 @@
 #include "Cells.h"
-#include "Brain.h"
-#include "StructPrinter.h"
 #include "SVGPrinter.h"
+#include "StructPrinter.h"
 #include "ValuePrinter.h"
 #include <fstream>
 
@@ -36,7 +35,6 @@ public:
 
         std::cout << structPrinter.print() << std::endl;
     }
-
 
     void svg(CellI& cell, const std::string& caseName = "Case")
     {
@@ -85,7 +83,6 @@ int main(int argc, char* argv[])
 
     printAs.value(var1[kb.coding.value]);
     printAs.value(picture[kb.visualization.pixels]);
-
 
     Object colorRed(kb, kb.type.Any);
     Object colorGreen(kb, kb.type.Any);
