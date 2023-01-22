@@ -40,7 +40,7 @@ void Printer::visit(ListItem& cell)
         valueAsSvg = m_stack.top();
         m_stack.pop();
     } else {
-        valueAsSvg = text(cell.value().name())->fontSize(16)->fontColor({ 255, 0, 0 });
+        valueAsSvg = text(cell.value().label())->fontSize(16)->fontColor({ 255, 0, 0 });
     }
     m_stack.push(hbox(vbox(text("ListItem") | center | borderWidth(10), filler() | size(HEIGHT, EQUAL, 2), valueAsSvg | center | borderWidth(10)),
                       filler() | size(WIDTH, EQUAL, 2)));
@@ -56,7 +56,7 @@ void Printer::visit(List& list)
             valueAsSvg = m_stack.top();
             m_stack.pop();
         } else {
-            valueAsSvg = text(item.value().name())->fontSize(16)->fontColor({ 255, 0, 0 });
+            valueAsSvg = text(item.value().label())->fontSize(16)->fontColor({ 255, 0, 0 });
         }
         listItems.push_back(hbox(vbox(text(std::to_string(i++)) | center | borderWidth(10), filler() | size(HEIGHT, EQUAL, 2), valueAsSvg | center | borderWidth(10)),
                                    filler() | size(WIDTH, EQUAL, 2)));

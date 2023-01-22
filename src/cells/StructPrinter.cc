@@ -7,24 +7,26 @@ namespace cells {
 // ============================================================================
 void CellStructPrinter::visit(Slot& cell)
 {
-    if (!cell.name().empty()) {
-        m_ss << cell.name() << ": ";
+    if (cell.label().empty()) {
+        m_ss << cell.slotRole().label() << ": ";
+    } else {
+        m_ss << cell.label() << ": ";
     }
     printImpl(cell);
 }
 
 void CellStructPrinter::visit(Type& cell)
 {
-    if (!cell.name().empty()) {
-        m_ss << cell.name() << ": ";
+    if (!cell.label().empty()) {
+        m_ss << cell.label() << ": ";
     }
     printImpl(cell);
 }
 
 void CellStructPrinter::visit(Object& cell)
 {
-    if (!cell.name().empty()) {
-        m_ss << cell.name() << ": ";
+    if (!cell.label().empty()) {
+        m_ss << cell.label() << ": ";
     }
     printImpl(cell);
 }
@@ -68,7 +70,7 @@ void CellStructPrinter::printImpl(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
     Type& type = cell.type();
-    m_ss << "(" << type.name() << ") ID" << &cell << std::endl;
+    m_ss << "(" << type.label() << ") ID" << &cell << std::endl;
     for (auto& slotI : type.slots()) {
         Slot& slot = slotI.second;
 
@@ -79,7 +81,7 @@ void CellStructPrinter::printImpl(CellI& cell)
         Type& slotType       = static_cast<Type&>(slot[kb.cells.slotType]);
         CellI& connectedCell = cell[slot.slotRole()];
         connectedCell.accept(valuePrinter);
-        m_ss << "    +--(" << slot.name() << ")--> (" << slotType.name() << ") ID" << &connectedCell << " // " << valuePrinter.print() << std::endl;
+        m_ss << "    +--(" << slot.slotRole().label() << ")--> (" << slotType.label() << ") ID" << &connectedCell << " // " << valuePrinter.print() << std::endl;
     }
 }
 

@@ -59,7 +59,7 @@ Picture& Picture::loadFromVector(int width, int height, const std::vector<int>& 
     return *this;
 }
 
-const std::string& Picture::name() const
+const std::string& Picture::label() const
 {
     return m_name;
 }

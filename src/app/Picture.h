@@ -57,7 +57,7 @@ public:
 
     Picture& loadFromJsonArray(const std::string& jsonStr);
     Picture& loadFromVector(int width, int height, const std::vector<int>& pixels);
-    const std::string& name() const;
+    const std::string& label() const;
     int width() const;
     int height() const;
     std::vector<Color>& pixels();

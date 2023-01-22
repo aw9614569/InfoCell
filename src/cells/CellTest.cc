@@ -62,9 +62,9 @@ int main(int argc, char* argv[])
     printAs.svg(picture[kb.visualization.pixels]);
 
     Type Variable(kb, "Color",
-                  { { "name", kb.type.String, kb.coding.name },
-                    { "value", kb.type.Number, kb.coding.value } });
-    Object var1(kb, "var1", Variable);
+                  { { kb.coding.label, kb.type.String },
+                    { kb.coding.value, kb.type.Number } });
+    Object var1(kb, Variable, "var1");
 
     Input mainStartNode(kb, picture);
     Node node1(kb, mainStartNode, kb.type.op.Same, mainStartNode, mainStartNode);
@@ -84,16 +84,16 @@ int main(int argc, char* argv[])
     printAs.value(var1[kb.coding.value]);
     printAs.value(picture[kb.visualization.pixels]);
 
-    Object colorRed(kb, kb.type.Any);
-    Object colorGreen(kb, kb.type.Any);
-    Object colorBlue(kb, kb.type.Any);
+    Object colorRed(kb, kb.type.Any, "red");
+    Object colorGreen(kb, kb.type.Any, "green");
+    Object colorBlue(kb, kb.type.Any, "blue");
 
     Type colorClass(kb, "Color",
-                    { { "red", kb.type.Number, colorRed },
-                      { "green", kb.type.Number, colorGreen },
-                      { "blue", kb.type.Number, colorBlue } });
+                    { { colorRed, kb.type.Number },
+                      { colorGreen, kb.type.Number },
+                      { colorBlue, kb.type.Number } });
 
-    Object redColor(kb, "redColor", colorClass);
+    Object redColor(kb, colorClass, "redColor");
     redColor.set(colorRed, kb.pools.numbers.get(255));
     redColor.set(colorGreen, kb.pools.numbers.get(0));
     redColor.set(colorBlue, kb.pools.numbers.get(0));

@@ -6,12 +6,12 @@ namespace cells {
 // ============================================================================
 void CellValuePrinter::visit(Slot& slotCell)
 {
-    m_ss << slotCell.name() << ": " << slotCell.slotType().name();
+    m_ss << slotCell.slotRole().label() << ": " << slotCell.slotType().label();
 }
 
 void CellValuePrinter::visit(Type& type)
 {
-    m_ss << "class " << type.name() << " { ";
+    m_ss << "class " << type.label() << " { ";
     bool isFirst = true;
     for (auto& slotI : type.slots()) {
         if (isFirst) {
@@ -19,17 +19,17 @@ void CellValuePrinter::visit(Type& type)
         } else {
             m_ss << ", ";
         }
-        m_ss << slotI.first << ": " << slotI.second.slotType().name();
+        m_ss << slotI.first << ": " << slotI.second.slotType().label();
     }
     m_ss << " }";
 }
 
 void CellValuePrinter::visit(Object& dataCell)
 {
-    if (!dataCell.name().empty()) {
-        m_ss << dataCell.name() << ": ";
+    if (!dataCell.label().empty()) {
+        m_ss << dataCell.label() << ": ";
     }
-    m_ss << dataCell.type().name() << " { ";
+    m_ss << dataCell.type().label() << " { ";
     bool isFirst = true;
     for (auto& slotI : dataCell.type().slots()) {
         if (isFirst) {
@@ -46,8 +46,8 @@ void CellValuePrinter::visit(Object& dataCell)
 void CellValuePrinter::visit(ListItem& listItemCell)
 {
     m_ss << "[ ";
-    if (!listItemCell.value().name().empty()) {
-        m_ss << listItemCell.value().name() << " ";
+    if (!listItemCell.value().label().empty()) {
+        m_ss << listItemCell.value().label() << " ";
     }
     m_ss << "]";
 
@@ -63,7 +63,7 @@ void CellValuePrinter::visit(List& List)
         } else {
             m_ss << ",";
         }
-        m_ss << " " << item.value().name();
+        m_ss << " " << item.value().label();
     }
     m_ss << " ]";
 }
@@ -90,7 +90,7 @@ void CellValuePrinter::visit(hybrid::Pixel& cell)
 
 void CellValuePrinter::visit(hybrid::Picture& cell)
 {
-    m_ss << "(Picture)" << cell.name() << "[" << cell.width() << ", " << cell.height() << "]";
+    m_ss << "(Picture)" << cell.label() << "[" << cell.width() << ", " << cell.height() << "]";
 }
 
 std::string CellValuePrinter::print() const

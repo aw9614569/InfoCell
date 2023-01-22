@@ -111,7 +111,6 @@ public:
     Object type;
     Object slots;
     Object slotType;
-    Object slotName;
     Object slotRole;
     Object emptyObject;
 };
@@ -124,9 +123,11 @@ public:
     Object branch;
     Object cell;
     Object condition;
+    Object container;
     Object else_;
     Object input;
-    Object name;
+    Object item;
+    Object label;
     Object objectType;
     Object op;
     Object output;
@@ -300,7 +301,6 @@ public:
 
     CellI& toKbBool(bool value);
     bool isInitialized();
-
 };
 
 } // namespace brain

@@ -13,6 +13,31 @@ CellI::CellI(brain::Brain& kb) :
 {
 }
 
+CellI::CellI(brain::Brain& kb, const std::string& label) :
+    kb(kb), m_label(label)
+{
+}
+
+std::string CellI::label() const
+{
+    return m_label;
+}
+
+void CellI::label(const std::string& label)
+{
+    m_label = label;
+}
+
+std::string CellI::comment() const
+{
+    return m_comment;
+}
+
+void CellI::comment(const std::string& comment)
+{
+    m_comment = comment;
+}
+
 bool CellI::operator==(CellI& rhs)
 {
     if (&type() != &rhs.type()) {
@@ -41,20 +66,21 @@ bool CellI::operator!=(CellI& rhs)
 }
 
 // ============================================================================
-SlotRef::SlotRef(const std::string& name, Type& type, CellI& role) :
-    m_name(name), m_type(type), m_role(role)
+SlotRef::SlotRef(CellI& role, Type& type) :
+    m_role(role), m_type(type)
 {
 }
 
-Slot::Slot(brain::Brain& kb, const std::string& name, Type& type, CellI& role) :
+Slot::Slot(brain::Brain& kb, CellI& role, Type& type) :
     CellI(kb),
-    m_name(name), m_slotType(type), m_slotRole(role)
+    m_slotRole(role),
+    m_slotType(type)
 {
 }
 
 bool Slot::has(CellI& role)
 {
-    if (&role == &kb.cells.type || &role == &kb.cells.slotType || &role == &kb.cells.slotName || &role == &kb.cells.slotRole) {
+    if (&role == &kb.cells.type || &role == &kb.cells.slotType || &role == &kb.cells.slotRole) {
         return true;
     }
     return false;
@@ -77,12 +103,6 @@ CellI& Slot::operator[](CellI& role)
     if (&role == &kb.cells.slotType) {
         return m_slotType;
     }
-    if (&role == &kb.cells.slotName) {
-        if (!m_slotNameString) {
-            m_slotNameString.reset(new String(kb, m_name));
-        }
-        return *m_slotNameString;
-    }
     if (&role == &kb.cells.slotRole) {
         return m_slotRole;
     }
@@ -100,11 +120,6 @@ void Slot::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Slot::name() const
-{
-    return m_name;
-}
-
 Type& Slot::slotType()
 {
     return m_slotType;
@@ -116,29 +131,31 @@ CellI& Slot::slotRole()
 }
 
 // ============================================================================
-Type::Type(brain::Brain& kb, const std::string& name) :
-    CellI(kb),
-    m_name(name),
+Type::Type(brain::Brain& kb, const std::string& label) :
+    CellI(kb, label),
     m_slotsList(new List(kb, kb.type.Slot))
 {
-    createSlot("type", kb.type.Type_, kb.cells.type);
+    createSlot(kb.cells.type, kb.type.Type_);
 }
 
-Type::Type(brain::Brain& kb, const std::string& name, bool) :
-    CellI(kb),
-    m_name(name)
+Type::Type(brain::Brain& kb, const std::string& label, bool) :
+    CellI(kb, label)
 {
     // will be inited with manualInit() for bootstrap
 }
 
-Type::Type(brain::Brain& kb, const std::string& name, std::initializer_list<SlotRef> slots) :
-    CellI(kb),
-    m_name(name),
+Type::Type(brain::Brain& kb, std::initializer_list<SlotRef> slots) :
+    Type(kb, "", slots)
+{
+}
+
+Type::Type(brain::Brain& kb, const std::string& label, std::initializer_list<SlotRef> slots) :
+    CellI(kb, label),
     m_slotsList(new List(kb, kb.type.Slot))
 {
-    createSlot("type", kb.type.Type_, kb.cells.type);
+    createSlot(kb.cells.type, kb.type.Type_);
     for (const SlotRef& slotRef : slots) {
-        createSlot(slotRef.m_name, slotRef.m_type, slotRef.m_role);
+        createSlot(slotRef.m_role, slotRef.m_type);
     }
 }
 
@@ -183,30 +200,25 @@ void Type::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Type::name() const
-{
-    return m_name;
-}
-
-void Type::addSlots(std::initializer_list<SlotRef> slots)
+void Type::add(std::initializer_list<SlotRef> slots)
 {
     for (const SlotRef& slotRef : slots) {
-        createSlot(slotRef.m_name, slotRef.m_type, slotRef.m_role);
+        createSlot(slotRef.m_role, slotRef.m_type);
     }
 }
 
-Slot& Type::createSlot(const std::string& name, Type& type, CellI& role)
+Slot& Type::createSlot(CellI& role, Type& type)
 {
     auto slotIt = m_slots.find(&role);
     if (slotIt != m_slots.end()) {
         if (&slotIt->second.slotType() != &type) {
-            throw "Member name already registered with an other class";
+            throw "Member label already registered with an other class";
         }
         return slotIt->second;
     } else {
         auto it = m_slots.emplace(std::piecewise_construct,
                                   std::forward_as_tuple(&role),
-                                  std::forward_as_tuple(kb, name, type, role));
+                                  std::forward_as_tuple(kb, role, type));
 
         Slot& slot = it.first->second;
         if (m_slotsList) {
@@ -245,14 +257,8 @@ std::map<CellI*, Slot>& Type::slots()
 }
 
 // ============================================================================
-Object::Object(brain::Brain& kb, Type& type) :
-    Object(kb, "", type)
-{
-}
-
-Object::Object(brain::Brain& kb, const std::string& name, Type& type) :
-    CellI(kb),
-    m_name(name), m_type(type)
+Object::Object(brain::Brain& kb, Type& type, const std::string& label) :
+    CellI(kb, label), m_type(type)
 {
     m_roles[&kb.cells.type] = &type;
 }
@@ -300,11 +306,6 @@ Type& Object::type()
 void Object::accept(Visitor& visitor)
 {
     visitor.visit(*this);
-}
-
-std::string Object::name() const
-{
-    return m_name;
 }
 
 std::map<CellI*, CellI*>& Object::roles()
@@ -375,11 +376,11 @@ void ListItem::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string ListItem::name() const
+std::string ListItem::label() const
 {
     std::stringstream ss;
     if (m_value) {
-        ss << "\"" << m_value->name() << "\"";
+        ss << "\"" << m_value->label() << "\"";
     }
     return ss.str();
 }
@@ -476,7 +477,7 @@ void List::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string List::name() const
+std::string List::label() const
 {
     std::stringstream ss;
     ss << "List<>" << std::endl;
@@ -579,7 +580,7 @@ void Number::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Number::name() const
+std::string Number::label() const
 {
     return std::to_string(m_value);
 }
@@ -652,11 +653,6 @@ Type& String::type()
 void String::accept(Visitor& visitor)
 {
     visitor.visit(*this);
-}
-
-std::string String::name() const
-{
-    return m_value;
 }
 
 const std::string& String::value() const
@@ -732,7 +728,7 @@ void Color::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Color::name() const
+std::string Color::label() const
 {
     std::stringstream ss;
     ss << "Color(" << m_inputColor.m_red << ", " << m_inputColor.m_green << ", " << m_inputColor.m_blue << ")";
@@ -834,7 +830,7 @@ void Pixel::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Pixel::name() const
+std::string Pixel::label() const
 {
     std::stringstream ss;
     ss << "Pixel[" << m_x.value() << ", " << m_y.value() << "](" << (int)m_inputColor.m_red << ", " << (int)m_inputColor.m_green << ", " << (int)m_inputColor.m_blue << ")";
@@ -848,8 +844,11 @@ const input::Color& Pixel::color() const
 
 // ============================================================================
 Picture::Picture(brain::Brain& kb, input::Picture& picture) :
-    CellI(kb),
-    m_name(picture.name()), m_width(picture.width()), m_height(picture.height()), m_widthCell(kb.pools.numbers.get(m_width)), m_heightCell(kb.pools.numbers.get(m_height))
+    CellI(kb, picture.label()),
+    m_width(picture.width()),
+    m_height(picture.height()),
+    m_widthCell(kb.pools.numbers.get(m_width)),
+    m_heightCell(kb.pools.numbers.get(m_height))
 {
     const int senzorSize = m_height * m_width;
 
@@ -923,11 +922,6 @@ Type& Picture::type()
 void Picture::accept(Visitor& visitor)
 {
     visitor.visit(*this);
-}
-
-std::string Picture::name() const
-{
-    return m_name;
 }
 
 Pixel& Picture::getPixel(int x, int y)
@@ -1029,7 +1023,7 @@ namespace op {
 
 // ============================================================================
 Same::Same(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb),
+    CellI(kb, "Same"),
     m_output(output), m_lhs(lhs), m_rhs(rhs)
 {
 }
@@ -1092,14 +1086,9 @@ void Same::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Same::name() const
-{
-    return "Same";
-}
-
 // ============================================================================
 NotSame::NotSame(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb),
+    CellI(kb, "NotSame"),
     m_output(output), m_lhs(lhs), m_rhs(rhs)
 {
 }
@@ -1162,14 +1151,9 @@ void NotSame::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string NotSame::name() const
-{
-    return "NotSame";
-}
-
 // ============================================================================
 Equal::Equal(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb),
+    CellI(kb, "Equal"),
     m_output(output), m_lhs(lhs), m_rhs(rhs)
 {
 }
@@ -1232,14 +1216,9 @@ void Equal::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Equal::name() const
-{
-    return "Equal";
-}
-
 // ============================================================================
 NotEqual::NotEqual(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb),
+    CellI(kb, "NotEqual"),
     m_output(output), m_lhs(lhs), m_rhs(rhs)
 {
 }
@@ -1302,14 +1281,9 @@ void NotEqual::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string NotEqual::name() const
-{
-    return "NotEqual";
-}
-
 // ============================================================================
 Has::Has(brain::Brain& kb, pipeline::Base& output, pipeline::Base& cell, pipeline::Base& role) :
-    CellI(kb),
+    CellI(kb, "Has"),
     m_output(output), m_cell(cell), m_role(role)
 {
 }
@@ -1372,14 +1346,9 @@ void Has::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Has::name() const
-{
-    return "Has";
-}
-
 // ============================================================================
 Get::Get(brain::Brain& kb, pipeline::Base& output, pipeline::Base& cell, pipeline::Base& role) :
-    CellI(kb),
+    CellI(kb, "Get"),
     m_output(output), m_cell(cell), m_role(role)
 {
 }
@@ -1442,14 +1411,9 @@ void Get::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Get::name() const
-{
-    return "Get";
-}
-
 // ============================================================================
 Set::Set(brain::Brain& kb, pipeline::Base& output, pipeline::Base& cell, pipeline::Base& role, pipeline::Base& value) :
-    CellI(kb),
+    CellI(kb, "Set"),
     m_output(output), m_cell(cell), m_role(role), m_value(value)
 {
 }
@@ -1520,16 +1484,11 @@ void Set::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Set::name() const
-{
-    return "Set";
-}
-
 namespace logic {
 
 // ============================================================================
 And::And(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb),
+    CellI(kb, "And"),
     m_output(output), m_lhs(lhs), m_rhs(rhs)
 {
 }
@@ -1592,14 +1551,9 @@ void And::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string And::name() const
-{
-    return "And";
-}
-
 // ============================================================================
 Or::Or(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb),
+    CellI(kb, "Or"),
     m_output(output), m_lhs(lhs), m_rhs(rhs)
 {
 }
@@ -1662,14 +1616,9 @@ void Or::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Or::name() const
-{
-    return "Or";
-}
-
 // ============================================================================
 Not::Not(brain::Brain& kb, pipeline::Base& output, pipeline::Base& input) :
-    CellI(kb),
+    CellI(kb, "Not"),
     m_output(output), m_input(input)
 {
 }
@@ -1725,17 +1674,12 @@ void Not::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Not::name() const
-{
-    return "Not";
-}
-
 } // namespace logic
 namespace math {
 
 // ============================================================================
 Add::Add(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb),
+    CellI(kb, "Add"),
     m_output(output), m_lhs(lhs), m_rhs(rhs)
 {
 }
@@ -1798,14 +1742,9 @@ void Add::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Add::name() const
-{
-    return "Add";
-}
-
 // ============================================================================
 Subtract::Subtract(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb),
+    CellI(kb, "Subtract"),
     m_output(output), m_lhs(lhs), m_rhs(rhs)
 {
 }
@@ -1868,14 +1807,9 @@ void Subtract::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Subtract::name() const
-{
-    return "Subtract";
-}
-
 // ============================================================================
 Multiply::Multiply(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb),
+    CellI(kb, "Multiply"),
     m_output(output), m_lhs(lhs), m_rhs(rhs)
 {
 }
@@ -1938,14 +1872,9 @@ void Multiply::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Multiply::name() const
-{
-    return "Multiply";
-}
-
 // ============================================================================
 Divide::Divide(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb),
+    CellI(kb, "Divide"),
     m_output(output), m_lhs(lhs), m_rhs(rhs)
 {
 }
@@ -2008,14 +1937,9 @@ void Divide::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Divide::name() const
-{
-    return "Divide";
-}
-
 // ============================================================================
 LessThan::LessThan(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb),
+    CellI(kb, "LessThan"),
     m_output(output), m_lhs(lhs), m_rhs(rhs)
 {
 }
@@ -2078,14 +2002,9 @@ void LessThan::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string LessThan::name() const
-{
-    return "LessThan";
-}
-
 // ============================================================================
 GreaterThan::GreaterThan(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb),
+    CellI(kb, "GreaterThan"),
     m_output(output), m_lhs(lhs), m_rhs(rhs)
 {
 }
@@ -2148,17 +2067,12 @@ void GreaterThan::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string GreaterThan::name() const
-{
-    return "GreaterThan";
-}
-
 } // namespace math
 } // namespace op
 namespace pipeline {
 // ============================================================================
-Base::Base(brain::Brain& kb, Base* first) :
-    CellI(kb),
+Base::Base(brain::Brain& kb, Base* first, const std::string& label) :
+    CellI(kb, label),
     m_first(first)
 {
 }
@@ -2174,8 +2088,8 @@ void Base::setCurrent()
 }
 
 // ============================================================================
-Void::Void(brain::Brain& kb, const std::string& name) :
-    Base(kb, this), m_name(name), m_current(this)
+Void::Void(brain::Brain& kb, const std::string& label) :
+    Base(kb, this, label), m_current(this)
 {
 }
 
@@ -2237,19 +2151,14 @@ void Void::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Void::name() const
-{
-    return m_name;
-}
-
 // ============================================================================
-Input::Input(brain::Brain& kb, CellI& value, const std::string& name) :
-    Base(kb, this), m_name(name), m_value(&value), m_current(this)
+Input::Input(brain::Brain& kb, CellI& value, const std::string& label) :
+    Base(kb, this, label), m_value(&value), m_current(this)
 {
 }
 
-Input::Input(brain::Brain& kb, CellI* value, const std::string& name) :
-    Base(kb, this), m_name(name), m_value(value), m_current(this)
+Input::Input(brain::Brain& kb, CellI* value, const std::string& label) :
+    Base(kb, this, label), m_value(value), m_current(this)
 {
 }
 
@@ -2316,14 +2225,9 @@ void Input::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Input::name() const
-{
-    return m_name;
-}
-
 // ============================================================================
-New::New(brain::Brain& kb, Type& objectType, const std::string& name) :
-    Base(kb, this), m_name(name), m_objectType(objectType), m_current(this)
+New::New(brain::Brain& kb, Type& objectType, const std::string& label) :
+    Base(kb, this, label), m_objectType(objectType), m_current(this)
 {
 }
 
@@ -2408,14 +2312,9 @@ void New::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string New::name() const
-{
-    return m_name;
-}
-
 // ============================================================================
-Fork::Fork(brain::Brain& kb, Base& input, const std::string& name) :
-    Base(kb, input.m_first), m_input(input), m_name(name)
+Fork::Fork(brain::Brain& kb, Base& input, const std::string& label) :
+    Base(kb, input.m_first, label), m_input(input)
 {
     input.addNext(*this);
 }
@@ -2494,19 +2393,14 @@ void Fork::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Fork::name() const
-{
-    return m_name;
-}
-
 void Fork::addBranch(Base& cell)
 {
     m_branch = &cell;
 }
 
 // ============================================================================
-Delete::Delete(brain::Brain& kb, Base& input, const std::string& name) :
-    Base(kb, input.m_first), m_name(name), m_input(&input)
+Delete::Delete(brain::Brain& kb, Base& input, const std::string& label) :
+    Base(kb, input.m_first, label), m_input(&input)
 {
 }
 
@@ -2562,11 +2456,6 @@ Type& Delete::type()
 void Delete::accept(Visitor& visitor)
 {
     visitor.visit(*this);
-}
-
-std::string Delete::name() const
-{
-    return m_name;
 }
 
 // ============================================================================
@@ -2645,14 +2534,9 @@ void Node::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string Node::name() const
-{
-    return m_name;
-}
-
 // ============================================================================
-IfThen::IfThen(brain::Brain& kb, Base& input, const std::string& name) :
-    Base(kb, input.m_first), m_name(name), m_input(input)
+IfThen::IfThen(brain::Brain& kb, Base& input, const std::string& label) :
+    Base(kb, input.m_first, label), m_input(input)
 {
 }
 
@@ -2741,11 +2625,6 @@ void IfThen::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string IfThen::name() const
-{
-    return m_name;
-}
-
 void IfThen::addCondition(Base& cell)
 {
     m_condition = &cell;
@@ -2762,8 +2641,8 @@ void IfThen::addElseBranch(Base& cell)
 }
 
 // ============================================================================
-DoWhile::DoWhile(brain::Brain& kb, Base& input, const std::string& name) :
-    Base(kb, input.m_first), m_name(name), m_input(input)
+DoWhile::DoWhile(brain::Brain& kb, Base& input, const std::string& label) :
+    Base(kb, input.m_first, label), m_input(input)
 {
 }
 
@@ -2844,14 +2723,9 @@ void DoWhile::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string DoWhile::name() const
-{
-    return m_name;
-}
-
 // ============================================================================
-While::While(brain::Brain& kb, Base& input, const std::string& name) :
-    Base(kb, input.m_first), m_name(name), m_input(input)
+While::While(brain::Brain& kb, Base& input, const std::string& label) :
+    Base(kb, input.m_first, label), m_input(input)
 {
 }
 
@@ -2929,11 +2803,6 @@ Type& While::type()
 void While::accept(Visitor& visitor)
 {
     visitor.visit(*this);
-}
-
-std::string While::name() const
-{
-    return m_name;
 }
 
 } // namespace pipeline
