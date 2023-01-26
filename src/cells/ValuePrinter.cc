@@ -19,26 +19,37 @@ void CellValuePrinter::visit(Type& type)
         } else {
             m_ss << ", ";
         }
-        m_ss << slotI.first << ": " << slotI.second.slotType().label();
+        m_ss << slotI.first->label() << ": " << slotI.second.slotType().label();
     }
     m_ss << " }";
 }
 
 void CellValuePrinter::visit(Object& dataCell)
 {
+    brain::Brain& kb = dataCell.kb;
+
     if (!dataCell.label().empty()) {
         m_ss << dataCell.label() << ": ";
     }
     m_ss << dataCell.type().label() << " { ";
     bool isFirst = true;
-    for (auto& slotI : dataCell.type().slots()) {
+
+    CellI& cellType           = dataCell.type();
+    CellI& slotList           = cellType[kb.cells.slotList];
+    CellI* currentListItemPtr = slotList.has(kb.sequence.first) ? &slotList[kb.sequence.first] : nullptr;
+    while (currentListItemPtr) {
+        CellI& currentListItem = *currentListItemPtr;
+        CellI& slot            = currentListItem[kb.coding.value];
+
         if (isFirst) {
             isFirst = false;
         } else {
             m_ss << ", ";
         }
         m_ss << ".";
-        slotI.second.accept(*this);
+        slot.accept(*this);
+
+        currentListItemPtr = currentListItem.has(kb.sequence.next) ? &currentListItem[kb.sequence.next] : nullptr;
     }
     m_ss << " }";
 }
@@ -63,7 +74,8 @@ void CellValuePrinter::visit(List& List)
         } else {
             m_ss << ",";
         }
-        m_ss << " " << item.value().label();
+        m_ss << " ";
+        tryVisitWith(item.value(), *this);
     }
     m_ss << " ]";
 }
@@ -80,12 +92,12 @@ void CellValuePrinter::visit(String& cell)
 
 void CellValuePrinter::visit(hybrid::Color& cell)
 {
-    m_ss << "(Color) rgb(" << (int)cell.color().m_red << ", " << (int)cell.color().m_green << "" << (int)cell.color().m_blue << ")";
+    m_ss << "Color(" << (int)cell.color().m_red << "," << (int)cell.color().m_green << "," << (int)cell.color().m_blue << ")";
 }
 
 void CellValuePrinter::visit(hybrid::Pixel& cell)
 {
-    m_ss << "(Pixel) [" << (int)cell.color().m_red << ", " << (int)cell.color().m_green << "" << (int)cell.color().m_blue << "]";
+    m_ss << "Pixel[" << (int)cell.color().m_red << "," << (int)cell.color().m_green << "," << (int)cell.color().m_blue << "]";
 }
 
 void CellValuePrinter::visit(hybrid::Picture& cell)

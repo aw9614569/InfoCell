@@ -69,19 +69,23 @@ void CellStructPrinter::visit(hybrid::Picture& cell)
 void CellStructPrinter::printImpl(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    Type& type = cell.type();
+    TypeBase& type   = cell.type();
     m_ss << "(" << type.label() << ") ID" << &cell << std::endl;
-    for (auto& slotI : type.slots()) {
-        Slot& slot = slotI.second;
+    CellI& slotList           = type[kb.cells.slotList];
 
-        if (!cell.has(slot.slotRole())) {
+    for (CellI* currentListItemPtr = slotList.has(kb.sequence.first) ? &slotList[kb.sequence.first] : nullptr; currentListItemPtr; currentListItemPtr = (*currentListItemPtr).has(kb.sequence.next) ? &(*currentListItemPtr)[kb.sequence.next] : nullptr) {
+        CellI& currentListItem = *currentListItemPtr;
+        CellI& slot            = currentListItem[kb.coding.value];
+        CellI& role            = slot[kb.cells.slotRole];
+
+        if (!cell.has(role)) {
             continue;
         }
         CellValuePrinter valuePrinter;
         Type& slotType       = static_cast<Type&>(slot[kb.cells.slotType]);
-        CellI& connectedCell = cell[slot.slotRole()];
+        CellI& connectedCell = cell[role];
         connectedCell.accept(valuePrinter);
-        m_ss << "    +--(" << slot.slotRole().label() << ")--> (" << slotType.label() << ") ID" << &connectedCell << " // " << valuePrinter.print() << std::endl;
+        m_ss << "    +--(" << role.label() << ")--> (" << slotType.label() << ") ID" << &connectedCell << " // " << valuePrinter.print() << std::endl;
     }
 }
 

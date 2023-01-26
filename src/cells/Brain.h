@@ -76,13 +76,13 @@ class Types
 {
 public:
     Types(brain::Brain& kb);
-    Type& ListOf(Type& type);
-    Type& ListItemOf(Type& type);
+    Type& ListOf(TypeBase& type);
+    Type& ListItemOf(TypeBase& type);
 
 protected:
     brain::Brain& kb;
-    std::map<Type*, Type> m_listTypes;
-    std::map<Type*, Type> m_listItemTypes;
+    std::map<TypeBase*, Type> m_listTypes;
+    std::map<TypeBase*, Type> m_listItemTypes;
     TypeInit m_init;
     friend class TypeInit;
 
@@ -109,7 +109,8 @@ class Cells
 public:
     Cells(brain::Brain& kb, Type& voidType, Type& anyType);
     Object type;
-    Object slots;
+    Object slotList;
+    Object slotMap;
     Object slotType;
     Object slotRole;
     Object emptyObject;

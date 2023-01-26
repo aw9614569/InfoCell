@@ -36,7 +36,6 @@ public:
     void writeFile(const std::filesystem::path& path);
 
 protected:
-    bool tryVisit(CellI& cell);
     fsvgui::Screen processResult();
 
     int m_width;

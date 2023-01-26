@@ -36,7 +36,7 @@ void Printer::visit(Object& cell)
 void Printer::visit(ListItem& cell)
 {
     Element valueAsSvg;
-    if (tryVisit(cell.value())) {
+    if (tryVisitWith(cell.value(), *this)) {
         valueAsSvg = m_stack.top();
         m_stack.pop();
     } else {
@@ -52,7 +52,7 @@ void Printer::visit(List& list)
     int i = 1;
     for (ListItem& item : list.items()) {
         Element valueAsSvg;
-        if (tryVisit(item.value())) {
+        if (tryVisitWith(item.value(), *this)) {
             valueAsSvg = m_stack.top();
             m_stack.pop();
         } else {
@@ -173,33 +173,6 @@ Screen Printer::processResult()
     m_stack.push(result);
 
     return screen;
-}
-
-bool Printer::tryVisit(CellI& cell)
-{
-    brain::Brain& kb = cell.kb;
-    if (&cell.type() == &kb.type.Color) {
-        visit(static_cast<hybrid::Color&>(cell));
-        return true;
-    }
-    if (&cell.type() == &kb.type.Number) {
-        visit(static_cast<Number&>(cell));
-        return true;
-    }
-    if (&cell.type() == &kb.type.String) {
-        visit(static_cast<String&>(cell));
-        return true;
-    }
-    if (&cell.type() == &kb.type.Type_) {
-        visit(static_cast<Type&>(cell));
-        return true;
-    }
-    if (&cell.type() == &kb.type.Pixel) {
-        visit(static_cast<hybrid::Pixel&>(cell));
-        return true;
-    }
-
-    return false;
 }
 
 } // namespace svg

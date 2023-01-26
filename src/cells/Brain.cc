@@ -111,15 +111,16 @@ Types::Types(brain::Brain& kb) :
 {
 }
 
-Type& Types::ListOf(Type& type)
+Type& Types::ListOf(TypeBase& type)
 {
     auto numberIt = m_listTypes.find(&type);
     if (numberIt != m_listTypes.end()) {
         return numberIt->second;
     } else {
-        auto it        = m_listTypes.emplace(std::piecewise_construct,
+        std::string typeName = std::format("List<{}>", type.label());
+        auto it              = m_listTypes.emplace(std::piecewise_construct,
                                              std::forward_as_tuple(&type),
-                                             std::forward_as_tuple(kb, "List<T>"));
+                                             std::forward_as_tuple(kb, typeName));
         Type& listType = it.first->second;
         Type& itemType = ListItemOf(type);
         listType.add({ { kb.sequence.first, itemType },
@@ -130,15 +131,48 @@ Type& Types::ListOf(Type& type)
     }
 }
 
-Type& Types::ListItemOf(Type& type)
+Type& Types::ListItemOf(TypeBase& type)
 {
+#if 0
+    Template ListItemTemplate(kb, "template<T> ListItem",
+        { { kb.coding.objectType, kb.type.Type_ } },
+        { { kb.coding.value, kb.coding.params, kb.coding.objectType } });
+
+    ListItemTemplate.add({ { kb.sequence.previous, ListItemTemplate },
+                           { kb.sequence.next, ListItemTemplate } });
+
+    ListItemTemplate[kb.type.Type_][kb.type.template_];
+
+    ListItemTemplateParam1[kb.coding.role] = kb.coding.objectType;
+    ListItemTemplateParam1[kb.coding.type] = kb.type.Type_;
+    ListItemTemplate[kb.coding.params]  = { ListItemTemplateParam1 };
+
+    ListItemTemplateSlot1[kb.coding.role]                 = kb.coding.value;
+    ListItemTemplateSlot1[kb.coding.template_.slotType]  = kb.coding.template_.slot.param; // one of { type, param, templateOf }
+    ListItemTemplateSlot1[kb.coding.template_.param] = kb.coding.objectType;
+
+    ListItemTemplateSlot2[kb.coding.template_.slotRole]   = kb.sequence.previous;
+    ListItemTemplateSlot2[kb.coding.template_.slotType]   = kb.coding.template_.slot.templateOf; // one of { type, param, templateOf, selfType }
+    ListItemTemplateSlot2[kb.coding.template_.templateOf] = ListItemTemplate;
+    ListItemTemplateSlot2[kb.coding.template_.param]      = kb.coding.objectType;
+
+    ListItemTemplateSlot3[kb.coding.template_.slotRole]   = kb.sequence.next;
+    ListItemTemplateSlot3[kb.coding.template_.slotType]   = kb.coding.template_.slot.selfType; // one of { type, param, templateOf, selfType }
+
+    ListItemTemplate[kb.coding.slots] = { ListItemTemplateSlot1, ListItemTemplateSlot2, ListItemTemplateSlot3 };
+
+    TemplateInstance listItemT(ListItemTemplate, kb.coding.objectType, type);
+
+ // Type ListItemTemplate(kb, "template<T> ListItem", { { kb.coding.parameters, kb.type.Type_ } });
+#endif
     auto listItemIt = m_listItemTypes.find(&type);
     if (listItemIt != m_listItemTypes.end()) {
         return listItemIt->second;
     } else {
+        std::string typeName = std::format("ListItem<{}>", type.label());
         auto it = m_listItemTypes.emplace(std::piecewise_construct,
                                           std::forward_as_tuple(&type),
-                                          std::forward_as_tuple(kb, "ListItem<T>"));
+                                          std::forward_as_tuple(kb, typeName));
 
         Type& itemType = it.first->second;
         itemType.add({ { kb.sequence.previous, itemType },
@@ -150,7 +184,8 @@ Type& Types::ListItemOf(Type& type)
 
 Cells::Cells(brain::Brain& kb, Type& voidType, Type& anyType) :
     type(kb, anyType, "type"),
-    slots(kb, anyType, "slots"),
+    slotList(kb, anyType, "slotList"),
+    slotMap(kb, anyType, "slotMap"),
     slotType(kb, anyType, "slotType"),
     slotRole(kb, anyType, "slotRole"),
     emptyObject(kb, voidType)
@@ -350,7 +385,7 @@ Brain::Brain() :
 {
     type.Type_.add(
         { { cells.type, type.Type_ },
-          { cells.slots, type.ListOf(type.Slot) } });
+          { cells.slotList, type.ListOf(type.Slot) } });
 
     type.Slot.add(
         { { cells.slotType, type.Type_ },
