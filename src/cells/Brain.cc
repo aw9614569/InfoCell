@@ -111,7 +111,7 @@ Types::Types(brain::Brain& kb) :
 {
 }
 
-Type& Types::ListOf(TypeBase& type)
+Type& Types::ListOf(CellI& type)
 {
     auto numberIt = m_listTypes.find(&type);
     if (numberIt != m_listTypes.end()) {
@@ -131,7 +131,7 @@ Type& Types::ListOf(TypeBase& type)
     }
 }
 
-Type& Types::ListItemOf(TypeBase& type)
+Type& Types::ListItemOf(CellI& type)
 {
 #if 0
     Template ListItemTemplate(kb, "template<T> ListItem",

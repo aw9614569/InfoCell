@@ -69,7 +69,7 @@ void CellStructPrinter::visit(hybrid::Picture& cell)
 void CellStructPrinter::printImpl(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    TypeBase& type   = cell.type();
+    CellI& type   = cell.type();
     m_ss << "(" << type.label() << ") ID" << &cell << std::endl;
     CellI& slotList           = type[kb.cells.slotList];
 

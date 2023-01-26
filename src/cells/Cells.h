@@ -14,7 +14,6 @@ class Brain;
 }
 
 // ============================================================================
-class TypeBase;
 class Visitor;
 class CellI
 {
@@ -26,8 +25,10 @@ public:
     virtual void set(CellI& role, CellI& value) = 0;
     virtual void operator()()                   = 0;
     virtual CellI& operator[](CellI& role)      = 0;
-    virtual TypeBase& type()                    = 0;
     virtual void accept(Visitor& visitor)       = 0;
+
+    CellI& get(CellI& role);
+    CellI& type();
 
     virtual std::string label() const;
     virtual void label(const std::string& label);
@@ -51,7 +52,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
     Slot* prev();
     Slot* next();
@@ -63,31 +63,22 @@ public:
 class Slot : public CellI
 {
 public:
-    Slot(brain::Brain& kb, CellI& role, TypeBase& type);
+    Slot(brain::Brain& kb, CellI& role, CellI& type);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
-    TypeBase& slotType();
+    CellI& slotType();
     CellI& slotRole();
 
     SlotMapTypeListItem m_slotMapTypeListItem;
 
 protected:
     CellI& m_slotRole;
-    TypeBase& m_slotType;
-};
-
-// ============================================================================
-class TypeBase : public CellI
-{
-public:
-    TypeBase(brain::Brain& kb);
-    TypeBase(brain::Brain& kb, const std::string& label);
+    CellI& m_slotType;
 };
 
 // ============================================================================
@@ -101,13 +92,12 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
     SlotMap& m_slotMap;
 };
 
-class SlotMapType : public TypeBase
+class SlotMapType : public CellI
 {
 public:
     SlotMapType(brain::Brain& kb, SlotMap& slotMap);
@@ -116,7 +106,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
     SlotMap& m_slotMap;
@@ -134,7 +123,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
     std::map<CellI*, Slot>& m_slots;
@@ -145,12 +133,12 @@ public:
 class SlotRef // Only exists to bypass the non-movable std::initalizer_list limitations
 {
 public:
-    SlotRef(CellI& role, TypeBase& type);
+    SlotRef(CellI& role, CellI& type);
 
     CellI& m_role;
-    TypeBase& m_type;
+    CellI& m_type;
 };
-class Type : public TypeBase
+class Type : public CellI
 {
 public:
     explicit Type(brain::Brain& kb, const std::string& label = "Type");
@@ -162,11 +150,10 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
     void add(std::initializer_list<SlotRef> slots);
-    Slot& createSlot(CellI& role, TypeBase& type);
+    Slot& createSlot(CellI& role, CellI& type);
     void manualInit();
 
     bool hasSlot(CellI& role);
@@ -215,7 +202,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
     void add(std::initializer_list<TemplateSlotRef> slots);
@@ -238,19 +224,18 @@ protected:
 class Object : public CellI
 {
 public:
-    Object(brain::Brain& kb, TypeBase& classCell, const std::string& label = "");
+    Object(brain::Brain& kb, CellI& classCell, const std::string& label = "");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
     std::map<CellI*, CellI*>& roles();
 
 protected:
-    TypeBase& m_type;
+    CellI& m_type;
     std::map<CellI*, CellI*> m_roles;
 };
 
@@ -264,7 +249,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
     std::string label() const override;
 
@@ -295,7 +279,7 @@ class List : public CellI
     T& ref(T* obj) { return *obj; }
 
 public:
-    List(brain::Brain& kb, TypeBase& valueType);
+    List(brain::Brain& kb, CellI& valueType);
 
     template <typename T>
     List(brain::Brain& kb, std::vector<T>& values) :
@@ -319,18 +303,17 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
     std::string label() const override;
 
     std::list<ListItem>& items();
     void add(CellI& value);
-    TypeBase& valueType();
+    CellI& valueType();
     Type& listType();
     Type& itemType();
 
 protected:
-    TypeBase& m_valueType;
+    CellI& m_valueType;
     Type& m_listType;
     Type& m_itemType;
     std::list<ListItem> m_items;
@@ -347,7 +330,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
     int value() const;
@@ -371,7 +353,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
     const std::string& value() const;
@@ -395,7 +376,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
     const input::Color& color() const;
@@ -414,7 +394,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
     const input::Color& color() const;
@@ -441,7 +420,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
     Pixel& getPixel(int x, int y);
@@ -485,7 +463,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -504,7 +481,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -523,7 +499,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -542,7 +517,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -561,7 +535,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -580,7 +553,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -599,7 +571,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -620,7 +591,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -639,7 +609,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -658,7 +627,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -680,7 +648,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -699,7 +666,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -718,7 +684,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -737,7 +702,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -756,7 +720,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -775,7 +738,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -812,7 +774,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -830,7 +791,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -848,7 +808,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -867,7 +826,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
     void addBranch(Base& cell);
@@ -888,7 +846,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -919,7 +876,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
 protected:
@@ -947,7 +903,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
     void addCondition(Base& cell);
@@ -971,7 +926,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
     void addCondition(Base& cell);
@@ -993,7 +947,6 @@ public:
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    TypeBase& type() override;
     void accept(Visitor& visitor) override;
 
     void addCondition(Base& cell);

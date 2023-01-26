@@ -18,6 +18,16 @@ CellI::CellI(brain::Brain& kb, const std::string& label) :
 {
 }
 
+CellI& CellI::get(CellI& role)
+{
+    return (*this)[role];
+}
+
+CellI& CellI::type()
+{
+    return (*this)[kb.cells.type];
+}
+
 std::string CellI::label() const
 {
     return m_label;
@@ -60,12 +70,12 @@ bool CellI::operator!=(CellI& rhs)
 }
 
 // ============================================================================
-SlotRef::SlotRef(CellI& role, TypeBase& type) :
+SlotRef::SlotRef(CellI& role, CellI& type) :
     m_role(role), m_type(type)
 {
 }
 
-Slot::Slot(brain::Brain& kb, CellI& role, TypeBase& type) :
+Slot::Slot(brain::Brain& kb, CellI& role, CellI& type) :
     CellI(kb),
     m_slotMapTypeListItem(kb),
     m_slotRole(role),
@@ -93,7 +103,7 @@ void Slot::operator()()
 CellI& Slot::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.Slot;
     }
     if (&role == &kb.cells.slotType) {
         return m_slotType;
@@ -105,17 +115,12 @@ CellI& Slot::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-TypeBase& Slot::type()
-{
-    return kb.type.Slot;
-}
-
 void Slot::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 
-TypeBase& Slot::slotType()
+CellI& Slot::slotType()
 {
     return m_slotType;
 }
@@ -158,7 +163,7 @@ void SlotMapTypeListItem::operator()()
 CellI& SlotMapTypeListItem::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.ListItemOf(kb.type.Slot);
     }
     if (&role == &kb.sequence.previous) {
         if (prev())
@@ -177,11 +182,6 @@ CellI& SlotMapTypeListItem::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& SlotMapTypeListItem::type()
-{
-    return kb.type.ListItemOf(kb.type.Slot);
 }
 
 void SlotMapTypeListItem::accept(Visitor& visitor)
@@ -206,17 +206,6 @@ Slot* SlotMapTypeListItem::next()
     }
 
     return &nextIter->second;
-}
-
-// ============================================================================
-TypeBase::TypeBase(brain::Brain& kb) :
-    CellI(kb)
-{
-}
-
-TypeBase::TypeBase(brain::Brain& kb, const std::string& label) :
-    CellI(kb, label)
-{
 }
 
 // ============================================================================
@@ -245,7 +234,7 @@ void SlotMapTypeList::operator()()
 CellI& SlotMapTypeList::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.ListOf(kb.type.Slot);
     }
     if (&role == &kb.sequence.first) {
         if (m_slotMap.m_slots.empty()) {
@@ -267,11 +256,6 @@ CellI& SlotMapTypeList::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-TypeBase& SlotMapTypeList::type()
-{
-    return kb.type.ListOf(kb.type.Slot);
-}
-
 void SlotMapTypeList::accept(Visitor& visitor)
 {
     // visitor.visit(*this);
@@ -279,7 +263,7 @@ void SlotMapTypeList::accept(Visitor& visitor)
 
 // ============================================================================
 SlotMapType::SlotMapType(brain::Brain& kb, SlotMap& slotMap) :
-    TypeBase(kb), m_slotMap(slotMap), m_slotMapTypeList(kb, slotMap)
+    CellI(kb), m_slotMap(slotMap), m_slotMapTypeList(kb, slotMap)
 {
 }
 
@@ -304,18 +288,13 @@ void SlotMapType::operator()()
 CellI& SlotMapType::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.Type_;
     }
     if (&role == &kb.cells.slotList) {
         return m_slotMapTypeList;
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& SlotMapType::type()
-{
-    return kb.type.Type_;
 }
 
 void SlotMapType::accept(Visitor& visitor)
@@ -356,7 +335,7 @@ void SlotMap::operator()()
 CellI& SlotMap::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return m_slotMapType;
     }
     auto slotIt = m_slots.find(&role);
     if (slotIt != m_slots.end()) {
@@ -366,11 +345,6 @@ CellI& SlotMap::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-TypeBase& SlotMap::type()
-{
-    return m_slotMapType;
-}
-
 void SlotMap::accept(Visitor& visitor)
 {
     // visitor.visit(*this);
@@ -378,7 +352,7 @@ void SlotMap::accept(Visitor& visitor)
 
 // ============================================================================
 Type::Type(brain::Brain& kb, const std::string& label) :
-    TypeBase(kb, label),
+    CellI(kb, label),
     m_slotsList(new List(kb, kb.type.Slot)),
     m_slotMap(kb, m_slots)
 {
@@ -386,7 +360,7 @@ Type::Type(brain::Brain& kb, const std::string& label) :
 }
 
 Type::Type(brain::Brain& kb, const std::string& label, bool) :
-    TypeBase(kb, label),
+    CellI(kb, label),
     m_slotMap(kb, m_slots)
 {
     // will be inited with manualInit() for bootstrap
@@ -398,7 +372,7 @@ Type::Type(brain::Brain& kb, std::initializer_list<SlotRef> slots) :
 }
 
 Type::Type(brain::Brain& kb, const std::string& label, std::initializer_list<SlotRef> slots) :
-    TypeBase(kb, label),
+    CellI(kb, label),
     m_slotsList(new List(kb, kb.type.Slot)),
     m_slotMap(kb, m_slots)
 {
@@ -430,7 +404,7 @@ void Type::operator()()
 CellI& Type::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.Type_;
     }
     if (&role == &kb.cells.slotList) {
         return *m_slotsList;
@@ -440,11 +414,6 @@ CellI& Type::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Type::type()
-{
-    return kb.type.Type_;
 }
 
 void Type::accept(Visitor& visitor)
@@ -459,7 +428,7 @@ void Type::add(std::initializer_list<SlotRef> slots)
     }
 }
 
-Slot& Type::createSlot(CellI& role, TypeBase& type)
+Slot& Type::createSlot(CellI& role, CellI& type)
 {
     auto slotIt = m_slots.find(&role);
     if (slotIt != m_slots.end()) {
@@ -511,7 +480,7 @@ std::map<CellI*, Slot>& Type::slots()
 }
 
 // ============================================================================
-Object::Object(brain::Brain& kb, TypeBase& type, const std::string& label) :
+Object::Object(brain::Brain& kb, CellI& type, const std::string& label) :
     CellI(kb, label), m_type(type)
 {
     m_roles[&kb.cells.type] = &type;
@@ -550,11 +519,6 @@ CellI& Object::operator[](CellI& role)
         return kb.cells.emptyObject;
 
     return *findIt->second;
-}
-
-TypeBase& Object::type()
-{
-    return m_type;
 }
 
 void Object::accept(Visitor& visitor)
@@ -626,11 +590,6 @@ CellI& ListItem::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-TypeBase& ListItem::type()
-{
-    return m_type;
-}
-
 void ListItem::accept(Visitor& visitor)
 {
     visitor.visit(*this);
@@ -676,7 +635,7 @@ void ListItem::value(CellI* v)
 }
 
 // ============================================================================
-List::List(brain::Brain& kb, TypeBase& valueType) :
+List::List(brain::Brain& kb, CellI& valueType) :
     CellI(kb),
     m_valueType(valueType),
     m_listType(kb.type.ListOf(valueType)),
@@ -731,11 +690,6 @@ CellI& List::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-TypeBase& List::type()
-{
-    return m_listType;
-}
-
 void List::accept(Visitor& visitor)
 {
     visitor.visit(*this);
@@ -772,7 +726,7 @@ void List::add(CellI& value)
     listItemCell.value(&value);
 }
 
-TypeBase& List::valueType()
+CellI& List::valueType()
 {
     return m_valueType;
 }
@@ -834,11 +788,6 @@ CellI& Number::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-TypeBase& Number::type()
-{
-    return kb.type.Number;
-}
-
 void Number::accept(Visitor& visitor)
 {
     visitor.visit(*this);
@@ -897,7 +846,7 @@ void String::operator()()
 CellI& String::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.String;
     } else if (&role == &kb.coding.value) {
         if (m_characters.empty()) {
             calculateCharacters();
@@ -908,11 +857,6 @@ CellI& String::operator[](CellI& role)
     } else {
         return kb.cells.emptyObject;
     }
-}
-
-TypeBase& String::type()
-{
-    return kb.type.String;
 }
 
 void String::accept(Visitor& visitor)
@@ -968,7 +912,7 @@ void Color::operator()()
 CellI& Color::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.Color;
     }
     if (&role == &kb.colors.red) {
         return kb.pools.numbers.get(m_inputColor.m_red);
@@ -981,11 +925,6 @@ CellI& Color::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Color::type()
-{
-    return kb.type.Color;
 }
 
 void Color::accept(Visitor& visitor)
@@ -1051,7 +990,7 @@ void Pixel::operator()()
 CellI& Pixel::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.Pixel;
     }
     if (&role == &kb.directions.up && m_up) {
         return *m_up;
@@ -1076,11 +1015,6 @@ CellI& Pixel::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Pixel::type()
-{
-    return kb.type.Pixel;
 }
 
 void Pixel::accept(Visitor& visitor)
@@ -1150,7 +1084,7 @@ void Picture::operator()()
 CellI& Picture::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.Picture;
     }
     if (&role == &kb.dimensions.width) {
         return m_widthCell;
@@ -1163,11 +1097,6 @@ CellI& Picture::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Picture::type()
-{
-    return kb.type.Picture;
 }
 
 void Picture::accept(Visitor& visitor)
@@ -1312,7 +1241,7 @@ void Same::operator()()
 CellI& Same::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.op.Same;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -1325,11 +1254,6 @@ CellI& Same::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Same::type()
-{
-    return kb.type.op.Same;
 }
 
 void Same::accept(Visitor& visitor)
@@ -1377,7 +1301,7 @@ void NotSame::operator()()
 CellI& NotSame::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.op.NotSame;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -1390,11 +1314,6 @@ CellI& NotSame::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& NotSame::type()
-{
-    return kb.type.op.NotSame;
 }
 
 void NotSame::accept(Visitor& visitor)
@@ -1442,7 +1361,7 @@ void Equal::operator()()
 CellI& Equal::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.op.Equal;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -1455,11 +1374,6 @@ CellI& Equal::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Equal::type()
-{
-    return kb.type.op.Equal;
 }
 
 void Equal::accept(Visitor& visitor)
@@ -1507,7 +1421,7 @@ void NotEqual::operator()()
 CellI& NotEqual::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.op.NotEqual;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -1520,11 +1434,6 @@ CellI& NotEqual::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& NotEqual::type()
-{
-    return kb.type.op.NotEqual;
 }
 
 void NotEqual::accept(Visitor& visitor)
@@ -1572,7 +1481,7 @@ void Has::operator()()
 CellI& Has::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.op.Has;
     }
     if (&role == &kb.coding.cell) {
         return m_cell;
@@ -1585,11 +1494,6 @@ CellI& Has::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Has::type()
-{
-    return kb.type.op.Has;
 }
 
 void Has::accept(Visitor& visitor)
@@ -1637,7 +1541,7 @@ void Get::operator()()
 CellI& Get::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.op.Get;
     }
     if (&role == &kb.coding.cell) {
         return m_cell;
@@ -1650,11 +1554,6 @@ CellI& Get::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Get::type()
-{
-    return kb.type.op.Get;
 }
 
 void Get::accept(Visitor& visitor)
@@ -1707,7 +1606,7 @@ void Set::operator()()
 CellI& Set::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.op.Set;
     }
     if (&role == &kb.coding.cell) {
         return m_cell;
@@ -1723,11 +1622,6 @@ CellI& Set::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Set::type()
-{
-    return kb.type.op.Set;
 }
 
 void Set::accept(Visitor& visitor)
@@ -1777,7 +1671,7 @@ void And::operator()()
 CellI& And::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.op.logic.And;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -1790,11 +1684,6 @@ CellI& And::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& And::type()
-{
-    return kb.type.op.logic.And;
 }
 
 void And::accept(Visitor& visitor)
@@ -1842,7 +1731,7 @@ void Or::operator()()
 CellI& Or::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.op.logic.Or;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -1855,11 +1744,6 @@ CellI& Or::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Or::type()
-{
-    return kb.type.op.logic.Or;
 }
 
 void Or::accept(Visitor& visitor)
@@ -1903,7 +1787,7 @@ void Not::operator()()
 CellI& Not::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.op.logic.Not;
     }
     if (&role == &kb.coding.input) {
         return m_input;
@@ -1913,11 +1797,6 @@ CellI& Not::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Not::type()
-{
-    return kb.type.op.logic.Not;
 }
 
 void Not::accept(Visitor& visitor)
@@ -1968,7 +1847,7 @@ void Add::operator()()
 CellI& Add::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.op.math.Add;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -1981,11 +1860,6 @@ CellI& Add::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Add::type()
-{
-    return kb.type.op.math.Add;
 }
 
 void Add::accept(Visitor& visitor)
@@ -2033,7 +1907,7 @@ void Subtract::operator()()
 CellI& Subtract::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.op.math.Subtract;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2046,11 +1920,6 @@ CellI& Subtract::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Subtract::type()
-{
-    return kb.type.op.math.Subtract;
 }
 
 void Subtract::accept(Visitor& visitor)
@@ -2098,7 +1967,7 @@ void Multiply::operator()()
 CellI& Multiply::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.op.math.Multiply;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2111,11 +1980,6 @@ CellI& Multiply::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Multiply::type()
-{
-    return kb.type.op.math.Multiply;
 }
 
 void Multiply::accept(Visitor& visitor)
@@ -2163,7 +2027,7 @@ void Divide::operator()()
 CellI& Divide::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.op.math.Divide;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2176,11 +2040,6 @@ CellI& Divide::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Divide::type()
-{
-    return kb.type.op.math.Divide;
 }
 
 void Divide::accept(Visitor& visitor)
@@ -2228,7 +2087,7 @@ void LessThan::operator()()
 CellI& LessThan::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.op.math.LessThan;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2241,11 +2100,6 @@ CellI& LessThan::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& LessThan::type()
-{
-    return kb.type.op.math.LessThan;
 }
 
 void LessThan::accept(Visitor& visitor)
@@ -2293,7 +2147,7 @@ void GreaterThan::operator()()
 CellI& GreaterThan::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.op.math.GreaterThan;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2306,11 +2160,6 @@ CellI& GreaterThan::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& GreaterThan::type()
-{
-    return kb.type.op.math.GreaterThan;
 }
 
 void GreaterThan::accept(Visitor& visitor)
@@ -2377,7 +2226,7 @@ void Void::operator()()
 CellI& Void::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.pipeline.Void;
     }
     if (&role == &kb.sequence.first) {
         return *m_first;
@@ -2390,11 +2239,6 @@ CellI& Void::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Void::type()
-{
-    return kb.type.pipeline.Void;
 }
 
 void Void::accept(Visitor& visitor)
@@ -2448,7 +2292,7 @@ void Input::operator()()
 CellI& Input::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.pipeline.Input;
     }
     if (&role == &kb.sequence.first) {
         return *m_first;
@@ -2464,11 +2308,6 @@ CellI& Input::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Input::type()
-{
-    return kb.type.pipeline.Input;
 }
 
 void Input::accept(Visitor& visitor)
@@ -2553,11 +2392,6 @@ CellI& New::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-TypeBase& New::type()
-{
-    return kb.type.pipeline.New;
-}
-
 void New::accept(Visitor& visitor)
 {
     visitor.visit(*this);
@@ -2613,7 +2447,7 @@ void Fork::operator()()
 CellI& Fork::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.pipeline.Fork;
     }
     if (&role == &kb.sequence.first) {
         return *m_first;
@@ -2632,11 +2466,6 @@ CellI& Fork::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Fork::type()
-{
-    return kb.type.pipeline.Fork;
 }
 
 void Fork::accept(Visitor& visitor)
@@ -2687,7 +2516,7 @@ void Delete::operator()()
 CellI& Delete::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.pipeline.Delete;
     }
     if (&role == &kb.sequence.first) {
         return *m_first;
@@ -2697,11 +2526,6 @@ CellI& Delete::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Delete::type()
-{
-    return kb.type.pipeline.Delete;
 }
 
 void Delete::accept(Visitor& visitor)
@@ -2754,7 +2578,7 @@ void Node::operator()()
 CellI& Node::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.pipeline.Node;
     }
     if (&role == &kb.sequence.first) {
         return *m_first;
@@ -2773,11 +2597,6 @@ CellI& Node::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& Node::type()
-{
-    return kb.type.pipeline.Node;
 }
 
 void Node::accept(Visitor& visitor)
@@ -2842,7 +2661,7 @@ void IfThen::operator()()
 CellI& IfThen::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.pipeline.IfThen;
     }
     if (&role == &kb.sequence.first) {
         return *m_first;
@@ -2864,11 +2683,6 @@ CellI& IfThen::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& IfThen::type()
-{
-    return kb.type.pipeline.IfThen;
 }
 
 void IfThen::accept(Visitor& visitor)
@@ -2943,7 +2757,7 @@ void DoWhile::operator()()
 CellI& DoWhile::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.pipeline.DoWhile;
     }
     if (&role == &kb.sequence.first) {
         return *m_first;
@@ -2962,11 +2776,6 @@ CellI& DoWhile::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& DoWhile::type()
-{
-    return kb.type.pipeline.DoWhile;
 }
 
 void DoWhile::accept(Visitor& visitor)
@@ -3025,7 +2834,7 @@ void While::operator()()
 CellI& While::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return type();
+        return kb.type.pipeline.While;
     }
     if (&role == &kb.sequence.first) {
         return *m_first;
@@ -3044,11 +2853,6 @@ CellI& While::operator[](CellI& role)
     }
 
     return kb.cells.emptyObject;
-}
-
-TypeBase& While::type()
-{
-    return kb.type.pipeline.While;
 }
 
 void While::accept(Visitor& visitor)

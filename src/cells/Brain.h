@@ -76,13 +76,13 @@ class Types
 {
 public:
     Types(brain::Brain& kb);
-    Type& ListOf(TypeBase& type);
-    Type& ListItemOf(TypeBase& type);
+    Type& ListOf(CellI& type);
+    Type& ListItemOf(CellI& type);
 
 protected:
     brain::Brain& kb;
-    std::map<TypeBase*, Type> m_listTypes;
-    std::map<TypeBase*, Type> m_listItemTypes;
+    std::map<CellI*, Type> m_listTypes;
+    std::map<CellI*, Type> m_listItemTypes;
     TypeInit m_init;
     friend class TypeInit;
 
