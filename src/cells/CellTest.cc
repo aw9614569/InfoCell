@@ -120,10 +120,16 @@ int main(int argc, char* argv[])
     printAs.cell(redColor);
     printAs.cell(colorClass[kb.cells.slotMap][colorRed]);
     printAs.cell(colorClass[kb.cells.slotMap]);
+    printAs.svgStruct(kb.cells.emptyObject, "emptyObject");
+    printAs.svgStruct(redColor, "redColor");
+    printAs.svgStruct(colorRed, "colorRed");
     printAs.svgStruct(colorClass, "Color");
     printAs.svgStruct(colorClass[kb.cells.slotMap], "SlotMap of Color");
     printAs.svgStruct(colorClass[kb.cells.slotList], "SlotList of Color");
     printAs.svgStruct(colorClass[kb.cells.slotList][kb.sequence.first], "SlotListItem1 of Color");
+    printAs.svgStruct(colorClass[kb.cells.slotList][kb.sequence.first][kb.coding.value], "Slot1 of Color");
+    printAs.svgStruct(colorClass[kb.cells.slotList][kb.sequence.first][kb.sequence.next], "SlotListItem2 of Color");
+    printAs.svgStruct(colorClass[kb.cells.slotList][kb.sequence.first][kb.sequence.next][kb.coding.value], "Slot2 of Color");
     printAs.value(colorClass[kb.cells.slotMap]);
     printAs.value(colorClass[kb.cells.slotMap][kb.cells.type]);
     printAs.value(colorClass[kb.cells.slotMap][kb.cells.type][kb.cells.slotMap]);

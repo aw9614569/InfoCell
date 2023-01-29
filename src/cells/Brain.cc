@@ -338,7 +338,9 @@ Number& Numbers::get(int number)
         auto it = m_numbers.emplace(std::piecewise_construct,
                                     std::forward_as_tuple(number),
                                     std::forward_as_tuple(m_kb, number));
-        return it.first->second;
+        Number& newNumber = it.first->second;
+        newNumber.label(std::to_string(number));
+        return newNumber;
     }
 }
 

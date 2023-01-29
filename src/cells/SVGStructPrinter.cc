@@ -104,23 +104,48 @@ void StructPrinter::printStruct(CellI& cell)
     CellI& type      = cell.type();
     fsvgui::Color cellTypeColor(255, 0, 0);
     fsvgui::Color roleColor(163, 21, 21);
-    fsvgui::Color typeColor(0, 0, 0);
+    fsvgui::Color typeColor(0, 0, 0) ;
     std::vector<Elements> lines;
 
-    Element svgTypeName = text(cell.label())->fontSize(16)->fontColor(cellTypeColor);
-    lines.push_back({ text("type")->fontSize(14)->fontColor(roleColor), filler() | size(WIDTH, EQUAL, 10), text(type.label())->fontSize(14)->fontColor(typeColor) });
+    FlexboxConfig flexConfig;
+    flexConfig.direction       = FlexboxConfig::Direction::Row;
+    flexConfig.wrap            = FlexboxConfig::Wrap::NoWrap;
+    flexConfig.justify_content = FlexboxConfig::JustifyContent::FlexEnd;
+    flexConfig.align_items     = FlexboxConfig::AlignItems::FlexStart;
+    flexConfig.align_content   = FlexboxConfig::AlignContent::FlexStart;
+
+    std::string cellLabel;
+    if (!cell.label().empty()) {
+        cellLabel += "(";
+        cellLabel += cell.label();
+        cellLabel += ")";
+    }
+    cellLabel += " ";
+    cellLabel += std::format("{}", (void*)&cell);
+    Element svgTypeName   = text(cellLabel)->fontSize(16)->fontColor(cellTypeColor);
+    lines.push_back({ flexbox({ text("type")->fontSize(14)->fontColor(roleColor) }, flexConfig),
+                      filler() | size(WIDTH, EQUAL, 10),
+                      text(type.label())->fontSize(14)->fontColor(typeColor),
+                      filler() | size(WIDTH, EQUAL, 10),
+                      text(std::format("{}", (void*)&cell[kb.cells.type]))->fontSize(14)->fontColor(typeColor) });
 
     CellI& slotList = type[kb.cells.slotList];
-    visitList(slotList, [this, &kb, &cell, &roleColor, &typeColor, &lines](CellI& slot, int i) {
+    visitList(slotList, [this, &kb, &cell, &roleColor, &typeColor, &lines, &flexConfig](CellI& slot, int i) {
         CellI& role = slot[kb.cells.slotRole];
         if (!cell.has(role)) {
             return;
         }
 
         CellI& slotType = slot[kb.cells.slotType];
+        CellI& connectedCell           = cell[role];
+        std::string connectedCellLabel = connectedCell.label().empty() ? std::format("A {}", connectedCell.type().label()) : connectedCell.label();
 
-        lines.push_back({ filler() | size(HEIGHT, EQUAL, 7), filler() | size(WIDTH, EQUAL, 10), filler() | size(HEIGHT, EQUAL, 7) });
-        lines.push_back({ text(role.label())->fontSize(14)->fontColor(roleColor), filler() | size(WIDTH, EQUAL, 10), text(slotType.label())->fontSize(14)->fontColor(typeColor) });
+        lines.push_back({ filler() | size(HEIGHT, EQUAL, 2), filler() | size(WIDTH, EQUAL, 10), filler() | size(HEIGHT, EQUAL, 2) });
+        lines.push_back({ flexbox({ text(role.label())->fontSize(14)->fontColor(roleColor) }, flexConfig),
+                          filler() | size(WIDTH, EQUAL, 10),
+                          text(connectedCellLabel)->fontSize(14)->fontColor(typeColor),
+                          filler() | size(WIDTH, EQUAL, 10),
+                          text(std::format("{}", (void*)&cell[role]))->fontSize(14)->fontColor(typeColor) });
     });
     m_stack.push(vbox(svgTypeName | center,
                       filler() | size(HEIGHT, EQUAL, 8),
@@ -132,9 +157,9 @@ void StructPrinter::showcaseLastResult(const std::string& caseName)
     m_showcaseItems.push_back(
         vbox(
             text(caseName) | center,
-            filler() | size(HEIGHT, EQUAL, 2),
+            filler() | size(HEIGHT, EQUAL, 4),
             m_stack.top() | center | borderWidth(10))
-        | center | borderWidth(10));
+        | center);
 }
 
 std::string StructPrinter::print()

@@ -291,7 +291,6 @@ protected:
     Type& m_listType;
     Type& m_itemType;
     std::list<ListItem> m_items;
-    std::unique_ptr<Number> m_size;
 };
 
 // ============================================================================

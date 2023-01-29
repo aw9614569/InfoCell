@@ -1,5 +1,6 @@
 #include "Cells.h"
 
+#include <format>
 #include <sstream>
 
 #pragma warning(disable : 4996)
@@ -587,6 +588,9 @@ void Type::createSlot(CellI& role, CellI& type)
         Slot& slot                             = res.first->second;
         slot.m_slotMapTypeListItem.m_iter      = res.first;
         slot.m_slotMapTypeListItem.m_container = &m_slots;
+        if (kb.isInitialized()) {
+            slot.label(std::format("Slot of {}.{}", label(), role.label()));
+        }
         if (m_slotList) {
             m_slotList->add(slot);
         }
@@ -786,13 +790,8 @@ CellI& List::operator[](CellI& role)
     }
     if (&role == &kb.dimensions.size) {
         int size = (int)m_items.size();
-        if (!m_size) {
-            m_size.reset(new Number(kb, size));
-            return *m_size;
-        }
-        m_size->value(size);
 
-        return *m_size;
+        return kb.pools.numbers.get(size);
     }
 
     return kb.cells.emptyObject;

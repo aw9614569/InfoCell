@@ -60,19 +60,11 @@ TextBoxSize stringBB(const std::string& str, int fontSize, const std::string& fo
         // Dividing by 64 and increment pen position.
         pen_x += face->glyph->advance.x >> 6;
 
-        int belowSize = (face->glyph->metrics.height - face->glyph->metrics.horiBearingY) >> 6;
-        if (belowSize > maxBelowSize)
-            maxBelowSize = belowSize;
-
-        int upperSize = face->glyph->metrics.horiBearingY >> 6;
-        if (upperSize > maxUpperSize)
-            maxUpperSize = upperSize;
-
         // Record current glyph index
         previous_glyph = glyph_index;
     }
 
-    int maxY = maxUpperSize + maxBelowSize;
+    int maxY = (face->size->metrics.ascender - face->size->metrics.descender) >> 6;
 
     return { pen_x, maxY, maxBelowSize };
 }
