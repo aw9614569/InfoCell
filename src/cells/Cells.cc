@@ -591,6 +591,7 @@ void Type::createSlot(CellI& role, CellI& type)
         if (kb.isInitialized()) {
             slot.label(std::format("Slot of {}.{}", label(), role.label()));
         }
+        m_slotOrder.push_back(&slot);
         if (m_slotList) {
             m_slotList->add(slot);
         }
@@ -602,7 +603,10 @@ void Type::manualInit()
     if (m_slotList) {
         return;
     }
-    m_slotList = std::make_unique<List>(kb, m_slots);
+    m_slotList = std::make_unique<List>(kb, kb.type.Slot);
+    for (CellI* slotPtr : m_slotOrder) {
+        m_slotList->add(*slotPtr);
+    }
 }
 
 // ============================================================================
