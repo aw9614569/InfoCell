@@ -110,6 +110,12 @@ Types::Types(brain::Brain& kb) :
 {
 }
 
+
+Type& Types::IndexedListOf(CellI& valueType, CellI& indexRole)
+{
+    return kb.type.Any; // TODO
+}
+
 Type& Types::ListOf(CellI& type)
 {
     auto numberIt = m_listTypes.find(&type);

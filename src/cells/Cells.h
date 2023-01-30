@@ -297,6 +297,7 @@ protected:
 // ============================================================================
 class IndexedList : public CellI
 {
+public:
     struct ValueItem;
     typedef std::map<CellI*, ValueItem> IndexedValueItems;
     typedef std::vector<ValueItem*> OrderedValueItems;
@@ -318,7 +319,7 @@ class IndexedList : public CellI
             ValueItem& m_valueItem;
         };
 
-        ValueList(brain::Brain& kb, OrderedValueItems& listItems);
+        ValueList(brain::Brain& kb, OrderedValueItems& listItems, CellI& valueType);
 
         bool has(CellI& role) override;
         void set(CellI& role, CellI& value) override;
@@ -327,6 +328,7 @@ class IndexedList : public CellI
         void accept(Visitor& visitor) override;
 
         OrderedValueItems& m_listItems;
+        CellI& m_listType;
     };
 
     class ValueIndex : public CellI
@@ -360,7 +362,7 @@ class IndexedList : public CellI
                 CellI& operator[](CellI& role) override;
                 void accept(Visitor& visitor) override;
 
-                OrderedValueItems& m_orderedValueItems;
+                OrderedValueItems& m_listItems;
             };
 
             class SlotIndex : public CellI
@@ -419,7 +421,10 @@ class IndexedList : public CellI
 
     struct ValueItem
     {
-        ValueItem(brain::Brain& kb, CellI& value);
+        ValueItem(brain::Brain& kb, CellI& value, CellI& index, size_t listItemIndex, IndexedList& indexedList);
+
+        ValueItem* prev();
+        ValueItem* next();
 
         CellI& m_value;
         size_t m_listItemIndex;
@@ -429,7 +434,6 @@ class IndexedList : public CellI
         ValueIndex::Type::Slot m_valueIndexTypeSlot;
     };
 
-public:
     // Store valueType and indexed with valueType.role
     // for example valueType: Slot, role: slotRole, then storing a list of those Slot
     // and creating an index-cell where (Slot obj).role -> Slot
@@ -447,7 +451,7 @@ protected:
     CellI& m_valueType;
     CellI& m_indexRole;
 
-    Type& m_mapType;
+    Type& m_type;
     Type& m_listType;
     Type& m_itemType;
     IndexedValueItems m_indexedValueItems;
@@ -1211,6 +1215,17 @@ public:
     virtual void visit(List&)                            = 0;
     virtual void visit(Number&)                          = 0;
     virtual void visit(String&)                          = 0;
+
+    virtual void visit(IndexedList::ValueList::Item&) { }
+    virtual void visit(IndexedList::ValueList&) { }
+    virtual void visit(IndexedList::ValueIndex::Type::SlotList::Item&) { }
+    virtual void visit(IndexedList::ValueIndex::Type::SlotList&) { }
+    virtual void visit(IndexedList::ValueIndex::Type::SlotIndex&) { }
+    virtual void visit(IndexedList::ValueIndex::Type::Slot&) { }
+    virtual void visit(IndexedList::ValueIndex::Type&) { }
+    virtual void visit(IndexedList::ValueIndex&) { }
+    virtual void visit(IndexedList&) { }
+
 
     virtual void visit(hybrid::Color&)   = 0;
     virtual void visit(hybrid::Pixel&)   = 0;

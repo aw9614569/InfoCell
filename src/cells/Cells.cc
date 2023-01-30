@@ -218,6 +218,7 @@ void Type_SlotMap_Type_Slot::set(CellI& role, CellI& value)
 {
     // Do nothing
 }
+
 void Type_SlotMap_Type_Slot::operator()()
 {
     // Do nothing, this is a data cell
@@ -560,7 +561,6 @@ Type
 
 #endif
 
-
 void Type::accept(Visitor& visitor)
 {
     visitor.visit(*this);
@@ -822,6 +822,509 @@ void List::add(CellI& value)
     }
     listItemCell.next(nullptr);
     listItemCell.value(&value);
+}
+
+// ============================================================================
+IndexedList::ValueList::Item::Item(brain::Brain& kb, ValueItem& valueItem) :
+    CellI(kb), m_valueItem(valueItem)
+{
+}
+
+bool IndexedList::ValueList::Item::has(CellI& role)
+{
+    if (&role == &kb.cells.type || &role == &kb.coding.value) {
+        return true;
+    }
+    if (&role == &kb.sequence.previous && m_valueItem.prev()) {
+        return true;
+    }
+    if (&role == &kb.sequence.next && m_valueItem.next()) {
+        return true;
+    }
+
+    return false;
+}
+
+void IndexedList::ValueList::Item::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void IndexedList::ValueList::Item::operator()()
+{
+    // Do nothing
+}
+
+CellI& IndexedList::ValueList::Item::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.ListItemOf(kb.type.Slot);
+    }
+    if (&role == &kb.sequence.previous) {
+        if (m_valueItem.prev())
+            return m_valueItem.prev()->m_valueListItem;
+        else
+            return kb.cells.emptyObject;
+    }
+    if (&role == &kb.sequence.next) {
+        if (m_valueItem.next())
+            return m_valueItem.next()->m_valueListItem;
+        else
+            return kb.cells.emptyObject;
+    }
+    if (&role == &kb.coding.value) {
+        return m_valueItem.m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void IndexedList::ValueList::Item::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+// ============================================================================
+IndexedList::ValueList::ValueList(brain::Brain& kb, OrderedValueItems& listItems, CellI& valueType) :
+    CellI(kb),
+    m_listItems(listItems),
+    m_listType(kb.type.ListOf(valueType))
+{
+}
+
+bool IndexedList::ValueList::has(CellI& role)
+{
+    if (&role == &kb.cells.type || &role == &kb.dimensions.size) {
+        return true;
+    }
+    if ((&role == &kb.sequence.first || &role == &kb.sequence.last) && !m_listItems.empty()) {
+        return true;
+    }
+
+    return false;
+}
+
+void IndexedList::ValueList::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void IndexedList::ValueList::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& IndexedList::ValueList::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return m_listType;
+    }
+    if (&role == &kb.sequence.first) {
+        return m_listItems.front()->m_value;
+    }
+    if (&role == &kb.sequence.last) {
+        return m_listItems.back()->m_value;
+    }
+    if (&role == &kb.dimensions.size) {
+        int size = (int)m_listItems.size();
+
+        return kb.pools.numbers.get(size);
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void IndexedList::ValueList::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+// ============================================================================
+IndexedList::ValueIndex::Type::SlotList::Item::Item(brain::Brain& kb, ValueItem& valueItem) :
+    CellI(kb),
+    m_valueItem(valueItem)
+{
+}
+
+bool IndexedList::ValueIndex::Type::SlotList::Item::has(CellI& role)
+{
+    if (&role == &kb.cells.type || &role == &kb.coding.value) {
+        return true;
+    }
+    if (&role == &kb.sequence.previous && m_valueItem.prev()) {
+        return true;
+    }
+    if (&role == &kb.sequence.next && m_valueItem.next()) {
+        return true;
+    }
+
+    return false;
+}
+
+void IndexedList::ValueIndex::Type::SlotList::Item::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void IndexedList::ValueIndex::Type::SlotList::Item::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& IndexedList::ValueIndex::Type::SlotList::Item::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.ListItemOf(kb.type.Slot);
+    }
+    if (&role == &kb.sequence.previous) {
+        if (m_valueItem.prev())
+            return m_valueItem.prev()->m_valueIndexTypeSlotListItem;
+        else
+            return kb.cells.emptyObject;
+    }
+    if (&role == &kb.sequence.next) {
+        if (m_valueItem.next())
+            return m_valueItem.next()->m_valueIndexTypeSlotListItem;
+        else
+            return kb.cells.emptyObject;
+    }
+    if (&role == &kb.coding.value) {
+        return m_valueItem.m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void IndexedList::ValueIndex::Type::SlotList::Item::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+// ============================================================================
+IndexedList::ValueIndex::Type::SlotList::SlotList(brain::Brain& kb, OrderedValueItems& orderedValueItems) :
+    CellI(kb),
+    m_listItems(orderedValueItems)
+{
+}
+
+bool IndexedList::ValueIndex::Type::SlotList::has(CellI& role)
+{
+    if (&role == &kb.cells.type || &role == &kb.sequence.first || &role == &kb.sequence.last || &role == &kb.dimensions.size) {
+        return true;
+    }
+
+    return false;
+}
+
+void IndexedList::ValueIndex::Type::SlotList::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void IndexedList::ValueIndex::Type::SlotList::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& IndexedList::ValueIndex::Type::SlotList::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.ListOf(kb.type.Slot);
+    }
+    if (&role == &kb.sequence.first) {
+        if (m_listItems.empty()) {
+            return kb.cells.emptyObject;
+        }
+        return (*m_listItems.begin())->m_valueIndexTypeSlotListItem;
+    }
+    if (&role == &kb.sequence.last) {
+        if (m_listItems.empty()) {
+            return kb.cells.emptyObject;
+        }
+        return (*m_listItems.rbegin())->m_valueIndexTypeSlotListItem;
+    }
+    if (&role == &kb.dimensions.size) {
+        return kb.pools.numbers.get((int)m_listItems.size());
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void IndexedList::ValueIndex::Type::SlotList::accept(Visitor & visitor)
+{
+    visitor.visit(*this);
+}
+
+// ============================================================================
+IndexedList::ValueIndex::Type::SlotIndex::SlotIndex(brain::Brain& kb, IndexedValueItems& indexedValueItems, Type& type) :
+    CellI(kb),
+    m_indexedValueItems(indexedValueItems),
+    m_type(type)
+{
+}
+
+bool IndexedList::ValueIndex::Type::SlotIndex::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    auto slotIt = m_indexedValueItems.find(&role);
+    if (slotIt != m_indexedValueItems.end()) {
+        return true;
+    }
+
+    return false;
+}
+
+void IndexedList::ValueIndex::Type::SlotIndex::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void IndexedList::ValueIndex::Type::SlotIndex::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& IndexedList::ValueIndex::Type::SlotIndex::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return m_type;
+    }
+    auto slotIt = m_indexedValueItems.find(&role);
+    if (slotIt != m_indexedValueItems.end()) {
+        return slotIt->second.m_valueIndexTypeSlot;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void IndexedList::ValueIndex::Type::SlotIndex::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+// ============================================================================
+IndexedList::ValueIndex::Type::Slot::Slot(brain::Brain& kb, CellI& slotRole) :
+    CellI(kb),
+    m_slotRole(slotRole)
+{
+}
+
+bool IndexedList::ValueIndex::Type::Slot::has(CellI& role)
+{
+    if (&role == &kb.cells.type || &role == &kb.cells.slotType || &role == &kb.cells.slotRole) {
+        return true;
+    }
+    return false;
+}
+
+void IndexedList::ValueIndex::Type::Slot::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void IndexedList::ValueIndex::Type::Slot::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& IndexedList::ValueIndex::Type::Slot::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.Slot;
+    }
+    if (&role == &kb.cells.slotType) {
+        return kb.type.Slot;
+    }
+    if (&role == &kb.cells.slotRole) {
+        return m_slotRole;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void IndexedList::ValueIndex::Type::Slot::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+// ============================================================================
+IndexedList::ValueIndex::Type::Type(brain::Brain& kb, IndexedValueItems& indexedValueItems, OrderedValueItems& orderedValueItems) :
+    CellI(kb),
+    m_slotList(kb, orderedValueItems),
+    m_slotIndex(kb, indexedValueItems, *this)
+{
+
+}
+
+bool IndexedList::ValueIndex::Type::has(CellI& role)
+{
+    if (&role == &kb.cells.type || &role == &kb.cells.slotList || &role == &kb.cells.slotMap) {
+        return true;
+    }
+
+    return false;
+}
+
+void IndexedList::ValueIndex::Type::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void IndexedList::ValueIndex::Type::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& IndexedList::ValueIndex::Type::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.Type_;
+    }
+    if (&role == &kb.cells.slotList) {
+        return m_slotList;
+    }
+    if (&role == &kb.cells.slotMap) {
+        return m_slotIndex;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void IndexedList::ValueIndex::Type::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+// ============================================================================
+IndexedList::ValueIndex::ValueIndex(brain::Brain& kb, IndexedValueItems& indexedValueItems, OrderedValueItems& orderedValueItems) :
+    CellI(kb),
+    m_type(kb, indexedValueItems, orderedValueItems),
+    m_indexedValueItems(indexedValueItems),
+    m_orderedValueItems(orderedValueItems)
+{
+}
+
+bool IndexedList::ValueIndex::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    auto slotIt = m_indexedValueItems.find(&role);
+    if (slotIt != m_indexedValueItems.end()) {
+        return true;
+    }
+
+    return false;
+}
+
+void IndexedList::ValueIndex::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void IndexedList::ValueIndex::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& IndexedList::ValueIndex::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return m_type;
+    }
+    auto slotIt = m_indexedValueItems.find(&role);
+    if (slotIt != m_indexedValueItems.end()) {
+        return slotIt->second.m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void IndexedList::ValueIndex::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+// ============================================================================
+IndexedList::ValueItem::ValueItem(brain::Brain& kb, CellI& value, CellI& index, size_t listItemIndex, IndexedList& indexedList) :
+    m_value(value),
+    m_listItemIndex(listItemIndex),
+    m_indexedList(indexedList),
+    m_valueListItem(kb, *this),
+    m_valueIndexTypeSlotListItem(kb, *this),
+    m_valueIndexTypeSlot(kb, index)
+{
+}
+
+IndexedList::ValueItem* IndexedList::ValueItem::prev()
+{
+    return m_listItemIndex > 0 ? m_indexedList.m_orderedValueItems[m_listItemIndex - 1] : nullptr;
+}
+
+IndexedList::ValueItem* IndexedList::ValueItem::next()
+{
+    if (m_indexedList.m_indexedValueItems.size() < 2) {
+        return nullptr;
+    }
+    return m_listItemIndex < (m_indexedList.m_indexedValueItems.size() - 1) ? m_indexedList.m_orderedValueItems[m_listItemIndex + 1] : nullptr;
+}
+
+// ============================================================================
+IndexedList::IndexedList(brain::Brain& kb, CellI& valueType, CellI& indexRole) :
+    CellI(kb),
+    m_valueType(valueType),
+    m_indexRole(indexRole),
+    m_type(kb.type.IndexedListOf(valueType, indexRole)),
+    m_listType(kb.type.ListOf(valueType)),
+    m_itemType(kb.type.ListItemOf(valueType)),
+    m_valueList(kb, m_orderedValueItems, valueType),
+    m_valueIndex(kb, m_indexedValueItems, m_orderedValueItems)
+{
+}
+
+bool IndexedList::has(CellI& role)
+{
+    if (&role == &kb.cells.type || &role == &kb.cells.slotList || &role == &kb.cells.slotMap) {
+        return true;
+    }
+
+    return false;
+}
+
+void IndexedList::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void IndexedList::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& IndexedList::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.Type_;
+    }
+    if (&role == &kb.cells.slotList) {
+        return m_valueList;
+    }
+    if (&role == &kb.cells.slotMap) {
+        return m_valueIndex;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void IndexedList::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+void IndexedList::add(CellI& value)
+{
 }
 
 // ============================================================================

@@ -76,11 +76,14 @@ class Types
 {
 public:
     Types(brain::Brain& kb);
+
+    Type& IndexedListOf(CellI& type, CellI& indexRole);
     Type& ListOf(CellI& type);
     Type& ListItemOf(CellI& type);
 
 protected:
     brain::Brain& kb;
+    std::map<CellI*, Type> m_indexedListTypes;
     std::map<CellI*, Type> m_listTypes;
     std::map<CellI*, Type> m_listItemTypes;
     TypeInit m_init;
