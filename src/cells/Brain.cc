@@ -190,7 +190,7 @@ Type& Types::ListItemOf(CellI& type)
 Cells::Cells(brain::Brain& kb, Type& voidType, Type& anyType) :
     type(kb, anyType, "type"),
     slotList(kb, anyType, "slotList"),
-    slotMap(kb, anyType, "slotMap"),
+    slotIndex(kb, anyType, "slotIndex"),
     slotType(kb, anyType, "slotType"),
     slotRole(kb, anyType, "slotRole"),
     emptyObject(kb, voidType)
@@ -391,7 +391,8 @@ Brain::Brain() :
     arc(*this)
 {
     type.Type_.add(
-        { { cells.slotList, type.ListOf(type.Slot) } });
+        { { cells.slotList, type.ListOf(type.Slot) },
+          { cells.slotIndex, type.Any } }); // TODO
 
     type.Slot.add(
         { { cells.slotType, type.Type_ },

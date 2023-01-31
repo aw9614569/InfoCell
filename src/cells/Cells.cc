@@ -78,8 +78,6 @@ SlotRef::SlotRef(CellI& role, CellI& type) :
 
 Slot::Slot(brain::Brain& kb, CellI& role, CellI& type) :
     CellI(kb),
-    m_slotMapTypeListItem(kb),
-    m_slotMapTypeListItemValue(kb, role),
     m_slotRole(role),
     m_slotType(type)
 {
@@ -123,333 +121,14 @@ void Slot::accept(Visitor& visitor)
 }
 
 // ============================================================================
-Type_SlotMap_Type_SlotList_Item::Type_SlotMap_Type_SlotList_Item(brain::Brain& kb) :
-    CellI(kb)
-{
-}
-
-bool Type_SlotMap_Type_SlotList_Item::has(CellI& role)
-{
-    if (&role == &kb.cells.type || &role == &kb.coding.value) {
-        return true;
-    }
-    if (&role == &kb.sequence.previous && prev()) {
-        return true;
-    }
-    if (&role == &kb.sequence.next && next()) {
-        return true;
-    }
-
-    return false;
-}
-
-void Type_SlotMap_Type_SlotList_Item::set(CellI& role, CellI& value)
-{
-    // Do nothing
-}
-void Type_SlotMap_Type_SlotList_Item::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& Type_SlotMap_Type_SlotList_Item::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.ListItemOf(kb.type.Slot);
-    }
-    if (&role == &kb.sequence.previous) {
-        if (prev())
-            return prev()->m_slotMapTypeListItem;
-        else
-            return kb.cells.emptyObject;
-    }
-    if (&role == &kb.sequence.next) {
-        if (next())
-            return next()->m_slotMapTypeListItem;
-        else
-            return kb.cells.emptyObject;
-    }
-    if (&role == &kb.coding.value) {
-        return m_iter->second.m_slotMapTypeListItemValue;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Type_SlotMap_Type_SlotList_Item::accept(Visitor& visitor)
-{
-    // visitor.visit(*this);
-}
-
-Slot* Type_SlotMap_Type_SlotList_Item::prev()
-{
-    if (m_container->begin() == m_iter) {
-        return nullptr;
-    }
-
-    return &std::prev(m_iter)->second;
-}
-
-Slot* Type_SlotMap_Type_SlotList_Item::next()
-{
-    auto nextIter = std::next(m_iter);
-    if (nextIter == m_container->end()) {
-        return nullptr;
-    }
-
-    return &nextIter->second;
-}
-
-// ============================================================================
-Type_SlotMap_Type_Slot::Type_SlotMap_Type_Slot(brain::Brain& kb, CellI& slotRole) :
-    CellI(kb), m_slotRole(slotRole)
-{
-}
-
-bool Type_SlotMap_Type_Slot::has(CellI& role)
-{
-    if (&role == &kb.cells.type || &role == &kb.cells.slotType || &role == &kb.cells.slotRole) {
-        return true;
-    }
-    return false;
-}
-
-void Type_SlotMap_Type_Slot::set(CellI& role, CellI& value)
-{
-    // Do nothing
-}
-
-void Type_SlotMap_Type_Slot::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& Type_SlotMap_Type_Slot::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.Slot;
-    }
-    if (&role == &kb.cells.slotType) {
-        return kb.type.Slot;
-    }
-    if (&role == &kb.cells.slotRole) {
-        return m_slotRole;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Type_SlotMap_Type_Slot::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ============================================================================
-Type_SlotMap_Type_SlotList::Type_SlotMap_Type_SlotList(brain::Brain& kb, std::map<CellI*, Slot>& slots) :
-    CellI(kb), m_slots(slots)
-{
-}
-
-bool Type_SlotMap_Type_SlotList::has(CellI& role)
-{
-    if (&role == &kb.cells.type || &role == &kb.sequence.first || &role == &kb.sequence.last || &role == &kb.dimensions.size) {
-        return true;
-    }
-    return false;
-}
-
-void Type_SlotMap_Type_SlotList::set(CellI& role, CellI& value)
-{
-    // Do nothing
-}
-void Type_SlotMap_Type_SlotList::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& Type_SlotMap_Type_SlotList::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.ListOf(kb.type.Slot);
-    }
-    if (&role == &kb.sequence.first) {
-        if (m_slots.empty()) {
-            return kb.cells.emptyObject;
-        }
-        return m_slots.begin()->second.m_slotMapTypeListItem;
-    }
-    if (&role == &kb.sequence.last) {
-        if (m_slots.empty()) {
-            return kb.cells.emptyObject;
-        }
-        return m_slots.rbegin()->second.m_slotMapTypeListItem;
-    }
-    if (&role == &kb.dimensions.size) {
-        Number* number = new Number(kb, (int)m_slots.size());
-        return *number;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Type_SlotMap_Type_SlotList::accept(Visitor& visitor)
-{
-    // visitor.visit(*this);
-}
-
-// ============================================================================
-Type_SlotMap_Type_SlotMap::Type_SlotMap_Type_SlotMap(brain::Brain& kb, std::map<CellI*, Slot>& slots, Type_SlotMap_Type& type_SlotMap_Type) :
-    CellI(kb),
-    m_slots(slots),
-    m_type_SlotMap_Type(type_SlotMap_Type)
-{
-}
-
-bool Type_SlotMap_Type_SlotMap::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    auto slotIt = m_slots.find(&role);
-    if (slotIt != m_slots.end()) {
-        return true;
-    }
-
-    return false;
-}
-
-void Type_SlotMap_Type_SlotMap::set(CellI& role, CellI& value)
-{
-    // Do nothing
-}
-void Type_SlotMap_Type_SlotMap::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& Type_SlotMap_Type_SlotMap::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return m_type_SlotMap_Type;
-    }
-    auto slotIt = m_slots.find(&role);
-    if (slotIt != m_slots.end()) {
-        return slotIt->second.m_slotMapTypeListItemValue;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Type_SlotMap_Type_SlotMap::accept(Visitor& visitor)
-{
-    // visitor.visit(*this);
-}
-
-// ============================================================================
-Type_SlotMap_Type::Type_SlotMap_Type(brain::Brain& kb, Type_SlotMap& slotMap) :
-    CellI(kb, "Type_SlotMap_Type"),
-    m_slotList(kb, slotMap.m_slots),
-    m_slotMap(kb, slotMap.m_slots, *this)
-{
-}
-
-bool Type_SlotMap_Type::has(CellI& role)
-{
-    if (&role == &kb.cells.type || &role == &kb.cells.slotList || &role == &kb.cells.slotMap) {
-        return true;
-    }
-
-    return false;
-}
-
-void Type_SlotMap_Type::set(CellI& role, CellI& value)
-{
-    // Do nothing
-}
-void Type_SlotMap_Type::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& Type_SlotMap_Type::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.Type_;
-    }
-    if (&role == &kb.cells.slotList) {
-        return m_slotList;
-    }
-    if (&role == &kb.cells.slotMap) {
-        return m_slotMap;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Type_SlotMap_Type::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ============================================================================
-Type_SlotMap::Type_SlotMap(brain::Brain& kb, std::map<CellI*, Slot>& slots, const std::string& label) :
-    CellI(kb, label),
-    m_slots(slots),
-    m_slotMapType(kb, *this)
-{
-}
-
-bool Type_SlotMap::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    auto slotIt = m_slots.find(&role);
-    if (slotIt != m_slots.end()) {
-        return true;
-    }
-
-    return false;
-}
-
-void Type_SlotMap::set(CellI& role, CellI& value)
-{
-    // Do nothing
-}
-void Type_SlotMap::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& Type_SlotMap::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return m_slotMapType;
-    }
-    auto slotIt = m_slots.find(&role);
-    if (slotIt != m_slots.end()) {
-        return slotIt->second;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Type_SlotMap::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ============================================================================
 Type::Type(brain::Brain& kb, const std::string& label) :
     CellI(kb, label),
-    m_slotList(new List(kb, kb.type.Slot)),
-    m_slotMap(kb, m_slots, label)
+    m_indexedSlotList(new IndexedList(kb, kb.type.Slot, kb.cells.slotRole))
 {
 }
 
 Type::Type(brain::Brain& kb, const std::string& label, bool) :
-    CellI(kb, label),
-    m_slotMap(kb, m_slots, "")
+    CellI(kb, label)
 {
     // will be inited with manualInit() for bootstrap
 }
@@ -461,8 +140,7 @@ Type::Type(brain::Brain& kb, std::initializer_list<SlotRef> slots) :
 
 Type::Type(brain::Brain& kb, const std::string& label, std::initializer_list<SlotRef> slots) :
     CellI(kb, label),
-    m_slotList(new List(kb, kb.type.Slot)),
-    m_slotMap(kb, m_slots, label)
+    m_indexedSlotList(new IndexedList(kb, kb.type.Slot, kb.cells.slotRole))
 {
     for (const SlotRef& slotRef : slots) {
         createSlot(slotRef.m_role, slotRef.m_type);
@@ -471,7 +149,7 @@ Type::Type(brain::Brain& kb, const std::string& label, std::initializer_list<Slo
 
 bool Type::has(CellI& role)
 {
-    if (&role == &kb.cells.type || &role == &kb.cells.slotList || &role == &kb.cells.slotMap) {
+    if (&role == &kb.cells.type || &role == &kb.cells.slotList || &role == &kb.cells.slotIndex) {
         return true;
     }
 
@@ -494,72 +172,14 @@ CellI& Type::operator[](CellI& role)
         return kb.type.Type_;
     }
     if (&role == &kb.cells.slotList) {
-        return *m_slotList;
+        return m_indexedSlotList->m_valueList;
     }
-    if (&role == &kb.cells.slotMap) {
-        return m_slotMap;
+    if (&role == &kb.cells.slotIndex) {
+        return m_indexedSlotList->m_valueIndex;
     }
 
     return kb.cells.emptyObject;
 }
-
-#if 0
-Object
-    type: Type
-    roleSize: Number
-    roleName: String
-
-Type
-    slotList: Type.SlotList
-    slotMap:  Type.SlotMap
-
-    Type.SlotList
-        type:  ListOf(Slot)
-        first: Type.SlotList.Item1
-        last:  Type.SlotList.Item2
-        size:  2
-
-        Type.SlotList.Item1                           Type.SlotList.Item2
-            type:  ListItemOf(Slot)                       type:  ListItemOf(Slot)
-            next:  Type.SlotList.Item2                    prev:  Type.SlotList.Item1
-            value: Type.Slot1                             value: Type.Slot2
-
-        Type.Slot1                                    Type.Slot2
-            type:     Slot                                type:     Slot
-            slotRole: roleSize                            slotRole: roleName
-            slotType: Number                              slotType: String
-
-    Type.SlotMap
-        type:     Type.SlotMap.Type
-        roleSize: Type.Slot1
-        roleName: Type.Slot2
-
-        Type.SlotMap.Type
-            slotList: Type.SlotMap.Type.SlotList
-            SlotMap:  Type.SlotMap.Type.SlotMap
-
-            Type.SlotMap.Type.SlotList
-                type:  ListOf(Slot)
-                first: Type.SlotMap.Type.SlotList.Item1
-                last:  Type.SlotMap.Type.SlotList.Item2
-                size:  2
-
-                Type.SlotMap.Type.SlotList.Item1              Type.SlotMap.Type.SlotList.Item2
-                    type:  ListItemOf(Slot)                       type:  ListItemOf(Slot)
-                    next:  Type.SlotMap.Type.SlotList.Item2       prev:  Type.SlotMap.Type.SlotList.Item1
-                    value: Type.SlotMap.Type.Slot1                value: Type.SlotMap.Type.Slot2
-
-                Type.SlotMap.Type.Slot1                       Type.SlotMap.Type.Slot2
-                    type:     Slot                                type:     Slot
-                    slotRole: roleSize                            slotRole: roleName
-                    slotType: Slot                                slotType: Slot
-
-            Type.SlotMap.Type.SlotMap
-                type: Type.SlotMap.Type // !!
-                roleSize: Type.SlotMap.Type.Slot1
-                roleName: Type.SlotMap.Type.Slot2
-
-#endif
 
 void Type::accept(Visitor& visitor)
 {
@@ -586,26 +206,24 @@ void Type::createSlot(CellI& role, CellI& type)
                                    std::forward_as_tuple(kb, role, type));
 
         Slot& slot                             = res.first->second;
-        slot.m_slotMapTypeListItem.m_iter      = res.first;
-        slot.m_slotMapTypeListItem.m_container = &m_slots;
         if (kb.isInitialized()) {
             slot.label(std::format("Slot of {}.{}", label(), role.label()));
         }
         m_slotOrder.push_back(&slot);
-        if (m_slotList) {
-            m_slotList->add(slot);
+        if (m_indexedSlotList) {
+            m_indexedSlotList->add(slot);
         }
     }
 }
 
 void Type::manualInit()
 {
-    if (m_slotList) {
+    if (m_indexedSlotList) {
         return;
     }
-    m_slotList = std::make_unique<List>(kb, kb.type.Slot);
+    m_indexedSlotList = std::make_unique<IndexedList>(kb, kb.type.Slot, kb.cells.slotRole);
     for (CellI* slotPtr : m_slotOrder) {
-        m_slotList->add(*slotPtr);
+        m_indexedSlotList->add(*slotPtr);
     }
 }
 
@@ -630,7 +248,7 @@ void Object::set(CellI& role, CellI& value)
         throw "Type change not allowed.";
     }
 
-    if (type()[kb.cells.slotMap].has(role)) {
+    if (type()[kb.cells.slotIndex].has(role)) {
         m_slots[&role] = &value;
     } else {
         throw "The type doesn't contains this role.";
@@ -920,10 +538,10 @@ CellI& IndexedList::ValueList::operator[](CellI& role)
         return m_listType;
     }
     if (&role == &kb.sequence.first) {
-        return m_listItems.front()->m_value;
+        return m_listItems.front()->m_valueListItem;
     }
     if (&role == &kb.sequence.last) {
-        return m_listItems.back()->m_value;
+        return m_listItems.back()->m_valueListItem;
     }
     if (&role == &kb.dimensions.size) {
         int size = (int)m_listItems.size();
@@ -989,7 +607,7 @@ CellI& IndexedList::ValueIndex::Type::SlotList::Item::operator[](CellI& role)
             return kb.cells.emptyObject;
     }
     if (&role == &kb.coding.value) {
-        return m_valueItem.m_value;
+        return m_valueItem.m_valueIndexTypeSlot;
     }
 
     return kb.cells.emptyObject;
@@ -1150,17 +768,21 @@ void IndexedList::ValueIndex::Type::Slot::accept(Visitor& visitor)
 }
 
 // ============================================================================
-IndexedList::ValueIndex::Type::Type(brain::Brain& kb, IndexedValueItems& indexedValueItems, OrderedValueItems& orderedValueItems) :
+IndexedList::ValueIndex::Type::Type(brain::Brain& kb, IndexedValueItems& indexedValueItems, OrderedValueItems& orderedValueItems, CellI& valueType) :
     CellI(kb),
     m_slotList(kb, orderedValueItems),
     m_slotIndex(kb, indexedValueItems, *this)
 {
-
+    if (&valueType == &kb.type.Slot) {
+        label("Index<Slot>");
+    } else {
+        label(std::format("Index<{}>", valueType.label()));
+    }
 }
 
 bool IndexedList::ValueIndex::Type::has(CellI& role)
 {
-    if (&role == &kb.cells.type || &role == &kb.cells.slotList || &role == &kb.cells.slotMap) {
+    if (&role == &kb.cells.type || &role == &kb.cells.slotList || &role == &kb.cells.slotIndex) {
         return true;
     }
 
@@ -1185,7 +807,7 @@ CellI& IndexedList::ValueIndex::Type::operator[](CellI& role)
     if (&role == &kb.cells.slotList) {
         return m_slotList;
     }
-    if (&role == &kb.cells.slotMap) {
+    if (&role == &kb.cells.slotIndex) {
         return m_slotIndex;
     }
 
@@ -1198,9 +820,9 @@ void IndexedList::ValueIndex::Type::accept(Visitor& visitor)
 }
 
 // ============================================================================
-IndexedList::ValueIndex::ValueIndex(brain::Brain& kb, IndexedValueItems& indexedValueItems, OrderedValueItems& orderedValueItems) :
+IndexedList::ValueIndex::ValueIndex(brain::Brain& kb, IndexedValueItems& indexedValueItems, OrderedValueItems& orderedValueItems, CellI& valueType) :
     CellI(kb),
-    m_type(kb, indexedValueItems, orderedValueItems),
+    m_type(kb, indexedValueItems, orderedValueItems, valueType),
     m_indexedValueItems(indexedValueItems),
     m_orderedValueItems(orderedValueItems)
 {
@@ -1273,58 +895,20 @@ IndexedList::ValueItem* IndexedList::ValueItem::next()
 
 // ============================================================================
 IndexedList::IndexedList(brain::Brain& kb, CellI& valueType, CellI& indexRole) :
-    CellI(kb),
+    m_kb(kb),
     m_valueType(valueType),
     m_indexRole(indexRole),
-    m_type(kb.type.IndexedListOf(valueType, indexRole)),
-    m_listType(kb.type.ListOf(valueType)),
-    m_itemType(kb.type.ListItemOf(valueType)),
     m_valueList(kb, m_orderedValueItems, valueType),
-    m_valueIndex(kb, m_indexedValueItems, m_orderedValueItems)
+    m_valueIndex(kb, m_indexedValueItems, m_orderedValueItems, valueType)
 {
-}
-
-bool IndexedList::has(CellI& role)
-{
-    if (&role == &kb.cells.type || &role == &kb.cells.slotList || &role == &kb.cells.slotMap) {
-        return true;
-    }
-
-    return false;
-}
-
-void IndexedList::set(CellI& role, CellI& value)
-{
-    // Do nothing
-}
-
-void IndexedList::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& IndexedList::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.Type_;
-    }
-    if (&role == &kb.cells.slotList) {
-        return m_valueList;
-    }
-    if (&role == &kb.cells.slotMap) {
-        return m_valueIndex;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void IndexedList::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
 }
 
 void IndexedList::add(CellI& value)
 {
+    auto it = m_indexedValueItems.emplace(std::piecewise_construct,
+                                          std::forward_as_tuple(&value[m_indexRole]),
+                                          std::forward_as_tuple(m_kb, value, value[m_indexRole], m_orderedValueItems.size(), *this));
+    m_orderedValueItems.push_back(&it.first->second);
 }
 
 // ============================================================================

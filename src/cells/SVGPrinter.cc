@@ -28,34 +28,44 @@ void Printer::visit(Type& cell)
     m_stack.push(text("Type"));
 }
 
-void Printer::visit(Type_SlotMap& slotMap)
+void Printer::visit(IndexedList::ValueList::Item& cell)
 {
-    m_stack.push(text("Type_SlotMap"));
+    m_stack.push(text("IndexedList::ValueList::Item"));
 }
 
-void Printer::visit(Type_SlotMap_Type& slotMapType)
+void Printer::visit(IndexedList::ValueList& cell)
 {
-    m_stack.push(text("Type_SlotMap_Type"));
+    m_stack.push(text("IndexedList::ValueList"));
 }
 
-void Printer::visit(Type_SlotMap_Type_Slot& cell)
+void Printer::visit(IndexedList::ValueIndex::Type::SlotList::Item& cell)
 {
-    m_stack.push(text("Type_SlotMap_Type_Slot"));
+    m_stack.push(text("IndexedList::ValueIndex::Type::SlotList::Item"));
 }
 
-void Printer::visit(Type_SlotMap_Type_SlotList& cell)
+void Printer::visit(IndexedList::ValueIndex::Type::SlotList& cell)
 {
-    m_stack.push(text("Type_SlotMap_Type_SlotList"));
+    m_stack.push(text("IndexedList::ValueIndex::Type::SlotList"));
 }
 
-void Printer::visit(Type_SlotMap_Type_SlotList_Item& cell)
+void Printer::visit(IndexedList::ValueIndex::Type::SlotIndex& cell)
 {
-    m_stack.push(text("Type_SlotMap_Type_SlotList_Item"));
+    m_stack.push(text("IndexedList::ValueIndex::Type::SlotIndex"));
 }
 
-void Printer::visit(Type_SlotMap_Type_SlotMap& cell)
+void Printer::visit(IndexedList::ValueIndex::Type::Slot& cell)
 {
-    m_stack.push(text("Type_SlotMap_Type_SlotMap"));
+    m_stack.push(text("IndexedList::ValueIndex::Type::Slot"));
+}
+
+void Printer::visit(IndexedList::ValueIndex::Type& cell)
+{
+    m_stack.push(text("IndexedList::ValueIndex::Type"));
+}
+
+void Printer::visit(IndexedList::ValueIndex& cell)
+{
+    m_stack.push(text("IndexedList::ValueIndex"));
 }
 
 void Printer::visit(Object& cell)

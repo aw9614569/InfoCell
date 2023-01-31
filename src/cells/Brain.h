@@ -113,7 +113,7 @@ public:
     Cells(brain::Brain& kb, Type& voidType, Type& anyType);
     Object type;
     Object slotList;
-    Object slotMap;
+    Object slotIndex;
     Object slotType;
     Object slotRole;
     Object emptyObject;

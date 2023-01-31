@@ -15,12 +15,14 @@ public:
 
     void visit(Slot& cell) override;
     void visit(Type& cell) override;
-    void visit(Type_SlotMap& cell) override;
-    void visit(Type_SlotMap_Type& cell) override;
-    void visit(Type_SlotMap_Type_Slot& cell) override;
-    void visit(Type_SlotMap_Type_SlotList& cell) override;
-    void visit(Type_SlotMap_Type_SlotList_Item& cell) override;
-    void visit(Type_SlotMap_Type_SlotMap& cell) override;
+    void visit(IndexedList::ValueList::Item& cell) override;
+    void visit(IndexedList::ValueList& cell) override;
+    void visit(IndexedList::ValueIndex::Type::SlotList::Item& cell) override;
+    void visit(IndexedList::ValueIndex::Type::SlotList& cell) override;
+    void visit(IndexedList::ValueIndex::Type::SlotIndex& cell) override;
+    void visit(IndexedList::ValueIndex::Type::Slot& cell) override;
+    void visit(IndexedList::ValueIndex::Type& cell) override;
+    void visit(IndexedList::ValueIndex& cell) override;
     void visit(Object& cell) override;
     void visit(ListItem& cell) override;
     void visit(List& cell) override;

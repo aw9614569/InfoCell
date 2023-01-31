@@ -23,33 +23,43 @@ void CellValuePrinter::visit(Type& type)
     m_ss << " }";
 }
 
-void CellValuePrinter::visit(Type_SlotMap& slotMap)
+void CellValuePrinter::visit(IndexedList::ValueList::Item& cell)
 {
-    printImpl(slotMap);
+    printImpl(cell);
 }
 
-void CellValuePrinter::visit(Type_SlotMap_Type& slotMapType)
+void CellValuePrinter::visit(IndexedList::ValueList& cell)
 {
-    printImpl(slotMapType);
+    printImpl(cell);
 }
 
-void CellValuePrinter::visit(Type_SlotMap_Type_Slot& cell)
+void CellValuePrinter::visit(IndexedList::ValueIndex::Type::SlotList::Item& cell)
+{
+    printImpl(cell);
+}
+
+void CellValuePrinter::visit(IndexedList::ValueIndex::Type::SlotList& cell)
+{
+    printImpl(cell);
+}
+
+void CellValuePrinter::visit(IndexedList::ValueIndex::Type::SlotIndex& cell)
+{
+    printImpl(cell);
+}
+
+void CellValuePrinter::visit(IndexedList::ValueIndex::Type::Slot& cell)
 {
     brain::Brain& kb = cell.kb;
     m_ss << cell[kb.cells.slotRole].label() << ": " << cell[kb.cells.slotType].label();
 }
 
-void CellValuePrinter::visit(Type_SlotMap_Type_SlotList& cell)
+void CellValuePrinter::visit(IndexedList::ValueIndex::Type& cell)
 {
     printImpl(cell);
 }
 
-void CellValuePrinter::visit(Type_SlotMap_Type_SlotList_Item& cell)
-{
-    printImpl(cell);
-}
-
-void CellValuePrinter::visit(Type_SlotMap_Type_SlotMap& cell)
+void CellValuePrinter::visit(IndexedList::ValueIndex& cell)
 {
     printImpl(cell);
 }

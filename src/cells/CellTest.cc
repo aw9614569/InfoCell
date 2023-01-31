@@ -112,27 +112,27 @@ int main(int argc, char* argv[])
     Number& number_255 = kb.pools.numbers.get(255);
 
     printAs.value(colorClass);
-    printAs.value(colorClass[kb.cells.slotMap][colorRed]);
+    printAs.value(colorClass[kb.cells.slotIndex][colorRed]);
     printAs.value(redColor);
     printAs.value(number_255);
     printAs.value(number_255[kb.coding.value][kb.sequence.first][kb.coding.value]);
 
     printAs.cell(redColor);
-    printAs.cell(colorClass[kb.cells.slotMap][colorRed]);
-    printAs.cell(colorClass[kb.cells.slotMap]);
+    printAs.cell(colorClass[kb.cells.slotIndex][colorRed]);
+    printAs.cell(colorClass[kb.cells.slotIndex]);
     printAs.svgStruct(kb.cells.emptyObject, "emptyObject");
     printAs.svgStruct(redColor, "redColor");
     printAs.svgStruct(colorRed, "colorRed");
     printAs.svgStruct(colorClass, "Color");
-    printAs.svgStruct(colorClass[kb.cells.slotMap], "SlotMap of Color");
+    printAs.svgStruct(colorClass[kb.cells.slotIndex], "SlotIndex of Color");
     printAs.svgStruct(colorClass[kb.cells.slotList], "SlotList of Color");
     printAs.svgStruct(colorClass[kb.cells.slotList][kb.sequence.first], "SlotListItem1 of Color");
     printAs.svgStruct(colorClass[kb.cells.slotList][kb.sequence.first][kb.coding.value], "Slot1 of Color");
     printAs.svgStruct(colorClass[kb.cells.slotList][kb.sequence.first][kb.sequence.next], "SlotListItem2 of Color");
     printAs.svgStruct(colorClass[kb.cells.slotList][kb.sequence.first][kb.sequence.next][kb.coding.value], "Slot2 of Color");
-    printAs.value(colorClass[kb.cells.slotMap]);
-    printAs.value(colorClass[kb.cells.slotMap][kb.cells.type]);
-    printAs.value(colorClass[kb.cells.slotMap][kb.cells.type][kb.cells.slotMap]);
+    printAs.value(colorClass[kb.cells.slotIndex]);
+    printAs.value(colorClass[kb.cells.slotIndex][kb.cells.type]);
+    printAs.value(colorClass[kb.cells.slotIndex][kb.cells.type][kb.cells.slotIndex]);
     printAs.cell(colorClass);
     printAs.cell(number_255);
     printAs.cell(number_255[kb.numbers.sign]);
@@ -143,7 +143,7 @@ int main(int argc, char* argv[])
     printAs.cell(number_255[kb.coding.value][kb.dimensions.size]);
 
     printAs.svg(redColor);
-    printAs.svg(colorClass[kb.cells.slotMap][colorRed]);
+    printAs.svg(colorClass[kb.cells.slotIndex][colorRed]);
     printAs.svg(colorClass);
     printAs.svg(number_255);
     printAs.svg(number_255[kb.numbers.sign]);

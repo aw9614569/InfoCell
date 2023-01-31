@@ -28,32 +28,42 @@ void StructPrinter::visit(Type& cell)
     printStruct(cell);
 }
 
-void StructPrinter::visit(Type_SlotMap& cell)
+void StructPrinter::visit(IndexedList::ValueList::Item& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(Type_SlotMap_Type& cell)
+void StructPrinter::visit(IndexedList::ValueList& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(Type_SlotMap_Type_Slot& cell)
+void StructPrinter::visit(IndexedList::ValueIndex::Type::SlotList::Item& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(Type_SlotMap_Type_SlotList& cell)
+void StructPrinter::visit(IndexedList::ValueIndex::Type::SlotList& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(Type_SlotMap_Type_SlotList_Item& cell)
+void StructPrinter::visit(IndexedList::ValueIndex::Type::SlotIndex& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(Type_SlotMap_Type_SlotMap& cell)
+void StructPrinter::visit(IndexedList::ValueIndex::Type::Slot& cell)
+{
+    printStruct(cell);
+}
+
+void StructPrinter::visit(IndexedList::ValueIndex::Type& cell)
+{
+    printStruct(cell);
+}
+
+void StructPrinter::visit(IndexedList::ValueIndex& cell)
 {
     printStruct(cell);
 }

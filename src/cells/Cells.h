@@ -52,41 +52,6 @@ T& ref(T* obj) { return *obj; }
 } // namespace util
 
 // ============================================================================
-class Slot;
-class Type_SlotMap_Type_SlotList_Item : public CellI
-{
-public:
-    Type_SlotMap_Type_SlotList_Item(brain::Brain& kb);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-    Slot* prev();
-    Slot* next();
-
-    std::map<CellI*, Slot>::iterator m_iter;
-    std::map<CellI*, Slot>* m_container = nullptr;
-};
-
-// ============================================================================
-class Type_SlotMap_Type_Slot : public CellI
-{
-public:
-    Type_SlotMap_Type_Slot(brain::Brain& kb, CellI& slotRole);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_slotRole;
-};
-
-// ============================================================================
 class Slot : public CellI
 {
 public:
@@ -98,78 +63,9 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-    Type_SlotMap_Type_SlotList_Item m_slotMapTypeListItem;
-    Type_SlotMap_Type_Slot m_slotMapTypeListItemValue;
-
 protected:
     CellI& m_slotRole;
     CellI& m_slotType;
-};
-
-// ============================================================================
-class Type_SlotMap_Type_SlotList : public CellI
-{
-public:
-    Type_SlotMap_Type_SlotList(brain::Brain& kb, std::map<CellI*, Slot>& slots);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    std::map<CellI*, Slot>& m_slots;
-};
-
-// ============================================================================
-class Type_SlotMap_Type;
-class Type_SlotMap_Type_SlotMap : public CellI
-{
-public:
-    Type_SlotMap_Type_SlotMap(brain::Brain& kb, std::map<CellI*, Slot>& slots, Type_SlotMap_Type& type_SlotMap_Type);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    std::map<CellI*, Slot>& m_slots;
-    Type_SlotMap_Type& m_type_SlotMap_Type;
-};
-
-// ============================================================================
-class Type_SlotMap;
-class Type_SlotMap_Type : public CellI
-{
-public:
-    Type_SlotMap_Type(brain::Brain& kb, Type_SlotMap& slotMap);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    Type_SlotMap_Type_SlotList m_slotList;
-    Type_SlotMap_Type_SlotMap m_slotMap;
-};
-
-// ============================================================================
-class List;
-class Type_SlotMap : public CellI
-{
-public:
-    Type_SlotMap(brain::Brain& kb, std::map<CellI*, Slot>& slots, const std::string& label);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    std::map<CellI*, Slot>& m_slots;
-    Type_SlotMap_Type m_slotMapType;
 };
 
 // ============================================================================
@@ -183,6 +79,7 @@ public:
 };
 
 // ============================================================================
+class IndexedList;
 class Type : public CellI
 {
 public:
@@ -205,8 +102,7 @@ protected:
 
     std::map<CellI*, Slot> m_slots;
     std::vector<CellI*> m_slotOrder;
-    std::unique_ptr<List> m_slotList;
-    Type_SlotMap m_slotMap;
+    std::unique_ptr<IndexedList> m_indexedSlotList;
 };
 
 // ============================================================================
@@ -295,8 +191,65 @@ protected:
 };
 
 // ============================================================================
-class IndexedList : public CellI
+class IndexedList
 {
+#if 0
+SomeValue
+    type: SomeType
+    roleSize: Number
+    roleName: String
+
+IndexedList
+    valueList:   ValueList
+    valueIndex:  ValueIndex
+
+    ValueList
+        type:  ListOf(Slot)
+        first: ValueList::Item1
+        last:  ValueList::Item2
+        size:  2
+
+        ValueList::Item1                ValueList::Item2
+            type:  ListItemOf(Slot)         type:  ListItemOf(Slot)
+            next:  ValueList::Item2         prev:  ValueList::Item1
+            value: Slot1                    value: Slot2
+
+        Slot1                           Slot2
+            type:     Slot                  type:     Slot
+            slotRole: roleSize              slotRole: roleName
+            slotType: Number                slotType: String
+
+    ValueIndex
+        type:     ValueIndex::Type
+        roleSize: Slot1
+        roleName: Slot2
+
+        ValueIndex::Type
+            slotList:   ValueIndex::Type::SlotList
+            slotIndex:  ValueIndex::Type::SlotIndex
+
+            ValueIndex::Type::SlotList
+                type:  ListOf(Slot)
+                first: ValueIndex::Type::SlotList::Item1
+                last:  ValueIndex::Type::SlotList::Item2
+                size:  2
+
+                ValueIndex::Type::SlotList::Item1               ValueIndex::Type::SlotList::Item2
+                    type:  ListItemOf(Slot)                         type:  ListItemOf(Slot)
+                    next:  ValueIndex::Type::SlotList::Item2        prev:  ValueIndex::Type::SlotList::Item1
+                    value: ValueIndex::Type::Slot1                  value: ValueIndex::Type::Slot2
+
+                ValueIndex::Type::Slot1                         ValueIndex::Type::Slot2
+                    type:     Slot                                  type:     Slot
+                    slotRole: roleSize                              slotRole: roleName
+                    slotType: Slot                                  slotType: Slot
+
+            ValueIndex::Type::SlotIndex
+                type:     ValueIndex::Type // !!
+                roleSize: ValueIndex::Type::Slot1
+                roleName: ValueIndex::Type::Slot2
+
+#endif
 public:
     struct ValueItem;
     typedef std::map<CellI*, ValueItem> IndexedValueItems;
@@ -394,7 +347,7 @@ public:
                 CellI& m_slotRole;
             };
 
-            Type(brain::Brain& kb, IndexedValueItems& indexedValueItems, OrderedValueItems& orderedValueItems);
+            Type(brain::Brain& kb, IndexedValueItems& indexedValueItems, OrderedValueItems& orderedValueItems, CellI& valueType);
 
             bool has(CellI& role) override;
             void set(CellI& role, CellI& value) override;
@@ -406,7 +359,7 @@ public:
             SlotIndex m_slotIndex;
         };
 
-        ValueIndex(brain::Brain& kb, IndexedValueItems& indexedValueItems, OrderedValueItems& orderedValueItems);
+        ValueIndex(brain::Brain& kb, IndexedValueItems& indexedValueItems, OrderedValueItems& orderedValueItems, CellI& valueType);
 
         bool has(CellI& role) override;
         void set(CellI& role, CellI& value) override;
@@ -439,23 +392,17 @@ public:
     // and creating an index-cell where (Slot obj).role -> Slot
     IndexedList(brain::Brain& kb, CellI& valueType, CellI& indexRole);
 
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
     void add(CellI& value);
 
 protected:
+    brain::Brain& m_kb;
     CellI& m_valueType;
     CellI& m_indexRole;
 
-    Type& m_type;
-    Type& m_listType;
-    Type& m_itemType;
     IndexedValueItems m_indexedValueItems;
     OrderedValueItems m_orderedValueItems;
+
+public:
     ValueList m_valueList;
     ValueIndex m_valueIndex;
 
@@ -464,6 +411,7 @@ protected:
 
 // ============================================================================
 class Template;
+class TemplateParam;
 class TemplateParamCell
 {
 public:
@@ -545,15 +493,18 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-    void addParam(SlotRef& param);
+    void addParam(TemplateParam& param);
     void addSlot(std::initializer_list<TemplateSlotRef> slots);
     CellI* instantiate(CellI& param);
 
 protected:
-    std::map<CellI*, Slot> m_params;
+    std::map<CellI*, TemplateParam> m_params;
+    std::vector<CellI*> m_paramsOrder;
     std::map<CellI*, TemplateSlot> m_slots;
-    List m_paramsList;
-    List m_slotsList;
+    std::vector<CellI*> m_slotsOrder;
+
+    IndexedList m_paramsList;
+    IndexedList m_slotsList;
 };
 
 // ============================================================================
@@ -1202,30 +1153,23 @@ protected:
 class Visitor
 {
 public:
-    virtual void visit(Slot&)                            = 0;
-    virtual void visit(Type&)                            = 0;
-    virtual void visit(Type_SlotMap&)                    = 0;
-    virtual void visit(Type_SlotMap_Type&)               = 0;
-    virtual void visit(Type_SlotMap_Type_Slot&)          = 0;
-    virtual void visit(Type_SlotMap_Type_SlotList&)      = 0;
-    virtual void visit(Type_SlotMap_Type_SlotList_Item&) = 0;
-    virtual void visit(Type_SlotMap_Type_SlotMap&)       = 0;
-    virtual void visit(Object&)                          = 0;
-    virtual void visit(ListItem&)                        = 0;
-    virtual void visit(List&)                            = 0;
-    virtual void visit(Number&)                          = 0;
-    virtual void visit(String&)                          = 0;
+    virtual void visit(Slot&)     = 0;
+    virtual void visit(Type&)     = 0;
+    virtual void visit(Object&)   = 0;
+    virtual void visit(ListItem&) = 0;
+    virtual void visit(List&)     = 0;
+    virtual void visit(Number&)   = 0;
+    virtual void visit(String&)   = 0;
 
-    virtual void visit(IndexedList::ValueList::Item&) { }
-    virtual void visit(IndexedList::ValueList&) { }
-    virtual void visit(IndexedList::ValueIndex::Type::SlotList::Item&) { }
-    virtual void visit(IndexedList::ValueIndex::Type::SlotList&) { }
-    virtual void visit(IndexedList::ValueIndex::Type::SlotIndex&) { }
-    virtual void visit(IndexedList::ValueIndex::Type::Slot&) { }
-    virtual void visit(IndexedList::ValueIndex::Type&) { }
-    virtual void visit(IndexedList::ValueIndex&) { }
-    virtual void visit(IndexedList&) { }
+    virtual void visit(IndexedList::ValueList::Item&) = 0;
+    virtual void visit(IndexedList::ValueList&)       = 0;
 
+    virtual void visit(IndexedList::ValueIndex::Type::SlotList::Item&) = 0;
+    virtual void visit(IndexedList::ValueIndex::Type::SlotList&)       = 0;
+    virtual void visit(IndexedList::ValueIndex::Type::SlotIndex&)      = 0;
+    virtual void visit(IndexedList::ValueIndex::Type::Slot&)           = 0;
+    virtual void visit(IndexedList::ValueIndex::Type&)                 = 0;
+    virtual void visit(IndexedList::ValueIndex&)                       = 0;
 
     virtual void visit(hybrid::Color&)   = 0;
     virtual void visit(hybrid::Pixel&)   = 0;
@@ -1247,6 +1191,7 @@ public:
     virtual void visit(control::op::math::Divide&) { }
     virtual void visit(control::op::math::LessThan&) { }
     virtual void visit(control::op::math::GreaterThan&) { }
+
     virtual void visit(control::pipeline::Void&) { }
     virtual void visit(control::pipeline::Input&) { }
     virtual void visit(control::pipeline::New&) { }
