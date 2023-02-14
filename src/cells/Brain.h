@@ -78,6 +78,7 @@ public:
     Types(brain::Brain& kb);
 
     Type& ListOf(CellI& type);
+    Type& GroupOf(CellI& type);
 
 protected:
     brain::Brain& kb;
@@ -88,6 +89,7 @@ protected:
 public:
     Type Type_;
     Type Slot;
+    Type List;
     Type Void;
     Type Any;
     Type Boolean;
@@ -98,6 +100,7 @@ public:
     Type Color;
     Type Pixel;
     Type Picture;
+    Type Template;
 
     type::Operations op;
     type::Pipelines pipeline;
@@ -108,11 +111,12 @@ class Cells
 public:
     Cells(brain::Brain& kb, Type& voidType, Type& anyType);
     Object type;
-    Object slotList;
-    Object slotIndex;
+    Object slots;
     Object slotType;
     Object slotRole;
     Object subTypes;
+    Object list;
+    Object index;
     Object emptyObject;
 };
 
@@ -132,6 +136,8 @@ public:
     Object objectType;
     Object op;
     Object output;
+    Object parameter;
+    Object parameters;
     Object result;
     Object role;
     Object statement;
@@ -214,7 +220,7 @@ class Numbers
 {
 public:
     Numbers(brain::Brain& kb, Type& anyType);
-    Object sign;
+    Group sign;
     Object positive;
     Object negative;
 };

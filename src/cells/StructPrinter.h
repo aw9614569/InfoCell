@@ -11,14 +11,16 @@ class CellStructPrinter : public Visitor
 public:
     void visit(Slot& cell) override;
     void visit(Type& cell) override;
-    void visit(IndexedList::ValueList::Item& cell) override;
-    void visit(IndexedList::ValueList& cell) override;
-    void visit(IndexedList::ValueIndex::Type::SlotList::Item& cell) override;
-    void visit(IndexedList::ValueIndex::Type::SlotList& cell) override;
-    void visit(IndexedList::ValueIndex::Type::SlotIndex& cell) override;
-    void visit(IndexedList::ValueIndex::Type::Slot& cell) override;
-    void visit(IndexedList::ValueIndex::Type& cell) override;
-    void visit(IndexedList::ValueIndex& cell) override;
+    void visit(Group::MemberList::Item& cell) override;
+    void visit(Group::MemberList& cell) override;
+    void visit(Group::MemberIndex::Type::Slots::SlotList::Item& cell) override;
+    void visit(Group::MemberIndex::Type::Slots::SlotList& cell) override;
+    void visit(Group::MemberIndex::Type::Slots::SlotIndex& cell) override;
+    void visit(Group::MemberIndex::Type::Slots& cell) override;
+    void visit(Group::MemberIndex::Type::Slot& cell) override;
+    void visit(Group::MemberIndex::Type& cell) override;
+    void visit(Group::MemberIndex& cell) override;
+    void visit(Group& cell) override;
     void visit(Object& cell) override;
     void visit(ListItem& cell) override;
     void visit(List& cell) override;

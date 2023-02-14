@@ -22,7 +22,7 @@ public:
     CellI(brain::Brain& kb);
     CellI(brain::Brain& kb, const std::string& label);
     CellI(const CellI& rhs);
-    ~CellI();
+    virtual ~CellI();
 
     virtual bool has(CellI& role)               = 0;
     virtual void set(CellI& role, CellI& value) = 0;
@@ -39,8 +39,8 @@ public:
     bool operator==(CellI& rhs);
     bool operator!=(CellI& rhs);
 
-    brain::Brain& kb; // knowledge base
-    std::string m_label;
+    brain::Brain& kb;    // knowledge base
+    std::string m_label; // for comments
 
     static int s_constructed;
     static int s_destructed;
@@ -68,26 +68,101 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
+    Slot& slotTypeParameters(CellI& paramCell);
+    Slot& valueDefinition(CellI& defCell);
+    Slot& defaultValue(CellI& valueCell);
+    Slot& required();
+
 protected:
     CellI& m_slotRole;
     CellI& m_slotType;
+    CellI* m_valueDefinition = nullptr;
+    bool m_required          = false;
 };
 
-// ============================================================================
-class SlotRef // Only exists to bypass the non-movable std::initalizer_list limitations
-{
-public:
-    SlotRef(CellI& role, CellI& type);
+#if 0
+If something can have a parametric definition, there must be a way to call with parameters on the calling site.
+So we have to express a List of Slot or List<Slot> like type where List and Slot also a type.
+But currently the type in the Slot (slotType) expect a concrete type.
+So we need an extra indirection there to express the parametric nature of a type.
+Currently the Slot looks like this:
 
-    CellI& m_role;
-    CellI& m_type;
-};
+cell
+  role1 -> type1
+  role2 -> type2
+
+we want express something like this:
+cell
+  role1 -> type1
+  role2 -> type2(param1)
+
+So, instead of putting the type directly there we can introduce a function-call like thing.
+We should not call it a "call". Maybe typeDefinition?
+
+cell                           cell                  defType1          defType2                  paramValues (Group::Index)
+  role1 -> type1           =>    role1 -> defType1      value -> type1     value -> type2              paramRole1: paramValue1         
+  role2 -> type2(param1)         role2 -> defType2                        params -> paramValues
+
+
+
+1. type of x is y
+      type: TypeIs
+      is: y
+      memberOf: TypeDefinition
+2. type of x is memberof of a group of y
+      type: TypeIsMemberOf
+      group: y
+      memberOf: TypeDefinition
+3. and, or
+      lhs: TypeDefinition
+      rhs: TypeDefinition
+      memberOf: TypeDefinition
+
+With cell descriptors
+1. type of x is y
+   Equal/Is
+       value: y
+       descriptor: ValueOfType
+   
+   ValueOfType
+       type: SlotOf
+       role: type
+
+2. type of x is memberof of a group of y
+   Equal/Is
+       value: y
+       descriptorPath: [ ValueOfMemberOf,
+
+    ValueOfMemberOf
+       type: SlotOf
+       role: memberOf
+
+    Information about group membership of a type is in the [kb.cells.membersOf] role.
+    A Group object is able to inform about membership, with the help of method [kb.container.contains] and parameter [kb.coding.value]
+
+    group.contains(value)
+
+    IsMemberOf
+        object: x[type][memberOf]
+        method: kb.container.contains
+        parameter: kb.coding.value
+        value:  y
+#endif
 
 // ============================================================================
-class IndexedList;
+class Group;
 class Type : public CellI
 {
 public:
+    class SlotRef // Only exists to bypass the non-movable std::initalizer_list limitations
+    {
+    public:
+        SlotRef(CellI& role, CellI& type);
+
+        CellI& m_role;
+        CellI& m_type;
+    };
+
     enum class InitMode
     {
         InitDuringBootstrap,
@@ -106,25 +181,29 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
+    Slot& addSlot(CellI& role, CellI& type);
     void addSlots(std::initializer_list<SlotRef> slots);
-    Type& addSubType(CellI& role, const std::string& label, InitMode initMode = InitMode::Normal);
+    Type& addSubType(CellI& role, const std::string& label = "", InitMode initMode = InitMode::Normal);
     void manualInit();
-    void manualInitSubTypes();
+    void manualInitMembers();
 
 protected:
-    void createSlot(CellI& role, CellI& type);
+    template <typename T>
+    class GroupData
+    {
+    public:
+        bool empty() const
+        {
+            return m_order.empty();
+        }
 
-    std::map<CellI*, Slot> m_slotsMap;
-    std::vector<CellI*> m_slotsOrder;
-    std::unique_ptr<IndexedList> m_slots;
-
-    std::map<CellI*, Slot> m_parametersMap;
-    std::vector<CellI*> m_parametersOrder;
-    std::unique_ptr<IndexedList> m_parameters;
-
-    std::map<CellI*, Type> m_subTypesMap;
-    std::vector<CellI*> m_subTypesOrder;
-    std::unique_ptr<IndexedList> m_subTypes;
+        std::map<CellI*, T> m_map;
+        std::vector<CellI*> m_order;
+        std::unique_ptr<Group> m_group;
+    };
+    GroupData<Slot> m_slots;
+    GroupData<Type> m_subTypes;
+    GroupData<Type> m_memberOf;
 };
 
 // ============================================================================
@@ -177,6 +256,22 @@ class Number;
 class List : public CellI
 {
 public:
+#if 0
+    class Type : public CellI
+    {
+    public:
+        Type(brain::Brain& kb, CellI& valueType);
+
+        bool has(CellI& role) override;
+        void set(CellI& role, CellI& value) override;
+        void operator()() override;
+        CellI& operator[](CellI& role) override;
+        void accept(Visitor& visitor) override;
+
+        CellI& m_valueType;
+    };
+#endif
+
     List(brain::Brain& kb, CellI& valueType);
 
     template <typename T>
@@ -213,7 +308,7 @@ protected:
 };
 
 // ============================================================================
-class IndexedList
+class Group : public CellI
 {
 #if 0
 SomeValue
@@ -221,69 +316,69 @@ SomeValue
     roleSize: Number
     roleName: String
 
-IndexedList
-    valueList:   ValueList
-    valueIndex:  ValueIndex
+SlotGroup
+    list:   MemberList
+    index:  MemberIndex
 
-    ValueList
+    MemberList
         type:  ListOf(Slot)
-        first: ValueList::Item1
-        last:  ValueList::Item2
+        first: MemberList::Item1
+        last:  MemberList::Item2
         size:  2
 
-        ValueList::Item1                ValueList::Item2
-            type:  ListItemOf(Slot)         type:  ListItemOf(Slot)
-            next:  ValueList::Item2         prev:  ValueList::Item1
-            value: Slot1                    value: Slot2
+        MemberList::Item1                MemberList::Item2
+            type:  ListItemOf(Slot)          type:  ListItemOf(Slot)
+            next:  MemberList::Item2         prev:  MemberList::Item1
+            value: Slot1                     value: Slot2
 
         Slot1                           Slot2
             type:     Slot                  type:     Slot
             slotRole: roleSize              slotRole: roleName
             slotType: Number                slotType: String
 
-    ValueIndex
-        type:     ValueIndex::Type
+    MemberIndex
+        type:     MemberIndex::Type
         roleSize: Slot1
         roleName: Slot2
 
-        ValueIndex::Type
-            slotList:   ValueIndex::Type::SlotList
-            slotIndex:  ValueIndex::Type::SlotIndex
+        MemberIndex::Type
+            slotList:   MemberIndex::Type::SlotList
+            slotIndex:  MemberIndex::Type::SlotIndex
 
-            ValueIndex::Type::SlotList
+            MemberIndex::Type::SlotList
                 type:  ListOf(Slot)
-                first: ValueIndex::Type::SlotList::Item1
-                last:  ValueIndex::Type::SlotList::Item2
+                first: MemberIndex::Type::SlotList::Item1
+                last:  MemberIndex::Type::SlotList::Item2
                 size:  2
 
-                ValueIndex::Type::SlotList::Item1               ValueIndex::Type::SlotList::Item2
-                    type:  ListItemOf(Slot)                         type:  ListItemOf(Slot)
-                    next:  ValueIndex::Type::SlotList::Item2        prev:  ValueIndex::Type::SlotList::Item1
-                    value: ValueIndex::Type::Slot1                  value: ValueIndex::Type::Slot2
+                MemberIndex::Type::SlotList::Item1               MemberIndex::Type::SlotList::Item2
+                    type:  ListItemOf(Slot)                          type:  ListItemOf(Slot)
+                    next:  MemberIndex::Type::SlotList::Item2        prev:  MemberIndex::Type::SlotList::Item1
+                    value: MemberIndex::Type::Slot1                  value: MemberIndex::Type::Slot2
 
-                ValueIndex::Type::Slot1                         ValueIndex::Type::Slot2
-                    type:     Slot                                  type:     Slot
-                    slotRole: roleSize                              slotRole: roleName
-                    slotType: Slot                                  slotType: Slot
+                MemberIndex::Type::Slot1                         MemberIndex::Type::Slot2
+                    type:     Slot                                   type:     Slot
+                    slotRole: roleSize                               slotRole: roleName
+                    slotType: Slot                                   slotType: Slot
 
-            ValueIndex::Type::SlotIndex
-                type:     ValueIndex::Type // !!
-                roleSize: ValueIndex::Type::Slot1
-                roleName: ValueIndex::Type::Slot2
+            MemberIndex::Type::SlotIndex
+                type:     MemberIndex::Type // !!
+                roleSize: MemberIndex::Type::Slot1
+                roleName: MemberIndex::Type::Slot2
 
 #endif
 public:
-    struct ValueItem;
-    typedef std::map<CellI*, ValueItem> IndexedValueItems;
-    typedef std::vector<ValueItem*> OrderedValueItems;
+    struct MemberItem;
+    typedef std::map<CellI*, MemberItem> IndexedMemberItems;
+    typedef std::vector<MemberItem*> OrderedMemberItems;
 
-    class ValueList : public CellI
+    class MemberList : public CellI
     {
     public:
         class Item : public CellI
         {
         public:
-            Item(brain::Brain& kb, ValueItem& valueItem);
+            Item(brain::Brain& kb, MemberItem& memberItem);
 
             bool has(CellI& role) override;
             void set(CellI& role, CellI& value) override;
@@ -291,10 +386,10 @@ public:
             CellI& operator[](CellI& role) override;
             void accept(Visitor& visitor) override;
 
-            ValueItem& m_valueItem;
+            MemberItem& m_memberItem;
         };
 
-        ValueList(brain::Brain& kb, OrderedValueItems& listItems, CellI& valueType);
+        MemberList(brain::Brain& kb, OrderedMemberItems& listItems, CellI& valueType);
 
         bool has(CellI& role) override;
         void set(CellI& role, CellI& value) override;
@@ -302,23 +397,37 @@ public:
         CellI& operator[](CellI& role) override;
         void accept(Visitor& visitor) override;
 
-        OrderedValueItems& m_listItems;
+        OrderedMemberItems& m_listItems;
         CellI& m_listType;
     };
 
-    class ValueIndex : public CellI
+    class MemberIndex : public CellI
     {
     public:
         class Type : public CellI
         {
         public:
-            class SlotList : public CellI
+            class Slots : public CellI
             {
             public:
-                class Item : public CellI
+                class SlotList : public CellI
                 {
                 public:
-                    Item(brain::Brain& kb, ValueItem& valueItem);
+                    class Item : public CellI
+                    {
+                    public:
+                        Item(brain::Brain& kb, MemberItem& memberItem);
+
+                        bool has(CellI& role) override;
+                        void set(CellI& role, CellI& value) override;
+                        void operator()() override;
+                        CellI& operator[](CellI& role) override;
+                        void accept(Visitor& visitor) override;
+
+                        MemberItem& m_memberItem;
+                    };
+
+                    SlotList(brain::Brain& kb, OrderedMemberItems& orderedMemberItems);
 
                     bool has(CellI& role) override;
                     void set(CellI& role, CellI& value) override;
@@ -326,10 +435,25 @@ public:
                     CellI& operator[](CellI& role) override;
                     void accept(Visitor& visitor) override;
 
-                    ValueItem& m_valueItem;
+                    OrderedMemberItems& m_listItems;
                 };
 
-                SlotList(brain::Brain& kb, OrderedValueItems& orderedValueItems);
+                class SlotIndex : public CellI
+                {
+                public:
+                    SlotIndex(brain::Brain& kb, IndexedMemberItems& indexedMemberItems, Type& type);
+
+                    bool has(CellI& role) override;
+                    void set(CellI& role, CellI& value) override;
+                    void operator()() override;
+                    CellI& operator[](CellI& role) override;
+                    void accept(Visitor& visitor) override;
+
+                    IndexedMemberItems& m_indexedMemberItems;
+                    Type& m_type;
+                };
+
+                Slots(brain::Brain& kb, IndexedMemberItems& indexedMemberItems, OrderedMemberItems& orderedMemberItems, CellI& valueType, Type& type);
 
                 bool has(CellI& role) override;
                 void set(CellI& role, CellI& value) override;
@@ -337,22 +461,8 @@ public:
                 CellI& operator[](CellI& role) override;
                 void accept(Visitor& visitor) override;
 
-                OrderedValueItems& m_listItems;
-            };
-
-            class SlotIndex : public CellI
-            {
-            public:
-                SlotIndex(brain::Brain& kb, IndexedValueItems& indexedValueItems, Type& type);
-
-                bool has(CellI& role) override;
-                void set(CellI& role, CellI& value) override;
-                void operator()() override;
-                CellI& operator[](CellI& role) override;
-                void accept(Visitor& visitor) override;
-
-                IndexedValueItems& m_indexedValueItems;
-                Type& m_type;
+                SlotList m_slotList;
+                SlotIndex m_slotIndex;
             };
 
             class Slot : public CellI
@@ -369,7 +479,7 @@ public:
                 CellI& m_slotRole;
             };
 
-            Type(brain::Brain& kb, IndexedValueItems& indexedValueItems, OrderedValueItems& orderedValueItems, CellI& valueType);
+            Type(brain::Brain& kb, IndexedMemberItems& indexedMemberItems, OrderedMemberItems& orderedMemberItems, CellI& valueType);
 
             bool has(CellI& role) override;
             void set(CellI& role, CellI& value) override;
@@ -377,11 +487,10 @@ public:
             CellI& operator[](CellI& role) override;
             void accept(Visitor& visitor) override;
 
-            SlotList m_slotList;
-            SlotIndex m_slotIndex;
+            Slots m_slots;
         };
 
-        ValueIndex(brain::Brain& kb, IndexedValueItems& indexedValueItems, OrderedValueItems& orderedValueItems, CellI& valueType);
+        MemberIndex(brain::Brain& kb, IndexedMemberItems& indexedMemberItems, OrderedMemberItems& orderedMemberItems, CellI& valueType);
 
         bool has(CellI& role) override;
         void set(CellI& role, CellI& value) override;
@@ -390,48 +499,73 @@ public:
         void accept(Visitor& visitor) override;
 
         Type m_type;
-        IndexedValueItems& m_indexedValueItems;
-        OrderedValueItems& m_orderedValueItems;
+        IndexedMemberItems& m_indexedMemberItems;
+        OrderedMemberItems& m_orderedMemberItems;
     };
 
-    struct ValueItem
+    struct MemberItem
     {
-        ValueItem(brain::Brain& kb, CellI& index, CellI& value, size_t listItemIndex, IndexedList& indexedList);
+        MemberItem(brain::Brain& kb, Group& group, CellI& member, CellI& index, size_t listItemIndex);
 
-        ValueItem* prev();
-        ValueItem* next();
+        MemberItem* prev();
+        MemberItem* next();
 
-        CellI& m_value;
+        Group& m_group;
+        CellI& m_member;
         size_t m_listItemIndex;
-        IndexedList& m_indexedList;
-        ValueList::Item m_valueListItem;
-        ValueIndex::Type::SlotList::Item m_valueIndexTypeSlotListItem;
-        ValueIndex::Type::Slot m_valueIndexTypeSlot;
+        MemberList::Item m_memberListItem;
+        MemberIndex::Type::Slots::SlotList::Item m_memberIndexTypeSlotListItem;
+        MemberIndex::Type::Slot m_memberIndexTypeSlot;
     };
 
-    // Store valueType and indexed with valueType.role
-    // for example valueType: Slot, role: slotRole, then storing a list of those Slot
-    // and creating an index-cell where (Slot obj).role -> Slot
-    IndexedList(brain::Brain& kb, CellI& valueType);
+    Group(brain::Brain& kb, CellI& memberType, const std::string& label = "");
 
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    void add(CellI& value); // value is the key
     void add(CellI& key, CellI& value);
 
 protected:
-    brain::Brain& m_kb;
-    CellI& m_valueType;
+    CellI& m_memberType;
 
-    IndexedValueItems m_indexedValueItems;
-    OrderedValueItems m_orderedValueItems;
+    IndexedMemberItems m_indexedMemberItems;
+    OrderedMemberItems m_orderedMemberItems;
 
 public:
-    ValueList m_valueList;
-    ValueIndex m_valueIndex;
-
-    friend ValueItem;
+    MemberList m_memberList;
+    MemberIndex m_memberIndex;
 };
 
 // ============================================================================
 #if 0
+A generic list can hold any type of values.
+But how can we express the thing "any type"? We can create an extra type, for example: kb.type.Any.
+
+A List of Slots or List<Slot> should holds only Slot types. But how can we express such a specialization?
+This List<Slot> still a list, and should be used anywhere where a generic list is used.
+
+The C++ template style template can not express such a relation as List<> is not a type but a template.
+
+So we need a List type and a specialized List with a specialization.
+
+A type can have a subType. List object will create ListItem type which is a kind of sequence.
+A type should have a parameter like thing where we can express what kind of object is allowed.
+   Maybe we can introduce three kind of parameters for this
+    1. typeIs: the type is Slot, List<typeIs: Slot>
+    2. groupOf: the type is part of a group, List<groupOf: Numbers>
+    3. expression: Slot | Digit | Number < 12, List<expression: { Slot | Digit | Number < 12 }>
+   Maybe we can use a value definition parameter
+
+A type should have some kind of definition where we can express what is the relation between theese parameters, members, and what is the purpose of theese.
+
+kb.type.List
+kb.type.ListOfSlot = List<typeIs: Slot> | 
+
+
     Template ListItemTemplate(kb, "template<T> ListItem",
         { { kb.coding.objectType, kb.type.Type_ } },
         { { kb.coding.value, kb.coding.params, kb.coding.objectType } });
@@ -463,82 +597,80 @@ public:
 
  // Type ListItemTemplate(kb, "template<T> ListItem", { { kb.coding.parameters, kb.type.Type_ } });
 #endif
-class Template;
 class TemplateParam;
-class TemplateParamCell
-{
-public:
-    CellI* m_cell = nullptr;
-};
 
-class TemplateParamParam
-{
-public:
-    CellI* paramRole = nullptr;
-};
-
-class TemplateParamTemplateOf
-{
-public:
-    Template* m_tamplateOf = nullptr;
-    CellI* m_templateParam = nullptr;
-};
-
-class TemplateParamSelfType
-{
-public:
-};
-
-// ============================================================================
-class TemplateCellExpression
-{
-public:
-    TemplateCellExpression(CellI& exprType, TemplateParamCell& expr);
-    TemplateCellExpression(CellI& exprType, TemplateParamParam expr);
-    TemplateCellExpression(CellI& exprType, TemplateParamTemplateOf expr);
-    TemplateCellExpression(CellI& exprType, TemplateParamSelfType& expr);
-
-    CellI& m_exprType; // kb.cells.template.cell | kb.cells.template.param | kb.cells.template.templateOf | kb.cells.template.selfType
-    union Param
-    {
-        TemplateParamCell m_cell;
-        TemplateParamParam m_param;
-        TemplateParamTemplateOf m_templateOf;
-        TemplateParamSelfType m_selfType;
-    };
-    Param m_data;
-};
-
-// ============================================================================
-class TemplateSlot : public Object
-{
-public:
-    TemplateSlot(brain::Brain& kb, CellI& role, CellI& type);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-};
-
-// ============================================================================
-class TemplateSlotRef // Only exists to bypass the non-movable std::initalizer_list limitations
-{
-public:
-    TemplateSlotRef(TemplateCellExpression& role, TemplateCellExpression& type);
-
-    TemplateCellExpression m_role;
-    TemplateCellExpression m_type;
-};
 
 // ============================================================================
 class Template : public CellI
 {
 public:
+    class CellDescription
+    {
+    public:
+        class Cell
+        {
+        public:
+            Cell(CellI& cell);
+            CellI* m_cell;
+        };
+
+        class Parameter
+        {
+        public:
+            Parameter(CellI& paramRole);
+            CellI* m_paramRole;
+        };
+
+        class TemplateOf
+        {
+        public:
+            TemplateOf(Template& templateOf, CellDescription cellDescription);
+            Template* m_templateOf;
+            std::unique_ptr<CellDescription> m_templateParameter;
+        };
+
+        class SelfType
+        {
+        public:
+            SelfType();
+        };
+
+        CellDescription(Cell expr);
+        CellDescription(Parameter expr);
+        CellDescription(TemplateOf expr);
+        CellDescription(SelfType expr);
+        CellDescription(CellDescription&& expr);
+        ~CellDescription();
+
+        enum class DescriptionKind
+        {
+            Cell,
+            Parameter,
+            TemplateOf,
+            SelfType
+        } m_descriptionKind;
+
+        union
+        {
+            Cell m_cell;
+            Parameter m_parameter;
+            TemplateOf m_templateOf;
+            SelfType m_selfType;
+        };
+    };
+
+    class SlotRef // Only exists to bypass the non-movable std::initalizer_list limitations
+    {
+    public:
+        SlotRef(CellDescription role, CellDescription type);
+
+        CellDescription m_role;
+        CellDescription m_type;
+    };
+
     explicit Template(brain::Brain& kb, const std::string& label = "Template");
-    Template(brain::Brain& kb, std::initializer_list<SlotRef> params, std::initializer_list<TemplateSlotRef> slots);
-    Template(brain::Brain& kb, const std::string& label, std::initializer_list<SlotRef> params, std::initializer_list<TemplateSlotRef> slots);
+    Template(brain::Brain& kb, std::initializer_list<Type::SlotRef> params);
+    Template(brain::Brain& kb, const std::string& label, std::initializer_list<Type::SlotRef> params);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -546,18 +678,30 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-    void addParam(TemplateParam& param);
-    void addSlot(std::initializer_list<TemplateSlotRef> slots);
-    CellI* instantiate(CellI& param);
+    void addParams(std::initializer_list<Type::SlotRef> params);
+    void addParam(const Type::SlotRef& param);
+    void addSlots(std::initializer_list<SlotRef> slots);
+    void addSlot(const SlotRef& slot);
+
+    CellI* compile(CellI& param);
 
 protected:
-    std::map<CellI*, TemplateParam> m_params;
-    std::vector<CellI*> m_paramsOrder;
-    std::map<CellI*, TemplateSlot> m_slots;
-    std::vector<CellI*> m_slotsOrder;
+    template <typename T>
+    class GroupData
+    {
+    public:
+        bool empty() const
+        {
+            return m_order.empty();
+        }
 
-    IndexedList m_paramsList;
-    IndexedList m_slotsList;
+        std::map<CellI*, T> m_map;
+        std::vector<CellI*> m_order;
+        std::unique_ptr<Group> m_group;
+    };
+    GroupData<Object> m_parameters;
+    GroupData<Object> m_slots;
+    GroupData<Template> m_subTypes;
 };
 
 // ============================================================================
@@ -1214,15 +1358,17 @@ public:
     virtual void visit(Number&)   = 0;
     virtual void visit(String&)   = 0;
 
-    virtual void visit(IndexedList::ValueList::Item&) = 0;
-    virtual void visit(IndexedList::ValueList&)       = 0;
+    virtual void visit(Group::MemberList::Item&) = 0;
+    virtual void visit(Group::MemberList&)       = 0;
 
-    virtual void visit(IndexedList::ValueIndex::Type::SlotList::Item&) = 0;
-    virtual void visit(IndexedList::ValueIndex::Type::SlotList&)       = 0;
-    virtual void visit(IndexedList::ValueIndex::Type::SlotIndex&)      = 0;
-    virtual void visit(IndexedList::ValueIndex::Type::Slot&)           = 0;
-    virtual void visit(IndexedList::ValueIndex::Type&)                 = 0;
-    virtual void visit(IndexedList::ValueIndex&)                       = 0;
+    virtual void visit(Group::MemberIndex::Type::Slots::SlotList::Item&) = 0;
+    virtual void visit(Group::MemberIndex::Type::Slots::SlotList&)       = 0;
+    virtual void visit(Group::MemberIndex::Type::Slots::SlotIndex&)      = 0;
+    virtual void visit(Group::MemberIndex::Type::Slots&)                 = 0;
+    virtual void visit(Group::MemberIndex::Type::Slot&)                  = 0;
+    virtual void visit(Group::MemberIndex::Type&)                        = 0;
+    virtual void visit(Group::MemberIndex&)                              = 0;
+    virtual void visit(Group&)                                           = 0;
 
     virtual void visit(hybrid::Color&)   = 0;
     virtual void visit(hybrid::Pixel&)   = 0;

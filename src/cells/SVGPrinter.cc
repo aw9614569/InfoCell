@@ -28,44 +28,54 @@ void Printer::visit(Type& cell)
     m_stack.push(text("Type"));
 }
 
-void Printer::visit(IndexedList::ValueList::Item& cell)
+void Printer::visit(Group::MemberList::Item& cell)
 {
-    m_stack.push(text("IndexedList::ValueList::Item"));
+    m_stack.push(text("Group::MemberList::Item"));
 }
 
-void Printer::visit(IndexedList::ValueList& cell)
+void Printer::visit(Group::MemberList& cell)
 {
-    m_stack.push(text("IndexedList::ValueList"));
+    m_stack.push(text("Group::MemberList"));
 }
 
-void Printer::visit(IndexedList::ValueIndex::Type::SlotList::Item& cell)
+void Printer::visit(Group::MemberIndex::Type::Slots::SlotList::Item& cell)
 {
-    m_stack.push(text("IndexedList::ValueIndex::Type::SlotList::Item"));
+    m_stack.push(text("Group::MemberIndex::Type::Slots::SlotList::Item"));
 }
 
-void Printer::visit(IndexedList::ValueIndex::Type::SlotList& cell)
+void Printer::visit(Group::MemberIndex::Type::Slots::SlotList& cell)
 {
-    m_stack.push(text("IndexedList::ValueIndex::Type::SlotList"));
+    m_stack.push(text("Group::MemberIndex::Type::Slots::SlotList"));
 }
 
-void Printer::visit(IndexedList::ValueIndex::Type::SlotIndex& cell)
+void Printer::visit(Group::MemberIndex::Type::Slots::SlotIndex& cell)
 {
-    m_stack.push(text("IndexedList::ValueIndex::Type::SlotIndex"));
+    m_stack.push(text("Group::MemberIndex::Type::Slots::SlotIndex"));
 }
 
-void Printer::visit(IndexedList::ValueIndex::Type::Slot& cell)
+void Printer::visit(Group::MemberIndex::Type::Slots& cell)
 {
-    m_stack.push(text("IndexedList::ValueIndex::Type::Slot"));
+    m_stack.push(text("Group::MemberIndex::Type::Slots"));
 }
 
-void Printer::visit(IndexedList::ValueIndex::Type& cell)
+void Printer::visit(Group::MemberIndex::Type::Slot& cell)
 {
-    m_stack.push(text("IndexedList::ValueIndex::Type"));
+    m_stack.push(text("Group::MemberIndex::Type::Slot"));
 }
 
-void Printer::visit(IndexedList::ValueIndex& cell)
+void Printer::visit(Group::MemberIndex::Type& cell)
 {
-    m_stack.push(text("IndexedList::ValueIndex"));
+    m_stack.push(text("Group::MemberIndex::Type"));
+}
+
+void Printer::visit(Group::MemberIndex& cell)
+{
+    m_stack.push(text("Group::MemberIndex"));
+}
+
+void Printer::visit(Group& cell)
+{
+    m_stack.push(text("Group"));
 }
 
 void Printer::visit(Object& cell)

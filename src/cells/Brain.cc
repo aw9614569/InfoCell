@@ -109,6 +109,7 @@ Types::Types(brain::Brain& kb) :
     m_init(*this),
     Type_(kb, "Type"),
     Slot(kb, "Slot"),
+    List(kb, "List"),
     Void(kb, "Void"),
     Any(kb, "Any"),
     Boolean(kb, "Boolean"),
@@ -119,12 +120,13 @@ Types::Types(brain::Brain& kb) :
     Color(kb, "Color"),
     Pixel(kb, "Pixel"),
     Picture(kb, "Picture"),
+    Template(kb, "Template"),
     op(kb),
     pipeline(kb),
     kb(kb)
 {
-    m_listTypes.at(&kb.type.Slot).manualInitSubTypes();
-    m_listTypes.at(&kb.type.Type_).manualInitSubTypes();
+    m_listTypes.at(&kb.type.Slot).manualInitMembers();
+    m_listTypes.at(&kb.type.Type_).manualInitMembers();
 }
 
 Type& Types::ListOf(CellI& type)
@@ -147,16 +149,35 @@ Type& Types::ListOf(CellI& type)
 
         return it.first->second;
     }
+    using CellT       = Template::CellDescription::Cell;
+    using ParamT      = Template::CellDescription::Parameter;
+    using TemplateOfT = Template::CellDescription::TemplateOf;
+    using SelfTypeT   = Template::CellDescription::SelfType;
+
+    cells::Template item(kb, "ListItem<T>", { { kb.coding.objectType, kb.type.Any } });
+    item.addSlots({ { CellT(kb.sequence.previous), SelfTypeT() },
+                    { CellT(kb.sequence.next), SelfTypeT() },
+                    { CellT(kb.coding.value), ParamT(kb.coding.objectType) } });
+    cells::Template list(kb, "List<T>", { { kb.coding.objectType, kb.type.Any } });
+    list.addSlots({ { CellT(kb.sequence.first), TemplateOfT(item, ParamT(kb.coding.objectType)) },
+                    { CellT(kb.sequence.last), SelfTypeT() },
+                    { CellT(kb.dimensions.size), CellT(kb.type.Number) } });
+}
+
+Type& Types::GroupOf(CellI& type)
+{
+    return kb.type.Any; // TODO
 }
 
 Cells::Cells(brain::Brain& kb, Type& voidType, Type& anyType) :
     type(kb, anyType, "type"),
-    slotList(kb, anyType, "slotList"),
-    slotIndex(kb, anyType, "slotIndex"),
+    slots(kb, anyType, "slots"),
     slotType(kb, anyType, "slotType"),
     slotRole(kb, anyType, "slotRole"),
     subTypes(kb, anyType, "subTypes"),
-    emptyObject(kb, voidType)
+    list(kb, anyType, "list"),
+    index(kb, anyType, "index"),
+    emptyObject(kb, voidType, "emptyObject")
 {
 }
 
@@ -173,6 +194,8 @@ Coding::Coding(brain::Brain& kb, Type& anyType) :
     objectType(kb, anyType, "objectType"),
     op(kb, anyType, "op"),
     output(kb, anyType, "output"),
+    parameter(kb, anyType, "parameter"),
+    parameters(kb, anyType, "parameters"),
     result(kb, anyType, "result"),
     role(kb, anyType, "role"),
     statement(kb, anyType, "statement"),
@@ -240,8 +263,12 @@ Numbers::Numbers(brain::Brain& kb, Type& anyType) :
     sign(kb, anyType, "sign"),
     positive(kb, anyType, "positive"),
     negative(kb, anyType, "negative")
+
 {
+    sign.add(positive);
+    sign.add(negative);
 }
+
 namespace pools {
 
 // ============================================================================
@@ -356,12 +383,21 @@ Brain::Brain() :
     arc(*this)
 {
     type.Type_.addSlots(
-        { { cells.slotList, type.ListOf(type.Slot) },
-          { cells.slotIndex, type.Any } }); // TODO
+        { { cells.slots, type.GroupOf(type.Slot) },
+          { cells.subTypes, type.GroupOf(type.Type_) } });
 
     type.Slot.addSlots(
         { { cells.slotType, type.Type_ },
           { cells.slotRole, type.Any } });
+
+    Type& listSubType = type.List.addSubType(coding.objectType);
+    listSubType.addSlots({ { sequence.previous, listSubType },
+                           { sequence.next, listSubType },
+                           { coding.value, type.Any } });
+    type.List.addSlots(
+        { { sequence.first, listSubType },
+          { sequence.last, listSubType },
+          { dimensions.size, type.Number } });
 
     type.Number.addSlots(
         { { coding.value, type.ListOf(type.Digit) },

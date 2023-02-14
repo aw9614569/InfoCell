@@ -28,42 +28,52 @@ void StructPrinter::visit(Type& cell)
     printStruct(cell);
 }
 
-void StructPrinter::visit(IndexedList::ValueList::Item& cell)
+void StructPrinter::visit(Group::MemberList::Item& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(IndexedList::ValueList& cell)
+void StructPrinter::visit(Group::MemberList& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(IndexedList::ValueIndex::Type::SlotList::Item& cell)
+void StructPrinter::visit(Group::MemberIndex::Type::Slots::SlotList::Item& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(IndexedList::ValueIndex::Type::SlotList& cell)
+void StructPrinter::visit(Group::MemberIndex::Type::Slots::SlotList& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(IndexedList::ValueIndex::Type::SlotIndex& cell)
+void StructPrinter::visit(Group::MemberIndex::Type::Slots::SlotIndex& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(IndexedList::ValueIndex::Type::Slot& cell)
+void StructPrinter::visit(Group::MemberIndex::Type::Slots& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(IndexedList::ValueIndex::Type& cell)
+void StructPrinter::visit(Group::MemberIndex::Type::Slot& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(IndexedList::ValueIndex& cell)
+void StructPrinter::visit(Group::MemberIndex::Type& cell)
+{
+    printStruct(cell);
+}
+
+void StructPrinter::visit(Group::MemberIndex& cell)
+{
+    printStruct(cell);
+}
+
+void StructPrinter::visit(Group& cell)
 {
     printStruct(cell);
 }
@@ -139,7 +149,7 @@ void StructPrinter::printStruct(CellI& cell)
                       filler() | size(WIDTH, EQUAL, 10),
                       text(std::format("{}", (void*)&cell[kb.cells.type]))->fontSize(14)->fontColor(typeColor) });
 
-    CellI& slotList = type[kb.cells.slotList];
+    CellI& slotList = type[kb.cells.slots][kb.cells.list];
     visitList(slotList, [this, &kb, &cell, &roleColor, &typeColor, &lines, &flexConfig](CellI& slot, int i) {
         CellI& role = slot[kb.cells.slotRole];
         if (!cell.has(role)) {

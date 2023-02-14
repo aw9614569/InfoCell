@@ -23,32 +23,37 @@ void CellStructPrinter::visit(Type& cell)
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(IndexedList::ValueList::Item& cell)
+void CellStructPrinter::visit(Group::MemberList::Item& cell)
 {
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(IndexedList::ValueList& cell)
+void CellStructPrinter::visit(Group::MemberList& cell)
 {
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(IndexedList::ValueIndex::Type::SlotList::Item& cell)
+void CellStructPrinter::visit(Group::MemberIndex::Type::Slots::SlotList::Item& cell)
 {
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(IndexedList::ValueIndex::Type::SlotList& cell)
+void CellStructPrinter::visit(Group::MemberIndex::Type::Slots::SlotList& cell)
 {
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(IndexedList::ValueIndex::Type::SlotIndex& cell)
+void CellStructPrinter::visit(Group::MemberIndex::Type::Slots::SlotIndex& cell)
 {
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(IndexedList::ValueIndex::Type::Slot& cell)
+void CellStructPrinter::visit(Group::MemberIndex::Type::Slots& cell)
+{
+    printImpl(cell);
+}
+
+void CellStructPrinter::visit(Group::MemberIndex::Type::Slot& cell)
 {
     brain::Brain& kb = cell.kb;
     if (cell.label().empty()) {
@@ -59,18 +64,23 @@ void CellStructPrinter::visit(IndexedList::ValueIndex::Type::Slot& cell)
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(IndexedList::ValueIndex::Type& cell)
+void CellStructPrinter::visit(Group::MemberIndex::Type& cell)
 {
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(IndexedList::ValueIndex& cell)
+void CellStructPrinter::visit(Group::MemberIndex& cell)
 {
     if (cell.label().empty()) {
         m_ss << "IndexedList::ValueIndex: ";
     } else {
         m_ss << cell.label() << ": ";
     }
+    printImpl(cell);
+}
+
+void CellStructPrinter::visit(Group& cell)
+{
     printImpl(cell);
 }
 
@@ -125,7 +135,7 @@ void CellStructPrinter::printImpl(CellI& cell)
     CellValuePrinter typePrinter;
     type.accept(typePrinter);
     m_ss << "    +--(type)--> (" << type.label() << ") ID" << &type << " // " << typePrinter.print() << std::endl;
-    CellI& slotList = type[kb.cells.slotList];
+    CellI& slotList = type[kb.cells.slots][kb.cells.list];
     visitList(slotList, [this, &kb, &cell](CellI& slot, int i) {
         CellI& role = slot[kb.cells.slotRole];
         if (!cell.has(role)) {
