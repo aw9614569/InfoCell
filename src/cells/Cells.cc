@@ -1247,7 +1247,6 @@ void Template::addSlot(const SlotRef& slotRef)
 
     m_slots.m_group->add(*slotRole, slot);
     m_slots.m_order.push_back(slotRole);
-    m_slots.m_group->add(*slotRole, slot);
 }
 
 Object* Template::createDataCell(const CellDescription& cellDescription)
@@ -1278,9 +1277,27 @@ Object* Template::createDataCell(const CellDescription& cellDescription)
     throw "Unhandled template item type";
 }
 
-CellI* Template::compile(CellI& param)
+CellI& Template::getParamObject()
 {
-    return nullptr; // TODO
+    throw "TODO";
+}
+
+CellI& Template::compile(CellI& param)
+{
+    Type type(kb);
+    Visitor::visitList((*m_slots.m_group)[kb.cells.list], [this, &type, &param](CellI& slot, int i) {
+        if (&slot.type() == &kb.type.template_.DescriptorCell) {
+            type.addSlot(slot[kb.cells.slotRole], slot[kb.cells.slotType]);
+        } else if (&slot.type() == &kb.type.template_.DescriptorParameter) {
+            type.addSlot(slot[kb.cells.slotRole], param);
+        } else if (&slot.type() == &kb.type.template_.DescriptorTemplate) {
+            // TODO
+        } else if (&slot.type() == &kb.type.template_.DescriptorSelf) {
+            type.addSlot(slot[kb.cells.slotRole], type);
+        }
+    });
+
+    return *new Object(kb, type);
 }
 
 // ============================================================================

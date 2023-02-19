@@ -158,10 +158,18 @@ public:
     Object value;
 };
 
+class Templates
+{
+public:
+    Templates(brain::Brain& kb);
+    Template listItem;
+    Template list;
+};
+
 class Sequence
 {
 public:
-    Sequence(brain::Brain& kb, Type& anyType);
+    Sequence(brain::Brain& kb);
     Object first;
     Object last;
     Object previous;
@@ -308,6 +316,7 @@ public:
     Cells cells;
     Pools pools;
     Coding coding;
+    Templates templates;
     Sequence sequence;
     Equation equation;
     Directions directions;

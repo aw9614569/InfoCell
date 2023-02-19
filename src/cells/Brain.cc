@@ -214,12 +214,18 @@ Coding::Coding(brain::Brain& kb, Type& anyType) :
 {
 }
 
-Sequence::Sequence(brain::Brain& kb, Type& anyType) :
-    first(kb, anyType, "first"),
-    last(kb, anyType, "last"),
-    previous(kb, anyType, "previous"),
-    next(kb, anyType, "next"),
-    current(kb, anyType, "current")
+Templates::Templates(brain::Brain& kb) :
+    listItem(kb, "ListItem<T>", { { kb.coding.objectType, kb.type.Type_ } }),
+    list(kb, "List<T>", { { kb.coding.objectType, kb.type.Type_ } })
+{
+}
+
+Sequence::Sequence(brain::Brain& kb) :
+    first(kb, kb.type.Any, "first"),
+    last(kb, kb.type.Any, "last"),
+    previous(kb, kb.type.Any, "previous"),
+    next(kb, kb.type.Any, "next"),
+    current(kb, kb.type.Any, "current")
 {
 }
 
@@ -381,7 +387,8 @@ Brain::Brain() :
     cells(*this, type.Void, type.Any),
     coding(*this, type.Any),
     pools(*this, type.Char, cells.emptyObject, type.Digit),
-    sequence(*this, type.Any),
+    templates(*this),
+    sequence(*this),
     equation(*this, type.Any),
     directions(*this, type.Any),
     coordinates(*this, type.Any),
@@ -414,21 +421,19 @@ Brain::Brain() :
         { { coding.template_, type.Template },
           { coding.parameter, type.Any } });
 
-    {
-        using CellT       = Template::CellDescription::Cell;
-        using ParamT      = Template::CellDescription::Parameter;
-        using TemplateOfT = Template::CellDescription::TemplateOf;
-        using SelfTypeT   = Template::CellDescription::SelfType;
+    using CellT       = Template::CellDescription::Cell;
+    using ParamT      = Template::CellDescription::Parameter;
+    using TemplateOfT = Template::CellDescription::TemplateOf;
+    using SelfTypeT   = Template::CellDescription::SelfType;
 
-        cells::Template item(*this, "ListItem<T>", { { coding.objectType, type.Any } });
-        item.addSlots({ { CellT(sequence.previous), SelfTypeT() },
-                        { CellT(sequence.next), SelfTypeT() },
-                        { CellT(coding.value), ParamT(coding.objectType) } });
-        cells::Template list(*this, "List<T>", { { coding.objectType, type.Any } });
-        list.addSlots({ { CellT(sequence.first), TemplateOfT(item, ParamT(coding.objectType)) },
-                        { CellT(sequence.last), SelfTypeT() },
-                        { CellT(dimensions.size), CellT(type.Number) } });
-    }
+    templates.listItem.addSlots({ { CellT(sequence.previous), SelfTypeT() },
+                                  { CellT(sequence.next), SelfTypeT() },
+                                  { CellT(coding.value), ParamT(coding.objectType) } });
+
+    templates.list.addSlots({ { CellT(sequence.first), TemplateOfT(templates.listItem, ParamT(coding.objectType)) },
+                              { CellT(sequence.last), SelfTypeT() },
+                              { CellT(dimensions.size), CellT(type.Number) } });
+
     Type& listSubType = type.List.addSubType(coding.objectType);
     listSubType.addSlots({ { sequence.previous, listSubType },
                            { sequence.next, listSubType },

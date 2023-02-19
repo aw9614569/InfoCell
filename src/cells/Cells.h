@@ -683,7 +683,8 @@ public:
     void addSlots(std::initializer_list<SlotRef> slots);
     void addSlot(const SlotRef& slotRef);
 
-    CellI* compile(CellI& param);
+    CellI& getParamObject();
+    CellI& compile(CellI& param);
 
 protected:
     Object* createDataCell(const CellDescription& cellDescription);
@@ -1403,7 +1404,7 @@ public:
     virtual void visit(control::pipeline::DoWhile&) { }
     virtual void visit(control::pipeline::While&) { }
 
-    void visitList(CellI& list, std::function<void(CellI& value, int i)> fn);
+    static void visitList(CellI& list, std::function<void(CellI& value, int i)> fn);
 };
 
 bool tryVisitWith(CellI& cell, Visitor& visitor);

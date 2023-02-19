@@ -111,6 +111,8 @@ int main(int argc, char* argv[])
     Number& number_0   = kb.pools.numbers.get(0);
     Number& number_255 = kb.pools.numbers.get(255);
 
+    CellI& templateTest = kb.templates.list.compile(kb.type.Number);
+
     printAs.value(colorClass);
     printAs.value(colorClass[kb.cells.slots][kb.cells.index][colorRed]);
     printAs.value(redColor);
