@@ -561,41 +561,6 @@ A type should have a parameter like thing where we can express what kind of obje
    Maybe we can use a value definition parameter
 
 A type should have some kind of definition where we can express what is the relation between theese parameters, members, and what is the purpose of theese.
-
-kb.type.List
-kb.type.ListOfSlot = List<typeIs: Slot> | 
-
-
-    Template ListItemTemplate(kb, "template<T> ListItem",
-        { { kb.coding.objectType, kb.type.Type_ } },
-        { { kb.coding.value, kb.coding.params, kb.coding.objectType } });
-
-    ListItemTemplate.add({ { kb.sequence.previous, ListItemTemplate },
-                           { kb.sequence.next, ListItemTemplate } });
-
-    ListItemTemplate[kb.cells.type][kb.type.Template];
-
-    ListItemTemplateParam1[kb.coding.role] = kb.coding.objectType;
-    ListItemTemplateParam1[kb.coding.type] = kb.type.Type_;
-    ListItemTemplate[kb.coding.params]  = { ListItemTemplateParam1 };
-
-    ListItemTemplateSlot1[kb.coding.role]                 = kb.coding.value;
-    ListItemTemplateSlot1[kb.coding.template_.slotType]  = kb.coding.template_.slot.param; // one of { type, param, templateOf }
-    ListItemTemplateSlot1[kb.coding.template_.param] = kb.coding.objectType;
-
-    ListItemTemplateSlot2[kb.coding.template_.slotRole]   = kb.sequence.previous;
-    ListItemTemplateSlot2[kb.coding.template_.slotType]   = kb.coding.template_.slot.templateOf; // one of { type, param, templateOf, selfType }
-    ListItemTemplateSlot2[kb.coding.template_.templateOf] = ListItemTemplate;
-    ListItemTemplateSlot2[kb.coding.template_.param]      = kb.coding.objectType;
-
-    ListItemTemplateSlot3[kb.coding.template_.slotRole]   = kb.sequence.next;
-    ListItemTemplateSlot3[kb.coding.template_.slotType]   = kb.coding.template_.slot.selfType; // one of { type, param, templateOf, selfType }
-
-    ListItemTemplate[kb.coding.slots] = { ListItemTemplateSlot1, ListItemTemplateSlot2, ListItemTemplateSlot3 };
-
-    TemplateInstance listItemT(ListItemTemplate, kb.coding.objectType, type);
-
- // Type ListItemTemplate(kb, "template<T> ListItem", { { kb.coding.parameters, kb.type.Type_ } });
 #endif
 class TemplateParam;
 
@@ -624,9 +589,10 @@ public:
         class TemplateOf
         {
         public:
-            TemplateOf(Template& templateOf, CellDescription cellDescription);
+            TemplateOf(Template& templateOf, CellDescription paramDescription, CellDescription valueDescription);
             Template* m_templateOf;
-            std::unique_ptr<CellDescription> m_templateParameter;
+            std::unique_ptr<CellDescription> m_paramDescription;
+            std::unique_ptr<CellDescription> m_valueDescription;
         };
 
         class SelfType
@@ -683,11 +649,12 @@ public:
     void addSlots(std::initializer_list<SlotRef> slots);
     void addSlot(const SlotRef& slotRef);
 
-    CellI& getParamObject();
+    CellI& getParamType();
     CellI& compile(CellI& param);
 
 protected:
     Object* createDataCell(const CellDescription& cellDescription);
+    CellI& compileCell(CellI& descriptor, CellI& param, CellI& selfType);
 
     template <typename T>
     class GroupData
@@ -702,9 +669,10 @@ protected:
         std::vector<CellI*> m_order;
         std::unique_ptr<Group> m_group;
     };
-    GroupData<Object> m_parameters;
+    GroupData<Slot> m_parameters;
     GroupData<Object> m_slots;
     GroupData<Template> m_subTypes;
+    std::unique_ptr<Type> m_paramType;
 };
 
 // ============================================================================

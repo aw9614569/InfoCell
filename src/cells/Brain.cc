@@ -158,19 +158,6 @@ Type& Types::ListOf(CellI& type)
 
         return it.first->second;
     }
-    using CellT       = Template::CellDescription::Cell;
-    using ParamT      = Template::CellDescription::Parameter;
-    using TemplateOfT = Template::CellDescription::TemplateOf;
-    using SelfTypeT   = Template::CellDescription::SelfType;
-
-    cells::Template item(kb, "ListItem<T>", { { kb.coding.objectType, kb.type.Any } });
-    item.addSlots({ { CellT(kb.sequence.previous), SelfTypeT() },
-                    { CellT(kb.sequence.next), SelfTypeT() },
-                    { CellT(kb.coding.value), ParamT(kb.coding.objectType) } });
-    cells::Template list(kb, "List<T>", { { kb.coding.objectType, kb.type.Any } });
-    list.addSlots({ { CellT(kb.sequence.first), TemplateOfT(item, ParamT(kb.coding.objectType)) },
-                    { CellT(kb.sequence.last), SelfTypeT() },
-                    { CellT(kb.dimensions.size), CellT(kb.type.Number) } });
 }
 
 Type& Types::GroupOf(CellI& type)
@@ -215,8 +202,8 @@ Coding::Coding(brain::Brain& kb, Type& anyType) :
 }
 
 Templates::Templates(brain::Brain& kb) :
-    listItem(kb, "ListItem<T>", { { kb.coding.objectType, kb.type.Type_ } }),
-    list(kb, "List<T>", { { kb.coding.objectType, kb.type.Type_ } })
+    listItem(kb, "ListItem", { { kb.coding.objectType, kb.type.Type_ } }),
+    list(kb, "List", { { kb.coding.objectType, kb.type.Type_ } })
 {
 }
 
@@ -419,7 +406,8 @@ Brain::Brain() :
 
     type.template_.DescriptorTemplate.addSlots(
         { { coding.template_, type.Template },
-          { coding.parameter, type.Any } });
+          { coding.parameter, type.Any },
+          { coding.value, type.Any } });
 
     using CellT       = Template::CellDescription::Cell;
     using ParamT      = Template::CellDescription::Parameter;
@@ -430,8 +418,8 @@ Brain::Brain() :
                                   { CellT(sequence.next), SelfTypeT() },
                                   { CellT(coding.value), ParamT(coding.objectType) } });
 
-    templates.list.addSlots({ { CellT(sequence.first), TemplateOfT(templates.listItem, ParamT(coding.objectType)) },
-                              { CellT(sequence.last), SelfTypeT() },
+    templates.list.addSlots({ { CellT(sequence.first), TemplateOfT(templates.listItem, CellT(coding.objectType), ParamT(coding.objectType)) },
+                              { CellT(sequence.last), TemplateOfT(templates.listItem, CellT(coding.objectType), ParamT(coding.objectType)) },
                               { CellT(dimensions.size), CellT(type.Number) } });
 
     Type& listSubType = type.List.addSubType(coding.objectType);

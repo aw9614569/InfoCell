@@ -111,7 +111,13 @@ int main(int argc, char* argv[])
     Number& number_0   = kb.pools.numbers.get(0);
     Number& number_255 = kb.pools.numbers.get(255);
 
-    CellI& templateTest = kb.templates.list.compile(kb.type.Number);
+    CellI& templateListItemParamType = kb.templates.listItem.getParamType();
+    Object templateListItemParam(kb, templateListItemParamType);
+    templateListItemParam.set(kb.coding.objectType, kb.type.Number);
+    CellI& templateListItemType = kb.templates.listItem.compile(templateListItemParam);
+    printAs.value(templateListItemType);
+    CellI& templateListType = kb.templates.list.compile(templateListItemParam);
+    printAs.value(templateListType);
 
     printAs.value(colorClass);
     printAs.value(colorClass[kb.cells.slots][kb.cells.index][colorRed]);

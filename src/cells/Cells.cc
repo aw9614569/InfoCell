@@ -1082,9 +1082,10 @@ Template::CellDescription::Parameter::Parameter(CellI& paramRole) :
 {
 }
 
-Template::CellDescription::TemplateOf::TemplateOf(Template& templateOf, CellDescription cellDescription) :
+Template::CellDescription::TemplateOf::TemplateOf(Template& templateOf, CellDescription paramDescription, CellDescription valueDescription) :
     m_templateOf(&templateOf),
-    m_templateParameter(new CellDescription(std::move(cellDescription)))
+    m_paramDescription(new CellDescription(std::move(paramDescription))),
+    m_valueDescription(new CellDescription(std::move(valueDescription)))
 {
 }
 
@@ -1160,12 +1161,14 @@ Template::Template(brain::Brain& kb, const std::string& label) :
     CellI(kb, label)
 {
     m_slots.m_group.reset(new Group(kb, kb.type.Any)); // TODO really Any?
+    m_parameters.m_group.reset(new Group(kb, kb.type.Slot));
 }
 
 Template::Template(brain::Brain& kb, std::initializer_list<Type::SlotRef> params) :
     CellI(kb, "Template")
 {
     m_slots.m_group.reset(new Group(kb, kb.type.Any));
+    m_parameters.m_group.reset(new Group(kb, kb.type.Slot));
     for (const auto& param : params) {
         addParam(param);
     }
@@ -1175,6 +1178,7 @@ Template::Template(brain::Brain& kb, const std::string& label, std::initializer_
     CellI(kb, label)
 {
     m_slots.m_group.reset(new Group(kb, kb.type.Any));
+    m_parameters.m_group.reset(new Group(kb, kb.type.Slot));
     for (const auto& param : params) {
         addParam(param);
     }
@@ -1222,6 +1226,13 @@ void Template::addParams(std::initializer_list<Type::SlotRef> params)
 
 void Template::addParam(const Type::SlotRef& param)
 {
+    auto res = m_parameters.m_map.emplace(std::piecewise_construct,
+                                     std::forward_as_tuple(&param.m_role),
+                                     std::forward_as_tuple(kb, param.m_role, param.m_type));
+
+    Slot& slot = res.first->second;
+    m_parameters.m_group->add(param.m_role, slot);
+    m_parameters.m_order.push_back(&param.m_role);
 }
 
 void Template::addSlots(std::initializer_list<SlotRef> slots)
@@ -1265,7 +1276,8 @@ Object* Template::createDataCell(const CellDescription& cellDescription)
     case CellDescription::DescriptionKind::TemplateOf: {
         Object* itemCell = new Object(kb, kb.type.template_.DescriptorTemplate);
         itemCell->set(kb.coding.template_, *cellDescription.m_templateOf.m_templateOf);
-        itemCell->set(kb.coding.parameter, *createDataCell(*cellDescription.m_templateOf.m_templateParameter));
+        itemCell->set(kb.coding.parameter, *createDataCell(*cellDescription.m_templateOf.m_paramDescription));
+        itemCell->set(kb.coding.value, *createDataCell(*cellDescription.m_templateOf.m_valueDescription));
         return itemCell;
     } break;
     case CellDescription::DescriptionKind::SelfType: {
@@ -1277,27 +1289,57 @@ Object* Template::createDataCell(const CellDescription& cellDescription)
     throw "Unhandled template item type";
 }
 
-CellI& Template::getParamObject()
+CellI& Template::getParamType()
 {
-    throw "TODO";
+    if (!m_paramType) {
+        m_paramType = std::make_unique<Type>(kb, std::format("{}<T>::params", label()));
+        Type& type  = *m_paramType;
+        Visitor::visitList((*m_parameters.m_group)[kb.cells.list], [this, &type](CellI& slot, int i) {
+            type.addSlot(slot[kb.cells.slotRole], slot[kb.cells.slotType]);
+        });
+    }
+
+    return *m_paramType;
 }
 
 CellI& Template::compile(CellI& param)
 {
-    Type type(kb);
-    Visitor::visitList((*m_slots.m_group)[kb.cells.list], [this, &type, &param](CellI& slot, int i) {
-        if (&slot.type() == &kb.type.template_.DescriptorCell) {
-            type.addSlot(slot[kb.cells.slotRole], slot[kb.cells.slotType]);
-        } else if (&slot.type() == &kb.type.template_.DescriptorParameter) {
-            type.addSlot(slot[kb.cells.slotRole], param);
-        } else if (&slot.type() == &kb.type.template_.DescriptorTemplate) {
-            // TODO
-        } else if (&slot.type() == &kb.type.template_.DescriptorSelf) {
-            type.addSlot(slot[kb.cells.slotRole], type);
+    Type& type = *new Type(kb);
+    std::stringstream ss;
+    Visitor::visitList((*m_parameters.m_group)[kb.cells.list], [this, &ss, &param](CellI& slot, int i) {
+        CellI& role = slot[kb.cells.slotRole];
+        if (!param.has(role)) {
+            return;
         }
+        if (i != 0) {
+            ss << ", ";
+        }
+        ss << param[role].label();
+    });
+    type.label(std::format("{}<{}>", label(), ss.str()));
+    Visitor::visitList((*m_slots.m_group)[kb.cells.list], [this, &type, &param](CellI& slot, int i) {
+        type.addSlot(compileCell(slot[kb.cells.slotRole], param, type), compileCell(slot[kb.cells.slotType], param, type));
     });
 
-    return *new Object(kb, type);
+    return type;
+}
+
+CellI& Template::compileCell(CellI& descriptor, CellI& param, CellI& selfType)
+{
+    if (&descriptor.type() == &kb.type.template_.DescriptorCell) {
+        return descriptor[kb.coding.value];
+    } else if (&descriptor.type() == &kb.type.template_.DescriptorParameter) {
+        return param[descriptor[kb.coding.value]];
+    } else if (&descriptor.type() == &kb.type.template_.DescriptorTemplate) {
+        Template& templateObj = static_cast<Template&>(descriptor[kb.coding.template_]);
+        Object paramObject(kb, templateObj.getParamType());
+        paramObject.set(compileCell(descriptor[kb.coding.parameter], param, selfType), compileCell(descriptor[kb.coding.value], param, selfType));
+        return templateObj.compile(paramObject);
+    } else if (&descriptor.type() == &kb.type.template_.DescriptorSelf) {
+        return selfType;
+    }
+
+    throw "Unknown template descriptor!";
 }
 
 // ============================================================================
