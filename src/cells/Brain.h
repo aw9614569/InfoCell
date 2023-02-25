@@ -162,7 +162,6 @@ class Templates
 {
 public:
     Templates(brain::Brain& kb);
-    Template listItem;
     Template list;
 };
 

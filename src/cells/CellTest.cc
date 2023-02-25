@@ -111,12 +111,17 @@ int main(int argc, char* argv[])
     Number& number_0   = kb.pools.numbers.get(0);
     Number& number_255 = kb.pools.numbers.get(255);
 
-    CellI& templateListItemParamType = kb.templates.listItem.getParamType();
+    Template& listItemTemplate = static_cast<Template&>(kb.templates.list[kb.cells.subTypes][kb.cells.index][kb.coding.objectType]);
+    CellI& templateListItemParamType = listItemTemplate.getParamType();
     Object templateListItemParam(kb, templateListItemParamType);
     templateListItemParam.set(kb.coding.objectType, kb.type.Number);
-    CellI& templateListItemType = kb.templates.listItem.compile(templateListItemParam);
+    CellI& templateListItemType = listItemTemplate.compile(templateListItemParam);
     printAs.value(templateListItemType);
-    CellI& templateListType = kb.templates.list.compile(templateListItemParam);
+
+    CellI& templateListParamType = kb.templates.list.getParamType();
+    Object templateListParam(kb, templateListParamType);
+    templateListParam.set(kb.coding.objectType, kb.type.Number);
+    CellI& templateListType = kb.templates.list.compile(templateListParam);
     printAs.value(templateListType);
 
     printAs.value(colorClass);

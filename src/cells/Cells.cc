@@ -246,13 +246,13 @@ void Type::addSlots(std::initializer_list<SlotRef> slots)
 
 Type& Type::addSubType(CellI& role, const std::string& label, InitMode initMode)
 {
-    auto& membersMap   = m_subTypes.m_map;
-    auto res           = initMode == InitMode::Normal ? membersMap.emplace(std::piecewise_construct,
-                                                                           std::forward_as_tuple(&role),
-                                                                           std::forward_as_tuple(kb, label))
-                                                      : membersMap.emplace(std::piecewise_construct,
-                                                                           std::forward_as_tuple(&role),
-                                                                           std::forward_as_tuple(kb, label, initMode));
+    auto& subTypesMap  = m_subTypes.m_map;
+    auto res           = initMode == InitMode::Normal ? subTypesMap.emplace(std::piecewise_construct,
+                                                                            std::forward_as_tuple(&role),
+                                                                            std::forward_as_tuple(kb, label))
+                                                      : subTypesMap.emplace(std::piecewise_construct,
+                                                                            std::forward_as_tuple(&role),
+                                                                            std::forward_as_tuple(kb, label, initMode));
     Type& insertedType = res.first->second;
     m_subTypes.m_order.push_back(&role);
     if (m_subTypes.m_group) {
@@ -260,6 +260,11 @@ Type& Type::addSubType(CellI& role, const std::string& label, InitMode initMode)
     }
 
     return insertedType;
+}
+
+void Type::addSubType(CellI& role, Type& type)
+{
+    m_subTypes.m_map.emplace(&role, std::move(type));
 }
 
 void Type::manualInit()
@@ -1157,11 +1162,13 @@ Template::SlotRef::SlotRef(CellDescription role, CellDescription type) :
 {
 }
 
+// ============================================================================
 Template::Template(brain::Brain& kb, const std::string& label) :
     CellI(kb, label)
 {
-    m_slots.m_group.reset(new Group(kb, kb.type.Any)); // TODO really Any?
+    m_slots.m_group.reset(new Group(kb, kb.type.template_.TemplateSlot));
     m_parameters.m_group.reset(new Group(kb, kb.type.Slot));
+    m_subTypes.m_group.reset(new Group(kb, kb.type.Template));
 }
 
 Template::Template(brain::Brain& kb, std::initializer_list<Type::SlotRef> params) :
@@ -1169,6 +1176,7 @@ Template::Template(brain::Brain& kb, std::initializer_list<Type::SlotRef> params
 {
     m_slots.m_group.reset(new Group(kb, kb.type.Any));
     m_parameters.m_group.reset(new Group(kb, kb.type.Slot));
+    m_subTypes.m_group.reset(new Group(kb, kb.type.Template));
     for (const auto& param : params) {
         addParam(param);
     }
@@ -1179,6 +1187,7 @@ Template::Template(brain::Brain& kb, const std::string& label, std::initializer_
 {
     m_slots.m_group.reset(new Group(kb, kb.type.Any));
     m_parameters.m_group.reset(new Group(kb, kb.type.Slot));
+    m_subTypes.m_group.reset(new Group(kb, kb.type.Template));
     for (const auto& param : params) {
         addParam(param);
     }
@@ -1187,6 +1196,15 @@ Template::Template(brain::Brain& kb, const std::string& label, std::initializer_
 bool Template::has(CellI& role)
 {
     if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.coding.parameters && !m_parameters.empty()) {
+        return true;
+    }
+    if (&role == &kb.cells.slots && !m_slots.empty()) {
+        return true;
+    }
+    if (&role == &kb.cells.subTypes && !m_subTypes.empty()) {
         return true;
     }
 
@@ -1207,6 +1225,15 @@ CellI& Template::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
         return kb.type.Template;
+    }
+    if (&role == &kb.coding.parameters) {
+        return *m_parameters.m_group;
+    }
+    if (&role == &kb.cells.slots) {
+        return *m_slots.m_group;
+    }
+    if (&role == &kb.cells.subTypes) {
+        return *m_subTypes.m_group;
     }
 
     return kb.cells.emptyObject;
@@ -1260,6 +1287,19 @@ void Template::addSlot(const SlotRef& slotRef)
     m_slots.m_order.push_back(slotRole);
 }
 
+Template& Template::addSubType(CellI& role, const std::string& label)
+{
+    auto res = m_subTypes.m_map.emplace(std::piecewise_construct,
+                                        std::forward_as_tuple(&role),
+                                        std::forward_as_tuple(kb, label));
+
+    Template& template_ = res.first->second;
+    m_subTypes.m_group->add(role, template_);
+    m_subTypes.m_order.push_back(&role);
+
+    return template_;
+}
+
 Object* Template::createDataCell(const CellDescription& cellDescription)
 {
     switch (cellDescription.m_descriptionKind) {
@@ -1302,7 +1342,7 @@ CellI& Template::getParamType()
     return *m_paramType;
 }
 
-CellI& Template::compile(CellI& param)
+Type& Template::compile(CellI& param)
 {
     Type& type = *new Type(kb);
     std::stringstream ss;
@@ -1319,6 +1359,11 @@ CellI& Template::compile(CellI& param)
     type.label(std::format("{}<{}>", label(), ss.str()));
     Visitor::visitList((*m_slots.m_group)[kb.cells.list], [this, &type, &param](CellI& slot, int i) {
         type.addSlot(compileCell(slot[kb.cells.slotRole], param, type), compileCell(slot[kb.cells.slotType], param, type));
+    });
+    Visitor::visitList((*m_subTypes.m_group)[kb.cells.index][kb.cells.type][kb.cells.list], [this, &type, &param](CellI& slot, int i) {
+        CellI& role   = slot[kb.cells.slotRole];
+        Template& templateObj = static_cast<Template&>((*m_subTypes.m_group)[kb.cells.index][role]);
+        type.addSubType(role, templateObj.compile(param));
     });
 
     return type;

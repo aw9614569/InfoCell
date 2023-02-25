@@ -184,6 +184,7 @@ public:
     Slot& addSlot(CellI& role, CellI& type);
     void addSlots(std::initializer_list<SlotRef> slots);
     Type& addSubType(CellI& role, const std::string& label = "", InitMode initMode = InitMode::Normal);
+    void addSubType(CellI& role, Type& type);
     void manualInit();
     void manualInitMembers();
 
@@ -648,9 +649,10 @@ public:
     void addParam(const Type::SlotRef& param);
     void addSlots(std::initializer_list<SlotRef> slots);
     void addSlot(const SlotRef& slotRef);
+    Template& addSubType(CellI& role, const std::string& label);
 
     CellI& getParamType();
-    CellI& compile(CellI& param);
+    Type& compile(CellI& param);
 
 protected:
     Object* createDataCell(const CellDescription& cellDescription);
