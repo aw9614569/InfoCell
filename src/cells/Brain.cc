@@ -423,8 +423,11 @@ Brain::Brain() :
     templates.list.addParam({ coding.objectType, type.Type_ });
     templates.list.addSlots({ { CellT(sequence.first), TemplateOfT(listItem, CellT(coding.objectType), ParamT(coding.objectType)) },
                               { CellT(sequence.last), TemplateOfT(listItem, CellT(coding.objectType), ParamT(coding.objectType)) },
+                              { CellT(coding.objectType), ParamT(coding.objectType) },
                               { CellT(dimensions.size), CellT(type.Number) } });
 
+    // We should indicate that template.list is a container and it has a first, last, size, objectType member.
+    // And also, that template.list -> item is an iterator prev, next, value
 
     Type& listSubType = type.List.addSubType(coding.objectType);
     listSubType.addSlots({ { sequence.previous, listSubType },

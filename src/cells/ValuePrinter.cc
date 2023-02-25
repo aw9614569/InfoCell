@@ -99,11 +99,12 @@ void CellValuePrinter::printImpl(CellI& cell)
     m_ss << " }";
 }
 
-void CellValuePrinter::visit(ListItem& listItemCell)
+void CellValuePrinter::visit(List::Item& listItemCell)
 {
+    brain::Brain& kb = listItemCell.kb;
     m_ss << "[ ";
-    if (!listItemCell.value().label().empty()) {
-        m_ss << listItemCell.value().label() << " ";
+    if (!listItemCell[kb.coding.value].label().empty()) {
+        m_ss << listItemCell[kb.coding.value].label() << " ";
     }
     m_ss << "]";
 

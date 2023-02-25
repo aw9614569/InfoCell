@@ -33,7 +33,7 @@ public:
     void visit(Group::MemberIndex& cell) override;
     void visit(Group& cell) override;
     void visit(Object& cell) override;
-    void visit(ListItem& cell) override;
+    void visit(List::Item& cell) override;
     void visit(List& cell) override;
     void visit(Number& cell) override;
     void visit(String& cell) override;

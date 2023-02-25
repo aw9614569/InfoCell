@@ -114,13 +114,13 @@ int main(int argc, char* argv[])
     Template& listItemTemplate = static_cast<Template&>(kb.templates.list[kb.cells.subTypes][kb.cells.index][kb.coding.objectType]);
     CellI& templateListItemParamType = listItemTemplate.getParamType();
     Object templateListItemParam(kb, templateListItemParamType);
-    templateListItemParam.set(kb.coding.objectType, kb.type.Number);
+    templateListItemParam.set(kb.coding.objectType, kb.type.Digit);
     CellI& templateListItemType = listItemTemplate.compile(templateListItemParam);
     printAs.value(templateListItemType);
 
     CellI& templateListParamType = kb.templates.list.getParamType();
     Object templateListParam(kb, templateListParamType);
-    templateListParam.set(kb.coding.objectType, kb.type.Number);
+    templateListParam.set(kb.coding.objectType, kb.type.Digit);
     CellI& templateListType = kb.templates.list.compile(templateListParam);
     printAs.value(templateListType);
 

@@ -83,7 +83,7 @@ void StructPrinter::visit(Object& cell)
     printStruct(cell);
 }
 
-void StructPrinter::visit(ListItem& cell)
+void StructPrinter::visit(List::Item& cell)
 {
     printStruct(cell);
 }

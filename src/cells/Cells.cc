@@ -338,105 +338,87 @@ void Object::accept(Visitor& visitor)
 }
 
 // ============================================================================
-ListItem::ListItem(brain::Brain& kb, CellI& t) :
-    CellI(kb),
-    m_type(t)
+List::Item::Item(brain::Brain& kb, Value& value) :
+    CellI(kb), m_value(value)
 {
 }
 
-bool ListItem::has(CellI& role)
+bool List::Item::has(CellI& role)
 {
     if (&role == &kb.cells.type || &role == &kb.coding.value) {
         return true;
     }
-    if (&role == &kb.sequence.previous && m_prev) {
+    if (&role == &kb.sequence.previous && m_value.prev()) {
         return true;
     }
-    if (&role == &kb.sequence.next && m_next) {
+    if (&role == &kb.sequence.next && m_value.next()) {
         return true;
     }
 
     return false;
 }
 
-void ListItem::set(CellI& role, CellI& value)
+void List::Item::set(CellI& role, CellI& value)
 {
-    throw "Not supported";
+    // Do nothing
 }
 
-void ListItem::operator()()
+void List::Item::operator()()
 {
-    // Do nothing, this is a data cell
+    // Do nothing
 }
 
-CellI& ListItem::operator[](CellI& role)
+CellI& List::Item::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return m_type;
+        return kb.type.ListOf(m_value.m_list.m_valueType)[kb.cells.subTypes][kb.cells.index][kb.coding.objectType];
     }
     if (&role == &kb.sequence.previous) {
-        if (m_prev)
-            return *m_prev;
+        if (m_value.prev())
+            return m_value.prev()->m_listItem;
         else
             return kb.cells.emptyObject;
     }
     if (&role == &kb.sequence.next) {
-        if (m_next)
-            return *m_next;
+        if (m_value.next())
+            return m_value.next()->m_listItem;
         else
             return kb.cells.emptyObject;
     }
     if (&role == &kb.coding.value) {
-        if (m_value)
-            return *m_value;
-        else
-            return *m_value;
+        return m_value.m_value;
     }
 
     return kb.cells.emptyObject;
 }
 
-void ListItem::accept(Visitor& visitor)
+void List::Item::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 
-CellI& ListItem::prev()
+// ============================================================================
+List::Value::Value(List& list, CellI& value) :
+    m_list(list),
+    m_value(value),
+    m_listItem(list.kb, *this)
 {
-    return *m_prev;
 }
 
-void ListItem::prev(ListItem* p)
+List::Value* List::Value::prev()
 {
-    m_prev = p;
+    return m_iterator != m_list.m_items.begin() ? &*std::prev(m_iterator) : nullptr;
 }
 
-CellI& ListItem::next()
+List::Value* List::Value::next()
 {
-    return *m_next;
-}
-
-void ListItem::next(ListItem* n)
-{
-    m_next = n;
-}
-
-CellI& ListItem::value()
-{
-    return *m_value;
-}
-
-void ListItem::value(CellI* v)
-{
-    m_value = v;
+    return m_iterator != std::prev(m_list.m_items.end()) ? &*std::next(m_iterator) : nullptr;
 }
 
 // ============================================================================
 List::List(brain::Brain& kb, CellI& valueType) :
     CellI(kb),
-    m_valueType(valueType),
-    m_listType(kb.type.ListOf(valueType)),
-    m_itemType(m_listType[kb.cells.subTypes][kb.cells.index][kb.coding.objectType])
+    m_valueType(valueType)
 {
 }
 
@@ -465,13 +447,13 @@ void List::operator()()
 CellI& List::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return m_listType;
+        return kb.type.ListOf(m_valueType);
     }
     if (&role == &kb.sequence.first) {
-        return m_items.front();
+        return m_items.front().m_listItem;
     }
     if (&role == &kb.sequence.last) {
-        return m_items.back();
+        return m_items.back().m_listItem;
     }
     if (&role == &kb.dimensions.size) {
         int size = (int)m_items.size();
@@ -489,20 +471,8 @@ void List::accept(Visitor& visitor)
 
 void List::add(CellI& value)
 {
-    if (kb.isInitialized() && m_valueType != value.type()) {
-        throw "Type error!";
-    }
-
-    ListItem* prevListItem = m_items.empty() ? nullptr : &m_items.back();
-    auto& listItemCell     = m_items.emplace_back(kb, m_itemType);
-    if (prevListItem == nullptr) {
-        listItemCell.prev(nullptr);
-    } else {
-        listItemCell.prev(prevListItem);
-        prevListItem->next(&listItemCell);
-    }
-    listItemCell.next(nullptr);
-    listItemCell.value(&value);
+    m_items.emplace_back(*this, value);
+    m_items.back().m_iterator = std::prev(m_items.end());
 }
 
 // ============================================================================
@@ -569,7 +539,7 @@ void Group::MemberList::Item::accept(Visitor& visitor)
 Group::MemberList::MemberList(brain::Brain& kb, OrderedMemberItems& listItems, CellI& valueType) :
     CellI(kb),
     m_listItems(listItems),
-    m_listType(kb.type.ListOf(valueType))
+    m_valueType(valueType)
 {
 }
 
@@ -598,7 +568,7 @@ void Group::MemberList::operator()()
 CellI& Group::MemberList::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return m_listType;
+        return kb.type.ListOf(m_valueType);
     }
     if (&role == &kb.sequence.first) {
         return m_listItems.front()->m_memberListItem;
@@ -981,13 +951,13 @@ void Group::MemberIndex::accept(Visitor& visitor)
 }
 
 // ============================================================================
-Group::MemberItem::MemberItem(brain::Brain& kb, Group& group, CellI& member, CellI& index, size_t listItemIndex) :
+Group::MemberItem::MemberItem(Group& group, CellI& member, CellI& index, size_t listItemIndex) :
     m_group(group),
     m_member(member),
     m_listItemIndex(listItemIndex),
-    m_memberListItem(kb, *this),
-    m_memberIndexTypeSlotListItem(kb, *this),
-    m_memberIndexTypeSlot(kb, index)
+    m_memberListItem(group.kb, *this),
+    m_memberIndexTypeSlotListItem(group.kb, *this),
+    m_memberIndexTypeSlot(group.kb, index)
 {
 }
 
@@ -1072,7 +1042,7 @@ void Group::add(CellI& key, CellI& value)
 {
     auto it = m_indexedMemberItems.emplace(std::piecewise_construct,
                                            std::forward_as_tuple(&key),
-                                           std::forward_as_tuple(kb, *this, value, key, m_orderedMemberItems.size()));
+                                           std::forward_as_tuple(*this, value, key, m_orderedMemberItems.size()));
     m_orderedMemberItems.push_back(&it.first->second);
 }
 

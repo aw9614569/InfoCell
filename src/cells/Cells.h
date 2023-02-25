@@ -225,43 +225,14 @@ protected:
 };
 
 // ============================================================================
-class ListItem : public CellI
-{
-public:
-    ListItem(brain::Brain& kb, CellI& type);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    CellI& prev();
-    void prev(ListItem* p);
-
-    CellI& next();
-    void next(ListItem* n);
-
-    CellI& value();
-    void value(CellI* v);
-
-protected:
-    CellI& m_type;
-    CellI* m_prev  = nullptr;
-    CellI* m_next  = nullptr;
-    CellI* m_value = nullptr;
-};
-
-// ============================================================================
-class Number;
 class List : public CellI
 {
 public:
-#if 0
-    class Type : public CellI
+    struct Value;
+    class Item : public CellI
     {
     public:
-        Type(brain::Brain& kb, CellI& valueType);
+        Item(brain::Brain& kb, Value& value);
 
         bool has(CellI& role) override;
         void set(CellI& role, CellI& value) override;
@@ -269,9 +240,8 @@ public:
         CellI& operator[](CellI& role) override;
         void accept(Visitor& visitor) override;
 
-        CellI& m_valueType;
+        Value& m_value;
     };
-#endif
 
     List(brain::Brain& kb, CellI& valueType);
 
@@ -301,11 +271,22 @@ public:
 
     void add(CellI& value);
 
+    struct Value
+    {
+        Value(List& list, CellI& value);
+
+        Value* prev();
+        Value* next();
+
+        List& m_list;
+        CellI& m_value;
+        std::list<Value>::iterator m_iterator;
+        Item m_listItem;
+    };
+
 protected:
     CellI& m_valueType;
-    Type& m_listType;
-    CellI& m_itemType;
-    std::list<ListItem> m_items;
+    std::list<Value> m_items;
 };
 
 // ============================================================================
@@ -399,7 +380,7 @@ public:
         void accept(Visitor& visitor) override;
 
         OrderedMemberItems& m_listItems;
-        CellI& m_listType;
+        CellI& m_valueType;
     };
 
     class MemberIndex : public CellI
@@ -506,7 +487,7 @@ public:
 
     struct MemberItem
     {
-        MemberItem(brain::Brain& kb, Group& group, CellI& member, CellI& index, size_t listItemIndex);
+        MemberItem(Group& group, CellI& member, CellI& index, size_t listItemIndex);
 
         MemberItem* prev();
         MemberItem* next();
@@ -1323,13 +1304,14 @@ protected:
 class Visitor
 {
 public:
-    virtual void visit(Slot&)     = 0;
-    virtual void visit(Type&)     = 0;
-    virtual void visit(Object&)   = 0;
-    virtual void visit(ListItem&) = 0;
-    virtual void visit(List&)     = 0;
-    virtual void visit(Number&)   = 0;
-    virtual void visit(String&)   = 0;
+    virtual void visit(Slot&)   = 0;
+    virtual void visit(Type&)   = 0;
+    virtual void visit(Object&) = 0;
+    virtual void visit(Number&) = 0;
+    virtual void visit(String&) = 0;
+
+    virtual void visit(List&)       = 0;
+    virtual void visit(List::Item&) = 0;
 
     virtual void visit(Group::MemberList::Item&) = 0;
     virtual void visit(Group::MemberList&)       = 0;

@@ -92,7 +92,7 @@ void CellStructPrinter::visit(Object& cell)
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(ListItem& cell)
+void CellStructPrinter::visit(List::Item& cell)
 {
     printImpl(cell);
 }
