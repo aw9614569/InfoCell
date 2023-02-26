@@ -15,6 +15,7 @@ static void test()
 namespace type {
 Template::Template(brain::Brain& kb) :
     TemplateSlot(kb, "TemplateSlot"),
+    Descriptor(kb, "Descriptor"),
     DescriptorCell(kb, "DescriptorCell"),
     DescriptorParameter(kb, "DescriptorParameter"),
     DescriptorTemplate(kb, "DescriptorTemplate"),
@@ -75,7 +76,11 @@ Operations::Operations(brain::Brain& kb) :
 Types::Types(brain::Brain& kb) :
     Type_(kb, "Type"),
     Slot(kb, "Slot"),
+    Container(kb, "Conatainer"),
+    Iterator(kb, "Iterator"),
     List(kb, "List"),
+    Map(kb, "Map"),
+    Index(kb, "Index"),
     Void(kb, "Void"),
     Any(kb, "Any"),
     Boolean(kb, "Boolean"),
@@ -96,15 +101,17 @@ Types::Types(brain::Brain& kb) :
 
 Type& Types::ListOf(CellI& type)
 {
-    auto numberIt = m_listTypes.find(&type);
-    if (numberIt != m_listTypes.end()) {
-        return numberIt->second;
+    auto typeIt = m_listTypes.find(&type);
+    if (typeIt != m_listTypes.end()) {
+        return typeIt->second;
     } else {
         auto it        = m_listTypes.emplace(std::piecewise_construct,
                                              std::forward_as_tuple(&type),
                                              std::forward_as_tuple(kb, std::format("List<{}>", type.label())));
         Type& listType = it.first->second;
         Type& itemType = listType.addSubType(kb.coding.objectType, std::format("ListItem<{}>", type.label()));
+        listType.addMembership(kb.type.Container);
+        itemType.addMembership(kb.type.Iterator);
         listType.addSlots({ { kb.sequence.first, itemType },
                             { kb.sequence.last, itemType },
                             { kb.dimensions.size, kb.type.Number } });
@@ -116,9 +123,22 @@ Type& Types::ListOf(CellI& type)
     }
 }
 
-Type& Types::GroupOf(CellI& type)
+Type& Types::MapOf(CellI& type)
 {
-    return kb.type.Any; // TODO
+    auto typeIt = m_mapTypes.find(&type);
+    if (typeIt != m_mapTypes.end()) {
+        return typeIt->second;
+    } else {
+        auto it        = m_mapTypes.emplace(std::piecewise_construct,
+                                            std::forward_as_tuple(&type),
+                                            std::forward_as_tuple(kb, std::format("Map<{}>", type.label())));
+        Type& mapType = it.first->second;
+        mapType.addSlots({ { kb.cells.list, ListOf(type) },
+                           { kb.cells.index, kb.type.Index },
+                           { kb.dimensions.size, kb.type.Number } });
+
+        return it.first->second;
+    }
 }
 
 Cells::Cells(brain::Brain& kb, Type& voidType, Type& anyType) :
@@ -127,8 +147,9 @@ Cells::Cells(brain::Brain& kb, Type& voidType, Type& anyType) :
     slotType(kb, anyType, "slotType"),
     slotRole(kb, anyType, "slotRole"),
     subTypes(kb, anyType, "subTypes"),
-    list(kb, anyType, "list"),
     index(kb, anyType, "index"),
+    list(kb, anyType, "list"),
+    memberOf(kb, anyType, "memberOf"),
     emptyObject(kb, voidType, "emptyObject")
 {
 }
@@ -223,8 +244,8 @@ Numbers::Numbers(brain::Brain& kb, Type& anyType) :
     negative(kb, anyType, "negative")
 
 {
-    sign.add(positive);
-    sign.add(negative);
+    sign.add(positive, positive);
+    sign.add(negative, negative);
 }
 
 namespace pools {
@@ -342,27 +363,33 @@ Brain::Brain() :
     arc(*this)
 {
     type.Type_.addSlots(
-        { { cells.slots, type.GroupOf(type.Slot) },
-          { cells.subTypes, type.GroupOf(type.Type_) } });
+        { { cells.slots, type.MapOf(type.Slot) },
+          { cells.subTypes, type.MapOf(type.Type_) },
+          { cells.memberOf, type.MapOf(type.Type_) } });
 
     type.Slot.addSlots(
         { { cells.slotType, type.Type_ },
           { cells.slotRole, type.Any } });
 
     type.template_.TemplateSlot.addSlots(
-        { { cells.slotType, type.Any },
-          { cells.slotRole, type.Any } });
+        { { cells.slotType, type.template_.Descriptor },
+          { cells.slotRole, type.template_.Descriptor } });
 
+    type.template_.DescriptorCell.addMembership(type.template_.Descriptor);
     type.template_.DescriptorCell.addSlots(
         { { coding.value, type.Any } });
 
+    type.template_.DescriptorParameter.addMembership(type.template_.Descriptor);
     type.template_.DescriptorParameter.addSlots(
         { { coding.value, type.Any } });
 
+    type.template_.DescriptorTemplate.addMembership(type.template_.Descriptor);
     type.template_.DescriptorTemplate.addSlots(
         { { coding.template_, type.Template },
-          { coding.parameter, type.Any },
-          { coding.value, type.Any } });
+          { coding.parameter, type.template_.Descriptor },
+          { coding.value, type.template_.Descriptor } });
+
+    type.template_.DescriptorSelf.addMembership(type.template_.Descriptor);
 
     using CellT       = Template::CellDescription::Cell;
     using ParamT      = Template::CellDescription::Parameter;

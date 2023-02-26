@@ -80,77 +80,8 @@ protected:
     bool m_required          = false;
 };
 
-#if 0
-If something can have a parametric definition, there must be a way to call with parameters on the calling site.
-So we have to express a List of Slot or List<Slot> like type where List and Slot also a type.
-But currently the type in the Slot (slotType) expect a concrete type.
-So we need an extra indirection there to express the parametric nature of a type.
-Currently the Slot looks like this:
-
-cell
-  role1 -> type1
-  role2 -> type2
-
-we want express something like this:
-cell
-  role1 -> type1
-  role2 -> type2(param1)
-
-So, instead of putting the type directly there we can introduce a function-call like thing.
-We should not call it a "call". Maybe typeDefinition?
-
-cell                           cell                  defType1          defType2                  paramValues (Group::Index)
-  role1 -> type1           =>    role1 -> defType1      value -> type1     value -> type2              paramRole1: paramValue1         
-  role2 -> type2(param1)         role2 -> defType2                        params -> paramValues
-
-
-
-1. type of x is y
-      type: TypeIs
-      is: y
-      memberOf: TypeDefinition
-2. type of x is memberof of a group of y
-      type: TypeIsMemberOf
-      group: y
-      memberOf: TypeDefinition
-3. and, or
-      lhs: TypeDefinition
-      rhs: TypeDefinition
-      memberOf: TypeDefinition
-
-With cell descriptors
-1. type of x is y
-   Equal/Is
-       value: y
-       descriptor: ValueOfType
-   
-   ValueOfType
-       type: SlotOf
-       role: type
-
-2. type of x is memberof of a group of y
-   Equal/Is
-       value: y
-       descriptorPath: [ ValueOfMemberOf,
-
-    ValueOfMemberOf
-       type: SlotOf
-       role: memberOf
-
-    Information about group membership of a type is in the [kb.cells.membersOf] role.
-    A Group object is able to inform about membership, with the help of method [kb.container.contains] and parameter [kb.coding.value]
-
-    group.contains(value)
-
-    IsMemberOf
-        object: x[type][memberOf]
-        method: kb.container.contains
-        parameter: kb.coding.value
-        value:  y
-#endif
-
 // ============================================================================
-class Map;
+class RefMap;
 class Type : public CellI
 {
 public:
@@ -177,23 +108,26 @@ public:
     void addSlots(std::initializer_list<SlotRef> slots);
     Type& addSubType(CellI& role, const std::string& label = "");
     void addSubType(CellI& role, Type& type);
+    void addMembership(CellI& type);
 
 protected:
     template <typename T>
-    class GroupData
+    class MapData
     {
     public:
+        MapData(brain::Brain& kb, CellI& valueType);
+
         bool empty() const
         {
             return m_valuesMap.empty();
         }
 
         std::map<CellI*, T> m_valuesMap;
-        std::unique_ptr<Map> m_group;
+        std::unique_ptr<RefMap> m_group;
     };
-    GroupData<Slot> m_slots;
-    GroupData<Type> m_subTypes;
-    GroupData<Type> m_memberOf;
+    MapData<Slot> m_slots;
+    MapData<Type> m_subTypes;
+    std::unique_ptr<RefMap> m_memberOf;
 };
 
 // ============================================================================
@@ -214,7 +148,7 @@ protected:
 };
 
 // ============================================================================
-class List : public CellI
+class RefList : public CellI
 {
 public:
     struct Value;
@@ -232,11 +166,11 @@ public:
         Value& m_value;
     };
 
-    List(brain::Brain& kb, CellI& valueType);
+    RefList(brain::Brain& kb, CellI& valueType);
 
     template <typename T>
-    List(brain::Brain& kb, std::vector<T>& values) :
-        List(kb, util::ref(values.front()).type())
+    RefList(brain::Brain& kb, std::vector<T>& values) :
+        RefList(kb, util::ref(values.front()).type())
     {
         for (auto& valueT : values) {
             add(util::ref(valueT));
@@ -244,8 +178,8 @@ public:
     }
 
     template <typename Key, typename Value>
-    List(brain::Brain& kb, std::map<Key, Value>& values) :
-        List(kb, util::ref((*values.begin())).second.type())
+    RefList(brain::Brain& kb, std::map<Key, Value>& values) :
+        RefList(kb, util::ref((*values.begin())).second.type())
     {
         for (auto& valuePairs : values) {
             add(util::ref(valuePairs.second));
@@ -262,12 +196,12 @@ public:
 
     struct Value
     {
-        Value(List& list, CellI& value);
+        Value(RefList& list, CellI& value);
 
         Value* prev();
         Value* next();
 
-        List& m_list;
+        RefList& m_list;
         CellI& m_value;
         std::list<Value>::iterator m_iterator;
         Item m_listItem;
@@ -279,7 +213,7 @@ protected:
 };
 
 // ============================================================================
-class Map : public CellI
+class RefMap : public CellI
 {
 #if 0
 SomeValue
@@ -287,7 +221,7 @@ SomeValue
     roleSize: Number
     roleName: String
 
-SlotGroup
+SlotMap
     list:   List
     index:  Index
 
@@ -431,19 +365,19 @@ public:
 
     struct Value
     {
-        Value(Map& group, CellI& value, CellI& index, size_t listItemIndex);
+        Value(RefMap& group, CellI& value, CellI& index, size_t listItemIndex);
 
         Value* prev();
         Value* next();
 
-        Map& m_group;
+        RefMap& m_group;
         CellI& m_value;
         std::list<Value*>::iterator m_iterator;
         Index::Type::Slots::SlotList::Item m_indexTypeSlotsListItem;
         Index::Type::Slot m_indexTypeSlot;
     };
 
-    Map(brain::Brain& kb, CellI& valueType, const std::string& label = "");
+    RefMap(brain::Brain& kb, CellI& valueType, const std::string& label = "");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -451,7 +385,7 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-    void add(CellI& value); // value is the key
+//    void add(CellI& value); // value is the key
     void add(CellI& key, CellI& value);
     bool empty() const;
 
@@ -462,7 +396,7 @@ protected:
     OrderedValues m_orderedValues;
 
 public:
-    List m_list;
+    RefList m_list;
     Index m_index;
 };
 
@@ -584,21 +518,20 @@ protected:
     CellI& compileCell(CellI& descriptor, CellI& param, CellI& selfType);
 
     template <typename T>
-    class GroupData
+    class MapData
     {
     public:
         bool empty() const
         {
-            return m_order.empty();
+            return m_map.empty();
         }
 
         std::map<CellI*, T> m_map;
-        std::vector<CellI*> m_order;
-        std::unique_ptr<Map> m_group;
+        std::unique_ptr<RefMap> m_group;
     };
-    GroupData<Slot> m_parameters;
-    GroupData<Object> m_slots;
-    GroupData<Template> m_subTypes;
+    MapData<Slot> m_parameters;
+    MapData<Object> m_slots;
+    MapData<Template> m_subTypes;
     std::unique_ptr<Type> m_paramType;
 };
 
@@ -622,7 +555,7 @@ protected:
 
     int m_value;
     std::vector<Object*> m_digits;
-    std::unique_ptr<List> m_digitsList;
+    std::unique_ptr<RefList> m_digitsList;
 };
 
 // ============================================================================
@@ -644,7 +577,7 @@ protected:
 
     std::string m_value;
     std::vector<Object*> m_characters;
-    std::unique_ptr<List> m_charactersList;
+    std::unique_ptr<RefList> m_charactersList;
 };
 
 namespace hybrid {
@@ -725,7 +658,7 @@ protected:
     Number& m_widthCell;
     Number& m_heightCell;
     std::vector<Pixel> m_pixels;
-    std::unique_ptr<List> m_pixelsList;
+    std::unique_ptr<RefList> m_pixelsList;
 };
 
 } // namespace hybrid
@@ -1254,17 +1187,17 @@ public:
     virtual void visit(Number&) = 0;
     virtual void visit(String&) = 0;
 
-    virtual void visit(List&)       = 0;
-    virtual void visit(List::Item&) = 0;
+    virtual void visit(RefList&)       = 0;
+    virtual void visit(RefList::Item&) = 0;
 
-    virtual void visit(Map::Index::Type::Slots::SlotList::Item&) = 0;
-    virtual void visit(Map::Index::Type::Slots::SlotList&)       = 0;
-    virtual void visit(Map::Index::Type::Slots::SlotIndex&)      = 0;
-    virtual void visit(Map::Index::Type::Slots&)                 = 0;
-    virtual void visit(Map::Index::Type::Slot&)                  = 0;
-    virtual void visit(Map::Index::Type&)                        = 0;
-    virtual void visit(Map::Index&)                              = 0;
-    virtual void visit(Map&)                                           = 0;
+    virtual void visit(RefMap::Index::Type::Slots::SlotList::Item&) = 0;
+    virtual void visit(RefMap::Index::Type::Slots::SlotList&)       = 0;
+    virtual void visit(RefMap::Index::Type::Slots::SlotIndex&)      = 0;
+    virtual void visit(RefMap::Index::Type::Slots&)                 = 0;
+    virtual void visit(RefMap::Index::Type::Slot&)                  = 0;
+    virtual void visit(RefMap::Index::Type&)                        = 0;
+    virtual void visit(RefMap::Index&)                              = 0;
+    virtual void visit(RefMap&)                                           = 0;
 
     virtual void visit(hybrid::Color&)   = 0;
     virtual void visit(hybrid::Pixel&)   = 0;
@@ -1309,6 +1242,13 @@ bool tryVisitWith(CellI& cell, Visitor& visitor);
 
 namespace synth {
 namespace cells {
+
+template <typename T>
+Type::MapData<T>::MapData(brain::Brain& kb, CellI& valueType) :
+    m_group(new RefMap(kb, valueType))
+{
+}
+
 namespace control {
 namespace pipeline {
 

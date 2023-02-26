@@ -140,10 +140,11 @@ Type::SlotRef::SlotRef(CellI& role, CellI& type) :
 }
 
 Type::Type(brain::Brain& kb, const std::string& label) :
-    CellI(kb, label)
+    CellI(kb, label),
+    m_slots(kb, kb.type.Slot),
+    m_subTypes(kb, kb.type.Type_),
+    m_memberOf(new RefMap(kb, kb.type.Type_))
 {
-    m_slots.m_group.reset(new Map(kb, kb.type.Slot));
-    m_subTypes.m_group.reset(new Map(kb, kb.type.Type_));
 }
 
 Type::Type(brain::Brain& kb, std::initializer_list<SlotRef> slots) :
@@ -152,9 +153,8 @@ Type::Type(brain::Brain& kb, std::initializer_list<SlotRef> slots) :
 }
 
 Type::Type(brain::Brain& kb, const std::string& label, std::initializer_list<SlotRef> slots) :
-    CellI(kb, label)
+    Type(kb, label)
 {
-    m_slots.m_group.reset(new Map(kb, kb.type.Slot));
     for (const SlotRef& slotRef : slots) {
         addSlot(slotRef.m_role, slotRef.m_type);
     }
@@ -162,10 +162,16 @@ Type::Type(brain::Brain& kb, const std::string& label, std::initializer_list<Slo
 
 bool Type::has(CellI& role)
 {
-    if (&role == &kb.cells.type || &role == &kb.cells.slots) {
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.cells.slots && !m_slots.empty()) {
         return true;
     }
     if (&role == &kb.cells.subTypes && !m_subTypes.empty()) {
+        return true;
+    }
+    if (&role == &kb.cells.memberOf && !m_memberOf->empty()) {
         return true;
     }
 
@@ -193,6 +199,9 @@ CellI& Type::operator[](CellI& role)
     if (&role == &kb.cells.subTypes) {
         return *m_subTypes.m_group;
     }
+    if (&role == &kb.cells.memberOf) {
+        return *m_memberOf;
+    }
 
     return kb.cells.emptyObject;
 }
@@ -213,9 +222,7 @@ Slot& Type::addSlot(CellI& role, CellI& type)
         if (kb.isInitialized()) {
             slot.label(std::format("Slot of {}.{}", label(), role.label()));
         }
-        if (m_slots.m_group) {
-            m_slots.m_group->add(role, slot);
-        }
+        m_slots.m_group->add(role, slot);
 
         return slot;
     } else {
@@ -237,16 +244,22 @@ Type& Type::addSubType(CellI& role, const std::string& label)
                                               std::forward_as_tuple(kb, label));
 
     Type& insertedType = res.first->second;
-    if (m_subTypes.m_group) {
-        m_subTypes.m_group->add(role, insertedType);
-    }
+    m_subTypes.m_group->add(role, insertedType);
 
     return insertedType;
 }
 
 void Type::addSubType(CellI& role, Type& type)
 {
-    m_subTypes.m_valuesMap.emplace(&role, std::move(type));
+    auto res = m_subTypes.m_valuesMap.emplace(&role, std::move(type));
+
+    Type& insertedType = res.first->second;
+    m_subTypes.m_group->add(role, insertedType);
+}
+
+void Type::addMembership(CellI& type)
+{
+    m_memberOf->add(type, type);
 }
 
 // ============================================================================
@@ -297,12 +310,12 @@ void Object::accept(Visitor& visitor)
 }
 
 // ============================================================================
-List::Item::Item(brain::Brain& kb, Value& value) :
+RefList::Item::Item(brain::Brain& kb, Value& value) :
     CellI(kb), m_value(value)
 {
 }
 
-bool List::Item::has(CellI& role)
+bool RefList::Item::has(CellI& role)
 {
     if (&role == &kb.cells.type || &role == &kb.coding.value) {
         return true;
@@ -317,17 +330,17 @@ bool List::Item::has(CellI& role)
     return false;
 }
 
-void List::Item::set(CellI& role, CellI& value)
+void RefList::Item::set(CellI& role, CellI& value)
 {
     // Do nothing
 }
 
-void List::Item::operator()()
+void RefList::Item::operator()()
 {
     // Do nothing
 }
 
-CellI& List::Item::operator[](CellI& role)
+CellI& RefList::Item::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
         return kb.type.ListOf(m_value.m_list.m_valueType)[kb.cells.subTypes][kb.cells.index][kb.coding.objectType];
@@ -351,37 +364,37 @@ CellI& List::Item::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-void List::Item::accept(Visitor& visitor)
+void RefList::Item::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 
 // ============================================================================
-List::Value::Value(List& list, CellI& value) :
+RefList::Value::Value(RefList& list, CellI& value) :
     m_list(list),
     m_value(value),
     m_listItem(list.kb, *this)
 {
 }
 
-List::Value* List::Value::prev()
+RefList::Value* RefList::Value::prev()
 {
     return m_iterator != m_list.m_items.begin() ? &*std::prev(m_iterator) : nullptr;
 }
 
-List::Value* List::Value::next()
+RefList::Value* RefList::Value::next()
 {
     return m_iterator != std::prev(m_list.m_items.end()) ? &*std::next(m_iterator) : nullptr;
 }
 
 // ============================================================================
-List::List(brain::Brain& kb, CellI& valueType) :
+RefList::RefList(brain::Brain& kb, CellI& valueType) :
     CellI(kb),
     m_valueType(valueType)
 {
 }
 
-bool List::has(CellI& role)
+bool RefList::has(CellI& role)
 {
     if (&role == &kb.cells.type || &role == &kb.dimensions.size) {
         return true;
@@ -393,17 +406,17 @@ bool List::has(CellI& role)
     return false;
 }
 
-void List::set(CellI& role, CellI& value)
+void RefList::set(CellI& role, CellI& value)
 {
     throw "Not supported";
 }
 
-void List::operator()()
+void RefList::operator()()
 {
     // Do nothing, this is a data cell
 }
 
-CellI& List::operator[](CellI& role)
+CellI& RefList::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
         return kb.type.ListOf(m_valueType);
@@ -423,25 +436,25 @@ CellI& List::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-void List::accept(Visitor& visitor)
+void RefList::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 
-void List::add(CellI& value)
+void RefList::add(CellI& value)
 {
     m_items.emplace_back(*this, value);
     m_items.back().m_iterator = std::prev(m_items.end());
 }
 
 // ============================================================================
-Map::Index::Type::Slots::SlotList::Item::Item(brain::Brain& kb, Value& value) :
+RefMap::Index::Type::Slots::SlotList::Item::Item(brain::Brain& kb, Value& value) :
     CellI(kb),
     m_value(value)
 {
 }
 
-bool Map::Index::Type::Slots::SlotList::Item::has(CellI& role)
+bool RefMap::Index::Type::Slots::SlotList::Item::has(CellI& role)
 {
     if (&role == &kb.cells.type || &role == &kb.coding.value) {
         return true;
@@ -456,17 +469,17 @@ bool Map::Index::Type::Slots::SlotList::Item::has(CellI& role)
     return false;
 }
 
-void Map::Index::Type::Slots::SlotList::Item::set(CellI& role, CellI& value)
+void RefMap::Index::Type::Slots::SlotList::Item::set(CellI& role, CellI& value)
 {
     // Do nothing
 }
 
-void Map::Index::Type::Slots::SlotList::Item::operator()()
+void RefMap::Index::Type::Slots::SlotList::Item::operator()()
 {
     // Do nothing, this is a data cell
 }
 
-CellI& Map::Index::Type::Slots::SlotList::Item::operator[](CellI& role)
+CellI& RefMap::Index::Type::Slots::SlotList::Item::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
         return kb.type.ListOf(kb.type.Slot)[kb.cells.subTypes][kb.cells.index][kb.coding.objectType];
@@ -490,19 +503,19 @@ CellI& Map::Index::Type::Slots::SlotList::Item::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-void Map::Index::Type::Slots::SlotList::Item::accept(Visitor& visitor)
+void RefMap::Index::Type::Slots::SlotList::Item::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 
 // ============================================================================
-Map::Index::Type::Slots::SlotList::SlotList(brain::Brain& kb, OrderedValues& orderedValues) :
+RefMap::Index::Type::Slots::SlotList::SlotList(brain::Brain& kb, OrderedValues& orderedValues) :
     CellI(kb),
     m_orderedValues(orderedValues)
 {
 }
 
-bool Map::Index::Type::Slots::SlotList::has(CellI& role)
+bool RefMap::Index::Type::Slots::SlotList::has(CellI& role)
 {
     if (&role == &kb.cells.type || &role == &kb.sequence.first || &role == &kb.sequence.last || &role == &kb.dimensions.size) {
         return true;
@@ -511,17 +524,17 @@ bool Map::Index::Type::Slots::SlotList::has(CellI& role)
     return false;
 }
 
-void Map::Index::Type::Slots::SlotList::set(CellI& role, CellI& value)
+void RefMap::Index::Type::Slots::SlotList::set(CellI& role, CellI& value)
 {
     // Do nothing
 }
 
-void Map::Index::Type::Slots::SlotList::operator()()
+void RefMap::Index::Type::Slots::SlotList::operator()()
 {
     // Do nothing, this is a data cell
 }
 
-CellI& Map::Index::Type::Slots::SlotList::operator[](CellI& role)
+CellI& RefMap::Index::Type::Slots::SlotList::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
         return kb.type.ListOf(kb.type.Slot);
@@ -545,20 +558,20 @@ CellI& Map::Index::Type::Slots::SlotList::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-void Map::Index::Type::Slots::SlotList::accept(Visitor& visitor)
+void RefMap::Index::Type::Slots::SlotList::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 
 // ============================================================================
-Map::Index::Type::Slots::SlotIndex::SlotIndex(brain::Brain& kb, IndexedValues& indexedValues, Type& type) :
+RefMap::Index::Type::Slots::SlotIndex::SlotIndex(brain::Brain& kb, IndexedValues& indexedValues, Type& type) :
     CellI(kb),
     m_indexedValues(indexedValues),
     m_type(type)
 {
 }
 
-bool Map::Index::Type::Slots::SlotIndex::has(CellI& role)
+bool RefMap::Index::Type::Slots::SlotIndex::has(CellI& role)
 {
     if (&role == &kb.cells.type) {
         return true;
@@ -571,17 +584,17 @@ bool Map::Index::Type::Slots::SlotIndex::has(CellI& role)
     return false;
 }
 
-void Map::Index::Type::Slots::SlotIndex::set(CellI& role, CellI& value)
+void RefMap::Index::Type::Slots::SlotIndex::set(CellI& role, CellI& value)
 {
     // Do nothing
 }
 
-void Map::Index::Type::Slots::SlotIndex::operator()()
+void RefMap::Index::Type::Slots::SlotIndex::operator()()
 {
     // Do nothing, this is a data cell
 }
 
-CellI& Map::Index::Type::Slots::SlotIndex::operator[](CellI& role)
+CellI& RefMap::Index::Type::Slots::SlotIndex::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
         return m_type;
@@ -594,19 +607,19 @@ CellI& Map::Index::Type::Slots::SlotIndex::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-void Map::Index::Type::Slots::SlotIndex::accept(Visitor& visitor)
+void RefMap::Index::Type::Slots::SlotIndex::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 
 // ============================================================================
-Map::Index::Type::Slot::Slot(brain::Brain& kb, CellI& slotRole) :
+RefMap::Index::Type::Slot::Slot(brain::Brain& kb, CellI& slotRole) :
     CellI(kb),
     m_slotRole(slotRole)
 {
 }
 
-bool Map::Index::Type::Slot::has(CellI& role)
+bool RefMap::Index::Type::Slot::has(CellI& role)
 {
     if (&role == &kb.cells.type || &role == &kb.cells.slotType || &role == &kb.cells.slotRole) {
         return true;
@@ -614,17 +627,17 @@ bool Map::Index::Type::Slot::has(CellI& role)
     return false;
 }
 
-void Map::Index::Type::Slot::set(CellI& role, CellI& value)
+void RefMap::Index::Type::Slot::set(CellI& role, CellI& value)
 {
     // Do nothing
 }
 
-void Map::Index::Type::Slot::operator()()
+void RefMap::Index::Type::Slot::operator()()
 {
     // Do nothing, this is a data cell
 }
 
-CellI& Map::Index::Type::Slot::operator[](CellI& role)
+CellI& RefMap::Index::Type::Slot::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
         return kb.type.Slot;
@@ -639,25 +652,25 @@ CellI& Map::Index::Type::Slot::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-void Map::Index::Type::Slot::accept(Visitor& visitor)
+void RefMap::Index::Type::Slot::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 
 // ============================================================================
-Map::Index::Type::Slots::Slots(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType, Type& type) :
+RefMap::Index::Type::Slots::Slots(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType, Type& type) :
     CellI(kb),
     m_slotList(kb, orderedValues),
     m_slotIndex(kb, indexedValues, type)
 {
     if (&valueType == &kb.type.Slot) {
-        label("Index<Slot>::Map");
+        label("Index<Slot>::RefMap");
     } else {
-        label(std::format("Index<{}>::Map", valueType.label()));
+        label(std::format("Index<{}>::RefMap", valueType.label()));
     }
 }
 
-bool Map::Index::Type::Slots::has(CellI& role)
+bool RefMap::Index::Type::Slots::has(CellI& role)
 {
     if (&role == &kb.cells.type || &role == &kb.cells.index || &role == &kb.cells.list) {
         return true;
@@ -666,20 +679,20 @@ bool Map::Index::Type::Slots::has(CellI& role)
     return false;
 }
 
-void Map::Index::Type::Slots::set(CellI& role, CellI& value)
+void RefMap::Index::Type::Slots::set(CellI& role, CellI& value)
 {
     // Do nothing
 }
 
-void Map::Index::Type::Slots::operator()()
+void RefMap::Index::Type::Slots::operator()()
 {
     // Do nothing, this is a data cell
 }
 
-CellI& Map::Index::Type::Slots::operator[](CellI& role)
+CellI& RefMap::Index::Type::Slots::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.GroupOf(kb.type.Slot);
+        return kb.type.MapOf(kb.type.Slot);
     }
     if (&role == &kb.cells.index) {
         return m_slotIndex;
@@ -691,13 +704,13 @@ CellI& Map::Index::Type::Slots::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-void Map::Index::Type::Slots::accept(Visitor& visitor)
+void RefMap::Index::Type::Slots::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 
 // ============================================================================
-Map::Index::Type::Type(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType) :
+RefMap::Index::Type::Type(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType) :
     CellI(kb),
     m_slots(kb, indexedValues, orderedValues, valueType, *this)
 {
@@ -708,7 +721,7 @@ Map::Index::Type::Type(brain::Brain& kb, IndexedValues& indexedValues, OrderedVa
     }
 }
 
-bool Map::Index::Type::has(CellI& role)
+bool RefMap::Index::Type::has(CellI& role)
 {
     if (&role == &kb.cells.type || &role == &kb.cells.slots) {
         return true;
@@ -717,17 +730,17 @@ bool Map::Index::Type::has(CellI& role)
     return false;
 }
 
-void Map::Index::Type::set(CellI& role, CellI& value)
+void RefMap::Index::Type::set(CellI& role, CellI& value)
 {
     // Do nothing
 }
 
-void Map::Index::Type::operator()()
+void RefMap::Index::Type::operator()()
 {
     // Do nothing, this is a data cell
 }
 
-CellI& Map::Index::Type::operator[](CellI& role)
+CellI& RefMap::Index::Type::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
         return kb.type.Type_;
@@ -739,13 +752,13 @@ CellI& Map::Index::Type::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-void Map::Index::Type::accept(Visitor& visitor)
+void RefMap::Index::Type::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 
 // ============================================================================
-Map::Index::Index(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType) :
+RefMap::Index::Index(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType) :
     CellI(kb),
     m_type(kb, indexedValues, orderedValues, valueType),
     m_indexedValues(indexedValues),
@@ -753,7 +766,7 @@ Map::Index::Index(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues&
 {
 }
 
-bool Map::Index::has(CellI& role)
+bool RefMap::Index::has(CellI& role)
 {
     if (&role == &kb.cells.type) {
         return true;
@@ -766,17 +779,17 @@ bool Map::Index::has(CellI& role)
     return false;
 }
 
-void Map::Index::set(CellI& role, CellI& value)
+void RefMap::Index::set(CellI& role, CellI& value)
 {
     // Do nothing
 }
 
-void Map::Index::operator()()
+void RefMap::Index::operator()()
 {
     // Do nothing, this is a data cell
 }
 
-CellI& Map::Index::operator[](CellI& role)
+CellI& RefMap::Index::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
         return m_type;
@@ -789,13 +802,13 @@ CellI& Map::Index::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-void Map::Index::accept(Visitor& visitor)
+void RefMap::Index::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 
 // ============================================================================
-Map::Value::Value(Map& group, CellI& value, CellI& index, size_t listItemIndex) :
+RefMap::Value::Value(RefMap& group, CellI& value, CellI& index, size_t listItemIndex) :
     m_group(group),
     m_value(value),
     m_indexTypeSlotsListItem(group.kb, *this),
@@ -803,18 +816,18 @@ Map::Value::Value(Map& group, CellI& value, CellI& index, size_t listItemIndex) 
 {
 }
 
-Map::Value* Map::Value::prev()
+RefMap::Value* RefMap::Value::prev()
 {
     return m_iterator != m_group.m_orderedValues.begin() ? *std::prev(m_iterator) : nullptr;
 }
 
-Map::Value* Map::Value::next()
+RefMap::Value* RefMap::Value::next()
 {
     return m_iterator != std::prev(m_group.m_orderedValues.end()) ? *std::next(m_iterator) : nullptr;
 }
 
 // ============================================================================
-Map::Map(brain::Brain& kb, CellI& valueType, const std::string& label) :
+RefMap::RefMap(brain::Brain& kb, CellI& valueType, const std::string& label) :
     CellI(kb, label),
     m_valueType(valueType),
     m_list(kb, valueType),
@@ -822,7 +835,7 @@ Map::Map(brain::Brain& kb, CellI& valueType, const std::string& label) :
 {
 }
 
-bool Map::has(CellI& role)
+bool RefMap::has(CellI& role)
 {
     if (&role == &kb.cells.type || &role == &kb.dimensions.size) {
         return true;
@@ -837,20 +850,20 @@ bool Map::has(CellI& role)
     return false;
 }
 
-void Map::set(CellI& role, CellI& value)
+void RefMap::set(CellI& role, CellI& value)
 {
     throw "Not supported";
 }
 
-void Map::operator()()
+void RefMap::operator()()
 {
     // Do nothing, this is a data cell
 }
 
-CellI& Map::operator[](CellI& role)
+CellI& RefMap::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.GroupOf(m_valueType);
+        return kb.type.MapOf(m_valueType);
     }
     if (&role == &kb.cells.index) {
         return m_index;
@@ -867,17 +880,19 @@ CellI& Map::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-void Map::accept(Visitor& visitor)
+void RefMap::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 
+#if 0
 void Map::add(CellI& value)
 {
     add(value, value);
 }
+#endif
 
-void Map::add(CellI& key, CellI& value)
+void RefMap::add(CellI& key, CellI& value)
 {
     auto it = m_indexedValues.emplace(std::piecewise_construct,
                                       std::forward_as_tuple(&key),
@@ -887,7 +902,7 @@ void Map::add(CellI& key, CellI& value)
     m_list.add(value);
 }
 
-bool Map::empty() const
+bool RefMap::empty() const
 {
     return m_indexedValues.empty();
 }
@@ -982,17 +997,17 @@ Template::SlotRef::SlotRef(CellDescription role, CellDescription type) :
 Template::Template(brain::Brain& kb, const std::string& label) :
     CellI(kb, label)
 {
-    m_slots.m_group.reset(new Map(kb, kb.type.template_.TemplateSlot));
-    m_parameters.m_group.reset(new Map(kb, kb.type.Slot));
-    m_subTypes.m_group.reset(new Map(kb, kb.type.Template));
+    m_slots.m_group.reset(new RefMap(kb, kb.type.template_.TemplateSlot));
+    m_parameters.m_group.reset(new RefMap(kb, kb.type.Slot));
+    m_subTypes.m_group.reset(new RefMap(kb, kb.type.Template));
 }
 
 Template::Template(brain::Brain& kb, std::initializer_list<Type::SlotRef> params) :
     CellI(kb, "Template")
 {
-    m_slots.m_group.reset(new Map(kb, kb.type.Any));
-    m_parameters.m_group.reset(new Map(kb, kb.type.Slot));
-    m_subTypes.m_group.reset(new Map(kb, kb.type.Template));
+    m_slots.m_group.reset(new RefMap(kb, kb.type.Any));
+    m_parameters.m_group.reset(new RefMap(kb, kb.type.Slot));
+    m_subTypes.m_group.reset(new RefMap(kb, kb.type.Template));
     for (const auto& param : params) {
         addParam(param);
     }
@@ -1001,9 +1016,9 @@ Template::Template(brain::Brain& kb, std::initializer_list<Type::SlotRef> params
 Template::Template(brain::Brain& kb, const std::string& label, std::initializer_list<Type::SlotRef> params) :
     CellI(kb, label)
 {
-    m_slots.m_group.reset(new Map(kb, kb.type.Any));
-    m_parameters.m_group.reset(new Map(kb, kb.type.Slot));
-    m_subTypes.m_group.reset(new Map(kb, kb.type.Template));
+    m_slots.m_group.reset(new RefMap(kb, kb.type.Any));
+    m_parameters.m_group.reset(new RefMap(kb, kb.type.Slot));
+    m_subTypes.m_group.reset(new RefMap(kb, kb.type.Template));
     for (const auto& param : params) {
         addParam(param);
     }
@@ -1075,7 +1090,6 @@ void Template::addParam(const Type::SlotRef& param)
 
     Slot& slot = res.first->second;
     m_parameters.m_group->add(param.m_role, slot);
-    m_parameters.m_order.push_back(&param.m_role);
 }
 
 void Template::addSlots(std::initializer_list<SlotRef> slots)
@@ -1100,7 +1114,6 @@ void Template::addSlot(const SlotRef& slotRef)
     slot.set(kb.cells.slotType, *slotType);
 
     m_slots.m_group->add(*slotRole, slot);
-    m_slots.m_order.push_back(slotRole);
 }
 
 Template& Template::addSubType(CellI& role, const std::string& label)
@@ -1111,7 +1124,6 @@ Template& Template::addSubType(CellI& role, const std::string& label)
 
     Template& template_ = res.first->second;
     m_subTypes.m_group->add(role, template_);
-    m_subTypes.m_order.push_back(&role);
 
     return template_;
 }
@@ -1241,7 +1253,7 @@ CellI& Number::operator[](CellI& role)
     if (&role == &kb.coding.value) {
         if (m_digits.empty()) {
             calculateDigits();
-            m_digitsList.reset(new List(kb, m_digits));
+            m_digitsList.reset(new RefList(kb, m_digits));
         }
 
         return *m_digitsList;
@@ -1312,7 +1324,7 @@ CellI& String::operator[](CellI& role)
     } else if (&role == &kb.coding.value) {
         if (m_characters.empty()) {
             calculateCharacters();
-            m_charactersList.reset(new List(kb, m_characters));
+            m_charactersList.reset(new RefList(kb, m_characters));
         }
 
         return *m_charactersList;
@@ -1522,7 +1534,7 @@ Picture::Picture(brain::Brain& kb, input::Picture& picture) :
             pixel.m_right = rightPixel(x, y);
         }
     }
-    m_pixelsList.reset(new List(kb, m_pixels));
+    m_pixelsList.reset(new RefList(kb, m_pixels));
 }
 
 bool Picture::has(CellI& role)

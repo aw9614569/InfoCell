@@ -10,6 +10,7 @@ class Template
 public:
     Template(brain::Brain& kb);
     Type TemplateSlot;
+    Type Descriptor;
     Type DescriptorCell;
     Type DescriptorParameter;
     Type DescriptorTemplate;
@@ -82,17 +83,22 @@ public:
     Types(brain::Brain& kb);
 
     Type& ListOf(CellI& type);
-    Type& GroupOf(CellI& type);
+    Type& MapOf(CellI& type);
 
 protected:
     brain::Brain& kb;
     std::map<CellI*, Type> m_listTypes;
+    std::map<CellI*, Type> m_mapTypes;
     friend class TypeInit;
 
 public:
     Type Type_;
     Type Slot;
+    Type Container;
+    Type Iterator;
     Type List;
+    Type Map;
+    Type Index;
     Type Void;
     Type Any;
     Type Boolean;
@@ -119,8 +125,9 @@ public:
     Object slotType;
     Object slotRole;
     Object subTypes;
-    Object list;
     Object index;
+    Object list;
+    Object memberOf;
     Object emptyObject;
 };
 
@@ -232,7 +239,7 @@ class Numbers
 {
 public:
     Numbers(brain::Brain& kb, Type& anyType);
-    Map sign;
+    RefMap sign;
     Object positive;
     Object negative;
 };
