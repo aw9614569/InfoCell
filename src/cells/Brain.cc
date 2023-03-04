@@ -14,12 +14,13 @@ static void test()
 }
 namespace type {
 Template::Template(brain::Brain& kb) :
-    TemplateSlot(kb, "TemplateSlot"),
+    ParameterDecl(kb, "ParameterDecl"),
+    Slot(kb, "Slot"),
     Descriptor(kb, "Descriptor"),
-    DescriptorCell(kb, "DescriptorCell"),
-    DescriptorParameter(kb, "DescriptorParameter"),
-    DescriptorTemplate(kb, "DescriptorTemplate"),
-    DescriptorSelf(kb, "DescriptorSelf")
+    Cell(kb, "Cell"),
+    Parameter(kb, "Parameter"),
+    TemplateOf(kb, "Template"),
+    SelfType(kb, "SelfType")
 {
 }
 
@@ -109,7 +110,8 @@ Type& Types::ListOf(CellI& type)
                                              std::forward_as_tuple(&type),
                                              std::forward_as_tuple(kb, std::format("List<{}>", type.label())));
         Type& listType = it.first->second;
-        Type& itemType = listType.addSubType(kb.coding.objectType, std::format("ListItem<{}>", type.label()));
+        Type& itemType = *new Type(kb, std::format("ListItem<{}>", type.label()));
+        listType.addSubType(kb.coding.objectType, itemType);
         listType.addMembership(kb.type.Container);
         itemType.addMembership(kb.type.Iterator);
         listType.addSlots({ { kb.sequence.first, itemType },
@@ -178,9 +180,88 @@ Coding::Coding(brain::Brain& kb, Type& anyType) :
 {
 }
 
-Templates::Templates(brain::Brain& kb) :
-    list(kb, "List")
+namespace templates {
+CellDescription::CellDescription(brain::Brain& kb, CellI& classCell, const std::string& label) :
+    Object(kb, classCell, label)
 {
+}
+
+ParameterDecl::ParameterDecl(brain::Brain& kb, CellI& role, CellI& type) :
+    Object(kb, kb.type.template_.ParameterDecl)
+{
+    set(kb.cells.slotRole, role);
+    set(kb.cells.slotType, type);
+}
+
+Slot::Slot(brain::Brain& kb, templates::CellDescription& role, templates::CellDescription& type) :
+    Object(kb, kb.type.template_.Slot)
+{
+    set(kb.cells.slotRole, role);
+    set(kb.cells.slotType, type);
+}
+
+Cell::Cell(brain::Brain& kb, CellI& cell) :
+    CellDescriptionT<Cell>(kb, kb.type.template_.Cell)
+{
+    set(kb.coding.value, cell);
+}
+
+Parameter::Parameter(brain::Brain& kb, CellI& paramRole):
+    CellDescriptionT<Parameter>(kb, kb.type.template_.Parameter)
+{
+    set(kb.coding.value, paramRole);
+}
+
+TemplateOf::TemplateOf(brain::Brain& kb, Template& templateOf, CellDescription& paramDescription, CellDescription& valueDescription) :
+    CellDescriptionT<TemplateOf>(kb, kb.type.template_.TemplateOf)
+{
+    set(kb.coding.template_, templateOf);
+    set(kb.coding.parameter, paramDescription);
+    set(kb.coding.value, valueDescription);
+}
+
+SelfType::SelfType(brain::Brain& kb):
+    CellDescriptionT<SelfType>(kb, kb.type.template_.SelfType)
+{
+}
+
+} // namespace templates
+
+
+Templates::Templates(brain::Brain& kb) :
+    list(kb, "List"),
+    kb(kb)
+{
+}
+
+templates::ParameterDecl& Templates::parameterDecl(CellI& role, CellI& type)
+{
+    return templates::ParameterDecl::New(kb, role, type);
+}
+
+templates::Slot& Templates::slot(templates::CellDescription& role, templates::CellDescription& type)
+{
+    return templates::Slot::New(kb, role, type);
+}
+
+templates::Cell& Templates::cell(CellI& cell)
+{
+    return templates::Cell::New(kb, cell);
+}
+
+templates::Parameter& Templates::parameter(CellI& paramRole)
+{
+    return templates::Parameter::New(kb, paramRole);
+}
+
+templates::TemplateOf& Templates::templateOf(Template& templateOf, templates::CellDescription& paramDescription, templates::CellDescription& valueDescription)
+{
+    return templates::TemplateOf::New(kb, templateOf, paramDescription, valueDescription);
+}
+
+templates::SelfType& Templates::selfType()
+{
+    return templates::SelfType::New(kb);
 }
 
 Sequence::Sequence(brain::Brain& kb) :
@@ -371,48 +452,47 @@ Brain::Brain() :
         { { cells.slotType, type.Type_ },
           { cells.slotRole, type.Any } });
 
-    type.template_.TemplateSlot.addSlots(
+    type.template_.ParameterDecl.addSlots(
+        { { cells.slotType, type.Type_ },
+          { cells.slotRole, type.Any } });
+
+    type.template_.Slot.addSlots(
         { { cells.slotType, type.template_.Descriptor },
           { cells.slotRole, type.template_.Descriptor } });
 
-    type.template_.DescriptorCell.addMembership(type.template_.Descriptor);
-    type.template_.DescriptorCell.addSlots(
+    type.template_.Cell.addMembership(type.template_.Descriptor);
+    type.template_.Cell.addSlots(
         { { coding.value, type.Any } });
 
-    type.template_.DescriptorParameter.addMembership(type.template_.Descriptor);
-    type.template_.DescriptorParameter.addSlots(
+    type.template_.Parameter.addMembership(type.template_.Descriptor);
+    type.template_.Parameter.addSlots(
         { { coding.value, type.Any } });
 
-    type.template_.DescriptorTemplate.addMembership(type.template_.Descriptor);
-    type.template_.DescriptorTemplate.addSlots(
+    type.template_.TemplateOf.addMembership(type.template_.Descriptor);
+    type.template_.TemplateOf.addSlots(
         { { coding.template_, type.Template },
           { coding.parameter, type.template_.Descriptor },
           { coding.value, type.template_.Descriptor } });
 
-    type.template_.DescriptorSelf.addMembership(type.template_.Descriptor);
-
-    using CellT       = Template::CellDescription::Cell;
-    using ParamT      = Template::CellDescription::Parameter;
-    using TemplateOfT = Template::CellDescription::TemplateOf;
-    using SelfTypeT   = Template::CellDescription::SelfType;
+    type.template_.SelfType.addMembership(type.template_.Descriptor);
 
     Template& listItem = templates.list.addSubType(coding.objectType, "ListItem");
+    listItem.addParam(templates.parameterDecl(coding.objectType, type.Type_));
+    listItem.addSlots({ templates.slot(templates.cell(sequence.previous), templates.selfType()),
+                        templates.slot(templates.cell(sequence.next), templates.selfType()),
+                        templates.slot(templates.cell(coding.value), templates.parameter(coding.objectType)) });
 
-    listItem.addParam({ coding.objectType, type.Type_ });
-    listItem.addSlots({ { CellT(sequence.previous), SelfTypeT() },
-                        { CellT(sequence.next), SelfTypeT() },
-                        { CellT(coding.value), ParamT(coding.objectType) } });
-
-    templates.list.addParam({ coding.objectType, type.Type_ });
-    templates.list.addSlots({ { CellT(sequence.first), TemplateOfT(listItem, CellT(coding.objectType), ParamT(coding.objectType)) },
-                              { CellT(sequence.last), TemplateOfT(listItem, CellT(coding.objectType), ParamT(coding.objectType)) },
-                              { CellT(coding.objectType), ParamT(coding.objectType) },
-                              { CellT(dimensions.size), CellT(type.Number) } });
+    templates.list.addParam(templates.parameterDecl(coding.objectType, type.Type_));
+    templates.list.addSlots({ templates.slot(templates.cell(sequence.first), templates.templateOf(listItem, templates.cell(coding.objectType), templates.cell(coding.objectType))),
+                              templates.slot(templates.cell(sequence.last), templates.templateOf(listItem, templates.cell(coding.objectType), templates.cell(coding.objectType))),
+                              templates.slot(templates.cell(coding.objectType), templates.parameter(coding.objectType)),
+                              templates.slot(templates.cell(dimensions.size), templates.cell(type.Number)) });
 
     // We should indicate that template.list is a container and it has a first, last, size, objectType member.
     // And also, that template.list -> item is an iterator prev, next, value
 
-    Type& listSubType = type.List.addSubType(coding.objectType);
+    Type& listSubType = *new Type(*this, "ListItem");
+    type.List.addSubType(coding.objectType, listSubType);
     listSubType.addSlots({ { sequence.previous, listSubType },
                            { sequence.next, listSubType },
                            { coding.value, type.Any } });

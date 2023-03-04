@@ -9,12 +9,13 @@ class Template
 {
 public:
     Template(brain::Brain& kb);
-    Type TemplateSlot;
+    Type ParameterDecl;
+    Type Slot;
     Type Descriptor;
-    Type DescriptorCell;
-    Type DescriptorParameter;
-    Type DescriptorTemplate;
-    Type DescriptorSelf;
+    Type Cell;
+    Type Parameter;
+    Type TemplateOf;
+    Type SelfType;
 };
 
 class Pipelines
@@ -157,11 +158,89 @@ public:
     Object value;
 };
 
+namespace templates
+{
+
+template <typename T>
+class NewT
+{
+public:
+    template <typename... Args>
+    static T& New(Args&&... args)
+    {
+        return *new T(std::forward<Args>(args)...);
+    }
+};
+
+class CellDescription : public Object
+{
+public:
+    CellDescription(brain::Brain& kb, CellI& classCell, const std::string& label = "");
+};
+
+class ParameterDecl : public Object,
+                      public NewT<ParameterDecl>
+{
+public:
+    ParameterDecl(brain::Brain& kb, CellI& role, CellI& type);
+};
+
+class Slot : public Object,
+             public NewT<Slot>
+{
+public:
+    Slot(brain::Brain& kb, templates::CellDescription& role, templates::CellDescription& type);
+};
+
+template <typename T>
+class CellDescriptionT : public CellDescription,
+                         public NewT<T>
+{
+public:
+    CellDescriptionT<T>(brain::Brain& kb, CellI& classCell, const std::string& label = "") :
+        CellDescription(kb, classCell, label)
+    {
+    }
+};
+
+class Cell : public CellDescriptionT<Cell>
+{
+public:
+    Cell(brain::Brain& kb, CellI& cell);
+};
+
+class Parameter : public CellDescriptionT<Parameter>
+{
+public:
+    Parameter(brain::Brain& kb, CellI& paramRole);
+};
+
+class TemplateOf : public CellDescriptionT<TemplateOf>
+{
+public:
+    TemplateOf(brain::Brain& kb, Template& templateOf, CellDescription& paramDescription, CellDescription& valueDescription);
+};
+
+class SelfType : public CellDescriptionT<SelfType>
+{
+public:
+    SelfType(brain::Brain& kb);
+};
+} // namespace templates
+
 class Templates
 {
 public:
+
     Templates(brain::Brain& kb);
+    templates::ParameterDecl& parameterDecl(CellI& role, CellI& type);
+    templates::Slot& slot(templates::CellDescription& role, templates::CellDescription& type);
+    templates::Cell& cell(CellI& cell);
+    templates::Parameter& parameter(CellI& paramRole);
+    templates::TemplateOf& templateOf(Template& templateOf, templates::CellDescription& paramDescription, templates::CellDescription& valueDescription);
+    templates::SelfType& selfType();
     Template list;
+    brain::Brain& kb;
 };
 
 class Sequence

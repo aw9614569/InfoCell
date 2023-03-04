@@ -12,7 +12,17 @@ namespace synth {
 namespace cells {
 namespace brain {
 class Brain;
-}
+
+namespace templates {
+class ParameterDecl;
+class Slot;
+class CellDescription;
+class Cell;
+class Parameter;
+class TemplateOf;
+class SelfType;
+} // namespace templates
+} // namespace brain
 
 // ============================================================================
 class Visitor;
@@ -104,29 +114,14 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-    Slot& addSlot(CellI& role, CellI& type);
+    void addSlot(CellI& role, CellI& type);
     void addSlots(std::initializer_list<SlotRef> slots);
-    Type& addSubType(CellI& role, const std::string& label = "");
     void addSubType(CellI& role, Type& type);
     void addMembership(CellI& type);
 
 protected:
-    template <typename T>
-    class MapData
-    {
-    public:
-        MapData(brain::Brain& kb, CellI& valueType);
-
-        bool empty() const
-        {
-            return m_valuesMap.empty();
-        }
-
-        std::map<CellI*, T> m_valuesMap;
-        std::unique_ptr<RefMap> m_group;
-    };
-    MapData<Slot> m_slots;
-    MapData<Type> m_subTypes;
+    std::unique_ptr<RefMap> m_slots;
+    std::unique_ptr<RefMap> m_subTypes;
     std::unique_ptr<RefMap> m_memberOf;
 };
 
@@ -424,79 +419,29 @@ A type should have some kind of definition where we can express what is the rela
 #endif
 class TemplateParam;
 
-
 // ============================================================================
 class Template : public CellI
 {
 public:
-    class CellDescription
-    {
-    public:
-        class Cell
-        {
-        public:
-            Cell(CellI& cell);
-            CellI* m_cell;
-        };
-
-        class Parameter
-        {
-        public:
-            Parameter(CellI& paramRole);
-            CellI* m_paramRole;
-        };
-
-        class TemplateOf
-        {
-        public:
-            TemplateOf(Template& templateOf, CellDescription paramDescription, CellDescription valueDescription);
-            Template* m_templateOf;
-            std::unique_ptr<CellDescription> m_paramDescription;
-            std::unique_ptr<CellDescription> m_valueDescription;
-        };
-
-        class SelfType
-        {
-        public:
-            SelfType();
-        };
-
-        CellDescription(Cell expr);
-        CellDescription(Parameter expr);
-        CellDescription(TemplateOf expr);
-        CellDescription(SelfType expr);
-        CellDescription(CellDescription&& expr);
-        ~CellDescription();
-
-        enum class DescriptionKind
-        {
-            Cell,
-            Parameter,
-            TemplateOf,
-            SelfType
-        } m_descriptionKind;
-
-        union
-        {
-            Cell m_cell;
-            Parameter m_parameter;
-            TemplateOf m_templateOf;
-            SelfType m_selfType;
-        };
-    };
-
     class SlotRef // Only exists to bypass the non-movable std::initalizer_list limitations
     {
     public:
-        SlotRef(CellDescription role, CellDescription type);
+        SlotRef(brain::templates::Slot& slot);
 
-        CellDescription m_role;
-        CellDescription m_type;
+        brain::templates::Slot& m_slot;
+    };
+
+    class ParameterDeclRef // Only exists to bypass the non-movable std::initalizer_list limitations
+    {
+    public:
+        ParameterDeclRef(brain::templates::ParameterDecl& slot);
+
+        brain::templates::ParameterDecl& m_parameterDecl;
     };
 
     explicit Template(brain::Brain& kb, const std::string& label = "Template");
-    Template(brain::Brain& kb, std::initializer_list<Type::SlotRef> params);
-    Template(brain::Brain& kb, const std::string& label, std::initializer_list<Type::SlotRef> params);
+    Template(brain::Brain& kb, std::initializer_list<ParameterDeclRef> params);
+    Template(brain::Brain& kb, const std::string& label, std::initializer_list<ParameterDeclRef> params);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -504,34 +449,22 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-    void addParams(std::initializer_list<Type::SlotRef> params);
-    void addParam(const Type::SlotRef& param);
+    void addParams(std::initializer_list<ParameterDeclRef> params);
+    void addParam(brain::templates::ParameterDecl& param);
     void addSlots(std::initializer_list<SlotRef> slots);
-    void addSlot(const SlotRef& slotRef);
+    void addSlot(brain::templates::Slot& slot);
     Template& addSubType(CellI& role, const std::string& label);
 
     CellI& getParamType();
     Type& compile(CellI& param);
 
 protected:
-    Object* createDataCell(const CellDescription& cellDescription);
     CellI& compileCell(CellI& descriptor, CellI& param, CellI& selfType);
 
-    template <typename T>
-    class MapData
-    {
-    public:
-        bool empty() const
-        {
-            return m_map.empty();
-        }
 
-        std::map<CellI*, T> m_map;
-        std::unique_ptr<RefMap> m_group;
-    };
-    MapData<Slot> m_parameters;
-    MapData<Object> m_slots;
-    MapData<Template> m_subTypes;
+    RefMap m_parameters;
+    RefMap m_slots;
+    RefMap m_subTypes;
     std::unique_ptr<Type> m_paramType;
 };
 
@@ -1242,13 +1175,6 @@ bool tryVisitWith(CellI& cell, Visitor& visitor);
 
 namespace synth {
 namespace cells {
-
-template <typename T>
-Type::MapData<T>::MapData(brain::Brain& kb, CellI& valueType) :
-    m_group(new RefMap(kb, valueType))
-{
-}
-
 namespace control {
 namespace pipeline {
 
