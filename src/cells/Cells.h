@@ -67,82 +67,6 @@ T& ref(T* obj) { return *obj; }
 } // namespace util
 
 // ============================================================================
-class Slot : public CellI
-{
-public:
-    Slot(brain::Brain& kb, CellI& role, CellI& type);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    Slot& slotTypeParameters(CellI& paramCell);
-    Slot& valueDefinition(CellI& defCell);
-    Slot& defaultValue(CellI& valueCell);
-    Slot& required();
-
-protected:
-    CellI& m_slotRole;
-    CellI& m_slotType;
-    CellI* m_valueDefinition = nullptr;
-    bool m_required          = false;
-};
-
-// ============================================================================
-class RefMap;
-class Type : public CellI
-{
-public:
-    class SlotRef // Only exists to bypass the non-movable std::initalizer_list limitations
-    {
-    public:
-        SlotRef(CellI& role, CellI& type);
-
-        CellI& m_role;
-        CellI& m_type;
-    };
-
-    explicit Type(brain::Brain& kb, const std::string& label = "Type");
-    Type(brain::Brain& kb, std::initializer_list<SlotRef> slots);
-    Type(brain::Brain& kb, const std::string& label, std::initializer_list<SlotRef> slots);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    void addSlot(CellI& role, CellI& type);
-    void addSlots(std::initializer_list<SlotRef> slots);
-    void addSubType(CellI& role, Type& type);
-    void addMembership(CellI& type);
-
-protected:
-    std::unique_ptr<RefMap> m_slots;
-    std::unique_ptr<RefMap> m_subTypes;
-    std::unique_ptr<RefMap> m_memberOf;
-};
-
-// ============================================================================
-class Object : public CellI
-{
-public:
-    Object(brain::Brain& kb, CellI& classCell, const std::string& label = "");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_type;
-    std::map<CellI*, CellI*> m_slots;
-};
-
-// ============================================================================
 class RefList : public CellI
 {
 public:
@@ -380,7 +304,7 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-//    void add(CellI& value); // value is the key
+    //    void add(CellI& value); // value is the key
     void add(CellI& key, CellI& value);
     bool empty() const;
 
@@ -393,6 +317,75 @@ protected:
 public:
     RefList m_list;
     Index m_index;
+};
+
+// ============================================================================
+class Slot : public CellI
+{
+public:
+    Slot(brain::Brain& kb, CellI& role, CellI& type);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    Slot& slotTypeParameters(CellI& paramCell);
+    Slot& valueDefinition(CellI& defCell);
+    Slot& defaultValue(CellI& valueCell);
+    Slot& required();
+
+protected:
+    CellI& m_slotRole;
+    CellI& m_slotType;
+    CellI* m_valueDefinition = nullptr;
+    bool m_required          = false;
+};
+
+// ============================================================================
+class Type : public CellI
+{
+public:
+    explicit Type(brain::Brain& kb, const std::string& label = "Type");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+    void addSlot(CellI& role, CellI& type);
+    void addSlots(Slot& slot);
+    template <typename... Args>
+    void addSlots(Slot& slot, Args&&... args)
+    {
+        addSlots(slot);
+        addSlots(std::forward<Args>(args)...);
+    }
+    void addSubType(CellI& role, Type& type);
+    void addMembership(CellI& type);
+
+protected:
+    RefMap m_slots;
+    RefMap m_subTypes;
+    RefMap m_memberOf;
+};
+
+// ============================================================================
+class Object : public CellI
+{
+public:
+    Object(brain::Brain& kb, CellI& classCell, const std::string& label = "");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    CellI& m_type;
+    std::map<CellI*, CellI*> m_slots;
 };
 
 // ============================================================================
@@ -423,22 +416,6 @@ class TemplateParam;
 class Template : public CellI
 {
 public:
-    class SlotRef // Only exists to bypass the non-movable std::initalizer_list limitations
-    {
-    public:
-        SlotRef(brain::templates::Slot& slot);
-
-        brain::templates::Slot& m_slot;
-    };
-
-    class ParameterDeclRef // Only exists to bypass the non-movable std::initalizer_list limitations
-    {
-    public:
-        ParameterDeclRef(brain::templates::ParameterDecl& slot);
-
-        brain::templates::ParameterDecl& m_parameterDecl;
-    };
-
     explicit Template(brain::Brain& kb, const std::string& label = "Template");
 
     bool has(CellI& role) override;
@@ -447,18 +424,29 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-    void addParams(std::initializer_list<ParameterDeclRef> params);
-    void addParam(brain::templates::ParameterDecl& param);
-    void addSlots(std::initializer_list<SlotRef> slots);
-    void addSlot(brain::templates::Slot& slot);
-    Template& addSubType(CellI& role, const std::string& label);
+    void addParams(brain::templates::ParameterDecl& param);
+    template <typename... Args>
+    void addParams(brain::templates::ParameterDecl& param, Args&&... args)
+    {
+        addParams(param);
+        addParams(std::forward<Args>(args)...);
+    }
+
+    void addSlots(brain::templates::Slot& slot);
+    template <typename... Args>
+    void addSlots(brain::templates::Slot& slot, Args&&... args)
+    {
+        addSlots(slot);
+        addSlots(std::forward<Args>(args)...);
+    }
+
+    Template& addSubTypeTemplate(CellI& role, const std::string& label);
 
     CellI& getParamType();
     Type& compile(CellI& param);
 
 protected:
     CellI& compileCell(CellI& descriptor, CellI& param, CellI& selfType);
-
 
     RefMap m_parameters;
     RefMap m_slots;
@@ -1128,7 +1116,7 @@ public:
     virtual void visit(RefMap::Index::Type::Slot&)                  = 0;
     virtual void visit(RefMap::Index::Type&)                        = 0;
     virtual void visit(RefMap::Index&)                              = 0;
-    virtual void visit(RefMap&)                                           = 0;
+    virtual void visit(RefMap&)                                     = 0;
 
     virtual void visit(hybrid::Color&)   = 0;
     virtual void visit(hybrid::Pixel&)   = 0;

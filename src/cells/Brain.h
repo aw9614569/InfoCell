@@ -2,6 +2,18 @@
 
 namespace synth {
 namespace cells {
+
+template <typename T>
+class NewT
+{
+public:
+    template <typename... Args>
+    static T& New(Args&&... args)
+    {
+        return *new T(std::forward<Args>(args)...);
+    }
+};
+
 namespace brain {
 namespace type {
 
@@ -121,6 +133,9 @@ class Cells
 {
 public:
     Cells(brain::Brain& kb, Type& voidType, Type& anyType);
+    cells::Slot& slot(cells::CellI& role, cells::CellI& type);
+
+    brain::Brain& kb;
     Object type;
     Object slots;
     Object slotType;
@@ -158,19 +173,7 @@ public:
     Object value;
 };
 
-namespace templates
-{
-
-template <typename T>
-class NewT
-{
-public:
-    template <typename... Args>
-    static T& New(Args&&... args)
-    {
-        return *new T(std::forward<Args>(args)...);
-    }
-};
+namespace templates {
 
 class CellDescription : public Object
 {
@@ -231,7 +234,6 @@ public:
 class Templates
 {
 public:
-
     Templates(brain::Brain& kb);
     templates::ParameterDecl& parameterDecl(CellI& role, CellI& type);
     templates::Slot& slot(templates::CellDescription& role, templates::CellDescription& type);
@@ -239,8 +241,9 @@ public:
     templates::Parameter& parameter(CellI& paramRole);
     templates::TemplateOf& templateOf(Template& templateOf, templates::CellDescription& paramDescription, templates::CellDescription& valueDescription);
     templates::SelfType& selfType();
-    Template list;
+
     brain::Brain& kb;
+    Template list;
 };
 
 class Sequence

@@ -114,12 +114,14 @@ Type& Types::ListOf(CellI& type)
         listType.addSubType(kb.coding.objectType, itemType);
         listType.addMembership(kb.type.Container);
         itemType.addMembership(kb.type.Iterator);
-        listType.addSlots({ { kb.sequence.first, itemType },
-                            { kb.sequence.last, itemType },
-                            { kb.dimensions.size, kb.type.Number } });
-        itemType.addSlots({ { kb.sequence.previous, itemType },
-                            { kb.sequence.next, itemType },
-                            { kb.coding.value, type } });
+        auto& cells = kb.cells;
+
+        listType.addSlots(cells.slot(kb.sequence.first, itemType),
+                          cells.slot(kb.sequence.last, itemType),
+                          cells.slot(kb.dimensions.size, kb.type.Number));
+        itemType.addSlots(cells.slot(kb.sequence.previous, itemType),
+                          cells.slot(kb.sequence.next, itemType),
+                          cells.slot(kb.coding.value, type));
 
         return it.first->second;
     }
@@ -131,19 +133,21 @@ Type& Types::MapOf(CellI& type)
     if (typeIt != m_mapTypes.end()) {
         return typeIt->second;
     } else {
-        auto it        = m_mapTypes.emplace(std::piecewise_construct,
-                                            std::forward_as_tuple(&type),
-                                            std::forward_as_tuple(kb, std::format("Map<{}>", type.label())));
+        auto it       = m_mapTypes.emplace(std::piecewise_construct,
+                                           std::forward_as_tuple(&type),
+                                           std::forward_as_tuple(kb, std::format("Map<{}>", type.label())));
         Type& mapType = it.first->second;
-        mapType.addSlots({ { kb.cells.list, ListOf(type) },
-                           { kb.cells.index, kb.type.Index },
-                           { kb.dimensions.size, kb.type.Number } });
+        auto& cells   = kb.cells;
+        mapType.addSlots(cells.slot(kb.cells.list, ListOf(type)),
+                         cells.slot(kb.cells.index, kb.type.Index),
+                         cells.slot(kb.dimensions.size, kb.type.Number));
 
         return it.first->second;
     }
 }
 
 Cells::Cells(brain::Brain& kb, Type& voidType, Type& anyType) :
+    kb(kb),
     type(kb, anyType, "type"),
     slots(kb, anyType, "slots"),
     slotType(kb, anyType, "slotType"),
@@ -154,6 +158,11 @@ Cells::Cells(brain::Brain& kb, Type& voidType, Type& anyType) :
     memberOf(kb, anyType, "memberOf"),
     emptyObject(kb, voidType, "emptyObject")
 {
+}
+
+cells::Slot& Cells::slot(cells::CellI& role, cells::CellI& type)
+{
+    return *new cells::Slot(kb, role, type);
 }
 
 Coding::Coding(brain::Brain& kb, Type& anyType) :
@@ -206,7 +215,7 @@ Cell::Cell(brain::Brain& kb, CellI& cell) :
     set(kb.coding.value, cell);
 }
 
-Parameter::Parameter(brain::Brain& kb, CellI& paramRole):
+Parameter::Parameter(brain::Brain& kb, CellI& paramRole) :
     CellDescriptionT<Parameter>(kb, kb.type.template_.Parameter)
 {
     set(kb.coding.value, paramRole);
@@ -220,17 +229,16 @@ TemplateOf::TemplateOf(brain::Brain& kb, Template& templateOf, CellDescription& 
     set(kb.coding.value, valueDescription);
 }
 
-SelfType::SelfType(brain::Brain& kb):
+SelfType::SelfType(brain::Brain& kb) :
     CellDescriptionT<SelfType>(kb, kb.type.template_.SelfType)
 {
 }
 
 } // namespace templates
 
-
 Templates::Templates(brain::Brain& kb) :
-    list(kb, "List"),
-    kb(kb)
+    kb(kb),
+    list(kb, "List")
 {
 }
 
@@ -393,9 +401,9 @@ Number& Numbers::get(int number)
     if (numberIt != m_numbers.end()) {
         return numberIt->second;
     } else {
-        auto it = m_numbers.emplace(std::piecewise_construct,
-                                    std::forward_as_tuple(number),
-                                    std::forward_as_tuple(m_kb, number));
+        auto it           = m_numbers.emplace(std::piecewise_construct,
+                                              std::forward_as_tuple(number),
+                                              std::forward_as_tuple(m_kb, number));
         Number& newNumber = it.first->second;
         newNumber.label(std::to_string(number));
         return newNumber;
@@ -416,14 +424,16 @@ Arc::Arc(brain::Brain& kb) :
     Task(kb, "Task"),
     examples(kb, kb.type.Any)
 {
+    auto& cells = kb.cells;
+
     Demonstration.addSlots(
-        { { kb.coding.input, kb.type.Picture },
-          { kb.coding.output, kb.type.Picture } });
+        cells.slot(kb.coding.input, kb.type.Picture),
+        cells.slot(kb.coding.output, kb.type.Picture));
 
     Task.addSlots(
-        { { examples, kb.type.ListOf(Demonstration) },
-          { kb.coding.input, kb.type.Picture },
-          { kb.coding.output, kb.type.Picture } });
+        cells.slot(examples, kb.type.ListOf(Demonstration)),
+        cells.slot(kb.coding.input, kb.type.Picture),
+        cells.slot(kb.coding.output, kb.type.Picture));
 }
 
 Brain::Brain() :
@@ -444,199 +454,231 @@ Brain::Brain() :
     arc(*this)
 {
     type.Type_.addSlots(
-        { { cells.slots, type.MapOf(type.Slot) },
-          { cells.subTypes, type.MapOf(type.Type_) },
-          { cells.memberOf, type.MapOf(type.Type_) } });
+        cells.slot(cells.slots, type.MapOf(type.Slot)),
+        cells.slot(cells.subTypes, type.MapOf(type.Type_)),
+        cells.slot(cells.memberOf, type.MapOf(type.Type_)));
 
     type.Slot.addSlots(
-        { { cells.slotType, type.Type_ },
-          { cells.slotRole, type.Any } });
+        cells.slot(cells.slotType, type.Type_),
+        cells.slot(cells.slotRole, type.Any));
 
     type.template_.ParameterDecl.addSlots(
-        { { cells.slotType, type.Type_ },
-          { cells.slotRole, type.Any } });
+        cells.slot(cells.slotType, type.Type_),
+        cells.slot(cells.slotRole, type.Any));
 
     type.template_.Slot.addSlots(
-        { { cells.slotType, type.template_.Descriptor },
-          { cells.slotRole, type.template_.Descriptor } });
+        cells.slot(cells.slotType, type.template_.Descriptor),
+        cells.slot(cells.slotRole, type.template_.Descriptor));
 
     type.template_.Cell.addMembership(type.template_.Descriptor);
     type.template_.Cell.addSlots(
-        { { coding.value, type.Any } });
+        cells.slot(coding.value, type.Any));
 
     type.template_.Parameter.addMembership(type.template_.Descriptor);
     type.template_.Parameter.addSlots(
-        { { coding.value, type.Any } });
+        cells.slot(coding.value, type.Any));
 
     type.template_.TemplateOf.addMembership(type.template_.Descriptor);
     type.template_.TemplateOf.addSlots(
-        { { coding.template_, type.Template },
-          { coding.parameter, type.template_.Descriptor },
-          { coding.value, type.template_.Descriptor } });
+        cells.slot(coding.template_, type.Template),
+        cells.slot(coding.parameter, type.template_.Descriptor),
+        cells.slot(coding.value, type.template_.Descriptor));
 
     type.template_.SelfType.addMembership(type.template_.Descriptor);
 
-    Template& listItem = templates.list.addSubType(coding.objectType, "ListItem");
-    listItem.addParam(templates.parameterDecl(coding.objectType, type.Type_));
-    listItem.addSlots({ templates.slot(templates.cell(sequence.previous), templates.selfType()),
-                        templates.slot(templates.cell(sequence.next), templates.selfType()),
-                        templates.slot(templates.cell(coding.value), templates.parameter(coding.objectType)) });
+    Template& listItem = templates.list.addSubTypeTemplate(coding.objectType, "ListItem");
+    listItem.addParams(
+        templates.parameterDecl(coding.objectType, type.Type_));
+    listItem.addSlots(
+        templates.slot(templates.cell(sequence.previous), templates.selfType()),
+        templates.slot(templates.cell(sequence.next), templates.selfType()),
+        templates.slot(templates.cell(coding.value), templates.parameter(coding.objectType)));
 
-    templates.list.addParam(templates.parameterDecl(coding.objectType, type.Type_));
-    templates.list.addSlots({ templates.slot(templates.cell(sequence.first), templates.templateOf(listItem, templates.cell(coding.objectType), templates.cell(coding.objectType))),
-                              templates.slot(templates.cell(sequence.last), templates.templateOf(listItem, templates.cell(coding.objectType), templates.cell(coding.objectType))),
-                              templates.slot(templates.cell(coding.objectType), templates.parameter(coding.objectType)),
-                              templates.slot(templates.cell(dimensions.size), templates.cell(type.Number)) });
+    templates.list.addParams(
+        templates.parameterDecl(coding.objectType, type.Type_));
+    templates.list.addSlots(
+        templates.slot(templates.cell(sequence.first), templates.templateOf(listItem, templates.cell(coding.objectType), templates.cell(coding.objectType))),
+        templates.slot(templates.cell(sequence.last), templates.templateOf(listItem, templates.cell(coding.objectType), templates.cell(coding.objectType))),
+        templates.slot(templates.cell(coding.objectType), templates.parameter(coding.objectType)),
+        templates.slot(templates.cell(dimensions.size), templates.cell(type.Number)));
 
     // We should indicate that template.list is a container and it has a first, last, size, objectType member.
     // And also, that template.list -> item is an iterator prev, next, value
 
     Type& listSubType = *new Type(*this, "ListItem");
     type.List.addSubType(coding.objectType, listSubType);
-    listSubType.addSlots({ { sequence.previous, listSubType },
-                           { sequence.next, listSubType },
-                           { coding.value, type.Any } });
+    listSubType.addSlots(
+        cells.slot(sequence.previous, listSubType),
+        cells.slot(sequence.next, listSubType),
+        cells.slot(coding.value, type.Any));
+
     type.List.addSlots(
-        { { sequence.first, listSubType },
-          { sequence.last, listSubType },
-          { dimensions.size, type.Number } });
+        cells.slot(sequence.first, listSubType),
+        cells.slot(sequence.last, listSubType),
+        cells.slot(dimensions.size, type.Number));
 
     type.Number.addSlots(
-        { { coding.value, type.ListOf(type.Digit) },
-          { numbers.sign, type.Number } }); // TODO
+        cells.slot(coding.value, type.ListOf(type.Digit)),
+        cells.slot(numbers.sign, type.Number)); // TODO
 
-    type.String.addSlots({ { coding.value, type.ListOf(type.Char) } });
+    type.String.addSlots(cells.slot(coding.value, type.ListOf(type.Char)));
 
     type.Color.addSlots(
-        { { colors.red, type.Number },
-          { colors.green, type.Number },
-          { colors.blue, type.Number } });
+        cells.slot(colors.red, type.Number),
+        cells.slot(colors.green, type.Number),
+        cells.slot(colors.blue, type.Number));
 
     type.Pixel.addSlots(
-        { { directions.up, type.Pixel },
-          { directions.down, type.Pixel },
-          { directions.left, type.Pixel },
-          { directions.right, type.Pixel },
-          { coordinates.x, type.Number },
-          { coordinates.y, type.Number } });
+        cells.slot(directions.up, type.Pixel),
+        cells.slot(directions.down, type.Pixel),
+        cells.slot(directions.left, type.Pixel),
+        cells.slot(directions.right, type.Pixel),
+        cells.slot(coordinates.x, type.Number),
+        cells.slot(coordinates.y, type.Number));
 
     type.Picture.addSlots(
-        { { dimensions.width, type.Number },
-          { dimensions.height, type.Number },
-          { visualization.pixels, type.ListOf(type.Pixel) } });
+        cells.slot(dimensions.width, type.Number),
+        cells.slot(dimensions.height, type.Number),
+        cells.slot(visualization.pixels, type.ListOf(type.Pixel)));
 
-    type.op.Same.addSlots({ { equation.lhs, type.pipeline.Base },
-                       { equation.rhs, type.pipeline.Base },
-                       { coding.output, type.pipeline.Base } });
+    type.op.Same.addSlots(
+        cells.slot(equation.lhs, type.pipeline.Base),
+        cells.slot(equation.rhs, type.pipeline.Base),
+        cells.slot(coding.output, type.pipeline.Base));
 
-    type.op.NotSame.addSlots({ { equation.lhs, type.pipeline.Base },
-                          { equation.rhs, type.pipeline.Base },
-                          { coding.output, type.pipeline.Base } });
+    type.op.NotSame.addSlots(
+        cells.slot(equation.lhs, type.pipeline.Base),
+        cells.slot(equation.rhs, type.pipeline.Base),
+        cells.slot(coding.output, type.pipeline.Base));
 
-    type.op.Equal.addSlots({ { equation.lhs, type.pipeline.Base },
-                        { equation.rhs, type.pipeline.Base },
-                        { coding.output, type.pipeline.Base } });
+    type.op.Equal.addSlots(
+        cells.slot(equation.lhs, type.pipeline.Base),
+        cells.slot(equation.rhs, type.pipeline.Base),
+        cells.slot(coding.output, type.pipeline.Base));
 
-    type.op.NotEqual.addSlots({ { equation.lhs, type.pipeline.Base },
-                           { equation.rhs, type.pipeline.Base },
-                           { coding.output, type.pipeline.Base } });
+    type.op.NotEqual.addSlots(
+        cells.slot(equation.lhs, type.pipeline.Base),
+        cells.slot(equation.rhs, type.pipeline.Base),
+        cells.slot(coding.output, type.pipeline.Base));
 
-    type.op.Has.addSlots({ { coding.cell, type.pipeline.Base },
-                      { coding.role, type.pipeline.Base },
-                      { coding.output, type.op.Base } });
+    type.op.Has.addSlots(
+        cells.slot(coding.cell, type.pipeline.Base),
+        cells.slot(coding.role, type.pipeline.Base),
+        cells.slot(coding.output, type.op.Base));
 
-    type.op.Get.addSlots({ { coding.cell, type.pipeline.Base },
-                      { coding.role, type.pipeline.Base },
-                      { coding.output, type.op.Base } });
+    type.op.Get.addSlots(
+        cells.slot(coding.cell, type.pipeline.Base),
+        cells.slot(coding.role, type.pipeline.Base),
+        cells.slot(coding.output, type.op.Base));
 
-    type.op.Set.addSlots({ { coding.cell, type.pipeline.Base },
-                      { coding.role, type.pipeline.Base },
-                      { coding.output, type.op.Base },
-                      { coding.value, type.pipeline.Base } });
+    type.op.Set.addSlots(
+        cells.slot(coding.cell, type.pipeline.Base),
+        cells.slot(coding.role, type.pipeline.Base),
+        cells.slot(coding.output, type.op.Base),
+        cells.slot(coding.value, type.pipeline.Base));
 
-    type.op.logic.And.addSlots({ { equation.lhs, type.pipeline.Base },
-                            { equation.rhs, type.pipeline.Base },
-                            { coding.output, type.pipeline.Base } });
+    type.op.logic.And.addSlots(
+        cells.slot(equation.lhs, type.pipeline.Base),
+        cells.slot(equation.rhs, type.pipeline.Base),
+        cells.slot(coding.output, type.pipeline.Base));
 
-    type.op.logic.Or.addSlots({ { equation.lhs, type.pipeline.Base },
-                           { equation.rhs, type.pipeline.Base },
-                           { coding.output, type.pipeline.Base } });
+    type.op.logic.Or.addSlots(
+        cells.slot(equation.lhs, type.pipeline.Base),
+        cells.slot(equation.rhs, type.pipeline.Base),
+        cells.slot(coding.output, type.pipeline.Base));
 
-    type.op.logic.Not.addSlots({ { coding.input, type.pipeline.Base },
-                            { coding.output, type.pipeline.Base } });
+    type.op.logic.Not.addSlots(
+        cells.slot(coding.input, type.pipeline.Base),
+        cells.slot(coding.output, type.pipeline.Base));
 
-    type.op.math.Add.addSlots({ { equation.lhs, type.pipeline.Base },
-                           { equation.rhs, type.pipeline.Base },
-                           { coding.output, type.pipeline.Base } });
+    type.op.math.Add.addSlots(
+        cells.slot(equation.lhs, type.pipeline.Base),
+        cells.slot(equation.rhs, type.pipeline.Base),
+        cells.slot(coding.output, type.pipeline.Base));
 
-    type.op.math.Subtract.addSlots({ { equation.lhs, type.pipeline.Base },
-                                { equation.rhs, type.pipeline.Base },
-                                { coding.output, type.pipeline.Base } });
+    type.op.math.Subtract.addSlots(
+        cells.slot(equation.lhs, type.pipeline.Base),
+        cells.slot(equation.rhs, type.pipeline.Base),
+        cells.slot(coding.output, type.pipeline.Base));
 
-    type.op.math.Multiply.addSlots({ { equation.lhs, type.pipeline.Base },
-                                { equation.rhs, type.pipeline.Base },
-                                { coding.output, type.pipeline.Base } });
+    type.op.math.Multiply.addSlots(
+        cells.slot(equation.lhs, type.pipeline.Base),
+        cells.slot(equation.rhs, type.pipeline.Base),
+        cells.slot(coding.output, type.pipeline.Base));
 
-    type.op.math.Divide.addSlots({ { equation.lhs, type.pipeline.Base },
-                              { equation.rhs, type.pipeline.Base },
-                              { coding.output, type.pipeline.Base } });
+    type.op.math.Divide.addSlots(
+        cells.slot(equation.lhs, type.pipeline.Base),
+        cells.slot(equation.rhs, type.pipeline.Base),
+        cells.slot(coding.output, type.pipeline.Base));
 
-    type.op.math.LessThan.addSlots({ { equation.lhs, type.pipeline.Base },
-                                { equation.rhs, type.pipeline.Base },
-                                { coding.output, type.pipeline.Base } });
+    type.op.math.LessThan.addSlots(
+        cells.slot(equation.lhs, type.pipeline.Base),
+        cells.slot(equation.rhs, type.pipeline.Base),
+        cells.slot(coding.output, type.pipeline.Base));
 
-    type.op.math.GreaterThan.addSlots({ { equation.lhs, type.pipeline.Base },
-                                   { equation.rhs, type.pipeline.Base },
-                                   { coding.output, type.pipeline.Base } });
+    type.op.math.GreaterThan.addSlots(
+        cells.slot(equation.lhs, type.pipeline.Base),
+        cells.slot(equation.rhs, type.pipeline.Base),
+        cells.slot(coding.output, type.pipeline.Base));
 
-    type.pipeline.Void.addSlots({ { sequence.first, type.pipeline.Base },
-                             { sequence.next, type.pipeline.Base },
-                             { sequence.current, type.pipeline.Base } });
+    type.pipeline.Void.addSlots(
+        cells.slot(sequence.first, type.pipeline.Base),
+        cells.slot(sequence.next, type.pipeline.Base),
+        cells.slot(sequence.current, type.pipeline.Base));
 
-    type.pipeline.Input.addSlots({ { sequence.first, type.pipeline.Base },
-                              { sequence.next, type.pipeline.Base },
-                              { sequence.current, type.pipeline.Base },
-                              { coding.value, type.Any } });
+    type.pipeline.Input.addSlots(
+        cells.slot(sequence.first, type.pipeline.Base),
+        cells.slot(sequence.next, type.pipeline.Base),
+        cells.slot(sequence.current, type.pipeline.Base),
+        cells.slot(coding.value, type.Any));
 
-    type.pipeline.New.addSlots({ { sequence.first, type.pipeline.Base },
-                            { sequence.next, type.pipeline.Base },
-                            { sequence.current, type.pipeline.Base },
-                            { coding.value, type.pipeline.Base },
-                            { coding.objectType, type.op.Base } });
+    type.pipeline.New.addSlots(
+        cells.slot(sequence.first, type.pipeline.Base),
+        cells.slot(sequence.next, type.pipeline.Base),
+        cells.slot(sequence.current, type.pipeline.Base),
+        cells.slot(coding.value, type.pipeline.Base),
+        cells.slot(coding.objectType, type.op.Base));
 
-    type.pipeline.Fork.addSlots({ { sequence.first, type.pipeline.Base },
-                             { sequence.next, type.pipeline.Base },
-                             { coding.input, type.pipeline.Base },
-                             { coding.value, type.pipeline.Base },
-                             { coding.branch, type.op.Base } });
+    type.pipeline.Fork.addSlots(
+        cells.slot(sequence.first, type.pipeline.Base),
+        cells.slot(sequence.next, type.pipeline.Base),
+        cells.slot(coding.input, type.pipeline.Base),
+        cells.slot(coding.value, type.pipeline.Base),
+        cells.slot(coding.branch, type.op.Base));
 
-    type.pipeline.Delete.addSlots({ { sequence.first, type.pipeline.Base },
-                               { coding.input, type.pipeline.Base } });
+    type.pipeline.Delete.addSlots(
+        cells.slot(sequence.first, type.pipeline.Base),
+        cells.slot(coding.input, type.pipeline.Base));
 
-    type.pipeline.Node.addSlots({ { sequence.first, type.pipeline.Base },
-                             { sequence.next, type.pipeline.Base },
-                             { coding.input, type.pipeline.Base },
-                             { coding.op, type.op.Base },
-                             { coding.value, type.pipeline.Base } });
+    type.pipeline.Node.addSlots(
+        cells.slot(sequence.first, type.pipeline.Base),
+        cells.slot(sequence.next, type.pipeline.Base),
+        cells.slot(coding.input, type.pipeline.Base),
+        cells.slot(coding.op, type.op.Base),
+        cells.slot(coding.value, type.pipeline.Base));
 
-    type.pipeline.IfThen.addSlots({ { sequence.first, type.pipeline.Base },
-                               { sequence.next, type.pipeline.Base },
-                               { coding.input, type.pipeline.Base },
-                               { coding.condition, type.pipeline.Base },
-                               { coding.then, type.op.Base },
-                               { coding.else_, type.op.Base } });
+    type.pipeline.IfThen.addSlots(
+        cells.slot(sequence.first, type.pipeline.Base),
+        cells.slot(sequence.next, type.pipeline.Base),
+        cells.slot(coding.input, type.pipeline.Base),
+        cells.slot(coding.condition, type.pipeline.Base),
+        cells.slot(coding.then, type.op.Base),
+        cells.slot(coding.else_, type.op.Base));
 
-    type.pipeline.DoWhile.addSlots({ { sequence.first, type.pipeline.Base },
-                                { sequence.next, type.pipeline.Base },
-                                { coding.input, type.pipeline.Base },
-                                { coding.condition, type.pipeline.Base },
-                                { coding.statement, type.op.Base } });
+    type.pipeline.DoWhile.addSlots(
+        cells.slot(sequence.first, type.pipeline.Base),
+        cells.slot(sequence.next, type.pipeline.Base),
+        cells.slot(coding.input, type.pipeline.Base),
+        cells.slot(coding.condition, type.pipeline.Base),
+        cells.slot(coding.statement, type.op.Base));
 
-    type.pipeline.While.addSlots({ { sequence.first, type.pipeline.Base },
-                              { sequence.next, type.pipeline.Base },
-                              { coding.input, type.pipeline.Base },
-                              { coding.condition, type.pipeline.Base },
-                              { coding.statement, type.op.Base } });
+    type.pipeline.While.addSlots(
+        cells.slot(sequence.first, type.pipeline.Base),
+        cells.slot(sequence.next, type.pipeline.Base),
+        cells.slot(coding.input, type.pipeline.Base),
+        cells.slot(coding.condition, type.pipeline.Base),
+        cells.slot(coding.statement, type.op.Base));
+
     m_initialized = true;
 }
 

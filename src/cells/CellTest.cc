@@ -61,6 +61,7 @@ using namespace control::op;
 int main(int argc, char* argv[])
 {
     brain::Brain kb;
+    auto& cells = kb.cells;
 
     PrintAs printAs;
 
@@ -71,9 +72,11 @@ int main(int argc, char* argv[])
     printAs.svg(picture);
     printAs.svg(picture[kb.visualization.pixels]);
 
-    Type Variable(kb, "Color",
-                  { { kb.coding.label, kb.type.String },
-                    { kb.coding.value, kb.type.Number } });
+    Type Variable(kb, "Color");
+    Variable.addSlots(
+        cells.slot(kb.coding.label, kb.type.String),
+        cells.slot(kb.coding.value, kb.type.Number));
+
     Object var1(kb, Variable, "var1");
 
     Input mainStartNode(kb, picture);
@@ -98,10 +101,11 @@ int main(int argc, char* argv[])
     Object colorGreen(kb, kb.type.Any, "green");
     Object colorBlue(kb, kb.type.Any, "blue");
 
-    Type colorClass(kb, "Color",
-                    { { colorRed, kb.type.Number },
-                      { colorGreen, kb.type.Number },
-                      { colorBlue, kb.type.Number } });
+    Type colorClass(kb, "Color");
+    colorClass.addSlots(
+        cells.slot(colorRed, kb.type.Number),
+        cells.slot(colorGreen, kb.type.Number),
+        cells.slot(colorBlue, kb.type.Number));
 
     Object redColor(kb, colorClass, "redColor");
     redColor.set(colorRed, kb.pools.numbers.get(255));
