@@ -900,28 +900,6 @@ Template::Template(brain::Brain& kb, const std::string& label) :
 {
 }
 
-Template::Template(brain::Brain& kb, std::initializer_list<ParameterDeclRef> params) :
-    CellI(kb, "Template"),
-    m_parameters(kb, kb.type.template_.ParameterDecl),
-    m_slots(kb, kb.type.template_.Slot),
-    m_subTypes(kb, kb.type.Template)
-{
-    for (const auto& param : params) {
-        addParam(param.m_parameterDecl);
-    }
-}
-
-Template::Template(brain::Brain& kb, const std::string& label, std::initializer_list<ParameterDeclRef> params) :
-    CellI(kb, label),
-    m_parameters(kb, kb.type.template_.ParameterDecl),
-    m_slots(kb, kb.type.template_.Slot),
-    m_subTypes(kb, kb.type.Template)
-{
-    for (const auto& param : params) {
-        addParam(param.m_parameterDecl);
-    }
-}
-
 bool Template::has(CellI& role)
 {
     if (&role == &kb.cells.type) {

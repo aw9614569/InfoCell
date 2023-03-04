@@ -440,8 +440,6 @@ public:
     };
 
     explicit Template(brain::Brain& kb, const std::string& label = "Template");
-    Template(brain::Brain& kb, std::initializer_list<ParameterDeclRef> params);
-    Template(brain::Brain& kb, const std::string& label, std::initializer_list<ParameterDeclRef> params);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
