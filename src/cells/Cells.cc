@@ -949,6 +949,11 @@ void Template::addSubTypes(brain::templates::Slot& slot)
     m_subTypes.add(slot);
 }
 
+void Template::addMembership(brain::templates::CellDescription& type)
+{
+    m_memberOf.add(type);
+}
+
 CellI& Template::getParamType()
 {
     if (!m_parametersType) {
@@ -982,6 +987,9 @@ Type& Template::compile(CellI& param)
     });
     Visitor::visitList(m_subTypes, [this, &type, &param](CellI& slot, int i) {
         type.addSubType(compileCell(slot[kb.cells.slotRole], param, type), static_cast<Template&>(compileCell(slot[kb.cells.slotType], param, type)).compile(param));
+    });
+    Visitor::visitList(m_memberOf, [this, &type, &param](CellI& description, int i) {
+        type.addMembership(compileCell(description, param, type));
     });
 
     return type;

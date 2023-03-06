@@ -470,21 +470,25 @@ Brain::Brain() :
         cells.slot(cells.slotType, type.template_.Descriptor),
         cells.slot(cells.slotRole, type.template_.Descriptor));
 
-    type.template_.Cell.addMembership(type.template_.Descriptor);
+    type.template_.Cell.addMembership(
+        type.template_.Descriptor);
     type.template_.Cell.addSlots(
         cells.slot(coding.value, type.Any));
 
-    type.template_.Parameter.addMembership(type.template_.Descriptor);
+    type.template_.Parameter.addMembership(
+        type.template_.Descriptor);
     type.template_.Parameter.addSlots(
         cells.slot(coding.value, type.Any));
 
-    type.template_.TemplateOf.addMembership(type.template_.Descriptor);
+    type.template_.TemplateOf.addMembership(
+        type.template_.Descriptor);
     type.template_.TemplateOf.addSlots(
         cells.slot(coding.template_, type.Template),
         cells.slot(coding.parameter, type.template_.Descriptor),
         cells.slot(coding.value, type.template_.Descriptor));
 
-    type.template_.SelfType.addMembership(type.template_.Descriptor);
+    type.template_.SelfType.addMembership(
+        type.template_.Descriptor);
 
     Template& listItem = *new cells::Template(*this, "ListItem");
     listItem.addParams(
@@ -493,7 +497,6 @@ Brain::Brain() :
         templates.slot(templates.cell(sequence.previous), templates.selfType()),
         templates.slot(templates.cell(sequence.next), templates.selfType()),
         templates.slot(templates.cell(coding.value), templates.parameter(coding.objectType)));
-
     templates.list.addParams(
         templates.parameterDecl(coding.objectType, type.Type_));
     templates.list.addSlots(
@@ -508,7 +511,8 @@ Brain::Brain() :
     // And also, that template.list -> item is an iterator prev, next, value
 
     Type& listSubType = *new Type(*this, "ListItem");
-    type.List.addSubType(coding.objectType, listSubType);
+    type.List.addSubType(
+        coding.objectType, listSubType);
     listSubType.addSlots(
         cells.slot(sequence.previous, listSubType),
         cells.slot(sequence.next, listSubType),
@@ -519,11 +523,18 @@ Brain::Brain() :
         cells.slot(sequence.last, listSubType),
         cells.slot(dimensions.size, type.Number));
 
+    listItem.addMembership(
+        templates.cell(listSubType));
+
+    templates.list.addMembership(
+        templates.cell(type.List));
+
     type.Number.addSlots(
         cells.slot(coding.value, type.ListOf(type.Digit)),
         cells.slot(numbers.sign, type.Number)); // TODO
 
-    type.String.addSlots(cells.slot(coding.value, type.ListOf(type.Char)));
+    type.String.addSlots(
+        cells.slot(coding.value, type.ListOf(type.Char)));
 
     type.Color.addSlots(
         cells.slot(colors.red, type.Number),

@@ -389,29 +389,6 @@ protected:
 };
 
 // ============================================================================
-#if 0
-A generic list can hold any type of values.
-But how can we express the thing "any type"? We can create an extra type, for example: kb.type.Any.
-
-A List of Slots or List<Slot> should holds only Slot types. But how can we express such a specialization?
-This List<Slot> still a list, and should be used anywhere where a generic list is used.
-
-The C++ template style template can not express such a relation as List<> is not a type but a template.
-
-So we need a List type and a specialized List with a specialization.
-
-A type can have a subType. List object will create ListItem type which is a kind of sequence.
-A type should have a parameter like thing where we can express what kind of object is allowed.
-   Maybe we can introduce three kind of parameters for this
-    1. typeIs: the type is Slot, List<typeIs: Slot>
-    2. groupOf: the type is part of a group, List<groupOf: Numbers>
-    3. expression: Slot | Digit | Number < 12, List<expression: { Slot | Digit | Number < 12 }>
-   Maybe we can use a value definition parameter
-
-A type should have some kind of definition where we can express what is the relation between theese parameters, members, and what is the purpose of theese.
-#endif
-
-// ============================================================================
 class Template : public CellI
 {
 public:
@@ -445,6 +422,14 @@ public:
     {
         addSubTypes(slot);
         addSubTypes(std::forward<Args>(args)...);
+    }
+
+    void addMembership(brain::templates::CellDescription& type);
+    template <typename... Args>
+    void addMembership(brain::templates::Slot& slot, Args&&... args)
+    {
+        addMembership(type);
+        addMembership(std::forward<Args>(args)...);
     }
 
     CellI& getParamType();

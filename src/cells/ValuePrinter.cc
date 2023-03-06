@@ -13,7 +13,16 @@ void CellValuePrinter::visit(Slot& cell)
 void CellValuePrinter::visit(Type& type)
 {
     brain::Brain& kb = type.kb;
-    m_ss << "Type " << type.label() << " { ";
+    m_ss << "Type " << type.label();
+    visitList(type[kb.cells.memberOf][kb.cells.list], [this, &kb](CellI& member, int i) {
+        if (i != 0) {
+            m_ss << ", ";
+        } else {
+            m_ss << " : ";
+        }
+        m_ss << member.label();
+    });
+    m_ss << " { ";
     visitList(type[kb.cells.slots][kb.cells.list], [this, &kb](CellI& slot, int i) {
         if (i != 0) {
             m_ss << ", ";
