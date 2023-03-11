@@ -20,7 +20,7 @@ class CellDescription;
 class Cell;
 class Parameter;
 class TemplateOf;
-class SelfType;
+class Self;
 } // namespace templates
 } // namespace brain
 
@@ -112,6 +112,14 @@ public:
     void accept(Visitor& visitor) override;
 
     void add(CellI& value);
+
+    template <typename... Args>
+    void add(CellI& value, Args&&... args)
+    {
+        add(value);
+        add(std::forward<Args>(args)...);
+    }
+
     bool empty() const;
 
     struct Value
@@ -306,6 +314,12 @@ public:
     void accept(Visitor& visitor) override;
 
     void add(CellI& key, CellI& value);
+    template <typename... Args>
+    void add(CellI& key, CellI& value, Args&&... args)
+    {
+        add(key, value);
+        add(std::forward<Args>(args)...);
+    }
     bool empty() const;
 
 protected:
@@ -453,7 +467,7 @@ protected:
 class CellTemplate : public CellI
 {
 public:
-    explicit CellTemplate(brain::Brain& kb, CellI& type, const std::string& label = "CellTemplate");
+    explicit CellTemplate(brain::Brain& kb, const std::string& label = "CellTemplate");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -461,33 +475,23 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-    void addParams(brain::templates::ParameterDecl& param);
-    template <typename... Args>
-    void addParams(brain::templates::ParameterDecl& param, Args&&... args)
-    {
-        addParams(param);
-        addParams(std::forward<Args>(args)...);
-    }
-
-    void addSlots(brain::templates::Slot& slot);
-    template <typename... Args>
-    void addSlots(brain::templates::Slot& slot, Args&&... args)
-    {
-        addSlots(slot);
-        addSlots(std::forward<Args>(args)...);
-    }
+    void type(CellI& type);
+    void addParams(Map& parameters);
+    void addSlots(List& slots);
 
     CellI& getParamType();
     CellI& compile(CellI& param);
 
 protected:
     CellI& compileCell(CellI& descriptor, CellI& param, CellI& self);
+    Map& parameters();
+    List& slots();
 
-    CellI& m_type;
-    Map m_parameters;
+    CellI* m_type;
+    Map* m_parameters;
     std::unique_ptr<Type> m_parametersType;
 
-    List m_slots;
+    List* m_slots;
 };
 
 // ============================================================================

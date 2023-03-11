@@ -229,8 +229,8 @@ TemplateOf::TemplateOf(brain::Brain& kb, Template& templateOf, CellDescription& 
     set(kb.coding.value, valueDescription);
 }
 
-SelfType::SelfType(brain::Brain& kb) :
-    CellDescriptionT<SelfType>(kb, kb.type.template_.Self)
+Self::Self(brain::Brain& kb) :
+    CellDescriptionT<Self>(kb, kb.type.template_.Self)
 {
 }
 
@@ -267,9 +267,9 @@ templates::TemplateOf& Templates::templateOf(Template& templateOf, templates::Ce
     return templates::TemplateOf::New(kb, templateOf, paramDescription, valueDescription);
 }
 
-templates::SelfType& Templates::selfType()
+templates::Self& Templates::self()
 {
-    return templates::SelfType::New(kb);
+    return templates::Self::New(kb);
 }
 
 Sequence::Sequence(brain::Brain& kb) :
@@ -494,8 +494,8 @@ Brain::Brain() :
     listItem.addParams(
         templates.parameterDecl(coding.objectType, type.Type_));
     listItem.addSlots(
-        templates.slot(templates.cell(sequence.previous), templates.selfType()),
-        templates.slot(templates.cell(sequence.next), templates.selfType()),
+        templates.slot(templates.cell(sequence.previous), templates.self()),
+        templates.slot(templates.cell(sequence.next), templates.self()),
         templates.slot(templates.cell(coding.value), templates.parameter(coding.objectType)));
 
     templates.list.addParams(
@@ -558,6 +558,13 @@ Brain::Brain() :
         }
         param[coding.self].set(sequence.last, newListItem);
     );
+    CellTemplate testTemplate(*this);
+    testTemplate.type(type.Type_);
+    testTemplate.addParams(map(coding.objectType, type.Type_));
+    testTemplate.addSlots(list(templates.slot(templates.cell(sequence.first), templates.templateOf(listItem, templates.cell(coding.objectType), templates.cell(coding.objectType))),
+                               templates.slot(templates.cell(sequence.last), templates.templateOf(listItem, templates.cell(coding.objectType), templates.cell(coding.objectType))),
+                               templates.slot(templates.cell(coding.objectType), templates.parameter(coding.objectType)),
+                               templates.slot(templates.cell(dimensions.size), templates.cell(type.Number))));
 #endif
 
     type.Number.addSlots(

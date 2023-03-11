@@ -224,10 +224,10 @@ public:
     TemplateOf(brain::Brain& kb, Template& templateOf, CellDescription& paramDescription, CellDescription& valueDescription);
 };
 
-class SelfType : public CellDescriptionT<SelfType>
+class Self : public CellDescriptionT<Self>
 {
 public:
-    SelfType(brain::Brain& kb);
+    Self(brain::Brain& kb);
 };
 } // namespace templates
 
@@ -240,7 +240,7 @@ public:
     templates::Cell& cell(CellI& cell);
     templates::Parameter& parameter(CellI& paramRole);
     templates::TemplateOf& templateOf(Template& templateOf, templates::CellDescription& paramDescription, templates::CellDescription& valueDescription);
-    templates::SelfType& selfType();
+    templates::Self& self();
 
     brain::Brain& kb;
     Template list;
@@ -409,6 +409,31 @@ public:
     Arc arc;
 
     CellI& toKbBool(bool value);
+
+    template <typename... Args>
+    List& list(CellI& value, Args&&... args)
+    {
+        List& ret = *new List(*this, value.type());
+        ret.add(value);
+        if constexpr (sizeof...(Args) > 0) {
+            ret.add(std::forward<Args>(args)...);
+        }
+
+        return ret;
+    }
+
+    template <typename... Args>
+    Map& map(CellI& key, CellI& value, Args&&... args)
+    {
+        Map& ret = *new Map(*this, value.type());
+        ret.add(key, value);
+        if constexpr (sizeof...(Args) > 0) {
+            ret.add(std::forward<Args>(args)...);
+        }
+
+        return ret;
+    }
+
     bool isInitialized();
 };
 
