@@ -56,6 +56,23 @@ public:
     static int s_destructed;
 };
 
+// ============================================================================
+class Object : public CellI
+{
+public:
+    Object(brain::Brain& kb, CellI& type, const std::string& label = "");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    CellI& m_type;
+    std::map<CellI*, CellI*> m_slots;
+};
+
 namespace util {
 
 template <typename T>
@@ -388,23 +405,6 @@ protected:
 };
 
 // ============================================================================
-class Object : public CellI
-{
-public:
-    Object(brain::Brain& kb, CellI& type, const std::string& label = "");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_type;
-    std::map<CellI*, CellI*> m_slots;
-};
-
-// ============================================================================
 class Template : public CellI
 {
 public:
@@ -487,11 +487,10 @@ protected:
     Map& parameters();
     List& slots();
 
-    CellI* m_type;
-    Map* m_parameters;
+    CellI* m_type     = nullptr;
+    Map* m_parameters = nullptr;
     std::unique_ptr<Type> m_parametersType;
-
-    List* m_slots;
+    List* m_slots = nullptr;
 };
 
 // ============================================================================
@@ -506,8 +505,8 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-    void addInputs(Map& input);
-    void addOutputs(Map& output);
+    void addInputs(List& input);
+    void addOutputs(List& output);
     void addAsts(List& ast);
 
     CellI& compile(CellI& param);
@@ -517,8 +516,8 @@ protected:
     Map& outputs();
     List& asts();
 
-    Map* m_inputs  = nullptr;
-    Map* m_outputs = nullptr;
+    List* m_inputs = nullptr;
+    List* m_outputs = nullptr;
     List* m_asts   = nullptr;
 };
 
@@ -1235,7 +1234,7 @@ namespace pipeline {
 template <typename T1>
 void Node::initOp(CellI& op, T1& arg1)
 {
-    if (&op == &kb.type.op.logic.Not) {
+    if (&op == &kb.type.control.op.logic.Not) {
         m_op = std::make_unique<op::logic::Not>(kb, *this, arg1);
     }
 }
@@ -1243,46 +1242,46 @@ void Node::initOp(CellI& op, T1& arg1)
 template <typename T1, typename T2>
 void Node::initOp(CellI& op, T1& arg1, T2& arg2)
 {
-    if (&op == &kb.type.op.Same) {
+    if (&op == &kb.type.control.op.Same) {
         m_op = std::make_unique<op::Same>(kb, *this, arg1, arg2);
     }
-    if (&op == &kb.type.op.NotSame) {
+    if (&op == &kb.type.control.op.NotSame) {
         m_op = std::make_unique<op::NotSame>(kb, *this, arg1, arg2);
     }
-    if (&op == &kb.type.op.Equal) {
+    if (&op == &kb.type.control.op.Equal) {
         m_op = std::make_unique<op::Equal>(kb, *this, arg1, arg2);
     }
-    if (&op == &kb.type.op.NotEqual) {
+    if (&op == &kb.type.control.op.NotEqual) {
         m_op = std::make_unique<op::NotEqual>(kb, *this, arg1, arg2);
     }
-    if (&op == &kb.type.op.Has) {
+    if (&op == &kb.type.control.op.Has) {
         m_op = std::make_unique<op::Has>(kb, *this, arg1, arg2);
     }
-    if (&op == &kb.type.op.Get) {
+    if (&op == &kb.type.control.op.Get) {
         m_op = std::make_unique<op::Get>(kb, *this, arg1, arg2);
     }
-    if (&op == &kb.type.op.logic.And) {
+    if (&op == &kb.type.control.op.logic.And) {
         m_op = std::make_unique<op::logic::And>(kb, *this, arg1, arg2);
     }
-    if (&op == &kb.type.op.logic.Or) {
+    if (&op == &kb.type.control.op.logic.Or) {
         m_op = std::make_unique<op::logic::Or>(kb, *this, arg1, arg2);
     }
-    if (&op == &kb.type.op.math.Add) {
+    if (&op == &kb.type.control.op.math.Add) {
         m_op = std::make_unique<op::math::Add>(kb, *this, arg1, arg2);
     }
-    if (&op == &kb.type.op.math.Subtract) {
+    if (&op == &kb.type.control.op.math.Subtract) {
         m_op = std::make_unique<op::math::Subtract>(kb, *this, arg1, arg2);
     }
-    if (&op == &kb.type.op.math.Multiply) {
+    if (&op == &kb.type.control.op.math.Multiply) {
         m_op = std::make_unique<op::math::Multiply>(kb, *this, arg1, arg2);
     }
-    if (&op == &kb.type.op.math.Divide) {
+    if (&op == &kb.type.control.op.math.Divide) {
         m_op = std::make_unique<op::math::Divide>(kb, *this, arg1, arg2);
     }
-    if (&op == &kb.type.op.math.LessThan) {
+    if (&op == &kb.type.control.op.math.LessThan) {
         m_op = std::make_unique<op::math::LessThan>(kb, *this, arg1, arg2);
     }
-    if (&op == &kb.type.op.math.GreaterThan) {
+    if (&op == &kb.type.control.op.math.GreaterThan) {
         m_op = std::make_unique<op::math::GreaterThan>(kb, *this, arg1, arg2);
     }
 }
@@ -1290,7 +1289,7 @@ void Node::initOp(CellI& op, T1& arg1, T2& arg2)
 template <typename T1, typename T2, typename T3>
 void Node::initOp(CellI& op, T1& arg1, T2& arg2, T3& arg3)
 {
-    if (&op == &kb.type.op.Set) {
+    if (&op == &kb.type.control.op.Set) {
         m_op = std::make_unique<op::Set>(kb, *this, arg1, arg2, arg3);
     }
 }

@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
     Object var1(kb, Variable, "var1");
 
     Input mainStartNode(kb, picture);
-    Node node1(kb, mainStartNode, kb.type.op.Same, mainStartNode, mainStartNode);
+    Node node1(kb, mainStartNode, kb.type.control.op.Same, mainStartNode, mainStartNode);
     mainStartNode();
     std::cout << "SameOp: ";
     printAs.value(node1[kb.coding.value]);
@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
     Fork fork1(kb, start);
     Input value10(kb, kb.pools.numbers.get(10));
     fork1.addBranch(value10);
-    Node add10(kb, fork1, kb.type.op.math.Add, fork1, value10);
+    Node add10(kb, fork1, kb.type.control.op.math.Add, fork1, value10);
     start();
     std::cout << "42 + 10 = ";
     printAs.value(add10[kb.coding.value]);

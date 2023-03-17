@@ -30,62 +30,73 @@ public:
     Type Self;
 };
 
-class Pipelines
+class Control
 {
 public:
-    Pipelines(brain::Brain& kb);
-    Type Base;
-    Type Void;
-    Type Input;
-    Type New;
-    Type Fork;
-    Type Delete;
-    Type Node;
-    Type IfThen;
-    Type DoWhile;
-    Type While;
-};
+    class Operations
+    {
+    public:
+        class Logic
+        {
+        public:
+            Logic(brain::Brain& kb);
+            Type And;
+            Type Or;
+            Type Not;
+        };
 
-namespace op {
-class Logic
-{
+        class Math
+        {
+        public:
+            Math(brain::Brain& kb);
+            Type Add;
+            Type Subtract;
+            Type Multiply;
+            Type Divide;
+            Type LessThan;
+            Type GreaterThan;
+        };
+
+        Operations(brain::Brain& kb);
+        Type Base;
+
+        Type Same;
+        Type NotSame;
+        Type Equal;
+        Type NotEqual;
+
+        Type Has;
+        Type Get;
+        Type Set;
+
+        Logic logic;
+        Math math;
+    };
+
+    class Pipelines
+    {
+    public:
+        Pipelines(brain::Brain& kb);
+        Type Base;
+        Type Void;
+        Type Input;
+        Type New;
+        Type Fork;
+        Type Delete;
+        Type Node;
+        Type IfThen;
+        Type DoWhile;
+        Type While;
+    };
+
+    Control(brain::Brain& kb);
+
+protected:
+    brain::Brain& kb;
+
 public:
-    Logic(brain::Brain& kb);
-    Type And;
-    Type Or;
-    Type Not;
-};
-
-class Math
-{
-public:
-    Math(brain::Brain& kb);
-    Type Add;
-    Type Subtract;
-    Type Multiply;
-    Type Divide;
-    Type LessThan;
-    Type GreaterThan;
-};
-} // namespace op
-
-class Operations
-{
-public:
-    Operations(brain::Brain& kb);
-    Type Base;
-
-    Type Same;
-    Type NotSame;
-    Type Equal;
-    Type NotEqual;
-
-    Type Has;
-    Type Get;
-    Type Set;
-
-    op::Logic logic;
-    op::Math math;
+    Operations op;
+    Pipelines pipeline;
 };
 
 class Ast
@@ -151,7 +162,9 @@ protected:
     brain::Brain& kb;
 
 public:
+    Type Base;
     Type Parameter;
+    Type ParameterDecl;
     Type Cell;
     Type HasMember;
     Type GetMember;
@@ -202,8 +215,7 @@ public:
     Type Template;
 
     type::Template template_;
-    type::Operations op;
-    type::Pipelines pipeline;
+    type::Control control;
     type::Ast ast;
 };
 
@@ -238,12 +250,14 @@ public:
     Object input;
     Object item;
     Object label;
+    Object lhs;
     Object objectType;
     Object op;
     Object output;
     Object parameter;
     Object parameters;
     Object result;
+    Object rhs;
     Object role;
     Object statement;
     Object template_;
@@ -350,13 +364,13 @@ namespace pipeline {
 class Input : public BaseT<Input>
 {
 public:
-    Input(brain::Brain& kb, CellI& cell);
+    Input(brain::Brain& kb, CellI& value);
 };
 
 class New : public BaseT<New>
 {
 public:
-    New(brain::Brain& kb, Base& ast);
+    New(brain::Brain& kb, Base& objectType);
 };
 
 class Fork : public BaseT<Fork>
@@ -368,7 +382,7 @@ public:
 class Delete : public BaseT<Delete>
 {
 public:
-    Delete(brain::Brain& kb, Base& ast);
+    Delete(brain::Brain& kb, Base& cell);
 };
 
 class Node : public BaseT<Node>
@@ -403,10 +417,10 @@ class Pipeline
 public:
     Pipeline(brain::Brain& kb);
 
-    pipeline::Input& input(CellI& cell);
-    pipeline::New& new_(Base& ast);
+    pipeline::Input& input(CellI& value);
+    pipeline::New& new_(Base& objectType);
     pipeline::Fork& fork();
-    pipeline::Delete& delete_(Base& ast);
+    pipeline::Delete& delete_(Base& cell);
     pipeline::Node& node();
     pipeline::If& if_(Base& condition, Base& thenBranch);
     pipeline::If& if_(Base& condition, Base& thenBranch, Base& elseBranch);
@@ -433,7 +447,7 @@ public:
 class Not : public BaseT<Not>
 {
 public:
-    Not(brain::Brain& kb, Base& input);
+    Not(brain::Brain& kb, Base& value);
 };
 }
 
@@ -443,7 +457,7 @@ public:
     Logic(brain::Brain& kb);
     logic::And& and_(Base& lhs, Base& rhs);
     logic::Or& or_(Base& lhs, Base& rhs);
-    logic::Not& not_(Base& input);
+    logic::Not& not_(Base& value);
 
 protected:
     brain::Brain& kb;
@@ -572,13 +586,19 @@ public:
 class Parameter : public BaseT<Parameter>
 {
 public:
-    Parameter(brain::Brain& kb, CellI& cell);
+    Parameter(brain::Brain& kb, CellI& role);
+};
+
+class ParameterDecl : public BaseT<ParameterDecl>
+{
+public:
+    ParameterDecl(brain::Brain& kb, CellI& role, CellI& type);
 };
 
 class Cell : public BaseT<Cell>
 {
 public:
-    Cell(brain::Brain& kb, CellI& cell);
+    Cell(brain::Brain& kb, CellI& value);
 };
 
 class HasMember : public BaseT<HasMember>
@@ -602,13 +622,13 @@ public:
 class SetVar : public BaseT<SetVar>
 {
 public:
-    SetVar(brain::Brain& kb, CellI& cell, Base& ast);
+    SetVar(brain::Brain& kb, CellI& role, Base& value);
 };
 
 class GetVar : public BaseT<GetVar>
 {
 public:
-    GetVar(brain::Brain& kb, CellI& cell);
+    GetVar(brain::Brain& kb, CellI& role);
 };
 
 class Self : public BaseT<Self>
@@ -631,6 +651,8 @@ public:
     }
 
     List& toList();
+
+    List m_list;
 };
 
 } // namespace ast
@@ -640,13 +662,14 @@ class Ast
 public:
     Ast(brain::Brain& kb);
 
-    ast::Parameter& parameter(CellI& cell);
-    ast::Cell& cell(CellI& cell);
+    ast::Parameter& parameter(CellI& role);
+    ast::ParameterDecl& parameterDecl(CellI& role, CellI& type);
+    ast::Cell& cell(CellI& value);
     ast::HasMember& hasMember(ast::Base& role);
     ast::GetMember& getMember(ast::Base& role);
     ast::SetMember& setMember(ast::Base& role, ast::Base& value);
-    ast::SetVar& setVar(CellI& cell, ast::Base& ast);
-    ast::GetVar& getVar(CellI& cell);
+    ast::SetVar& setVar(CellI& role, ast::Base& value);
+    ast::GetVar& getVar(CellI& role);
     ast::Self& self();
 
     template <typename... Args>
