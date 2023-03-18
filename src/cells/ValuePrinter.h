@@ -1,7 +1,7 @@
 #pragma once
 #include <sstream>
 
-#include "Cells.h"
+#include "Brain.h"
 
 namespace synth {
 namespace cells {

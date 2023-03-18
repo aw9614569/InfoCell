@@ -23,18 +23,26 @@ public:
         m_svgStructPrinter.writeFile(std::format("F:\\Devel\\ARC\\synth\\struct-{:02d}.svg", 1));
     }
 
-    void value(CellI& cell)
+    void value(CellI& cell, const std::string& label = "")
     {
         CellValuePrinter valuePrinter;
         cell.accept(valuePrinter);
 
+        if (!label.empty()) {
+            std::cout << label << ": ";
+        }
+
         std::cout << valuePrinter.print() << std::endl;
     }
 
-    void cell(CellI& cell)
+    void cell(CellI& cell, const std::string& label = "")
     {
         CellStructPrinter structPrinter;
         cell.accept(structPrinter);
+
+        if (!label.empty()) {
+            std::cout << label << ": ";
+        }
 
         std::cout << structPrinter.print() << std::endl;
     }
@@ -55,8 +63,8 @@ public:
     svg::StructPrinter m_svgStructPrinter;
 };
 
-using namespace control::pipeline;
-using namespace control::op;
+using namespace control::expr;
+using namespace control::stmt;
 
 int main(int argc, char* argv[])
 {
@@ -80,17 +88,15 @@ int main(int argc, char* argv[])
     Object var1(kb, Variable, "var1");
 
     Input mainStartNode(kb, picture);
-    Node node1(kb, mainStartNode, kb.type.control.op.Same, mainStartNode, mainStartNode);
-    mainStartNode();
+    Same node1(kb, mainStartNode, mainStartNode);
+    node1();
     std::cout << "SameOp: ";
     printAs.value(node1[kb.coding.value]);
 
     Input start(kb, kb.pools.numbers.get(42));
-    Fork fork1(kb, start);
     Input value10(kb, kb.pools.numbers.get(10));
-    fork1.addBranch(value10);
-    Node add10(kb, fork1, kb.type.control.op.math.Add, fork1, value10);
-    start();
+    Add add10(kb, start, value10);
+    add10();
     std::cout << "42 + 10 = ";
     printAs.value(add10[kb.coding.value]);
 
@@ -122,6 +128,13 @@ int main(int argc, char* argv[])
     printAs.value(templateListType);
     printAs.cell(templateListType);
     printAs.value(templateListType[kb.cells.subTypes][kb.cells.index][kb.coding.objectType]);
+
+    Object listAddInput(kb, kb.listAdd.inputType());
+    printAs.value(listAddInput, "listAddInput");
+    listAddInput.set(kb.coding.value, number_255);
+    printAs.cell(listAddInput, "listAddInput set");
+    CellI& listAddCompiled = kb.listAdd.compile(listAddInput);
+    printAs.cell(listAddCompiled, "listAddCompiled");
 
     printAs.value(colorClass);
     printAs.value(colorClass[kb.cells.slots][kb.cells.index][colorRed]);

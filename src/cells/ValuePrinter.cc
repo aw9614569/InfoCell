@@ -1,4 +1,5 @@
 #include "ValuePrinter.h"
+#include "Brain.h"
 
 namespace synth {
 namespace cells {

@@ -42,6 +42,7 @@ public:
 
     CellI& get(CellI& role);
     CellI& type();
+    void eval();
 
     std::string label() const;
     void label(const std::string& label);
@@ -494,34 +495,6 @@ protected:
 };
 
 // ============================================================================
-class Function : public CellI
-{
-public:
-    explicit Function(brain::Brain& kb, const std::string& label = "Function");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    void addInputs(List& input);
-    void addOutputs(List& output);
-    void addAsts(List& ast);
-
-    CellI& compile(CellI& param);
-
-protected:
-    Map& inputs();
-    Map& outputs();
-    List& asts();
-
-    List* m_inputs = nullptr;
-    List* m_outputs = nullptr;
-    List* m_asts   = nullptr;
-};
-
-// ============================================================================
 class Number : public CellI
 {
 public:
@@ -650,327 +623,53 @@ protected:
 } // namespace hybrid
 
 namespace control {
-namespace pipeline {
-class Base;
-}
-namespace op {
-
-// ============================================================================
-class Same : public CellI
-{
-public:
-    Same(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    pipeline::Base& m_output;
-    pipeline::Base& m_lhs;
-    pipeline::Base& m_rhs;
-};
-
-// ============================================================================
-class NotSame : public CellI
-{
-public:
-    NotSame(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    pipeline::Base& m_output;
-    pipeline::Base& m_lhs;
-    pipeline::Base& m_rhs;
-};
-
-// ============================================================================
-class Equal : public CellI
-{
-public:
-    Equal(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    pipeline::Base& m_output;
-    pipeline::Base& m_lhs;
-    pipeline::Base& m_rhs;
-};
-
-// ============================================================================
-class NotEqual : public CellI
-{
-public:
-    NotEqual(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    pipeline::Base& m_output;
-    pipeline::Base& m_lhs;
-    pipeline::Base& m_rhs;
-};
-
-// ============================================================================
-class Has : public CellI
-{
-public:
-    Has(brain::Brain& kb, pipeline::Base& output, pipeline::Base& cell, pipeline::Base& role);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    pipeline::Base& m_output;
-    pipeline::Base& m_cell;
-    pipeline::Base& m_role;
-};
-
-// ============================================================================
-class Get : public CellI
-{
-public:
-    Get(brain::Brain& kb, pipeline::Base& output, pipeline::Base& cell, pipeline::Base& role);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    pipeline::Base& m_output;
-    pipeline::Base& m_cell;
-    pipeline::Base& m_role;
-};
-
-// ============================================================================
-class Set : public CellI
-{
-public:
-    Set(brain::Brain& kb, pipeline::Base& output, pipeline::Base& cell, pipeline::Base& role, pipeline::Base& value);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    pipeline::Base& m_output;
-    pipeline::Base& m_cell;
-    pipeline::Base& m_role;
-    pipeline::Base& m_value;
-};
-
-namespace logic {
-// ============================================================================
-class And : public CellI
-{
-public:
-    And(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    pipeline::Base& m_output;
-    pipeline::Base& m_lhs;
-    pipeline::Base& m_rhs;
-};
-
-// ============================================================================
-class Or : public CellI
-{
-public:
-    Or(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    pipeline::Base& m_output;
-    pipeline::Base& m_lhs;
-    pipeline::Base& m_rhs;
-};
-
-// ============================================================================
-class Not : public CellI
-{
-public:
-    Not(brain::Brain& kb, pipeline::Base& output, pipeline::Base& input);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    pipeline::Base& m_output;
-    pipeline::Base& m_input;
-};
-
-} // namespace logic
-
-namespace math {
-
-// ============================================================================
-class Add : public CellI
-{
-public:
-    Add(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    pipeline::Base& m_output;
-    pipeline::Base& m_lhs;
-    pipeline::Base& m_rhs;
-};
-
-// ============================================================================
-class Subtract : public CellI
-{
-public:
-    Subtract(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    pipeline::Base& m_output;
-    pipeline::Base& m_lhs;
-    pipeline::Base& m_rhs;
-};
-
-// ============================================================================
-class Multiply : public CellI
-{
-public:
-    Multiply(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    pipeline::Base& m_output;
-    pipeline::Base& m_lhs;
-    pipeline::Base& m_rhs;
-};
-
-// ============================================================================
-class Divide : public CellI
-{
-public:
-    Divide(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    pipeline::Base& m_output;
-    pipeline::Base& m_lhs;
-    pipeline::Base& m_rhs;
-};
-
-// ============================================================================
-class LessThan : public CellI
-{
-public:
-    LessThan(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    pipeline::Base& m_output;
-    pipeline::Base& m_lhs;
-    pipeline::Base& m_rhs;
-};
-
-// ============================================================================
-class GreaterThan : public CellI
-{
-public:
-    GreaterThan(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    pipeline::Base& m_output;
-    pipeline::Base& m_lhs;
-    pipeline::Base& m_rhs;
-};
-
-} // namespace math
-} // namespace op
-
-namespace pipeline {
-
 // ============================================================================
 class Base : public CellI
 {
 public:
-    Base(brain::Brain& kb, Base* first, const std::string& label);
-
-    void addNext(Base& cell);
-    void setCurrent();
-
-    Base* m_next = nullptr;
-    Base* m_first;
+    Base(brain::Brain& kb, const std::string& label);
 };
 
 // ============================================================================
-class Void : public Base
+class Function : public CellI
 {
 public:
-    Void(brain::Brain& kb, const std::string& label = "Void");
+    explicit Function(brain::Brain& kb, const std::string& label = "Function");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    void addInputs(List& input);
+    void addOutputs(List& output);
+    void addAsts(CellI& ast);
+
+protected:
+    List* m_inputs  = nullptr;
+    List* m_outputs = nullptr;
+    CellI* m_asts   = nullptr;
+};
+
+namespace expr {
+class Base;
+}
+
+namespace stmt {
+
+// ============================================================================
+class Base : public control::Base
+{
+public:
+    Base(brain::Brain& kb, const std::string& label);
+};
+
+// ============================================================================
+class Block : public Base
+{
+public:
+    Block(brain::Brain& kb, List& list, const std::string& label = "Block");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -979,63 +678,8 @@ public:
     void accept(Visitor& visitor) override;
 
 protected:
-    Base* m_current;
-};
-
-// ============================================================================
-class Input : public Base
-{
-public:
-    Input(brain::Brain& kb, CellI& value, const std::string& label = "Input");
-    Input(brain::Brain& kb, CellI* value = nullptr, const std::string& label = "Input");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI* m_value;
-    Base* m_current;
-};
-
-// ============================================================================
-class New : public Base
-{
-public:
-    New(brain::Brain& kb, Type& objectType, const std::string& label = "New");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    Type& m_objectType;
-    CellI* m_value = nullptr;
-    Base* m_current;
-};
-
-// ============================================================================
-class Fork : public Base
-{
-public:
-    Fork(brain::Brain& kb, Base& input, const std::string& label = "Fork");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    void addBranch(Base& cell);
-
-protected:
-    Base& m_input;
-    CellI* m_value = nullptr;
-    Base* m_branch = nullptr;
+    CellI* m_current;
+    List& m_list;
 };
 
 // ============================================================================
@@ -1055,24 +699,10 @@ protected:
 };
 
 // ============================================================================
-class Node : public Base
+class Set : public Base
 {
 public:
-    template <typename... T>
-    Node(brain::Brain& kb, Base& input, CellI& op, T&... args) :
-        Base(kb, input.m_first, "Node"), m_input(&input)
-    {
-        initOp(op, args...);
-        input.addNext(*this);
-    }
-
-    template <typename... T>
-    Node(brain::Brain& kb, Base& input, const std::string& label, CellI& op, T&... args) :
-        Base(kb, input.m_first, label), m_input(&input)
-    {
-        initOp(op, args...);
-        input.addNext(*this);
-    }
+    Set(brain::Brain& kb, CellI& cell, CellI& role, CellI& value);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -1081,25 +711,17 @@ public:
     void accept(Visitor& visitor) override;
 
 protected:
-    template <typename T1>
-    void initOp(CellI& op, T1& arg1);
-
-    template <typename T1, typename T2>
-    void initOp(CellI& op, T1& arg1, T2& arg2);
-
-    template <typename T1, typename T2, typename T3>
-    void initOp(CellI& op, T1& arg1, T2& arg2, T3& arg3);
-
-    Base* m_input = nullptr;
-    std::unique_ptr<CellI> m_op;
-    CellI* m_value = nullptr;
+    CellI& m_cell;
+    CellI& m_role;
+    CellI& m_value;
 };
 
 // ============================================================================
 class IfThen : public Base
 {
 public:
-    IfThen(brain::Brain& kb, Base& input, const std::string& label = "IfThen");
+    IfThen(brain::Brain& kb, expr::Base& condition, stmt::Base& thenBranch, const std::string& label = "IfThen");
+    IfThen(brain::Brain& kb, expr::Base& condition, stmt::Base& thenBranch, stmt::Base* elseBranch, const std::string& label = "IfThen");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -1112,7 +734,6 @@ public:
     void addElseBranch(Base& cell);
 
 protected:
-    CellI& m_input;
     Base* m_condition  = nullptr;
     Base* m_thenBranch = nullptr;
     Base* m_elseBranch = nullptr;
@@ -1122,7 +743,7 @@ protected:
 class DoWhile : public Base
 {
 public:
-    DoWhile(brain::Brain& kb, Base& input, const std::string& label = "DoWhile");
+    DoWhile(brain::Brain& kb, expr::Base& condition, stmt::Base& statement, const std::string& label = "DoWhile");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -1134,7 +755,6 @@ public:
     void addStatement(Base& cell);
 
 protected:
-    CellI& m_input;
     Base* m_condition = nullptr;
     Base* m_statement = nullptr;
 };
@@ -1143,7 +763,7 @@ protected:
 class While : public Base
 {
 public:
-    While(brain::Brain& kb, Base& input, const std::string& label = "While");
+    While(brain::Brain& kb, expr::Base& condition, stmt::Base& statement, const std::string& label = "While");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -1155,12 +775,307 @@ public:
     void addStatement(Base& cell);
 
 protected:
-    CellI& m_input;
     Base* m_condition = nullptr;
     Base* m_statement = nullptr;
 };
 
-} // namespace pipeline
+} // namespace stmt
+namespace expr {
+
+// ============================================================================
+class Base : public control::Base
+{
+public:
+    Base(brain::Brain& kb, const std::string& label);
+
+    CellI* m_value = nullptr;
+};
+
+// ============================================================================
+class Input : public Base
+{
+public:
+    Input(brain::Brain& kb, CellI& value, const std::string& label = "Input");
+    Input(brain::Brain& kb, CellI* value = nullptr, const std::string& label = "Input");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+};
+
+// ============================================================================
+class New : public Base
+{
+public:
+    New(brain::Brain& kb, CellI& objectType, const std::string& label = "New");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    CellI& m_objectType;
+};
+
+// ============================================================================
+class Same : public Base
+{
+public:
+    Same(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    expr::Base& m_lhs;
+    expr::Base& m_rhs;
+};
+
+// ============================================================================
+class NotSame : public Base
+{
+public:
+    NotSame(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    expr::Base& m_lhs;
+    expr::Base& m_rhs;
+};
+
+// ============================================================================
+class Equal : public Base
+{
+public:
+    Equal(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    expr::Base& m_lhs;
+    expr::Base& m_rhs;
+};
+
+// ============================================================================
+class NotEqual : public Base
+{
+public:
+    NotEqual(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    expr::Base& m_lhs;
+    expr::Base& m_rhs;
+};
+
+// ============================================================================
+class Has : public Base
+{
+public:
+    Has(brain::Brain& kb, CellI& cell, CellI& role);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    CellI& m_cell;
+    CellI& m_role;
+};
+
+// ============================================================================
+class Get : public Base
+{
+public:
+    Get(brain::Brain& kb, CellI& cell, CellI& role);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    CellI& m_cell;
+    CellI& m_role;
+};
+
+// ============================================================================
+class And : public Base
+{
+public:
+    And(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    expr::Base& m_lhs;
+    expr::Base& m_rhs;
+};
+
+// ============================================================================
+class Or : public Base
+{
+public:
+    Or(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    expr::Base& m_lhs;
+    expr::Base& m_rhs;
+};
+
+// ============================================================================
+class Not : public Base
+{
+public:
+    Not(brain::Brain& kb, expr::Base& input);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    expr::Base& m_input;
+};
+
+// ============================================================================
+class Add : public Base
+{
+public:
+    Add(brain::Brain& kb, CellI& lhs, CellI& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    CellI& m_lhs;
+    CellI& m_rhs;
+};
+
+// ============================================================================
+class Subtract : public Base
+{
+public:
+    Subtract(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    expr::Base& m_lhs;
+    expr::Base& m_rhs;
+};
+
+// ============================================================================
+class Multiply : public Base
+{
+public:
+    Multiply(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    expr::Base& m_lhs;
+    expr::Base& m_rhs;
+};
+
+// ============================================================================
+class Divide : public Base
+{
+public:
+    Divide(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    expr::Base& m_lhs;
+    expr::Base& m_rhs;
+};
+
+// ============================================================================
+class LessThan : public Base
+{
+public:
+    LessThan(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    expr::Base& m_lhs;
+    expr::Base& m_rhs;
+};
+
+// ============================================================================
+class GreaterThan : public Base
+{
+public:
+    GreaterThan(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    expr::Base& m_lhs;
+    expr::Base& m_rhs;
+};
+
+} // namespace expr
 } // namespace control
 
 // ============================================================================
@@ -1189,112 +1104,34 @@ public:
     virtual void visit(hybrid::Pixel&)   = 0;
     virtual void visit(hybrid::Picture&) = 0;
 
-    virtual void visit(control::op::Same&) { }
-    virtual void visit(control::op::NotSame&) { }
-    virtual void visit(control::op::Equal&) { }
-    virtual void visit(control::op::NotEqual&) { }
-    virtual void visit(control::op::Has&) { }
-    virtual void visit(control::op::Get&) { }
-    virtual void visit(control::op::Set&) { }
-    virtual void visit(control::op::logic::And&) { }
-    virtual void visit(control::op::logic::Or&) { }
-    virtual void visit(control::op::logic::Not&) { }
-    virtual void visit(control::op::math::Add&) { }
-    virtual void visit(control::op::math::Subtract&) { }
-    virtual void visit(control::op::math::Multiply&) { }
-    virtual void visit(control::op::math::Divide&) { }
-    virtual void visit(control::op::math::LessThan&) { }
-    virtual void visit(control::op::math::GreaterThan&) { }
-
-    virtual void visit(control::pipeline::Void&) { }
-    virtual void visit(control::pipeline::Input&) { }
-    virtual void visit(control::pipeline::New&) { }
-    virtual void visit(control::pipeline::Fork&) { }
-    virtual void visit(control::pipeline::Delete&) { }
-    virtual void visit(control::pipeline::Node&) { }
-    virtual void visit(control::pipeline::IfThen&) { }
-    virtual void visit(control::pipeline::DoWhile&) { }
-    virtual void visit(control::pipeline::While&) { }
+    virtual void visit(control::stmt::Block&) { }
+    virtual void visit(control::stmt::Delete&) { }
+    virtual void visit(control::stmt::Set&) { }
+    virtual void visit(control::stmt::IfThen&) { }
+    virtual void visit(control::stmt::DoWhile&) { }
+    virtual void visit(control::stmt::While&) { }
+    virtual void visit(control::expr::Input&) { }
+    virtual void visit(control::expr::New&) { }
+    virtual void visit(control::expr::Same&) { }
+    virtual void visit(control::expr::NotSame&) { }
+    virtual void visit(control::expr::Equal&) { }
+    virtual void visit(control::expr::NotEqual&) { }
+    virtual void visit(control::expr::Has&) { }
+    virtual void visit(control::expr::Get&) { }
+    virtual void visit(control::expr::And&) { }
+    virtual void visit(control::expr::Or&) { }
+    virtual void visit(control::expr::Not&) { }
+    virtual void visit(control::expr::Add&) { }
+    virtual void visit(control::expr::Subtract&) { }
+    virtual void visit(control::expr::Multiply&) { }
+    virtual void visit(control::expr::Divide&) { }
+    virtual void visit(control::expr::LessThan&) { }
+    virtual void visit(control::expr::GreaterThan&) { }
 
     static void visitList(CellI& list, std::function<void(CellI& value, int i)> fn);
 };
 
 bool tryVisitWith(CellI& cell, Visitor& visitor);
 
-} // namespace cells
-} // namespace synth
-
-#include "Brain.h"
-
-namespace synth {
-namespace cells {
-namespace control {
-namespace pipeline {
-
-template <typename T1>
-void Node::initOp(CellI& op, T1& arg1)
-{
-    if (&op == &kb.type.control.op.logic.Not) {
-        m_op = std::make_unique<op::logic::Not>(kb, *this, arg1);
-    }
-}
-
-template <typename T1, typename T2>
-void Node::initOp(CellI& op, T1& arg1, T2& arg2)
-{
-    if (&op == &kb.type.control.op.Same) {
-        m_op = std::make_unique<op::Same>(kb, *this, arg1, arg2);
-    }
-    if (&op == &kb.type.control.op.NotSame) {
-        m_op = std::make_unique<op::NotSame>(kb, *this, arg1, arg2);
-    }
-    if (&op == &kb.type.control.op.Equal) {
-        m_op = std::make_unique<op::Equal>(kb, *this, arg1, arg2);
-    }
-    if (&op == &kb.type.control.op.NotEqual) {
-        m_op = std::make_unique<op::NotEqual>(kb, *this, arg1, arg2);
-    }
-    if (&op == &kb.type.control.op.Has) {
-        m_op = std::make_unique<op::Has>(kb, *this, arg1, arg2);
-    }
-    if (&op == &kb.type.control.op.Get) {
-        m_op = std::make_unique<op::Get>(kb, *this, arg1, arg2);
-    }
-    if (&op == &kb.type.control.op.logic.And) {
-        m_op = std::make_unique<op::logic::And>(kb, *this, arg1, arg2);
-    }
-    if (&op == &kb.type.control.op.logic.Or) {
-        m_op = std::make_unique<op::logic::Or>(kb, *this, arg1, arg2);
-    }
-    if (&op == &kb.type.control.op.math.Add) {
-        m_op = std::make_unique<op::math::Add>(kb, *this, arg1, arg2);
-    }
-    if (&op == &kb.type.control.op.math.Subtract) {
-        m_op = std::make_unique<op::math::Subtract>(kb, *this, arg1, arg2);
-    }
-    if (&op == &kb.type.control.op.math.Multiply) {
-        m_op = std::make_unique<op::math::Multiply>(kb, *this, arg1, arg2);
-    }
-    if (&op == &kb.type.control.op.math.Divide) {
-        m_op = std::make_unique<op::math::Divide>(kb, *this, arg1, arg2);
-    }
-    if (&op == &kb.type.control.op.math.LessThan) {
-        m_op = std::make_unique<op::math::LessThan>(kb, *this, arg1, arg2);
-    }
-    if (&op == &kb.type.control.op.math.GreaterThan) {
-        m_op = std::make_unique<op::math::GreaterThan>(kb, *this, arg1, arg2);
-    }
-}
-
-template <typename T1, typename T2, typename T3>
-void Node::initOp(CellI& op, T1& arg1, T2& arg2, T3& arg3)
-{
-    if (&op == &kb.type.control.op.Set) {
-        m_op = std::make_unique<op::Set>(kb, *this, arg1, arg2, arg3);
-    }
-}
-
-} // namespace pipeline
-} // namespace control
 } // namespace cells
 } // namespace synth

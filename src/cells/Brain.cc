@@ -1,8 +1,7 @@
-#include "Cells.h"
-
 #include "Brain.h"
 
 #include <format>
+#include <sstream>
 
 namespace synth {
 namespace cells {
@@ -51,12 +50,9 @@ Control::Operations::Operations(brain::Brain& kb) :
 
 Control::Pipelines::Pipelines(brain::Brain& kb) :
     Base(kb, "Base"),
-    Void(kb, "Void"),
     Input(kb, "Input"),
     New(kb, "New"),
-    Fork(kb, "Fork"),
     Delete(kb, "Delete"),
-    Node(kb, "Node"),
     IfThen(kb, "IfThen"),
     DoWhile(kb, "DoWhile"),
     While(kb, "While")
@@ -65,6 +61,9 @@ Control::Pipelines::Pipelines(brain::Brain& kb) :
 
 Control::Control(brain::Brain& kb) :
     kb(kb),
+    Base(kb, "Base"),
+    Block(kb, "Block"),
+    Function(kb, "Function"),
     op(kb),
     pipeline(kb)
 {
@@ -73,9 +72,7 @@ Control::Control(brain::Brain& kb) :
 Ast::Pipelines::Pipelines(brain::Brain& kb) :
     Input(kb, "Input"),
     New(kb, "New"),
-    Fork(kb, "Fork"),
     Delete(kb, "Delete"),
-    Node(kb, "Node"),
     If(kb, "If"),
     Do(kb, "Do"),
     While(kb, "While")
@@ -126,6 +123,7 @@ Ast::Ast(brain::Brain& kb) :
     GetVar(kb, "GetVar"),
     Self(kb, "Self"),
     Block(kb, "Block"),
+    Function(kb, "Function"),
     op(kb),
     pipeline(kb)
 {
@@ -226,6 +224,7 @@ cells::Slot& Cells::slot(cells::CellI& role, cells::CellI& type)
 
 Coding::Coding(brain::Brain& kb, Type& anyType) :
     argument(kb, anyType, "argument"),
+    ast(kb, anyType, "ast"),
     branch(kb, anyType, "branch"),
     cell(kb, anyType, "cell"),
     condition(kb, anyType, "condition"),
@@ -243,6 +242,7 @@ Coding::Coding(brain::Brain& kb, Type& anyType) :
     result(kb, anyType, "result"),
     rhs(kb, anyType, "rhs"),
     role(kb, anyType, "role"),
+    self(kb, anyType, "self"),
     statement(kb, anyType, "statement"),
     template_(kb, anyType, "template"),
     then(kb, anyType, "then"),
@@ -353,20 +353,10 @@ New::New(brain::Brain& kb, Base& objectType) :
     set(kb.coding.objectType, objectType);
 }
 
-Fork::Fork(brain::Brain& kb) :
-    BaseT<Fork>(kb, kb.type.ast.pipeline.Fork)
-{
-}
-
 Delete::Delete(brain::Brain& kb, Base& cell) :
     BaseT<Delete>(kb, kb.type.ast.pipeline.Delete)
 {
     set(kb.coding.cell, cell);
-}
-
-Node::Node(brain::Brain& kb) :
-    BaseT<Node>(kb, kb.type.ast.pipeline.Node)
-{
 }
 
 If::If(brain::Brain& kb, Base& condition, Base& thenBranch) :
@@ -415,19 +405,9 @@ pipeline::New& Pipeline::new_(Base& ast)
     return pipeline::New::NewT<pipeline::New>::New(kb, ast);
 }
 
-pipeline::Fork& Pipeline::fork()
-{
-    return pipeline::Fork::New(kb);
-}
-
 pipeline::Delete& Pipeline::delete_(Base& ast)
 {
     return pipeline::Delete::New(kb, ast);
-}
-
-pipeline::Node& Pipeline::node()
-{
-    return pipeline::Node::New(kb);
 }
 
 pipeline::If& Pipeline::if_(Base& condition, Base& thenBranch)
@@ -721,20 +701,159 @@ Self::Self(brain::Brain& kb) :
 {
 }
 
-Block::Block(brain::Brain& kb) :
-    BaseT<Block>(kb, kb.type.ast.Block),
-    m_list(kb, kb.type.ast.Base)
+Block::Block(brain::Brain& kb, List& list) :
+    BaseT<Block>(kb, kb.type.ast.Block)
 {
+    set(kb.coding.value, list);
 }
 
-void Block::add(Base& ast)
+Function::Function(brain::Brain& kb, const std::string& label) :
+    BaseT<Function>(kb, kb.type.ast.Function)
 {
-    m_list.add(ast);
+    this->label(label);
 }
 
-List& Block::toList()
+void Function::addInputs(List& input)
 {
-    return m_list;
+    set(kb.coding.input, input);
+    m_inputs = &input;
+}
+
+void Function::addOutputs(List& output)
+{
+    set(kb.coding.output, output);
+    m_inputs = &output;
+}
+
+void Function::addAsts(Block& ast)
+{
+    set(kb.coding.ast, ast);
+    m_asts = &ast;
+}
+
+CellI& Function::inputType()
+{
+    if (!m_inputType) {
+        m_inputType = std::make_unique<Type>(kb, std::format("{}::parameters", label()));
+        Type& type  = *m_inputType;
+        Visitor::visitList(inputs(), [this, &type](CellI& slot, int i) {
+            type.addSlot(slot[kb.cells.slotRole], slot[kb.cells.slotType]);
+        });
+    }
+
+    return *m_inputType;
+}
+
+CellI& Function::compile(CellI& parameters)
+{
+    cells::control::Function& ret = *new cells::control::Function(kb);
+    CellI& block                  = compileAst(asts(), inputs(), ret);
+
+    std::stringstream ss;
+    Visitor::visitList(inputs(), [this, &ss, &parameters](CellI& slot, int i) {
+        CellI& role = slot[kb.cells.slotRole];
+        if (!parameters.has(role)) {
+            return;
+        }
+        if (i != 0) {
+            ss << ", ";
+        }
+        ss << slot[kb.cells.slotRole].label() << ": " << slot[kb.cells.slotType].label();
+    });
+    ret.label(std::format("{}({})", label(), ss.str()));
+
+    return ret;
+}
+
+CellI& Function::compileAst(CellI& ast, CellI& parameters, CellI& self)
+{
+    if (&ast.type() == &kb.type.ast.pipeline.Input) {
+        return *new control::expr::Input(kb, &compileAst(ast[kb.coding.value], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.pipeline.New) {
+        return *new control::expr::New(kb, compileAst(ast[kb.coding.objectType], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.pipeline.Delete) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.pipeline.If) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.pipeline.Do) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.pipeline.While) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.op.logic.And) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.op.logic.Or) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.op.logic.Not) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.op.math.Add) {
+        return *new control::expr::Add(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.op.math.Subtract) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.op.math.Multiply) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.op.math.Divide) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.op.math.LessThan) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.op.math.GreaterThan) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.op.Same) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.op.NotSame) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.op.Equal) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.op.NotEqual) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.op.Has) {
+        return *new control::expr::Has(kb, compileAst(ast[kb.coding.cell], parameters, self), compileAst(ast[kb.coding.role], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.op.Get) {
+        return *new control::expr::Get(kb, compileAst(ast[kb.coding.cell], parameters, self), compileAst(ast[kb.coding.role], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.op.Set) {
+        return *new control::stmt::Set(kb, compileAst(ast[kb.coding.cell], parameters, self), compileAst(ast[kb.coding.role], parameters, self), compileAst(ast[kb.coding.value], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.Parameter) {
+        return parameters[ast[kb.coding.role]];
+    } else if (&ast.type() == &kb.type.ast.Cell) {
+        return ast[kb.coding.value];
+    } else if (&ast.type() == &kb.type.ast.HasMember) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.GetMember) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.SetMember) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.SetVar) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.GetVar) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.Function) {
+        return ast; // TODO
+    } else if (&ast.type() == &kb.type.ast.Block) {
+        List& list = static_cast<List&>(ast[kb.coding.value]);
+        auto& compiledAsts = *new cells::List(kb, kb.type.control.Base);
+        Visitor::visitList(list, [this, &compiledAsts, &ast, &parameters, &self](CellI& ast, int) {
+            compiledAsts.add(compileAst(ast, parameters, self));
+        });
+        return *new control::stmt::Block(kb, compiledAsts);
+    } else if (&ast.type() == &kb.type.ast.Self) {
+        return parameters[kb.coding.self];
+    }
+
+    throw "Unknown function AST!";
+}
+
+List& Function::inputs()
+{
+    return *m_inputs;
+}
+
+List& Function::outputs()
+{
+    return *m_outputs;
+}
+
+Block& Function::asts()
+{
+    return *m_asts;
 }
 
 } // namespace ast
@@ -971,7 +1090,8 @@ Brain::Brain() :
     dimensions(*this, type.Any),
     visualization(*this, type.Any),
     numbers(*this, type.Any),
-    arc(*this)
+    arc(*this),
+    listAdd(*this, "List::Add")
 {
     type.Type_.addSlots(
         cells.slot(cells.slots, type.MapOf(type.Slot)),
@@ -1070,8 +1190,6 @@ Brain::Brain() :
 
     type.ast.pipeline.Delete.addSlots(
         cells.slot(coding.cell, type.ast.Base));
-
-    // type.ast.pipeline.Node.addSlots();
 
     type.ast.pipeline.If.addSlots(
         cells.slot(coding.condition, type.ast.Base),
@@ -1177,17 +1295,26 @@ Brain::Brain() :
     type.ast.GetVar.addSlots(
         cells.slot(coding.role, type.Any));
 
-    Function listAdd(*this, "List::Add");
-    listAdd.addInputs(ast.block(ast.parameterDecl(coding.value, type.Any)).toList());
+    type.ast.Block.addSlots(
+        cells.slot(coding.value, type.Any));
+
+    type.ast.Function.addSlots(
+        cells.slot(coding.input, type.ListOf(type.ast.ParameterDecl)),
+        cells.slot(coding.ast, type.ListOf(type.ast.Base)),
+        cells.slot(coding.output, type.ListOf(type.ast.ParameterDecl)));
+
+    listAdd.addInputs(list(
+        ast.parameterDecl(coding.self, type.List),
+        ast.parameterDecl(coding.value, type.Any)));
+
     listAdd.addAsts(ast.block(
-                           ast.setVar(pools.numbers.get(1), ast.pipeline.new_(ast.self())),
-                           ast.op.set(ast.getVar(pools.numbers.get(1)), ast.cell(coding.value), ast.parameter(coding.value)),
-                           ast.pipeline.if_(ast.op.logic.not_(ast.hasMember(ast.cell(sequence.first))),
-                                            ast.setMember(ast.cell(sequence.first), ast.getVar(pools.numbers.get(1))),          // then
-                                            ast.block(ast.setMember(ast.cell(sequence.next), ast.getVar(pools.numbers.get(1))), // else
-                                                      ast.op.set(ast.getVar(pools.numbers.get(1)), ast.cell(sequence.previous), ast.getMember(ast.cell(sequence.last))))),
-                           ast.setMember(ast.cell(sequence.last), ast.getVar(pools.numbers.get(1))))
-                        .toList());
+        ast.setVar(pools.numbers.get(1), ast.pipeline.new_(ast.self())),
+        ast.op.set(ast.getVar(pools.numbers.get(1)), ast.cell(coding.value), ast.parameter(coding.value)),
+        ast.pipeline.if_(ast.op.logic.not_(ast.hasMember(ast.cell(sequence.first))),
+                         ast.setMember(ast.cell(sequence.first), ast.getVar(pools.numbers.get(1))),          // then
+                         ast.block(ast.setMember(ast.cell(sequence.next), ast.getVar(pools.numbers.get(1))), // else
+                                   ast.op.set(ast.getVar(pools.numbers.get(1)), ast.cell(sequence.previous), ast.getMember(ast.cell(sequence.last))))),
+        ast.setMember(ast.cell(sequence.last), ast.getVar(pools.numbers.get(1)))));
 #if 0
     listAdd.addAsts(list(
         ListItem* newListItem = new ListItem();
@@ -1315,11 +1442,6 @@ Brain::Brain() :
         cells.slot(equation.rhs, type.control.pipeline.Base),
         cells.slot(coding.output, type.control.pipeline.Base));
 
-    type.control.pipeline.Void.addSlots(
-        cells.slot(sequence.first, type.control.pipeline.Base),
-        cells.slot(sequence.next, type.control.pipeline.Base),
-        cells.slot(sequence.current, type.control.pipeline.Base));
-
     type.control.pipeline.Input.addSlots(
         cells.slot(sequence.first, type.control.pipeline.Base),
         cells.slot(sequence.next, type.control.pipeline.Base),
@@ -1333,23 +1455,9 @@ Brain::Brain() :
         cells.slot(coding.value, type.control.pipeline.Base),
         cells.slot(coding.objectType, type.control.op.Base));
 
-    type.control.pipeline.Fork.addSlots(
-        cells.slot(sequence.first, type.control.pipeline.Base),
-        cells.slot(sequence.next, type.control.pipeline.Base),
-        cells.slot(coding.input, type.control.pipeline.Base),
-        cells.slot(coding.value, type.control.pipeline.Base),
-        cells.slot(coding.branch, type.control.op.Base));
-
     type.control.pipeline.Delete.addSlots(
         cells.slot(sequence.first, type.control.pipeline.Base),
         cells.slot(coding.input, type.control.pipeline.Base));
-
-    type.control.pipeline.Node.addSlots(
-        cells.slot(sequence.first, type.control.pipeline.Base),
-        cells.slot(sequence.next, type.control.pipeline.Base),
-        cells.slot(coding.input, type.control.pipeline.Base),
-        cells.slot(coding.op, type.control.op.Base),
-        cells.slot(coding.value, type.control.pipeline.Base));
 
     type.control.pipeline.IfThen.addSlots(
         cells.slot(sequence.first, type.control.pipeline.Base),
@@ -1372,6 +1480,11 @@ Brain::Brain() :
         cells.slot(coding.input, type.control.pipeline.Base),
         cells.slot(coding.condition, type.control.pipeline.Base),
         cells.slot(coding.statement, type.control.op.Base));
+
+    type.control.Function.addSlots(
+        cells.slot(coding.input, type.MapOf(type.control.pipeline.Base)),
+        cells.slot(coding.ast, type.ListOf(type.control.Base)),
+        cells.slot(coding.output, type.MapOf(type.control.pipeline.Base)));
 
     m_initialized = true;
 }

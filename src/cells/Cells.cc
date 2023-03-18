@@ -1,4 +1,5 @@
 #include "Cells.h"
+#include "Brain.h"
 
 #include <format>
 #include <sstream>
@@ -45,6 +46,11 @@ CellI& CellI::get(CellI& role)
 CellI& CellI::type()
 {
     return (*this)[kb.cells.type];
+}
+
+void CellI::eval()
+{
+    return (*this)();
 }
 
 std::string CellI::label() const
@@ -1162,67 +1168,6 @@ List& CellTemplate::slots()
     return *m_slots;
 }
 #pragma endregion
-#pragma region Function
-// ============================================================================
-Function::Function(brain::Brain& kb, const std::string& label) :
-    CellI(kb, label)
-{
-}
-
-bool Function::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    // TODO
-
-    return false;
-}
-
-void Function::set(CellI& role, CellI& value)
-{
-    // Do nothing
-}
-
-void Function::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& Function::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.Template; // TODO
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Function::accept(Visitor& visitor)
-{
-    // TODO
-}
-
-void Function::addInputs(List& input)
-{
-    m_inputs = &input;
-}
-
-void Function::addOutputs(List& output)
-{
-    m_outputs = &output;
-}
-
-void Function::addAsts(List& ast)
-{
-    m_asts = &ast;
-}
-
-CellI& Function::compile(CellI& param)
-{
-    return kb.type.Any; // TODO
-}
-#pragma endregion
 #pragma region Number
 // ============================================================================
 Number::Number(brain::Brain& kb, int value) :
@@ -1686,378 +1631,180 @@ int Picture::height() const
 #pragma endregion
 } // namespace hybrid
 namespace control {
-namespace op {
-#pragma region Same
+#pragma region Base
 // ============================================================================
-Same::Same(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb, "Same"),
-    m_output(output), m_lhs(lhs), m_rhs(rhs)
+Base::Base(brain::Brain& kb, const std::string& label) :
+    CellI(kb, label)
+{
+}
+#pragma endregion
+#pragma region Function
+// ============================================================================
+Function::Function(brain::Brain& kb, const std::string& label) :
+    CellI(kb, label)
 {
 }
 
-bool Same::has(CellI& role)
+bool Function::has(CellI& role)
 {
     if (&role == &kb.cells.type) {
         return true;
     }
-    if (&role == &kb.equation.lhs) {
+    // TODO
+
+    return false;
+}
+
+void Function::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void Function::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& Function::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.Function;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Function::accept(Visitor& visitor)
+{
+    // TODO
+}
+
+void Function::addInputs(List& input)
+{
+    m_inputs = &input;
+}
+
+void Function::addOutputs(List& output)
+{
+    m_outputs = &output;
+}
+
+void Function::addAsts(CellI& ast)
+{
+    m_asts = &ast;
+}
+
+#pragma endregion
+namespace stmt {
+#pragma region Base
+// ============================================================================
+Base::Base(brain::Brain& kb, const std::string& label) :
+    control::Base(kb, label)
+{
+}
+#pragma endregion
+#pragma region Block
+// ============================================================================
+Block::Block(brain::Brain& kb, List& list, const std::string& label) :
+    Base(kb, label),
+    m_list(list)
+{
+}
+
+bool Block::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
         return true;
     }
-    if (&role == &kb.equation.rhs) {
-        return true;
-    }
-    if (&role == &kb.coding.output) {
+    if (&role == &kb.coding.value) {
         return true;
     }
 
     return false;
 }
 
-void Same::set(CellI& role, CellI& value)
+void Block::set(CellI& role, CellI& value)
 {
-    // Editing a control node is not possible
 }
 
-void Same::operator()()
+void Block::operator()()
 {
-    CellI* lhs = &m_lhs[kb.coding.value];
-    CellI* rhs = &m_rhs[kb.coding.value];
-    m_output.set(kb.coding.value, kb.toKbBool(lhs == rhs));
+    Visitor::visitList(m_list, [this](CellI& op, int) {
+        op();
+    });
 }
 
-CellI& Same::operator[](CellI& role)
+CellI& Block::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.Same;
+        return kb.type.control.Block;
     }
-    if (&role == &kb.equation.lhs) {
-        return m_lhs;
-    }
-    if (&role == &kb.equation.rhs) {
-        return m_rhs;
-    }
-    if (&role == &kb.coding.output) {
-        return m_output;
+    if (&role == &kb.coding.value) {
+        return m_list;
     }
 
     return kb.cells.emptyObject;
 }
 
-void Same::accept(Visitor& visitor)
+void Block::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 #pragma endregion
-#pragma region NotSame
+#pragma region Delete
 // ============================================================================
-NotSame::NotSame(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb, "NotSame"),
-    m_output(output), m_lhs(lhs), m_rhs(rhs)
+Delete::Delete(brain::Brain& kb, Base& input, const std::string& label) :
+    Base(kb, label),
+    m_input(&input)
 {
 }
 
-bool NotSame::has(CellI& role)
+bool Delete::has(CellI& role)
 {
     if (&role == &kb.cells.type) {
         return true;
     }
-    if (&role == &kb.equation.lhs) {
-        return true;
-    }
-    if (&role == &kb.equation.rhs) {
-        return true;
-    }
-    if (&role == &kb.coding.output) {
+    if (&role == &kb.coding.input) {
         return true;
     }
 
     return false;
 }
 
-void NotSame::set(CellI& role, CellI& value)
+void Delete::set(CellI& role, CellI& value)
 {
-    // Editing a control node is not possible
 }
 
-void NotSame::operator()()
+void Delete::operator()()
 {
-    CellI* lhs = &m_lhs[kb.coding.value];
-    CellI* rhs = &m_rhs[kb.coding.value];
-    m_output.set(kb.coding.value, kb.toKbBool(lhs != rhs));
+    CellI* cell = &(*m_input)[kb.coding.value];
+    delete cell;
 }
 
-CellI& NotSame::operator[](CellI& role)
+CellI& Delete::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.NotSame;
+        return kb.type.control.pipeline.Delete;
     }
-    if (&role == &kb.equation.lhs) {
-        return m_lhs;
-    }
-    if (&role == &kb.equation.rhs) {
-        return m_rhs;
-    }
-    if (&role == &kb.coding.output) {
-        return m_output;
+    if (&role == &kb.coding.input && m_input) {
+        return *m_input;
     }
 
     return kb.cells.emptyObject;
 }
 
-void NotSame::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
-#pragma region Equal
-// ============================================================================
-Equal::Equal(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb, "Equal"),
-    m_output(output), m_lhs(lhs), m_rhs(rhs)
-{
-}
-
-bool Equal::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.equation.lhs) {
-        return true;
-    }
-    if (&role == &kb.equation.rhs) {
-        return true;
-    }
-    if (&role == &kb.coding.output) {
-        return true;
-    }
-
-    return false;
-}
-
-void Equal::set(CellI& role, CellI& value)
-{
-    // Editing a control node is not possible
-}
-
-void Equal::operator()()
-{
-    CellI& lhs = m_lhs[kb.coding.value];
-    CellI& rhs = m_rhs[kb.coding.value];
-    m_output.set(kb.coding.value, kb.toKbBool(lhs == rhs));
-}
-
-CellI& Equal::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.op.Equal;
-    }
-    if (&role == &kb.equation.lhs) {
-        return m_lhs;
-    }
-    if (&role == &kb.equation.rhs) {
-        return m_rhs;
-    }
-    if (&role == &kb.coding.output) {
-        return m_output;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Equal::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
-#pragma region NotEqual
-// ============================================================================
-NotEqual::NotEqual(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb, "NotEqual"),
-    m_output(output), m_lhs(lhs), m_rhs(rhs)
-{
-}
-
-bool NotEqual::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.equation.lhs) {
-        return true;
-    }
-    if (&role == &kb.equation.rhs) {
-        return true;
-    }
-    if (&role == &kb.coding.output) {
-        return true;
-    }
-
-    return false;
-}
-
-void NotEqual::set(CellI& role, CellI& value)
-{
-    // Editing a control node is not possible
-}
-
-void NotEqual::operator()()
-{
-    CellI& lhs = m_lhs[kb.coding.value];
-    CellI& rhs = m_rhs[kb.coding.value];
-    m_output.set(kb.coding.value, kb.toKbBool(lhs != rhs));
-}
-
-CellI& NotEqual::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.op.NotEqual;
-    }
-    if (&role == &kb.equation.lhs) {
-        return m_lhs;
-    }
-    if (&role == &kb.equation.rhs) {
-        return m_rhs;
-    }
-    if (&role == &kb.coding.output) {
-        return m_output;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void NotEqual::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
-#pragma region Has
-// ============================================================================
-Has::Has(brain::Brain& kb, pipeline::Base& output, pipeline::Base& cell, pipeline::Base& role) :
-    CellI(kb, "Has"),
-    m_output(output), m_cell(cell), m_role(role)
-{
-}
-
-bool Has::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.coding.cell) {
-        return true;
-    }
-    if (&role == &kb.coding.role) {
-        return true;
-    }
-    if (&role == &kb.coding.output) {
-        return true;
-    }
-
-    return false;
-}
-
-void Has::set(CellI& role, CellI& value)
-{
-    // Editing a control node is not possible
-}
-
-void Has::operator()()
-{
-    CellI& cell = m_cell[kb.coding.value];
-    CellI& role = m_role[kb.coding.value];
-    m_output.set(kb.coding.value, kb.toKbBool(cell.has(role)));
-}
-
-CellI& Has::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.op.Has;
-    }
-    if (&role == &kb.coding.cell) {
-        return m_cell;
-    }
-    if (&role == &kb.coding.role) {
-        return m_role;
-    }
-    if (&role == &kb.coding.output) {
-        return m_output;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Has::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
-#pragma region Get
-// ============================================================================
-Get::Get(brain::Brain& kb, pipeline::Base& output, pipeline::Base& cell, pipeline::Base& role) :
-    CellI(kb, "Get"),
-    m_output(output), m_cell(cell), m_role(role)
-{
-}
-
-bool Get::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.coding.cell) {
-        return true;
-    }
-    if (&role == &kb.coding.role) {
-        return true;
-    }
-    if (&role == &kb.coding.output) {
-        return true;
-    }
-
-    return false;
-}
-
-void Get::set(CellI& role, CellI& value)
-{
-    // Editing a control node is not possible
-}
-
-void Get::operator()()
-{
-    CellI& cell = m_cell[kb.coding.value];
-    CellI& role = m_role[kb.coding.value];
-    m_output.set(kb.coding.value, cell[role]);
-}
-
-CellI& Get::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.op.Get;
-    }
-    if (&role == &kb.coding.cell) {
-        return m_cell;
-    }
-    if (&role == &kb.coding.role) {
-        return m_role;
-    }
-    if (&role == &kb.coding.output) {
-        return m_output;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Get::accept(Visitor& visitor)
+void Delete::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 #pragma endregion
 #pragma region Set
 // ============================================================================
-Set::Set(brain::Brain& kb, pipeline::Base& output, pipeline::Base& cell, pipeline::Base& role, pipeline::Base& value) :
-    CellI(kb, "Set"),
-    m_output(output), m_cell(cell), m_role(role), m_value(value)
+Set::Set(brain::Brain& kb, CellI& cell, CellI& role, CellI& value) :
+    Base(kb, "Set"),
+    m_cell(cell),
+    m_role(role),
+    m_value(value)
 {
 }
 
@@ -2075,9 +1822,6 @@ bool Set::has(CellI& role)
     if (&role == &kb.coding.value) {
         return true;
     }
-    if (&role == &kb.coding.output) {
-        return true;
-    }
 
     return false;
 }
@@ -2093,7 +1837,6 @@ void Set::operator()()
     CellI& role  = m_role[kb.coding.value];
     CellI& value = m_value[kb.coding.value];
     cell.set(role, value);
-    m_output.set(kb.coding.value, cell);
 }
 
 CellI& Set::operator[](CellI& role)
@@ -2110,9 +1853,6 @@ CellI& Set::operator[](CellI& role)
     if (&role == &kb.coding.value) {
         return m_value;
     }
-    if (&role == &kb.coding.output) {
-        return m_output;
-    }
 
     return kb.cells.emptyObject;
 }
@@ -2122,1002 +1862,21 @@ void Set::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 #pragma endregion
-
-namespace logic {
-
+#pragma region IfThen
 // ============================================================================
-And::And(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb, "And"),
-    m_output(output), m_lhs(lhs), m_rhs(rhs)
+IfThen::IfThen(brain::Brain& kb, expr::Base& condition, stmt::Base& thenBranch, const std::string& label) :
+    IfThen(kb, condition, thenBranch, nullptr)
 {
 }
 
-bool And::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.equation.lhs) {
-        return true;
-    }
-    if (&role == &kb.equation.rhs) {
-        return true;
-    }
-    if (&role == &kb.coding.output) {
-        return true;
-    }
-
-    return false;
-}
-
-void And::set(CellI& role, CellI& value)
-{
-    // Editing a control node is not possible
-}
-
-void And::operator()()
-{
-    bool lhs = m_lhs[kb.coding.value] == kb.boolean.true_;
-    bool rhs = m_rhs[kb.coding.value] == kb.boolean.true_;
-    m_output.set(kb.coding.value, kb.toKbBool(lhs && rhs));
-}
-
-CellI& And::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.op.logic.And;
-    }
-    if (&role == &kb.equation.lhs) {
-        return m_lhs;
-    }
-    if (&role == &kb.equation.rhs) {
-        return m_rhs;
-    }
-    if (&role == &kb.coding.output) {
-        return m_output;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void And::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ============================================================================
-Or::Or(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb, "Or"),
-    m_output(output), m_lhs(lhs), m_rhs(rhs)
-{
-}
-
-bool Or::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.equation.lhs) {
-        return true;
-    }
-    if (&role == &kb.equation.rhs) {
-        return true;
-    }
-    if (&role == &kb.coding.output) {
-        return true;
-    }
-
-    return false;
-}
-
-void Or::set(CellI& role, CellI& value)
-{
-    // Editing a control node is not possible
-}
-
-void Or::operator()()
-{
-    bool lhs = m_lhs[kb.coding.value] == kb.boolean.true_;
-    bool rhs = m_rhs[kb.coding.value] == kb.boolean.true_;
-    m_output.set(kb.coding.value, kb.toKbBool(lhs || rhs));
-}
-
-CellI& Or::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.op.logic.Or;
-    }
-    if (&role == &kb.equation.lhs) {
-        return m_lhs;
-    }
-    if (&role == &kb.equation.rhs) {
-        return m_rhs;
-    }
-    if (&role == &kb.coding.output) {
-        return m_output;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Or::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ============================================================================
-Not::Not(brain::Brain& kb, pipeline::Base& output, pipeline::Base& input) :
-    CellI(kb, "Not"),
-    m_output(output), m_input(input)
-{
-}
-
-bool Not::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.coding.input) {
-        return true;
-    }
-    if (&role == &kb.coding.output) {
-        return true;
-    }
-
-    return false;
-}
-
-void Not::set(CellI& role, CellI& value)
-{
-    // Editing a control node is not possible
-}
-
-void Not::operator()()
-{
-    bool input = m_input[kb.coding.value] == kb.boolean.true_;
-    m_output.set(kb.coding.value, kb.toKbBool(!input));
-}
-
-CellI& Not::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.op.logic.Not;
-    }
-    if (&role == &kb.coding.input) {
-        return m_input;
-    }
-    if (&role == &kb.coding.output) {
-        return m_output;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Not::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-} // namespace logic
-namespace math {
-
-// ============================================================================
-Add::Add(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb, "Add"),
-    m_output(output), m_lhs(lhs), m_rhs(rhs)
-{
-}
-
-bool Add::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.equation.lhs) {
-        return true;
-    }
-    if (&role == &kb.equation.rhs) {
-        return true;
-    }
-    if (&role == &kb.coding.output) {
-        return true;
-    }
-
-    return false;
-}
-
-void Add::set(CellI& role, CellI& value)
-{
-    // Editing a control node is not possible
-}
-
-void Add::operator()()
-{
-    int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
-    int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
-    m_output.set(kb.coding.value, kb.pools.numbers.get(lhs + rhs));
-}
-
-CellI& Add::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.op.math.Add;
-    }
-    if (&role == &kb.equation.lhs) {
-        return m_lhs;
-    }
-    if (&role == &kb.equation.rhs) {
-        return m_rhs;
-    }
-    if (&role == &kb.coding.output) {
-        return m_output;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Add::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ============================================================================
-Subtract::Subtract(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb, "Subtract"),
-    m_output(output), m_lhs(lhs), m_rhs(rhs)
-{
-}
-
-bool Subtract::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.equation.lhs) {
-        return true;
-    }
-    if (&role == &kb.equation.rhs) {
-        return true;
-    }
-    if (&role == &kb.coding.output) {
-        return true;
-    }
-
-    return false;
-}
-
-void Subtract::set(CellI& role, CellI& value)
-{
-    // Editing a control node is not possible
-}
-
-void Subtract::operator()()
-{
-    int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
-    int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
-    m_output.set(kb.coding.value, kb.pools.numbers.get(lhs - rhs));
-}
-
-CellI& Subtract::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.op.math.Subtract;
-    }
-    if (&role == &kb.equation.lhs) {
-        return m_lhs;
-    }
-    if (&role == &kb.equation.rhs) {
-        return m_rhs;
-    }
-    if (&role == &kb.coding.output) {
-        return m_output;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Subtract::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ============================================================================
-Multiply::Multiply(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb, "Multiply"),
-    m_output(output), m_lhs(lhs), m_rhs(rhs)
-{
-}
-
-bool Multiply::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.equation.lhs) {
-        return true;
-    }
-    if (&role == &kb.equation.rhs) {
-        return true;
-    }
-    if (&role == &kb.coding.output) {
-        return true;
-    }
-
-    return false;
-}
-
-void Multiply::set(CellI& role, CellI& value)
-{
-    // Editing a control node is not possible
-}
-
-void Multiply::operator()()
-{
-    int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
-    int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
-    m_output.set(kb.coding.value, kb.pools.numbers.get(lhs * rhs));
-}
-
-CellI& Multiply::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.op.math.Multiply;
-    }
-    if (&role == &kb.equation.lhs) {
-        return m_lhs;
-    }
-    if (&role == &kb.equation.rhs) {
-        return m_rhs;
-    }
-    if (&role == &kb.coding.output) {
-        return m_output;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Multiply::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ============================================================================
-Divide::Divide(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb, "Divide"),
-    m_output(output), m_lhs(lhs), m_rhs(rhs)
-{
-}
-
-bool Divide::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.equation.lhs) {
-        return true;
-    }
-    if (&role == &kb.equation.rhs) {
-        return true;
-    }
-    if (&role == &kb.coding.output) {
-        return true;
-    }
-
-    return false;
-}
-
-void Divide::set(CellI& role, CellI& value)
-{
-    // Editing a control node is not possible
-}
-
-void Divide::operator()()
-{
-    int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
-    int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
-    m_output.set(kb.coding.value, kb.pools.numbers.get(lhs / rhs));
-}
-
-CellI& Divide::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.op.math.Divide;
-    }
-    if (&role == &kb.equation.lhs) {
-        return m_lhs;
-    }
-    if (&role == &kb.equation.rhs) {
-        return m_rhs;
-    }
-    if (&role == &kb.coding.output) {
-        return m_output;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Divide::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ============================================================================
-LessThan::LessThan(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb, "LessThan"),
-    m_output(output), m_lhs(lhs), m_rhs(rhs)
-{
-}
-
-bool LessThan::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.equation.lhs) {
-        return true;
-    }
-    if (&role == &kb.equation.rhs) {
-        return true;
-    }
-    if (&role == &kb.coding.output) {
-        return true;
-    }
-
-    return false;
-}
-
-void LessThan::set(CellI& role, CellI& value)
-{
-    // Editing a control node is not possible
-}
-
-void LessThan::operator()()
-{
-    int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
-    int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
-    m_output.set(kb.coding.value, lhs < rhs ? kb.boolean.true_ : kb.boolean.false_);
-}
-
-CellI& LessThan::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.op.math.LessThan;
-    }
-    if (&role == &kb.equation.lhs) {
-        return m_lhs;
-    }
-    if (&role == &kb.equation.rhs) {
-        return m_rhs;
-    }
-    if (&role == &kb.coding.output) {
-        return m_output;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void LessThan::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ============================================================================
-GreaterThan::GreaterThan(brain::Brain& kb, pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
-    CellI(kb, "GreaterThan"),
-    m_output(output), m_lhs(lhs), m_rhs(rhs)
-{
-}
-
-bool GreaterThan::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.equation.lhs) {
-        return true;
-    }
-    if (&role == &kb.equation.rhs) {
-        return true;
-    }
-    if (&role == &kb.coding.output) {
-        return true;
-    }
-
-    return false;
-}
-
-void GreaterThan::set(CellI& role, CellI& value)
-{
-    // Editing a control node is not possible
-}
-
-void GreaterThan::operator()()
-{
-    int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
-    int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
-    m_output.set(kb.coding.value, lhs > rhs ? kb.boolean.true_ : kb.boolean.false_);
-}
-
-CellI& GreaterThan::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.op.math.GreaterThan;
-    }
-    if (&role == &kb.equation.lhs) {
-        return m_lhs;
-    }
-    if (&role == &kb.equation.rhs) {
-        return m_rhs;
-    }
-    if (&role == &kb.coding.output) {
-        return m_output;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void GreaterThan::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-} // namespace math
-} // namespace op
-namespace pipeline {
-// ============================================================================
-Base::Base(brain::Brain& kb, Base* first, const std::string& label) :
-    CellI(kb, label),
-    m_first(first)
-{
-}
-
-void Base::addNext(Base& cell)
-{
-    m_next = &cell;
-}
-
-void Base::setCurrent()
-{
-    m_first->set(kb.sequence.current, *this);
-}
-
-// ============================================================================
-Void::Void(brain::Brain& kb, const std::string& label) :
-    Base(kb, this, label), m_current(this)
-{
-}
-
-bool Void::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.sequence.first) {
-        return true;
-    }
-    if (&role == &kb.sequence.next) {
-        return m_next;
-    }
-    if (&role == &kb.sequence.current) {
-        return true;
-    }
-
-    return false;
-}
-
-void Void::set(CellI& role, CellI& value)
-{
-}
-
-void Void::operator()()
-{
-    setCurrent();
-    if (m_next) {
-        (*m_next)();
-    }
-}
-
-CellI& Void::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.pipeline.Void;
-    }
-    if (&role == &kb.sequence.first) {
-        return *m_first;
-    }
-    if (&role == &kb.sequence.next && m_next) {
-        return *m_next;
-    }
-    if (&role == &kb.sequence.current) {
-        return *m_current;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Void::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ============================================================================
-Input::Input(brain::Brain& kb, CellI& value, const std::string& label) :
-    Base(kb, this, label),
-    m_value(&value),
-    m_current(this)
-{
-}
-
-Input::Input(brain::Brain& kb, CellI* value, const std::string& label) :
-    Input(kb, *value, label)
-{
-}
-
-bool Input::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.sequence.first) {
-        return true;
-    }
-    if (&role == &kb.sequence.next) {
-        return m_next;
-    }
-    if (&role == &kb.sequence.current) {
-        return true;
-    }
-    if (&role == &kb.coding.value) {
-        return true;
-    }
-
-    return false;
-}
-
-void Input::set(CellI& role, CellI& value)
-{
-}
-
-void Input::operator()()
-{
-    if (m_next) {
-        (*m_next)();
-    }
-}
-
-CellI& Input::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.pipeline.Input;
-    }
-    if (&role == &kb.sequence.first) {
-        return *m_first;
-    }
-    if (&role == &kb.sequence.next && m_next) {
-        return *m_next;
-    }
-    if (&role == &kb.sequence.current) {
-        return *m_current;
-    }
-    if (&role == &kb.coding.value && m_value) {
-        return *m_value;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Input::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ============================================================================
-New::New(brain::Brain& kb, Type& objectType, const std::string& label) :
-    Base(kb, this, label), m_objectType(objectType), m_current(this)
-{
-}
-
-bool New::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.sequence.first) {
-        return true;
-    }
-    if (&role == &kb.sequence.next) {
-        return m_next;
-    }
-    if (&role == &kb.sequence.current) {
-        return true;
-    }
-    if (&role == &kb.coding.value && m_value) {
-        return m_value;
-    }
-    if (&role == &kb.coding.objectType) {
-        return true;
-    }
-
-    return false;
-}
-
-void New::set(CellI& role, CellI& value)
-{
-    if (&role == &kb.coding.objectType && &value.type() == &kb.type.Type_) {
-        m_value = &value;
-    }
-}
-
-void New::operator()()
-{
-    if (&m_objectType == &kb.type.Type_) {
-        m_value = new Type(kb);
-    }
-    if (&m_objectType == &kb.type.Number) {
-        m_value = new Number(kb);
-    }
-    if (&m_objectType == &kb.type.String) {
-        m_value = new String(kb);
-    }
-    if (m_next) {
-        (*m_next)();
-    }
-}
-
-CellI& New::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.pipeline.New;
-    }
-    if (&role == &kb.sequence.first) {
-        return *m_first;
-    }
-    if (&role == &kb.sequence.next && m_next) {
-        return *m_next;
-    }
-    if (&role == &kb.sequence.current) {
-        return *m_current;
-    }
-    if (&role == &kb.coding.value && m_value) {
-        return *m_value;
-    }
-    if (&role == &kb.coding.objectType) {
-        return m_objectType;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void New::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ============================================================================
-Fork::Fork(brain::Brain& kb, Base& input, const std::string& label) :
-    Base(kb, input.m_first, label), m_input(input)
-{
-    input.addNext(*this);
-}
-
-bool Fork::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.sequence.first) {
-        return true;
-    }
-    if (&role == &kb.sequence.next) {
-        return m_next;
-    }
-    if (&role == &kb.coding.input) {
-        return true;
-    }
-    if (&role == &kb.coding.value && m_value) {
-        return true;
-    }
-    if (&role == &kb.coding.branch && m_branch) {
-        return true;
-    }
-
-    return false;
-}
-
-void Fork::set(CellI& role, CellI& value)
-{
-}
-
-void Fork::operator()()
-{
-    setCurrent();
-    m_value = &m_input[kb.coding.value];
-    if (m_branch) {
-        (*m_branch)();
-    }
-    if (m_next) {
-        (*m_next)();
-    }
-}
-
-CellI& Fork::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.pipeline.Fork;
-    }
-    if (&role == &kb.sequence.first) {
-        return *m_first;
-    }
-    if (&role == &kb.sequence.next && m_next) {
-        return *m_next;
-    }
-    if (&role == &kb.coding.input) {
-        return m_input;
-    }
-    if (&role == &kb.coding.value && m_value) {
-        return *m_value;
-    }
-    if (&role == &kb.coding.branch && m_branch) {
-        return *m_branch;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Fork::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-void Fork::addBranch(Base& cell)
-{
-    m_branch = &cell;
-}
-
-// ============================================================================
-Delete::Delete(brain::Brain& kb, Base& input, const std::string& label) :
-    Base(kb, input.m_first, label), m_input(&input)
-{
-}
-
-bool Delete::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.sequence.first) {
-        return true;
-    }
-    if (&role == &kb.coding.input) {
-        return true;
-    }
-
-    return false;
-}
-
-void Delete::set(CellI& role, CellI& value)
-{
-    if (&role == &kb.coding.input) {
-        m_input = &value;
-    }
-}
-
-void Delete::operator()()
-{
-    setCurrent();
-    CellI* cell = &(*m_input)[kb.coding.value];
-    delete cell;
-}
-
-CellI& Delete::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.pipeline.Delete;
-    }
-    if (&role == &kb.sequence.first) {
-        return *m_first;
-    }
-    if (&role == &kb.coding.input && m_input) {
-        return *m_input;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Delete::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ============================================================================
-bool Node::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.sequence.first) {
-        return true;
-    }
-    if (&role == &kb.sequence.next) {
-        return m_next;
-    }
-    if (&role == &kb.coding.input) {
-        return true;
-    }
-    if (&role == &kb.coding.op) {
-        return true;
-    }
-    if (&role == &kb.coding.value) {
-        return m_value;
-    }
-
-    return false;
-}
-
-void Node::set(CellI& role, CellI& value)
-{
-    if (&role == &kb.coding.value) {
-        m_value = &value;
-    }
-}
-
-void Node::operator()()
-{
-    setCurrent();
-    m_value = &(*m_input)[kb.coding.value];
-    (*m_op)();
-    if (m_next) {
-        (*m_next)();
-    }
-}
-
-CellI& Node::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.pipeline.Node;
-    }
-    if (&role == &kb.sequence.first) {
-        return *m_first;
-    }
-    if (&role == &kb.sequence.next && m_next) {
-        return *m_next;
-    }
-    if (&role == &kb.coding.input && m_input) {
-        return *m_input;
-    }
-    if (&role == &kb.coding.op) {
-        return *m_op;
-    }
-    if (&role == &kb.coding.value && m_value) {
-        return *m_value;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Node::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ============================================================================
-IfThen::IfThen(brain::Brain& kb, Base& input, const std::string& label) :
-    Base(kb, input.m_first, label), m_input(input)
+IfThen::IfThen(brain::Brain& kb, expr::Base& condition, stmt::Base& thenBranch, stmt::Base* elseBranch, const std::string& label) :
+    Base(kb, label)
 {
 }
 
 bool IfThen::has(CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.sequence.first) {
-        return true;
-    }
-    if (&role == &kb.sequence.next) {
-        return m_next;
-    }
-    if (&role == &kb.coding.input) {
         return true;
     }
     if (&role == &kb.coding.condition) {
@@ -3139,7 +1898,6 @@ void IfThen::set(CellI& role, CellI& value)
 
 void IfThen::operator()()
 {
-    setCurrent();
     (*m_condition)();
     bool condition = &(*m_condition)[kb.coding.value] == &kb.boolean.true_;
     if (condition) {
@@ -3149,24 +1907,12 @@ void IfThen::operator()()
             (*m_elseBranch)();
         }
     }
-    if (m_next) {
-        (*m_next)();
-    }
 }
 
 CellI& IfThen::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
         return kb.type.control.pipeline.IfThen;
-    }
-    if (&role == &kb.sequence.first) {
-        return *m_first;
-    }
-    if (&role == &kb.sequence.next && m_next) {
-        return *m_next;
-    }
-    if (&role == &kb.coding.input) {
-        return m_input;
     }
     if (&role == &kb.coding.condition && m_condition) {
         return *m_condition;
@@ -3200,25 +1946,17 @@ void IfThen::addElseBranch(Base& cell)
 {
     m_elseBranch = &cell;
 }
-
+#pragma endregion
+#pragma region DoWhile
 // ============================================================================
-DoWhile::DoWhile(brain::Brain& kb, Base& input, const std::string& label) :
-    Base(kb, input.m_first, label), m_input(input)
+DoWhile::DoWhile(brain::Brain& kb, expr::Base& condition, stmt::Base& statement, const std::string& label) :
+    Base(kb, label)
 {
 }
 
 bool DoWhile::has(CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.sequence.first) {
-        return true;
-    }
-    if (&role == &kb.sequence.next) {
-        return m_next;
-    }
-    if (&role == &kb.coding.input) {
         return true;
     }
     if (&role == &kb.coding.condition) {
@@ -3237,32 +1975,18 @@ void DoWhile::set(CellI& role, CellI& value)
 
 void DoWhile::operator()()
 {
-    setCurrent();
     bool condition = false;
     do {
         (*m_statement)();
         (*m_condition)();
         condition = &(*m_condition)[kb.coding.value] == &kb.boolean.true_;
     } while (condition);
-
-    if (m_next) {
-        (*m_next)();
-    }
 }
 
 CellI& DoWhile::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
         return kb.type.control.pipeline.DoWhile;
-    }
-    if (&role == &kb.sequence.first) {
-        return *m_first;
-    }
-    if (&role == &kb.sequence.next && m_next) {
-        return *m_next;
-    }
-    if (&role == &kb.coding.input) {
-        return m_input;
     }
     if (&role == &kb.coding.condition && m_condition) {
         return *m_condition;
@@ -3278,10 +2002,11 @@ void DoWhile::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
-
+#pragma endregion
+#pragma region While
 // ============================================================================
-While::While(brain::Brain& kb, Base& input, const std::string& label) :
-    Base(kb, input.m_first, label), m_input(input)
+While::While(brain::Brain& kb, expr::Base& condition, stmt::Base& statement, const std::string& label) :
+    Base(kb, label)
 {
 }
 
@@ -3289,12 +2014,6 @@ bool While::has(CellI& role)
 {
     if (&role == &kb.cells.type) {
         return true;
-    }
-    if (&role == &kb.sequence.first) {
-        return true;
-    }
-    if (&role == &kb.sequence.next) {
-        return m_next;
     }
     if (&role == &kb.coding.condition) {
         return m_condition;
@@ -3312,7 +2031,6 @@ void While::set(CellI& role, CellI& value)
 
 void While::operator()()
 {
-    setCurrent();
     bool condition = false;
     (*m_condition)();
     condition = &(*m_condition)[kb.coding.value] == &kb.boolean.true_;
@@ -3321,25 +2039,12 @@ void While::operator()()
         (*m_condition)();
         condition = &(*m_condition)[kb.coding.value] == &kb.boolean.true_;
     };
-
-    if (m_next) {
-        (*m_next)();
-    }
 }
 
 CellI& While::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
         return kb.type.control.pipeline.While;
-    }
-    if (&role == &kb.sequence.first) {
-        return *m_first;
-    }
-    if (&role == &kb.sequence.next && m_next) {
-        return *m_next;
-    }
-    if (&role == &kb.coding.input) {
-        return m_input;
     }
     if (&role == &kb.coding.condition && m_condition) {
         return *m_condition;
@@ -3355,8 +2060,1052 @@ void While::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
+#pragma endregion
+}
+namespace expr {
+#pragma region Base
+// ============================================================================
+Base::Base(brain::Brain& kb, const std::string& label) :
+    control::Base(kb, label)
+{
+}
+#pragma endregion
+#pragma region Input
+// ============================================================================
+Input::Input(brain::Brain& kb, CellI& value, const std::string& label) :
+    Base(kb, label)
+{
+    m_value = &value;
+}
 
-} // namespace pipeline
+Input::Input(brain::Brain& kb, CellI* value, const std::string& label) :
+    Input(kb, *value, label)
+{
+}
+
+bool Input::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void Input::set(CellI& role, CellI& value)
+{
+}
+
+void Input::operator()()
+{
+}
+
+CellI& Input::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.pipeline.Input;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return *m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Input::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region New
+// ============================================================================
+New::New(brain::Brain& kb, CellI& objectType, const std::string& label) :
+    Base(kb, label),
+    m_objectType(objectType)
+{
+}
+
+bool New::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return m_value;
+    }
+    if (&role == &kb.coding.objectType) {
+        return true;
+    }
+
+    return false;
+}
+
+void New::set(CellI& role, CellI& value)
+{
+}
+
+void New::operator()()
+{
+    if (&m_objectType == &kb.type.Type_) {
+        m_value = new Type(kb);
+        return;
+    }
+    if (&m_objectType == &kb.type.Number) {
+        m_value = new Number(kb);
+        return;
+    }
+    if (&m_objectType == &kb.type.String) {
+        m_value = new String(kb);
+        return;
+    }
+    m_value = new Object(kb, m_objectType);
+}
+
+CellI& New::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.pipeline.New;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return *m_value;
+    }
+    if (&role == &kb.coding.objectType) {
+        return m_objectType;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void New::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Same
+// ============================================================================
+Same::Same(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
+    Base(kb, "Same"),
+    m_lhs(lhs),
+    m_rhs(rhs)
+{
+}
+
+bool Same::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.equation.lhs) {
+        return true;
+    }
+    if (&role == &kb.equation.rhs) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void Same::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Same::operator()()
+{
+    CellI* lhs = &m_lhs[kb.coding.value];
+    CellI* rhs = &m_rhs[kb.coding.value];
+    m_value = &kb.toKbBool(lhs == rhs);
+}
+
+CellI& Same::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.op.Same;
+    }
+    if (&role == &kb.equation.lhs) {
+        return m_lhs;
+    }
+    if (&role == &kb.equation.rhs) {
+        return m_rhs;
+    }
+    if (&role == &kb.coding.value) {
+        return *m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Same::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region NotSame
+// ============================================================================
+NotSame::NotSame(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
+    Base(kb, "NotSame"),
+    m_lhs(lhs),
+    m_rhs(rhs)
+{
+}
+
+bool NotSame::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.equation.lhs) {
+        return true;
+    }
+    if (&role == &kb.equation.rhs) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void NotSame::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void NotSame::operator()()
+{
+    CellI* lhs = &m_lhs[kb.coding.value];
+    CellI* rhs = &m_rhs[kb.coding.value];
+    m_value = &kb.toKbBool(lhs != rhs);
+}
+
+CellI& NotSame::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.op.NotSame;
+    }
+    if (&role == &kb.equation.lhs) {
+        return m_lhs;
+    }
+    if (&role == &kb.equation.rhs) {
+        return m_rhs;
+    }
+    if (&role == &kb.coding.value) {
+        return *m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void NotSame::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Equal
+// ============================================================================
+Equal::Equal(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
+    Base(kb, "Equal"),
+    m_lhs(lhs),
+    m_rhs(rhs)
+{
+}
+
+bool Equal::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.equation.lhs) {
+        return true;
+    }
+    if (&role == &kb.equation.rhs) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void Equal::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Equal::operator()()
+{
+    CellI& lhs = m_lhs[kb.coding.value];
+    CellI& rhs = m_rhs[kb.coding.value];
+    m_value = &kb.toKbBool(lhs == rhs);
+}
+
+CellI& Equal::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.op.Equal;
+    }
+    if (&role == &kb.equation.lhs) {
+        return m_lhs;
+    }
+    if (&role == &kb.equation.rhs) {
+        return m_rhs;
+    }
+    if (&role == &kb.coding.value) {
+        return *m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Equal::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region NotEqual
+// ============================================================================
+NotEqual::NotEqual(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
+    Base(kb, "NotEqual"),
+    m_lhs(lhs),
+    m_rhs(rhs)
+{
+}
+
+bool NotEqual::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.equation.lhs) {
+        return true;
+    }
+    if (&role == &kb.equation.rhs) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void NotEqual::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void NotEqual::operator()()
+{
+    CellI& lhs = m_lhs[kb.coding.value];
+    CellI& rhs = m_rhs[kb.coding.value];
+    m_value = &kb.toKbBool(lhs != rhs);
+}
+
+CellI& NotEqual::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.op.NotEqual;
+    }
+    if (&role == &kb.equation.lhs) {
+        return m_lhs;
+    }
+    if (&role == &kb.equation.rhs) {
+        return m_rhs;
+    }
+    if (&role == &kb.coding.value) {
+        return *m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void NotEqual::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Has
+// ============================================================================
+Has::Has(brain::Brain& kb, CellI& cell, CellI& role) :
+    Base(kb, "Has"),
+    m_cell(cell),
+    m_role(role)
+{
+}
+
+bool Has::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.coding.cell) {
+        return true;
+    }
+    if (&role == &kb.coding.role) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void Has::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Has::operator()()
+{
+    CellI& cell = m_cell[kb.coding.value];
+    CellI& role = m_role[kb.coding.value];
+    m_value = &kb.toKbBool(cell.has(role));
+}
+
+CellI& Has::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.op.Has;
+    }
+    if (&role == &kb.coding.cell) {
+        return m_cell;
+    }
+    if (&role == &kb.coding.role) {
+        return m_role;
+    }
+    if (&role == &kb.coding.value) {
+        return *m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Has::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Get
+// ============================================================================
+Get::Get(brain::Brain& kb, CellI& cell, CellI& role) :
+    Base(kb, "Get"),
+    m_cell(cell),
+    m_role(role)
+{
+}
+
+bool Get::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.coding.cell) {
+        return true;
+    }
+    if (&role == &kb.coding.role) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void Get::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Get::operator()()
+{
+    CellI& cell = m_cell[kb.coding.value];
+    CellI& role = m_role[kb.coding.value];
+    m_value = &cell[role];
+}
+
+CellI& Get::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.op.Get;
+    }
+    if (&role == &kb.coding.cell) {
+        return m_cell;
+    }
+    if (&role == &kb.coding.role) {
+        return m_role;
+    }
+    if (&role == &kb.coding.value) {
+        return *m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Get::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region And
+// ============================================================================
+And::And(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
+    Base(kb, "And"),
+    m_lhs(lhs),
+    m_rhs(rhs)
+{
+}
+
+bool And::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.equation.lhs) {
+        return true;
+    }
+    if (&role == &kb.equation.rhs) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void And::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void And::operator()()
+{
+    bool lhs = m_lhs[kb.coding.value] == kb.boolean.true_;
+    bool rhs = m_rhs[kb.coding.value] == kb.boolean.true_;
+    m_value = &kb.toKbBool(lhs && rhs);
+}
+
+CellI& And::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.op.logic.And;
+    }
+    if (&role == &kb.equation.lhs) {
+        return m_lhs;
+    }
+    if (&role == &kb.equation.rhs) {
+        return m_rhs;
+    }
+    if (&role == &kb.coding.value) {
+        return *m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void And::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Or
+// ============================================================================
+Or::Or(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
+    Base(kb, "Or"),
+    m_lhs(lhs),
+    m_rhs(rhs)
+{
+}
+
+bool Or::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.equation.lhs) {
+        return true;
+    }
+    if (&role == &kb.equation.rhs) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void Or::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Or::operator()()
+{
+    bool lhs = m_lhs[kb.coding.value] == kb.boolean.true_;
+    bool rhs = m_rhs[kb.coding.value] == kb.boolean.true_;
+    m_value = &kb.toKbBool(lhs || rhs);
+}
+
+CellI& Or::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.op.logic.Or;
+    }
+    if (&role == &kb.equation.lhs) {
+        return m_lhs;
+    }
+    if (&role == &kb.equation.rhs) {
+        return m_rhs;
+    }
+    if (&role == &kb.coding.value) {
+        return *m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Or::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Not
+// ============================================================================
+Not::Not(brain::Brain& kb, expr::Base& input) :
+    Base(kb, "Not"),
+    m_input(input)
+{
+}
+
+bool Not::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.coding.input) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void Not::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Not::operator()()
+{
+    bool input = m_input[kb.coding.value] == kb.boolean.true_;
+    m_value = &kb.toKbBool(!input);
+}
+
+CellI& Not::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.op.logic.Not;
+    }
+    if (&role == &kb.coding.input) {
+        return m_input;
+    }
+    if (&role == &kb.coding.value) {
+        return *m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Not::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Add
+// ============================================================================
+Add::Add(brain::Brain& kb, CellI& lhs, CellI& rhs) :
+    Base(kb, "Add"),
+    m_lhs(lhs),
+    m_rhs(rhs)
+{
+}
+
+bool Add::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.equation.lhs) {
+        return true;
+    }
+    if (&role == &kb.equation.rhs) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void Add::set(CellI& role, CellI& value)
+{
+}
+
+void Add::operator()()
+{
+    int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
+    int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
+    m_value = &kb.pools.numbers.get(lhs + rhs);
+}
+
+CellI& Add::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.op.math.Add;
+    }
+    if (&role == &kb.equation.lhs) {
+        return m_lhs;
+    }
+    if (&role == &kb.equation.rhs) {
+        return m_rhs;
+    }
+    if (&role == &kb.coding.value) {
+        return *m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Add::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Subtract
+// ============================================================================
+Subtract::Subtract(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
+    Base(kb, "Subtract"),
+    m_lhs(lhs),
+    m_rhs(rhs)
+{
+}
+
+bool Subtract::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.equation.lhs) {
+        return true;
+    }
+    if (&role == &kb.equation.rhs) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void Subtract::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Subtract::operator()()
+{
+    int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
+    int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
+    m_value = &kb.pools.numbers.get(lhs - rhs);
+}
+
+CellI& Subtract::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.op.math.Subtract;
+    }
+    if (&role == &kb.equation.lhs) {
+        return m_lhs;
+    }
+    if (&role == &kb.equation.rhs) {
+        return m_rhs;
+    }
+    if (&role == &kb.coding.value) {
+        return *m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Subtract::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Multiply
+// ============================================================================
+Multiply::Multiply(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
+    Base(kb, "Multiply"),
+    m_lhs(lhs),
+    m_rhs(rhs)
+{
+}
+
+bool Multiply::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.equation.lhs) {
+        return true;
+    }
+    if (&role == &kb.equation.rhs) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void Multiply::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Multiply::operator()()
+{
+    int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
+    int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
+    m_value = &kb.pools.numbers.get(lhs * rhs);
+}
+
+CellI& Multiply::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.op.math.Multiply;
+    }
+    if (&role == &kb.equation.lhs) {
+        return m_lhs;
+    }
+    if (&role == &kb.equation.rhs) {
+        return m_rhs;
+    }
+    if (&role == &kb.coding.value) {
+        return *m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Multiply::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Divide
+// ============================================================================
+Divide::Divide(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
+    Base(kb, "Divide"),
+    m_lhs(lhs),
+    m_rhs(rhs)
+{
+}
+
+bool Divide::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.equation.lhs) {
+        return true;
+    }
+    if (&role == &kb.equation.rhs) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void Divide::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Divide::operator()()
+{
+    int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
+    int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
+    m_value = &kb.pools.numbers.get(lhs / rhs);
+}
+
+CellI& Divide::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.op.math.Divide;
+    }
+    if (&role == &kb.equation.lhs) {
+        return m_lhs;
+    }
+    if (&role == &kb.equation.rhs) {
+        return m_rhs;
+    }
+    if (&role == &kb.coding.value) {
+        return *m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Divide::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region LessThan
+// ============================================================================
+LessThan::LessThan(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
+    Base(kb, "LessThan"),
+    m_lhs(lhs),
+    m_rhs(rhs)
+{
+}
+
+bool LessThan::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.equation.lhs) {
+        return true;
+    }
+    if (&role == &kb.equation.rhs) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void LessThan::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void LessThan::operator()()
+{
+    int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
+    int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
+    m_value = lhs < rhs ? &kb.boolean.true_ : &kb.boolean.false_;
+}
+
+CellI& LessThan::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.op.math.LessThan;
+    }
+    if (&role == &kb.equation.lhs) {
+        return m_lhs;
+    }
+    if (&role == &kb.equation.rhs) {
+        return m_rhs;
+    }
+    if (&role == &kb.coding.value) {
+        return *m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void LessThan::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region GreaterThan
+// ============================================================================
+GreaterThan::GreaterThan(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
+    Base(kb, "GreaterThan"),
+    m_lhs(lhs),
+    m_rhs(rhs)
+{
+}
+
+bool GreaterThan::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.equation.lhs) {
+        return true;
+    }
+    if (&role == &kb.equation.rhs) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void GreaterThan::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void GreaterThan::operator()()
+{
+    int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
+    int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
+    m_value = lhs > rhs ? &kb.boolean.true_ : &kb.boolean.false_;
+}
+
+CellI& GreaterThan::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.op.math.GreaterThan;
+    }
+    if (&role == &kb.equation.lhs) {
+        return m_lhs;
+    }
+    if (&role == &kb.equation.rhs) {
+        return m_rhs;
+    }
+    if (&role == &kb.coding.value) {
+        return *m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void GreaterThan::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+} // namespace expr
 } // namespace control
 
 void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i)> visitFn)

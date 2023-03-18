@@ -1,7 +1,7 @@
 #include <filesystem>
 #include <stack>
 
-#include "Cells.h"
+#include "Brain.h"
 #include "fsvgui/dom/elements.h"
 
 namespace synth {

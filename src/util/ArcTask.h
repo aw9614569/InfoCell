@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 #include "app/Picture.h"
-#include "cells/Cells.h"
+#include "cells/Brain.h"
 
 namespace synth {
 namespace cells {

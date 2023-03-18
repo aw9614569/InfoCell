@@ -1,4 +1,5 @@
 #pragma once
+#include "Cells.h"
 
 namespace synth {
 namespace cells {
@@ -78,12 +79,9 @@ public:
     public:
         Pipelines(brain::Brain& kb);
         Type Base;
-        Type Void;
         Type Input;
         Type New;
-        Type Fork;
         Type Delete;
-        Type Node;
         Type IfThen;
         Type DoWhile;
         Type While;
@@ -95,6 +93,10 @@ protected:
     brain::Brain& kb;
 
 public:
+    Type Base;
+    Type Block;
+    Type Function;
+
     Operations op;
     Pipelines pipeline;
 };
@@ -108,9 +110,7 @@ public:
         Pipelines(brain::Brain& kb);
         Type Input;
         Type New;
-        Type Fork;
         Type Delete;
-        Type Node;
         Type If;
         Type Do;
         Type While;
@@ -173,6 +173,7 @@ public:
     Type GetVar;
     Type Self;
     Type Block;
+    Type Function;
 
     Operations op;
     Pipelines pipeline;
@@ -242,6 +243,7 @@ class Coding
 public:
     Coding(brain::Brain& kb, Type& anyType);
     Object argument;
+    Object ast;
     Object branch;
     Object cell;
     Object condition;
@@ -259,6 +261,7 @@ public:
     Object result;
     Object rhs;
     Object role;
+    Object self;
     Object statement;
     Object template_;
     Object then;
@@ -355,9 +358,11 @@ class BaseT : public Base,
 {
 public:
     BaseT<T>(brain::Brain& kb, CellI& classCell, const std::string& label = "") :
-        Base(kb, classCell, label)
+        Base(kb, classCell, label), kb(kb)
     {
     }
+
+    brain::Brain& kb;
 };
 
 namespace pipeline {
@@ -373,22 +378,10 @@ public:
     New(brain::Brain& kb, Base& objectType);
 };
 
-class Fork : public BaseT<Fork>
-{
-public:
-    Fork(brain::Brain& kb);
-};
-
 class Delete : public BaseT<Delete>
 {
 public:
     Delete(brain::Brain& kb, Base& cell);
-};
-
-class Node : public BaseT<Node>
-{
-public:
-    Node(brain::Brain& kb);
 };
 
 class If : public BaseT<If>
@@ -419,9 +412,7 @@ public:
 
     pipeline::Input& input(CellI& value);
     pipeline::New& new_(Base& objectType);
-    pipeline::Fork& fork();
     pipeline::Delete& delete_(Base& cell);
-    pipeline::Node& node();
     pipeline::If& if_(Base& condition, Base& thenBranch);
     pipeline::If& if_(Base& condition, Base& thenBranch, Base& elseBranch);
     pipeline::Do& do_(Base& condition, Base& statement);
@@ -640,19 +631,33 @@ public:
 class Block : public BaseT<Block>
 {
 public:
-    Block(brain::Brain& kb);
-    void add(Base& ast);
+    Block(brain::Brain& kb, List& list);
+};
 
-    template <typename... Args>
-    void add(Base& ast, Args&&... args)
-    {
-        add(ast);
-        add(std::forward<Args>(args)...);
-    }
+class Function : public BaseT<Function>
+{
+public:
+    Function(brain::Brain& kb, const std::string& label = "Function");
 
-    List& toList();
+    void addInputs(List& input);
+    void addOutputs(List& output);
+    void addAsts(Block& ast);
+    CellI& inputType();
+    CellI& outputType();
+    CellI& compile(CellI& parameters);
 
-    List m_list;
+protected:
+    CellI& compileAst(CellI& ast, CellI& param, CellI& self);
+    List& inputs();
+    List& outputs();
+    Block& asts();
+
+    List* m_inputs = nullptr;
+    List* m_outputs = nullptr;
+    Block* m_asts  = nullptr;
+
+    std::unique_ptr<Type> m_inputType;
+    std::unique_ptr<Type> m_outputType;
 };
 
 } // namespace ast
@@ -671,18 +676,10 @@ public:
     ast::SetVar& setVar(CellI& role, ast::Base& value);
     ast::GetVar& getVar(CellI& role);
     ast::Self& self();
-
     template <typename... Args>
-    ast::Block& block(ast::Base& ast, Args&&... args)
-    {
-        ast::Block& ret = *new ast::Block(kb);
-        ret.add(ast);
-        if constexpr (sizeof...(Args) > 0) {
-            ret.add(std::forward<Args>(args)...);
-        }
-
-        return ret;
-    }
+    ast::Block& block(ast::Base& ast, Args&&... args);
+    ast::Function& function(List& inputs, ast::Block& asts);
+    ast::Function& function(List& inputs, ast::Block& asts, List& outputs);
 
 protected:
     brain::Brain& kb;
@@ -855,6 +852,8 @@ public:
     Numbers numbers;
     Arc arc;
 
+    ast::Function listAdd;
+
     CellI& toKbBool(bool value);
 
     template <typename... Args>
@@ -883,6 +882,12 @@ public:
 
     bool isInitialized();
 };
+
+template <typename... Args>
+ast::Block& Ast::block(ast::Base& ast, Args&&... args)
+{
+    return *new ast::Block(kb, kb.list(std::forward<Args>(args)...));
+}
 
 } // namespace brain
 } // namespace cells
