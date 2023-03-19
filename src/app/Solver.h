@@ -401,6 +401,7 @@ public:
     }
 
     void process();
+    void process2();
     void processPixel(int x, int y, const input::Color& color);
 
     const std::set<std::shared_ptr<Patch>>& patches() const

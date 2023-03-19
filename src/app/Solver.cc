@@ -706,6 +706,20 @@ void PatchBoard::process()
     }
 }
 
+void PatchBoard::process2()
+{
+    auto& kb = m_picture.kb;
+    cells::CellI& picture = const_cast<cells::hybrid::Picture&>(m_picture);
+    cells::CellI& pixel   = picture[kb.visualization.pixels][kb.sequence.first][kb.coding.value];
+    cells::CellI& color   = pixel[kb.visualization.color];
+
+    bool down  = pixel.has(kb.directions.down);
+    bool right = pixel.has(kb.directions.right);
+    if (down || right) {
+
+    }
+}
+
 void PatchBoard::processPixel(int x, int y, const input::Color& color)
 {
     PatchSlot& patchSlot             = getPatchSlot(x, y);
