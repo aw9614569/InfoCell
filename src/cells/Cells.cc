@@ -1699,8 +1699,14 @@ bool Function::has(CellI& role)
     if (&role == &kb.cells.type) {
         return true;
     }
+    if (&role == &kb.coding.input) {
+        return m_inputs;
+    }
     if (&role == &kb.coding.op) {
         return m_op;
+    }
+    if (&role == &kb.coding.output) {
+        return m_outputs;
     }
 
     return false;
@@ -1725,8 +1731,14 @@ CellI& Function::operator[](CellI& role)
     if (&role == &kb.cells.type) {
         return kb.type.control.Function;
     }
+    if (&role == &kb.coding.input && m_inputs) {
+        return *m_inputs;
+    }
     if (&role == &kb.coding.op && m_op) {
         return *m_op;
+    }
+    if (&role == &kb.coding.output && m_outputs) {
+        return *m_outputs;
     }
 
     return kb.cells.emptyObject;
@@ -1734,7 +1746,7 @@ CellI& Function::operator[](CellI& role)
 
 void Function::accept(Visitor& visitor)
 {
-    // TODO
+    visitor.visit(*this);
 }
 
 void Function::addInputs(Map& input)
@@ -1844,9 +1856,13 @@ void Set::set(CellI& role, CellI& value)
 
 void Set::operator()()
 {
+    m_cell();
+    m_role();
+    m_value();
     CellI& cell  = m_cell[kb.coding.value];
     CellI& role  = m_role[kb.coding.value];
     CellI& value = m_value[kb.coding.value];
+
     cell.set(role, value);
 }
 
@@ -2213,19 +2229,22 @@ void New::set(CellI& role, CellI& value)
 
 void New::operator()()
 {
-    if (&m_objectType == &kb.type.Type_) {
+    m_objectType();
+    CellI& objectType = m_objectType[kb.coding.value];
+
+    if (&objectType == &kb.type.Type_) {
         m_value = new Type(kb);
         return;
     }
-    if (&m_objectType == &kb.type.Number) {
+    if (&objectType == &kb.type.Number) {
         m_value = new Number(kb);
         return;
     }
-    if (&m_objectType == &kb.type.String) {
+    if (&objectType == &kb.type.String) {
         m_value = new String(kb);
         return;
     }
-    m_value = new Object(kb, m_objectType);
+    m_value = new Object(kb, objectType);
 }
 
 CellI& New::operator[](CellI& role)
@@ -2530,6 +2549,8 @@ void Has::set(CellI& role, CellI& value)
 
 void Has::operator()()
 {
+    m_cell();
+    m_role();
     CellI& cell = m_cell[kb.coding.value];
     CellI& role = m_role[kb.coding.value];
     m_value = &kb.toKbBool(cell.has(role));
@@ -2592,6 +2613,8 @@ void Get::set(CellI& role, CellI& value)
 
 void Get::operator()()
 {
+    m_cell();
+    m_role();
     CellI& cell = m_cell[kb.coding.value];
     CellI& role = m_role[kb.coding.value];
     m_value = &cell[role];
@@ -2774,7 +2797,8 @@ void Not::set(CellI& role, CellI& value)
 
 void Not::operator()()
 {
-    bool input = m_input[kb.coding.value] == kb.boolean.true_;
+    m_input();
+    bool input = &m_input[kb.coding.value] == &kb.boolean.true_;
     m_value = &kb.toKbBool(!input);
 }
 

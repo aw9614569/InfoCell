@@ -128,12 +128,30 @@ int main(int argc, char* argv[])
     printAs.cell(templateListType);
     printAs.value(templateListType[kb.cells.subTypes][kb.cells.index][kb.coding.objectType]);
 
+    List testListT(kb, kb.type.Number);
+    Object testList(kb, testListT[kb.cells.type]);
+//    testList.add(kb.pools.numbers.get(1));
+//    testList.add(kb.pools.numbers.get(2));
+    printAs.cell(testList.type(), "1");
+    printAs.cell(testList.type()[kb.cells.memberOf], "2");
+    printAs.cell(testList.type()[kb.cells.memberOf][kb.cells.index], "3");
+    printAs.value(testList[kb.cells.type][kb.cells.subTypes][kb.cells.index][kb.coding.objectType], "testList::objectType");
+
     Object listAddInput(kb, kb.listAdd.inputType());
     printAs.value(listAddInput, "listAddInput");
     listAddInput.set(kb.coding.value, number_255);
     printAs.cell(listAddInput, "listAddInput set");
     CellI& listAddCompiled = kb.listAdd.compile();
     printAs.cell(listAddCompiled, "listAddCompiled");
+    printAs.value(listAddCompiled[kb.coding.input][kb.cells.index], "listAddCompiled.input.index");
+    listAddCompiled[kb.coding.input][kb.cells.index][kb.coding.self].set(kb.coding.value, testList);
+    listAddCompiled[kb.coding.input][kb.cells.index][kb.coding.value].set(kb.coding.value, kb.pools.numbers.get(1));
+    printAs.value(testList, "testList");
+    listAddCompiled.eval();
+    printAs.value(testList, "testList after add1");
+    listAddCompiled[kb.coding.input][kb.cells.index][kb.coding.value].set(kb.coding.value, kb.pools.numbers.get(2));
+    listAddCompiled.eval();
+    printAs.value(testList, "testList after add2");
 
     printAs.value(colorClass);
     printAs.value(colorClass[kb.cells.slots][kb.cells.index][colorRed]);

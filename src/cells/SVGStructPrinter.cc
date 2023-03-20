@@ -108,6 +108,12 @@ void StructPrinter::visit(hybrid::Picture& cell)
     printStruct(cell);
 }
 
+
+void StructPrinter::visit(control::Function& cell)
+{
+    printStruct(cell);
+}
+
 void StructPrinter::printStruct(CellI& cell)
 {
     brain::Brain& kb = cell.kb;

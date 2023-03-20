@@ -19,70 +19,70 @@ Template::Template(brain::Brain& kb) :
 }
 
 Control::Control(brain::Brain& kb) :
-    Base(kb, "Base"),
-    Block(kb, "Block"),
-    Function(kb, "Function"),
-    Delete(kb, "Delete"),
-    Set(kb, "Set"),
-    If(kb, "If"),
-    Do(kb, "Do"),
-    While(kb, "While"),
-    Expression(kb, "Expression"),
-    Ref(kb, "Ref"),
-    Var(kb, "Var"),
-    New(kb, "New"),
-    Same(kb, "Same"),
-    NotSame(kb, "NotSame"),
-    Equal(kb, "Equal"),
-    NotEqual(kb, "NotEqual"),
-    Has(kb, "Has"),
-    Get(kb, "Get"),
-    And(kb, "And"),
-    Or(kb, "Or"),
-    Not(kb, "Not"),
-    Add(kb, "Add"),
-    Subtract(kb, "Subtract"),
-    Multiply(kb, "Multiply"),
-    Divide(kb, "Divide"),
-    LessThan(kb, "LessThan"),
-    GreaterThan(kb, "GreaterThan")
+    Base(kb, "control::Base"),
+    Block(kb, "control::Block"),
+    Function(kb, "control::Function"),
+    Delete(kb, "control::Delete"),
+    Set(kb, "control::Set"),
+    If(kb, "control::If"),
+    Do(kb, "control::Do"),
+    While(kb, "control::While"),
+    Expression(kb, "control::Expression"),
+    Ref(kb, "control::Ref"),
+    Var(kb, "control::Var"),
+    New(kb, "control::New"),
+    Same(kb, "control::Same"),
+    NotSame(kb, "control::NotSame"),
+    Equal(kb, "control::Equal"),
+    NotEqual(kb, "control::NotEqual"),
+    Has(kb, "control::Has"),
+    Get(kb, "control::Get"),
+    And(kb, "control::And"),
+    Or(kb, "control::Or"),
+    Not(kb, "control::Not"),
+    Add(kb, "control::Add"),
+    Subtract(kb, "control::Subtract"),
+    Multiply(kb, "control::Multiply"),
+    Divide(kb, "control::Divide"),
+    LessThan(kb, "control::LessThan"),
+    GreaterThan(kb, "control::GreaterThan")
 {
 }
 
 Ast::Ast(brain::Brain& kb) :
     kb(kb),
-    Base(kb, "Base"),
-    Parameter(kb, "Parameter"),
-    ParameterDecl(kb, "ParameterDecl"),
-    Cell(kb, "Cell"),
-    Self(kb, "Self"),
-    Block(kb, "Block"),
-    Function(kb, "Function"),
-    Delete(kb, "Delete"),
-    Set(kb, "Set"),
-    If(kb, "If"),
-    Do(kb, "Do"),
-    While(kb, "While"),
-    Expression(kb, "Expression"),
-    Ref(kb, "Ref"),
-    Var(kb, "Var"),
-    Member(kb, "Member"),
-    New(kb, "New"),
-    Same(kb, "Same"),
-    NotSame(kb, "NotSame"),
-    Equal(kb, "Equal"),
-    NotEqual(kb, "NotEqual"),
-    Has(kb, "Has"),
-    Get(kb, "Get"),
-    And(kb, "And"),
-    Or(kb, "Or"),
-    Not(kb, "Not"),
-    Add(kb, "Add"),
-    Subtract(kb, "Subtract"),
-    Multiply(kb, "Multiply"),
-    Divide(kb, "Divide"),
-    LessThan(kb, "LessThan"),
-    GreaterThan(kb, "GreaterThan")
+    Base(kb, "ast::Base"),
+    Parameter(kb, "ast::Parameter"),
+    ParameterDecl(kb, "ast::ParameterDecl"),
+    Cell(kb, "ast::Cell"),
+    Self(kb, "ast::Self"),
+    Block(kb, "ast::Block"),
+    Function(kb, "ast::Function"),
+    Delete(kb, "ast::Delete"),
+    Set(kb, "ast::Set"),
+    If(kb, "ast::If"),
+    Do(kb, "ast::Do"),
+    While(kb, "ast::While"),
+    Expression(kb, "ast::Expression"),
+    Ref(kb, "ast::Ref"),
+    Var(kb, "ast::Var"),
+    Member(kb, "ast::Member"),
+    New(kb, "ast::New"),
+    Same(kb, "ast::Same"),
+    NotSame(kb, "ast::NotSame"),
+    Equal(kb, "ast::Equal"),
+    NotEqual(kb, "ast::NotEqual"),
+    Has(kb, "ast::Has"),
+    Get(kb, "ast::Get"),
+    And(kb, "ast::And"),
+    Or(kb, "ast::Or"),
+    Not(kb, "ast::Not"),
+    Add(kb, "ast::Add"),
+    Subtract(kb, "ast::Subtract"),
+    Multiply(kb, "ast::Multiply"),
+    Divide(kb, "ast::Divide"),
+    LessThan(kb, "ast::LessThan"),
+    GreaterThan(kb, "ast::GreaterThan")
 {
 }
 
@@ -95,6 +95,7 @@ Types::Types(brain::Brain& kb) :
     Container(kb, "Conatainer"),
     Iterator(kb, "Iterator"),
     List(kb, "List"),
+    ListItem(kb, "ListItem"),
     Map(kb, "Map"),
     Index(kb, "Index"),
     Void(kb, "Void"),
@@ -126,8 +127,8 @@ Type& Types::ListOf(CellI& type)
         Type& listType = it.first->second;
         Type& itemType = *new Type(kb, std::format("ListItem<{}>", type.label()));
         listType.addSubType(kb.coding.objectType, itemType);
-        listType.addMembership(kb.type.Container);
-        itemType.addMembership(kb.type.Iterator);
+        listType.addMembership(kb.type.List);
+        itemType.addMembership(kb.type.ListItem);
         auto& cells = kb.cells;
 
         listType.addSlots(cells.slot(kb.sequence.first, itemType),
@@ -414,7 +415,7 @@ void Ast::Function::compileParams(cells::control::Function& function, CellI* typ
 
 CellI& Ast::Function::compileAst(CellI& ast, cells::control::Function& function, CellI* type)
 {
-    auto eval = [this, &function, type](CellI& ast) -> CellI& { return compileAst(ast, function, type); };
+    auto compile = [this, &function, type](CellI& ast) -> CellI& { return compileAst(ast, function, type); };
 
     if (&ast.type() == &kb.type.ast.Block) {
         List& list         = static_cast<List&>(ast[kb.coding.value]);
@@ -424,61 +425,61 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::control::Function& function,
         });
         return *new control::Block(kb, compiledAsts);
     } else if (&ast.type() == &kb.type.ast.Cell) {
-        return ast[kb.coding.value];
+        return *new control::Ref(kb, ast[kb.coding.value]);
     } else if (&ast.type() == &kb.type.ast.Self) {
-        return *new control::Get(kb, function.getInput(kb.coding.self), kb.coding.value);
+        return kb, function.getInput(kb.coding.self);
     } else if (&ast.type() == &kb.type.ast.Parameter) {
-        return *new control::Get(kb, function.getInput(ast[kb.coding.role]), kb.coding.value);
+        return kb, function.getInput(ast[kb.coding.role]);
     } else if (&ast.type() == &kb.type.ast.Delete) {
-        return *new control::Delete(kb, eval(ast[kb.coding.cell]));
+        return *new control::Delete(kb, compile(ast[kb.coding.cell]));
     } else if (&ast.type() == &kb.type.ast.Set) {
-        return *new control::Set(kb, eval(ast[kb.coding.cell]), eval(ast[kb.coding.role]), eval(ast[kb.coding.value]));
+        return *new control::Set(kb, compile(ast[kb.coding.cell]), compile(ast[kb.coding.role]), compile(ast[kb.coding.value]));
     } else if (&ast.type() == &kb.type.ast.If) {
         if (ast.has(kb.coding.else_)) {
-            return *new control::If(kb, eval(ast[kb.coding.condition]), eval(ast[kb.coding.then]), eval(ast[kb.coding.else_]));
+            return *new control::If(kb, compile(ast[kb.coding.condition]), compile(ast[kb.coding.then]), compile(ast[kb.coding.else_]));
         } else {
-            return *new control::If(kb, eval(ast[kb.coding.condition]), eval(ast[kb.coding.then]));
+            return *new control::If(kb, compile(ast[kb.coding.condition]), compile(ast[kb.coding.then]));
         }
     } else if (&ast.type() == &kb.type.ast.Do) {
-        return *new control::Do(kb, eval(ast[kb.coding.condition]), eval(ast[kb.coding.statement]));
+        return *new control::Do(kb, compile(ast[kb.coding.condition]), compile(ast[kb.coding.statement]));
     } else if (&ast.type() == &kb.type.ast.While) {
-        return *new control::While(kb, eval(ast[kb.coding.condition]), eval(ast[kb.coding.statement]));
+        return *new control::While(kb, compile(ast[kb.coding.condition]), compile(ast[kb.coding.statement]));
     } else if (&ast.type() == &kb.type.ast.Ref) {
-        return *new control::Ref(kb, eval(ast[kb.coding.value]));
+        return *new control::Ref(kb, compile(ast[kb.coding.value]));
     } else if (&ast.type() == &kb.type.ast.Var) {
-        return function.getOrCreateVar(ast[kb.coding.role], kb.type.Any);
+        return *new control::Ref(kb, function.getOrCreateVar(ast[kb.coding.role], kb.type.Any));
     } else if (&ast.type() == &kb.type.ast.New) {
-        return *new control::New(kb, eval(ast[kb.coding.objectType]));
+        return *new control::New(kb, compile(ast[kb.coding.objectType]));
     } else if (&ast.type() == &kb.type.ast.And) {
-        return *new control::And(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+        return *new control::And(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
     } else if (&ast.type() == &kb.type.ast.Or) {
-        return *new control::Or(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+        return *new control::Or(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
     } else if (&ast.type() == &kb.type.ast.Not) {
-        return *new control::Not(kb, eval(ast[kb.coding.value]));
+        return *new control::Not(kb, compile(ast[kb.coding.value]));
     } else if (&ast.type() == &kb.type.ast.Add) {
-        return *new control::Add(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+        return *new control::Add(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
     } else if (&ast.type() == &kb.type.ast.Subtract) {
-        return *new control::Subtract(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+        return *new control::Subtract(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
     } else if (&ast.type() == &kb.type.ast.Multiply) {
-        return *new control::Multiply(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+        return *new control::Multiply(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
     } else if (&ast.type() == &kb.type.ast.Divide) {
-        return *new control::Divide(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+        return *new control::Divide(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
     } else if (&ast.type() == &kb.type.ast.LessThan) {
-        return *new control::LessThan(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+        return *new control::LessThan(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
     } else if (&ast.type() == &kb.type.ast.GreaterThan) {
-        return *new control::GreaterThan(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+        return *new control::GreaterThan(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
     } else if (&ast.type() == &kb.type.ast.Same) {
-        return *new control::Same(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+        return *new control::Same(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
     } else if (&ast.type() == &kb.type.ast.NotSame) {
-        return *new control::NotSame(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+        return *new control::NotSame(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
     } else if (&ast.type() == &kb.type.ast.Equal) {
-        return *new control::Equal(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+        return *new control::Equal(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
     } else if (&ast.type() == &kb.type.ast.NotEqual) {
-        return *new control::NotEqual(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+        return *new control::NotEqual(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
     } else if (&ast.type() == &kb.type.ast.Has) {
-        return *new control::Has(kb, eval(ast[kb.coding.cell]), eval(ast[kb.coding.role]));
+        return *new control::Has(kb, compile(ast[kb.coding.cell]), compile(ast[kb.coding.role]));
     } else if (&ast.type() == &kb.type.ast.Get) {
-        return *new control::Get(kb, eval(ast[kb.coding.cell]), eval(ast[kb.coding.role]));
+        return *new control::Get(kb, compile(ast[kb.coding.cell]), compile(ast[kb.coding.role]));
     }
 
     throw "Unknown function AST!";
@@ -545,7 +546,7 @@ Ast::While::While(brain::Brain& kb, Base& condition, Base& statement) :
 Ast::Ref::Ref(brain::Brain& kb, CellI& cell) :
     BaseT<Ref>(kb, kb.type.ast.Ref)
 {
-    set(kb.coding.input, cell);
+    set(kb.coding.value, cell);
 }
 
 Ast::Var::Var(brain::Brain& kb, CellI& role) :
@@ -691,27 +692,27 @@ Ast::ParameterDecl& Ast::parameterDecl(CellI& role, CellI& type)
 
 Ast::Has& Ast::hasMember(Base& role)
 {
-    return kb.ast.has(kb.ast.self(), kb.ast.cell(role));
+    return kb.ast.has(kb.ast.self(), role);
 }
 
 Ast::Get& Ast::getMember(Base& role)
 {
-    return kb.ast.get(kb.ast.self(), kb.ast.cell(role));
+    return kb.ast.get(kb.ast.self(), role);
 }
 
 Ast::Set& Ast::setMember(Base& role, Base& value)
 {
-    return kb.ast.set(kb.ast.self(), kb.ast.cell(role), kb.ast.cell(value));
+    return kb.ast.set(kb.ast.self(), role, value);
 }
 
-Ast::Set& Ast::setVar(CellI& cell, Base& ast)
+Ast::Set& Ast::setVar(CellI& role, Base& ast)
 {
-    return kb.ast.set(kb.ast.var(cell), kb.ast.cell(kb.coding.value), ast);
+    return kb.ast.set(kb.ast.var(role), kb.ast.cell(kb.coding.value), ast);
 }
 
-Ast::Get& Ast::getVar(CellI& cell)
+Ast::Get& Ast::getVar(CellI& role)
 {
-    return kb.ast.get(kb.ast.var(cell), kb.ast.cell(kb.coding.value));
+    return kb.ast.get(kb.ast.var(role), kb.ast.cell(kb.coding.value));
 }
 
 Ast::Delete& Ast::delete_(Base& ast)
@@ -1075,25 +1076,24 @@ Brain::Brain() :
     // We should indicate that template.list is a container and it has a first, last, size, objectType member.
     // And also, that template.list -> item is an iterator prev, next, value
 
-    Type& listSubType = *new Type(*this, "ListItem");
-    listSubType.addSlots(
-        cells.slot(sequence.previous, listSubType),
-        cells.slot(sequence.next, listSubType),
+    type.ListItem.addSlots(
+        cells.slot(sequence.previous, type.ListItem),
+        cells.slot(sequence.next, type.ListItem),
         cells.slot(coding.value, type.Any));
-    listSubType.addMembership(
+    type.ListItem.addMembership(
         type.Iterator);
 
     type.List.addSlots(
-        cells.slot(sequence.first, listSubType),
-        cells.slot(sequence.last, listSubType),
+        cells.slot(sequence.first, type.ListItem),
+        cells.slot(sequence.last, type.ListItem),
         cells.slot(dimensions.size, type.Number));
     type.List.addSubType(
-        coding.objectType, listSubType);
+        coding.objectType, type.ListItem);
     type.List.addMembership(
         type.Container);
 
     listItem.addMembership(
-        templates.cell(listSubType));
+        templates.cell(type.ListItem));
 
     templates.list.addMembership(
         templates.cell(type.List));
@@ -1216,11 +1216,11 @@ Brain::Brain() :
         ast.parameterDecl(coding.value, type.Any)));
 
     listAdd.addAsts(ast.block(
-        ast.setVar(pools.numbers.get(1), ast.new_(ast.self())),
+        ast.setVar(pools.numbers.get(1), ast.new_(ast.get(ast.get(ast.get(ast.get(ast.self(), ast.cell(cells.type)), ast.cell(cells.subTypes)), ast.cell(cells.index)), ast.cell(coding.objectType)))),
         ast.set(ast.getVar(pools.numbers.get(1)), ast.cell(coding.value), ast.parameter(coding.value)),
         ast.if_(ast.not_(ast.hasMember(ast.cell(sequence.first))),
                          ast.setMember(ast.cell(sequence.first), ast.getVar(pools.numbers.get(1))),          // then
-                         ast.block(ast.setMember(ast.cell(sequence.next), ast.getVar(pools.numbers.get(1))), // else
+                         ast.block(ast.set(ast.get(ast.self(), ast.cell(sequence.last)), ast.cell(sequence.next), ast.getVar(pools.numbers.get(1))), // else
                                    ast.set(ast.getVar(pools.numbers.get(1)), ast.cell(sequence.previous), ast.getMember(ast.cell(sequence.last))))),
         ast.setMember(ast.cell(sequence.last), ast.getVar(pools.numbers.get(1)))));
 #if 0
@@ -1377,7 +1377,7 @@ Brain::Brain() :
 
     type.control.Function.addSlots(
         cells.slot(coding.input, type.MapOf(type.control.Base)),
-        cells.slot(coding.ast, type.ListOf(type.control.Base)),
+        cells.slot(coding.op, type.ListOf(type.control.Base)),
         cells.slot(coding.output, type.MapOf(type.control.Base)));
 
     m_initialized = true;

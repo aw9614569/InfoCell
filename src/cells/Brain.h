@@ -132,6 +132,7 @@ public:
     Type Container;
     Type Iterator;
     Type List;
+    Type ListItem;
     Type Map;
     Type Index;
     Type Void;
@@ -480,7 +481,7 @@ public:
     Get& getVar(CellI& role);
 
     template <typename... Args>
-    Block& block(Base& ast, Args&&... args);
+    Block& block(Args&&... args);
     Function& function(List& inputs, Block& asts);
     Function& function(List& inputs, Block& asts, List& outputs);
     Delete& delete_(Base& cell);
@@ -707,7 +708,7 @@ public:
 };
 
 template <typename... Args>
-Ast::Block& Ast::block(Base& ast, Args&&... args)
+Ast::Block& Ast::block(Args&&... args)
 {
     return *new Block(kb, kb.list(std::forward<Args>(args)...));
 }

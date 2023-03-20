@@ -83,6 +83,19 @@ void CellValuePrinter::printImpl(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
 
+    if (cell.type()[kb.cells.memberOf][kb.cells.index].has(kb.type.List)) {
+        m_ss << "[";
+        visitList(cell, [this](CellI& value, int i) {
+            if (i != 0) {
+                m_ss << ",";
+            }
+            m_ss << " ";
+            value.accept(*this);
+        });
+        m_ss << " ]";
+        return;
+    }
+
     if (!cell.label().empty()) {
         m_ss << cell.label() << ": ";
     }
@@ -146,6 +159,11 @@ void CellValuePrinter::visit(hybrid::Pixel& cell)
 void CellValuePrinter::visit(hybrid::Picture& cell)
 {
     m_ss << "(Picture)" << cell.label() << "[" << cell.width() << ", " << cell.height() << "]";
+}
+
+void CellValuePrinter::visit(control::Function& cell)
+{
+    printImpl(cell);
 }
 
 std::string CellValuePrinter::print() const

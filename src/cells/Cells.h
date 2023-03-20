@@ -1108,7 +1108,7 @@ public:
     virtual void visit(hybrid::Picture&) = 0;
 
     virtual void visit(control::Block&) { }
-    virtual void visit(control::Function&) { }
+    virtual void visit(control::Function&) = 0;
     virtual void visit(control::Delete&) { }
     virtual void visit(control::Set&) { }
     virtual void visit(control::If&) { }
