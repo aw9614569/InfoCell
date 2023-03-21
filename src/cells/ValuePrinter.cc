@@ -4,13 +4,6 @@
 namespace synth {
 namespace cells {
 
-// ============================================================================
-void CellValuePrinter::visit(Slot& cell)
-{
-    brain::Brain& kb = cell.kb;
-    m_ss << cell[kb.cells.slotRole].label() << ": " << cell[kb.cells.slotType].label();
-}
-
 void CellValuePrinter::visit(Type& type)
 {
     brain::Brain& kb = type.kb;
@@ -82,6 +75,11 @@ void CellValuePrinter::visit(Object& object)
 void CellValuePrinter::printImpl(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
+
+    if (&cell.type() == &kb.type.Slot) {
+        m_ss << cell[kb.cells.slotRole].label() << ": " << cell[kb.cells.slotType].label();
+        return;
+    }
 
     if (cell.type()[kb.cells.memberOf][kb.cells.index].has(kb.type.List)) {
         m_ss << "[";

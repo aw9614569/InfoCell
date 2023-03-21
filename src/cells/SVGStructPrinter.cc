@@ -18,11 +18,6 @@ StructPrinter::StructPrinter(int width, int height) :
     m_fontName = "Times New Roman";
 }
 
-void StructPrinter::visit(Slot& cell)
-{
-    printStruct(cell);
-}
-
 void StructPrinter::visit(Type& cell)
 {
     printStruct(cell);

@@ -156,7 +156,7 @@ class Cells
 {
 public:
     Cells(brain::Brain& kb, Type& voidType, Type& anyType);
-    cells::Slot& slot(cells::CellI& role, cells::CellI& type);
+    cells::CellI& slot(cells::CellI& role, cells::CellI& type);
 
     brain::Brain& kb;
     Object type;
@@ -654,13 +654,22 @@ public:
 
 class Brain
 {
+public:
+    enum class InitPhase
+    {
+        Init,
+        SlotTypeInitialzed,
+        FullyConstructed
+    };
+
 protected:
-    bool m_initialized = false;
+    InitPhase m_initPhase = InitPhase::Init;
+    friend class Types;
 
 public:
     Brain();
-    Types type;
     Cells cells;
+    Types type;
     Pools pools;
     Coding coding;
     Templates templates;
@@ -704,7 +713,7 @@ public:
         return ret;
     }
 
-    bool isInitialized();
+    InitPhase initPhase();
 };
 
 template <typename... Args>

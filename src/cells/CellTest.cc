@@ -124,13 +124,13 @@ int main(int argc, char* argv[])
     Object templateListParam(kb, templateListParamType);
     templateListParam.set(kb.coding.objectType, kb.type.Digit);
     CellI& templateListType = kb.templates.list.compile(templateListParam);
-    printAs.value(templateListType);
+    printAs.value(templateListType, "compiled templateListType");
     printAs.cell(templateListType);
     printAs.value(templateListType[kb.cells.subTypes][kb.cells.index][kb.coding.objectType]);
 
-    List testListT(kb, kb.type.Number);
-    Object testList(kb, testListT[kb.cells.type]);
+    Object testList(kb, kb.type.ListOf(kb.type.Number));
     testList.set(kb.dimensions.size, kb.pools.numbers.get(0));
+    testList.set(kb.coding.objectType, kb.type.Number);
     printAs.cell(testList.type(), "1");
     printAs.cell(testList.type()[kb.cells.memberOf], "2");
     printAs.cell(testList.type()[kb.cells.memberOf][kb.cells.index], "3");

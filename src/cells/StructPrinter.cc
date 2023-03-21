@@ -5,17 +5,6 @@
 namespace synth {
 namespace cells {
 
-// ============================================================================
-void CellStructPrinter::visit(Slot& cell)
-{
-    brain::Brain& kb = cell.kb;
-    if (cell.label().empty()) {
-        m_ss << cell[kb.cells.slotRole].label() << ": ";
-    } else {
-        m_ss << cell.label() << ": ";
-    }
-    printImpl(cell);
-}
 void CellStructPrinter::visit(Type& cell)
 {
     if (!cell.label().empty()) {
@@ -128,6 +117,14 @@ void CellStructPrinter::printImpl(CellI& cell)
     const bool needId = false;
     brain::Brain& kb = cell.kb;
     CellI& type   = cell.type();
+    if (&type == &kb.type.Slot) {
+        if (cell.label().empty()) {
+            m_ss << cell[kb.cells.slotRole].label() << ": ";
+        } else {
+            m_ss << cell.label() << ": ";
+        }
+    }
+
     m_ss << "(" << type.label() << ")";
     if (needId)
         m_ss << " ID" << &cell;

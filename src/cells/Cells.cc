@@ -8,8 +8,10 @@
 #pragma warning(disable : 4996)
 #include <utf8.h>
 
+
 namespace synth {
 namespace cells {
+using InitPhase = brain::Brain::InitPhase;
 #pragma region CellI
 // ============================================================================
 int CellI::s_constructed = 0;
@@ -115,6 +117,11 @@ void Object::set(CellI& role, CellI& value)
 {
     if (&role == &kb.cells.type) {
         throw "Type change not allowed.";
+    }
+
+    if (kb.initPhase() == InitPhase::Init) {
+        m_slots[&role] = &value;
+        return;
     }
 
     if (type()[kb.cells.slots][kb.cells.index].has(role)) {
@@ -239,6 +246,9 @@ bool List::has(CellI& role)
     if ((&role == &kb.sequence.first || &role == &kb.sequence.last) && !m_items.empty()) {
         return true;
     }
+    if (&role == &kb.coding.objectType) {
+        return true;
+    }
 
     return false;
 }
@@ -268,6 +278,9 @@ CellI& List::operator[](CellI& role)
         int size = (int)m_items.size();
 
         return kb.pools.numbers.get(size);
+    }
+    if (&role == &kb.coding.objectType) {
+        return m_valueType;
     }
 
     return kb.cells.emptyObject;
@@ -772,52 +785,6 @@ bool Map::empty() const
     return m_indexedValues.empty();
 }
 #pragma endregion
-#pragma region Slot
-// ============================================================================
-Slot::Slot(brain::Brain& kb, CellI& role, CellI& type) :
-    CellI(kb),
-    m_slotRole(role),
-    m_slotType(type)
-{
-}
-
-bool Slot::has(CellI& role)
-{
-    if (&role == &kb.cells.type || &role == &kb.cells.slotType || &role == &kb.cells.slotRole) {
-        return true;
-    }
-    return false;
-}
-
-void Slot::set(CellI& role, CellI& value)
-{
-    throw "Not supported";
-}
-void Slot::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& Slot::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.Slot;
-    }
-    if (&role == &kb.cells.slotType) {
-        return m_slotType;
-    }
-    if (&role == &kb.cells.slotRole) {
-        return m_slotRole;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Slot::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
 #pragma region Type
 // ============================================================================
 Type::Type(brain::Brain& kb, const std::string& label) :
@@ -881,19 +848,17 @@ void Type::accept(Visitor& visitor)
 
 void Type::addSlot(CellI& role, CellI& type)
 {
-    Slot& slot = *new Slot(kb, role, type);
-    if (kb.isInitialized()) {
-        slot.label(std::format("Slot of {}.{}", label(), role.label()));
-    }
+    CellI& slot = *new Object(kb, kb.type.Slot);
+    slot.set(kb.cells.slotRole, role);
+    slot.set(kb.cells.slotType, type);
+    slot.label(std::format("Slot of {}.{}", label(), role.label()));
     m_slots.add(role, slot);
 }
 
-void Type::addSlots(Slot& slot)
+void Type::addSlots(CellI& slot)
 {
     CellI& role = slot[kb.cells.slotRole];
-    if (kb.isInitialized()) {
-        slot.label(std::format("Slot of {}.{}", label(), role.label()));
-    }
+    slot.label(std::format("Slot of {}.{}", label(), role.label()));
     m_slots.add(role, slot);
 }
 
@@ -1676,6 +1641,7 @@ void Block::set(CellI& role, CellI& value)
 void Block::operator()()
 {
     Visitor::visitList(m_list, [this](CellI& op, int) {
+        m_current = &op;
         op();
     });
 }
@@ -3254,10 +3220,6 @@ bool tryVisitWith(CellI& cell, Visitor& visitor)
 {
     brain::Brain& kb = cell.kb;
 
-    if (&cell.type() == &kb.type.Slot) {
-        visitor.visit(static_cast<Slot&>(cell));
-        return true;
-    }
     if (&cell.type() == &kb.type.Type_) {
         visitor.visit(static_cast<Type&>(cell));
         return true;

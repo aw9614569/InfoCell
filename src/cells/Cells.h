@@ -357,30 +357,6 @@ public:
 };
 
 // ============================================================================
-class Slot : public CellI
-{
-public:
-    Slot(brain::Brain& kb, CellI& role, CellI& type);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    Slot& slotTypeParameters(CellI& paramCell);
-    Slot& valueDefinition(CellI& defCell);
-    Slot& defaultValue(CellI& valueCell);
-    Slot& required();
-
-protected:
-    CellI& m_slotRole;
-    CellI& m_slotType;
-    CellI* m_valueDefinition = nullptr;
-    bool m_required          = false;
-};
-
-// ============================================================================
 class Type : public CellI
 {
 public:
@@ -394,9 +370,9 @@ public:
 
     void addSlot(CellI& role, CellI& type);
 
-    void addSlots(Slot& slot);
+    void addSlots(CellI& slot);
     template <typename... Args>
-    void addSlots(Slot& slot, Args&&... args)
+    void addSlots(CellI& slot, Args&&... args)
     {
         addSlots(slot);
         addSlots(std::forward<Args>(args)...);
@@ -648,7 +624,7 @@ public:
     void accept(Visitor& visitor) override;
 
 protected:
-    CellI* m_current;
+    CellI* m_current = nullptr;
     List& m_list;
 };
 
@@ -1087,7 +1063,6 @@ protected:
 class Visitor
 {
 public:
-    virtual void visit(Slot&)   = 0;
     virtual void visit(Type&)   = 0;
     virtual void visit(Object&) = 0;
     virtual void visit(Number&) = 0;

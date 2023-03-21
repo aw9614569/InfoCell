@@ -113,6 +113,10 @@ Types::Types(brain::Brain& kb) :
     control(kb),
     ast(kb)
 {
+    Slot.addSlots(
+        kb.cells.slot(kb.cells.slotType, kb.type.Type_),
+        kb.cells.slot(kb.cells.slotRole, kb.type.Any));
+    kb.m_initPhase = Brain::InitPhase::SlotTypeInitialzed;
 }
 
 Type& Types::ListOf(CellI& type)
@@ -133,7 +137,8 @@ Type& Types::ListOf(CellI& type)
 
         listType.addSlots(cells.slot(kb.sequence.first, itemType),
                           cells.slot(kb.sequence.last, itemType),
-                          cells.slot(kb.dimensions.size, kb.type.Number));
+                          cells.slot(kb.dimensions.size, kb.type.Number),
+                          cells.slot(kb.coding.objectType, type));
         itemType.addSlots(cells.slot(kb.sequence.previous, itemType),
                           cells.slot(kb.sequence.next, itemType),
                           cells.slot(kb.coding.value, type));
@@ -153,6 +158,7 @@ Type& Types::MapOf(CellI& type)
                                            std::forward_as_tuple(kb, std::format("Map<{}>", type.label())));
         Type& mapType = it.first->second;
         auto& cells   = kb.cells;
+        mapType.addMembership(kb.type.Map);
         mapType.addSlots(cells.slot(kb.cells.list, ListOf(type)),
                          cells.slot(kb.cells.index, kb.type.Index),
                          cells.slot(kb.dimensions.size, kb.type.Number));
@@ -175,9 +181,12 @@ Cells::Cells(brain::Brain& kb, Type& voidType, Type& anyType) :
 {
 }
 
-cells::Slot& Cells::slot(cells::CellI& role, cells::CellI& type)
+cells::CellI& Cells::slot(cells::CellI& role, cells::CellI& type)
 {
-    return *new cells::Slot(kb, role, type);
+    CellI& ret = *new Object(kb, kb.type.Slot);
+    ret.set(kb.cells.slotRole, role);
+    ret.set(kb.cells.slotType, type);
+    return ret;
 }
 
 Coding::Coding(brain::Brain& kb, Type& anyType) :
@@ -1000,8 +1009,9 @@ Arc::Arc(brain::Brain& kb) :
 }
 
 Brain::Brain() :
-    type(*this),
+    m_initPhase(InitPhase::Init),
     cells(*this, type.Void, type.Any),
+    type(*this),
     coding(*this, type.Any),
     pools(*this, type.Char, cells.emptyObject, type.Digit),
     templates(*this),
@@ -1022,10 +1032,6 @@ Brain::Brain() :
         cells.slot(cells.slots, type.MapOf(type.Slot)),
         cells.slot(cells.subTypes, type.MapOf(type.Type_)),
         cells.slot(cells.memberOf, type.MapOf(type.Type_)));
-
-    type.Slot.addSlots(
-        cells.slot(cells.slotType, type.Type_),
-        cells.slot(cells.slotRole, type.Any));
 
     type.template_.ParameterDecl.addSlots(
         cells.slot(cells.slotType, type.Type_),
@@ -1086,7 +1092,8 @@ Brain::Brain() :
     type.List.addSlots(
         cells.slot(sequence.first, type.ListItem),
         cells.slot(sequence.last, type.ListItem),
-        cells.slot(dimensions.size, type.Number));
+        cells.slot(dimensions.size, type.Number),
+        cells.slot(coding.objectType, type.Any));
     type.List.addSubType(
         coding.objectType, type.ListItem);
     type.List.addMembership(
@@ -1381,7 +1388,7 @@ Brain::Brain() :
         cells.slot(coding.op, type.ListOf(type.control.Base)),
         cells.slot(coding.output, type.MapOf(type.control.Base)));
 
-    m_initialized = true;
+    m_initPhase = InitPhase::FullyConstructed;
 }
 
 CellI& Brain::toKbBool(bool value)
@@ -1389,9 +1396,9 @@ CellI& Brain::toKbBool(bool value)
     return value ? boolean.true_ : boolean.false_;
 }
 
-bool Brain::isInitialized()
+Brain::InitPhase Brain::initPhase()
 {
-    return m_initialized;
+    return m_initPhase;
 }
 
 } // namespace brain
