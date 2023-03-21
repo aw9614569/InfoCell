@@ -1219,10 +1219,11 @@ Brain::Brain() :
         ast.setVar(pools.numbers.get(1), ast.new_(ast.get(ast.get(ast.get(ast.get(ast.self(), ast.cell(cells.type)), ast.cell(cells.subTypes)), ast.cell(cells.index)), ast.cell(coding.objectType)))),
         ast.set(ast.getVar(pools.numbers.get(1)), ast.cell(coding.value), ast.parameter(coding.value)),
         ast.if_(ast.not_(ast.hasMember(ast.cell(sequence.first))),
-                         ast.setMember(ast.cell(sequence.first), ast.getVar(pools.numbers.get(1))),          // then
-                         ast.block(ast.set(ast.get(ast.self(), ast.cell(sequence.last)), ast.cell(sequence.next), ast.getVar(pools.numbers.get(1))), // else
-                                   ast.set(ast.getVar(pools.numbers.get(1)), ast.cell(sequence.previous), ast.getMember(ast.cell(sequence.last))))),
-        ast.setMember(ast.cell(sequence.last), ast.getVar(pools.numbers.get(1)))));
+                ast.setMember(ast.cell(sequence.first), ast.getVar(pools.numbers.get(1))),                                                  // then
+                ast.block(ast.set(ast.get(ast.self(), ast.cell(sequence.last)), ast.cell(sequence.next), ast.getVar(pools.numbers.get(1))), // else
+                          ast.set(ast.getVar(pools.numbers.get(1)), ast.cell(sequence.previous), ast.getMember(ast.cell(sequence.last))))),
+        ast.setMember(ast.cell(sequence.last), ast.getVar(pools.numbers.get(1))),
+        ast.setMember(ast.cell(dimensions.size), ast.add(ast.getMember(ast.cell(dimensions.size)), ast.cell(pools.numbers.get(1))))));
 #if 0
     listAdd.addAsts(list(
         ListItem* newListItem = new ListItem();

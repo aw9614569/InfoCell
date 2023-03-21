@@ -130,8 +130,7 @@ int main(int argc, char* argv[])
 
     List testListT(kb, kb.type.Number);
     Object testList(kb, testListT[kb.cells.type]);
-//    testList.add(kb.pools.numbers.get(1));
-//    testList.add(kb.pools.numbers.get(2));
+    testList.set(kb.dimensions.size, kb.pools.numbers.get(0));
     printAs.cell(testList.type(), "1");
     printAs.cell(testList.type()[kb.cells.memberOf], "2");
     printAs.cell(testList.type()[kb.cells.memberOf][kb.cells.index], "3");
@@ -147,11 +146,17 @@ int main(int argc, char* argv[])
     listAddCompiled[kb.coding.input][kb.cells.index][kb.coding.self].set(kb.coding.value, testList);
     listAddCompiled[kb.coding.input][kb.cells.index][kb.coding.value].set(kb.coding.value, kb.pools.numbers.get(1));
     printAs.value(testList, "testList");
+    printAs.cell(testList, "testList");
     listAddCompiled.eval();
     printAs.value(testList, "testList after add1");
+    printAs.cell(testList, "testList after add1");
+    printAs.cell(testList[kb.sequence.first], "testList[first] after add1");
     listAddCompiled[kb.coding.input][kb.cells.index][kb.coding.value].set(kb.coding.value, kb.pools.numbers.get(2));
     listAddCompiled.eval();
     printAs.value(testList, "testList after add2");
+    printAs.cell(testList, "testList after add2");
+    printAs.cell(testList[kb.sequence.first], "testList[first] after add2");
+    printAs.cell(testList[kb.sequence.last], "testList[last] after add2");
 
     printAs.value(colorClass);
     printAs.value(colorClass[kb.cells.slots][kb.cells.index][colorRed]);

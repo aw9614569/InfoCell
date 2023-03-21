@@ -288,6 +288,17 @@ bool List::empty() const
 {
     return m_items.empty();
 }
+
+CellI& List::toNative()
+{
+    Object& ret = *new Object(kb, get(kb.cells.type));
+    ret.set(kb.sequence.first, get(kb.sequence.first));
+    ret.set(kb.sequence.last, get(kb.sequence.first));
+    ret.set(kb.dimensions.size, get(kb.dimensions.size));
+
+    return ret;
+}
+
 #pragma endregion
 #pragma region Map::Index::Type::Slots::SlotList::Item
 // ============================================================================
@@ -1721,6 +1732,11 @@ void Function::set(CellI& role, CellI& value)
 
 void Function::operator()()
 {
+    if (m_inputs) {
+        Visitor::visitList(*m_inputs, [this](CellI& arg, int) {
+            arg();
+        });
+    }
     if (m_op) {
         m_op->eval();
     }
@@ -1800,6 +1816,7 @@ void Delete::set(CellI& role, CellI& value)
 
 void Delete::operator()()
 {
+    m_cell->eval();
     CellI* cell = &(*m_cell)[kb.coding.value];
     delete cell;
 }
@@ -2301,6 +2318,8 @@ void Same::set(CellI& role, CellI& value)
 
 void Same::operator()()
 {
+    m_lhs();
+    m_rhs();
     CellI* lhs = &m_lhs[kb.coding.value];
     CellI* rhs = &m_rhs[kb.coding.value];
     m_value = &kb.toKbBool(lhs == rhs);
@@ -2363,6 +2382,8 @@ void NotSame::set(CellI& role, CellI& value)
 
 void NotSame::operator()()
 {
+    m_lhs();
+    m_rhs();
     CellI* lhs = &m_lhs[kb.coding.value];
     CellI* rhs = &m_rhs[kb.coding.value];
     m_value = &kb.toKbBool(lhs != rhs);
@@ -2425,6 +2446,8 @@ void Equal::set(CellI& role, CellI& value)
 
 void Equal::operator()()
 {
+    m_lhs();
+    m_rhs();
     CellI& lhs = m_lhs[kb.coding.value];
     CellI& rhs = m_rhs[kb.coding.value];
     m_value = &kb.toKbBool(lhs == rhs);
@@ -2677,6 +2700,8 @@ void And::set(CellI& role, CellI& value)
 
 void And::operator()()
 {
+    m_lhs();
+    m_rhs();
     bool lhs = m_lhs[kb.coding.value] == kb.boolean.true_;
     bool rhs = m_rhs[kb.coding.value] == kb.boolean.true_;
     m_value = &kb.toKbBool(lhs && rhs);
@@ -2739,6 +2764,8 @@ void Or::set(CellI& role, CellI& value)
 
 void Or::operator()()
 {
+    m_lhs();
+    m_rhs();
     bool lhs = m_lhs[kb.coding.value] == kb.boolean.true_;
     bool rhs = m_rhs[kb.coding.value] == kb.boolean.true_;
     m_value = &kb.toKbBool(lhs || rhs);
@@ -2855,6 +2882,8 @@ void Add::set(CellI& role, CellI& value)
 
 void Add::operator()()
 {
+    m_lhs();
+    m_rhs();
     int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
     int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
     m_value = &kb.pools.numbers.get(lhs + rhs);
@@ -2917,6 +2946,8 @@ void Subtract::set(CellI& role, CellI& value)
 
 void Subtract::operator()()
 {
+    m_lhs();
+    m_rhs();
     int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
     int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
     m_value = &kb.pools.numbers.get(lhs - rhs);
@@ -2979,6 +3010,8 @@ void Multiply::set(CellI& role, CellI& value)
 
 void Multiply::operator()()
 {
+    m_lhs();
+    m_rhs();
     int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
     int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
     m_value = &kb.pools.numbers.get(lhs * rhs);
@@ -3041,6 +3074,8 @@ void Divide::set(CellI& role, CellI& value)
 
 void Divide::operator()()
 {
+    m_lhs();
+    m_rhs();
     int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
     int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
     m_value = &kb.pools.numbers.get(lhs / rhs);
@@ -3103,6 +3138,8 @@ void LessThan::set(CellI& role, CellI& value)
 
 void LessThan::operator()()
 {
+    m_lhs();
+    m_rhs();
     int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
     int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
     m_value = lhs < rhs ? &kb.boolean.true_ : &kb.boolean.false_;
@@ -3165,6 +3202,8 @@ void GreaterThan::set(CellI& role, CellI& value)
 
 void GreaterThan::operator()()
 {
+    m_lhs();
+    m_rhs();
     int lhs = static_cast<Number&>(m_lhs[kb.coding.value]).value();
     int rhs = static_cast<Number&>(m_rhs[kb.coding.value]).value();
     m_value = lhs > rhs ? &kb.boolean.true_ : &kb.boolean.false_;

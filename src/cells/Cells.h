@@ -140,6 +140,8 @@ public:
 
     bool empty() const;
 
+    CellI& toNative();
+
     struct Value
     {
         Value(List& list, CellI& value);
