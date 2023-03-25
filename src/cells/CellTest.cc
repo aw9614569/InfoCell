@@ -67,8 +67,6 @@ public:
 
 using namespace control;
 
-static void oldTest();
-
 class CellTest : public ::testing::Test
 {
 protected:
@@ -147,20 +145,8 @@ TEST_F(CellTest, BasicControlAddTest)
     EXPECT_EQ(&add10[kb.coding.value], &kb.pools.numbers.get(52));
 }
 
-int main(int argc, char** argv)
+TEST_F(CellTest, CreatingCustomType)
 {
-    oldTest();
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
-
-void oldTest()
-{
-    brain::Brain kb;
-    auto& cells = kb.cells;
-
-    PrintAs printAs;
-
     Object colorRed(kb, kb.type.Any, "red");
     Object colorGreen(kb, kb.type.Any, "green");
     Object colorBlue(kb, kb.type.Any, "blue");
@@ -176,9 +162,44 @@ void oldTest()
     redColor.set(colorGreen, kb.pools.numbers.get(0));
     redColor.set(colorBlue, kb.pools.numbers.get(0));
 
-    Number& number_0   = kb.pools.numbers.get(0);
-    Number& number_255 = kb.pools.numbers.get(255);
+    printAs.value(colorClass, "colorClass:");
+    printAs.value(colorClass[kb.cells.slots][kb.cells.list], "colorClass::slots");
+    printAs.value(colorClass[kb.cells.slots][kb.cells.index][colorRed]);
+    EXPECT_TRUE(colorClass[kb.cells.slots][kb.cells.index].has(colorRed));
+    EXPECT_TRUE(colorClass[kb.cells.slots][kb.cells.index].has(colorGreen));
+    EXPECT_TRUE(colorClass[kb.cells.slots][kb.cells.index].has(colorBlue));
+    printAs.value(colorClass[kb.cells.slots][kb.cells.index][colorRed][kb.cells.type], "colorClass slot of colorRed");
+    EXPECT_EQ(&colorClass[kb.cells.slots][kb.cells.index][colorRed][kb.cells.type], &kb.type.Slot);
+    EXPECT_EQ(&colorClass[kb.cells.slots][kb.cells.index][colorRed][kb.cells.type], &kb.type.Slot);
+    EXPECT_EQ(&colorClass[kb.cells.slots][kb.cells.index][colorGreen][kb.cells.type], &kb.type.Slot);
+    EXPECT_EQ(&colorClass[kb.cells.slots][kb.cells.index][colorBlue][kb.cells.type], &kb.type.Slot);
+    printAs.value(redColor);
 
+    printAs.cell(redColor);
+    printAs.cell(colorClass[kb.cells.slots][kb.cells.index][colorRed]);
+    printAs.cell(colorClass[kb.cells.slots][kb.cells.index]);
+
+    printAs.svgStruct(redColor, "redColor");
+    printAs.svgStruct(colorRed, "colorRed");
+    printAs.svgStruct(colorClass, "Color");
+    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.index], "SlotIndex of Color");
+    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list], "SlotList of Color");
+    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list][kb.sequence.first], "SlotListItem1 of Color");
+    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list][kb.sequence.first][kb.coding.value], "Slot1 of Color");
+    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list][kb.sequence.first][kb.sequence.next], "SlotListItem2 of Color");
+    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list][kb.sequence.first][kb.sequence.next][kb.coding.value], "Slot2 of Color");
+    printAs.value(colorClass[kb.cells.slots][kb.cells.index]);
+    printAs.value(colorClass[kb.cells.slots][kb.cells.index][kb.cells.type]);
+    printAs.value(colorClass[kb.cells.slots][kb.cells.index][kb.cells.type][kb.cells.slots][kb.cells.index]);
+    printAs.cell(colorClass);
+
+    printAs.svg(redColor);
+    printAs.svg(colorClass[kb.cells.slots][kb.cells.index][colorRed]);
+    printAs.svg(colorClass);
+}
+
+TEST_F(CellTest, CreatingTemplate)
+{
     CellI& templateListParamType = kb.templates.list.getParamType();
     Object templateListParam(kb, templateListParamType);
     templateListParam.set(kb.coding.objectType, kb.type.Digit);
@@ -186,7 +207,10 @@ void oldTest()
     printAs.value(templateListType, "compiled templateListType");
     printAs.cell(templateListType);
     printAs.value(templateListType[kb.cells.subTypes][kb.cells.index][kb.coding.objectType]);
+}
 
+TEST_F(CellTest, CreatingListAdd)
+{
     Object testList(kb, kb.type.ListOf(kb.type.Number));
     testList.set(kb.dimensions.size, kb.pools.numbers.get(0));
     testList.set(kb.coding.objectType, kb.type.Number);
@@ -197,7 +221,7 @@ void oldTest()
 
     Object listAddInput(kb, kb.listAdd.inputType());
     printAs.value(listAddInput, "listAddInput");
-    listAddInput.set(kb.coding.value, number_255);
+    listAddInput.set(kb.coding.value, kb.pools.numbers.get(255));
     printAs.cell(listAddInput, "listAddInput set");
     CellI& listAddCompiled = kb.listAdd.compile();
     printAs.cell(listAddCompiled, "listAddCompiled");
@@ -216,30 +240,18 @@ void oldTest()
     printAs.cell(testList, "testList after add2");
     printAs.cell(testList[kb.sequence.first], "testList[first] after add2");
     printAs.cell(testList[kb.sequence.last], "testList[last] after add2");
+}
 
-    printAs.value(colorClass);
-    printAs.value(colorClass[kb.cells.slots][kb.cells.index][colorRed]);
-    printAs.value(redColor);
+TEST_F(CellTest, CreatingNumber)
+{
+    Number& number_0   = kb.pools.numbers.get(0);
+    Number& number_255 = kb.pools.numbers.get(255);
+
     printAs.value(number_255);
     printAs.value(number_255[kb.coding.value][kb.sequence.first][kb.coding.value]);
 
-    printAs.cell(redColor);
-    printAs.cell(colorClass[kb.cells.slots][kb.cells.index][colorRed]);
-    printAs.cell(colorClass[kb.cells.slots][kb.cells.index]);
     printAs.svgStruct(kb.cells.emptyObject, "emptyObject");
-    printAs.svgStruct(redColor, "redColor");
-    printAs.svgStruct(colorRed, "colorRed");
-    printAs.svgStruct(colorClass, "Color");
-    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.index], "SlotIndex of Color");
-    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list], "SlotList of Color");
-    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list][kb.sequence.first], "SlotListItem1 of Color");
-    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list][kb.sequence.first][kb.coding.value], "Slot1 of Color");
-    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list][kb.sequence.first][kb.sequence.next], "SlotListItem2 of Color");
-    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list][kb.sequence.first][kb.sequence.next][kb.coding.value], "Slot2 of Color");
-    printAs.value(colorClass[kb.cells.slots][kb.cells.index]);
-    printAs.value(colorClass[kb.cells.slots][kb.cells.index][kb.cells.type]);
-    printAs.value(colorClass[kb.cells.slots][kb.cells.index][kb.cells.type][kb.cells.slots][kb.cells.index]);
-    printAs.cell(colorClass);
+
     printAs.cell(number_255);
     printAs.cell(number_255[kb.numbers.sign]);
     printAs.cell(number_255[kb.coding.value]);
@@ -248,9 +260,6 @@ void oldTest()
     printAs.cell(number_255[kb.coding.value][kb.sequence.last]);
     printAs.cell(number_255[kb.coding.value][kb.dimensions.size]);
 
-    printAs.svg(redColor);
-    printAs.svg(colorClass[kb.cells.slots][kb.cells.index][colorRed]);
-    printAs.svg(colorClass);
     printAs.svg(number_255);
     printAs.svg(number_255[kb.numbers.sign]);
     printAs.svg(number_255[kb.coding.value]);
@@ -258,6 +267,12 @@ void oldTest()
     printAs.svg(number_255[kb.coding.value][kb.sequence.first][kb.coding.value]);
     printAs.svg(number_255[kb.coding.value][kb.sequence.last]);
     printAs.svg(number_255[kb.coding.value][kb.dimensions.size]);
+}
 
+int main(int argc, char** argv)
+{
+    ::testing::InitGoogleTest(&argc, argv);
+    int ret = RUN_ALL_TESTS();
     std::cout << "Constructed: " << CellI::s_constructed << ", destructed: " << CellI::s_destructed << ", live: " << CellI::s_constructed - CellI::s_destructed << std::endl;
+    return ret;
 }
