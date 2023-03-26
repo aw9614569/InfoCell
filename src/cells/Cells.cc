@@ -536,6 +536,8 @@ Map::Index::Type::Slots::Slots(brain::Brain& kb, IndexedValues& indexedValues, O
 {
     if (&valueType == &kb.type.Slot) {
         label("Index<Slot>::Map");
+    }else if (&valueType == &kb.type.control.Function) {
+        label("Index<Method>::Map");
     } else {
         label(std::format("Index<{}>::Map", valueType.label()));
     }
@@ -588,6 +590,8 @@ Map::Index::Type::Type(brain::Brain& kb, IndexedValues& indexedValues, OrderedVa
 {
     if (&valueType == &kb.type.Slot) {
         label("Index<Slot>");
+    } else if (&valueType == &kb.type.control.Function) {
+        label("Index<Method>");
     } else {
         label(std::format("Index<{}>", valueType.label()));
     }
@@ -791,7 +795,8 @@ Type::Type(brain::Brain& kb, const std::string& label) :
     CellI(kb, label),
     m_slots(kb, kb.type.Slot),
     m_subTypes(kb, kb.type.Type_),
-    m_memberOf(kb, kb.type.Type_)
+    m_memberOf(kb, kb.type.Type_),
+    m_methods(kb, kb.type.control.Function)
 {
 }
 
@@ -807,6 +812,9 @@ bool Type::has(CellI& role)
         return true;
     }
     if (&role == &kb.cells.memberOf && !m_memberOf.empty()) {
+        return true;
+    }
+    if (&role == &kb.cells.methods && !m_methods.empty()) {
         return true;
     }
 
@@ -836,6 +844,9 @@ CellI& Type::operator[](CellI& role)
     }
     if (&role == &kb.cells.memberOf) {
         return m_memberOf;
+    }
+    if (&role == &kb.cells.methods) {
+        return m_methods;
     }
 
     return kb.cells.emptyObject;
@@ -870,6 +881,11 @@ void Type::addSubType(CellI& role, Type& type)
 void Type::addMembership(CellI& type)
 {
     m_memberOf.add(type, type);
+}
+
+void Type::addMethod(CellI& role, CellI& method)
+{
+    m_methods.add(role, method);
 }
 #pragma endregion
 #pragma region Template

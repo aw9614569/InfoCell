@@ -379,11 +379,13 @@ public:
     }
     void addSubType(CellI& role, Type& type);
     void addMembership(CellI& type);
+    void addMethod(CellI& role, CellI& method);
 
 protected:
     Map m_slots;
     Map m_subTypes;
     Map m_memberOf;
+    Map m_methods;
 };
 
 // ============================================================================

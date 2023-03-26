@@ -177,6 +177,7 @@ Cells::Cells(brain::Brain& kb, Type& voidType, Type& anyType) :
     index(kb, anyType, "index"),
     list(kb, anyType, "list"),
     memberOf(kb, anyType, "memberOf"),
+    methods(kb, anyType, "methods"),
     emptyObject(kb, voidType, "emptyObject")
 {
 }
@@ -849,7 +850,8 @@ Sequence::Sequence(brain::Brain& kb) :
     last(kb, kb.type.Any, "last"),
     previous(kb, kb.type.Any, "previous"),
     next(kb, kb.type.Any, "next"),
-    current(kb, kb.type.Any, "current")
+    current(kb, kb.type.Any, "current"),
+    add(kb, kb.type.Any, "add")
 {
 }
 
@@ -1031,7 +1033,8 @@ Brain::Brain() :
     type.Type_.addSlots(
         cells.slot(cells.slots, type.MapOf(type.Slot)),
         cells.slot(cells.subTypes, type.MapOf(type.Type_)),
-        cells.slot(cells.memberOf, type.MapOf(type.Type_)));
+        cells.slot(cells.memberOf, type.MapOf(type.Type_)),
+        cells.slot(cells.methods, type.MapOf(type.control.Function)));
 
     type.template_.ParameterDecl.addSlots(
         cells.slot(cells.slotType, type.Type_),
@@ -1244,6 +1247,7 @@ Brain::Brain() :
         param[coding.self].set(sequence.last, newListItem);
     ));
 #endif
+    type.List.addMethod(sequence.add, listAdd.compile());
 
     CellTemplate testTemplate(*this);
     testTemplate.type(type.Type_);

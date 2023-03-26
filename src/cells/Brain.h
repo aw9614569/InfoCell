@@ -167,6 +167,7 @@ public:
     Object index;
     Object list;
     Object memberOf;
+    Object methods;
     Object emptyObject;
 };
 
@@ -522,6 +523,7 @@ public:
     Object previous;
     Object next;
     Object current;
+    Object add;
 };
 
 class Equation
