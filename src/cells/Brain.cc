@@ -10,6 +10,7 @@ namespace brain {
 Cells::Cells(brain::Brain& kb) :
     kb(kb),
     type(kb, kb.type.Cell, "type"),
+    eval(kb, kb.type.Cell, "eval"),
     constructor(kb, kb.type.Cell, "constructor"),
     destructor(kb, kb.type.Cell, "destructor"),
     slots(kb, kb.type.Cell, "slots"),
@@ -538,31 +539,40 @@ CellI& Ast::Function::compileImpl(CellI* type)
 
 void Ast::Function::compileParams(cells::op::Function& function, CellI* type)
 {
+    std::stringstream iss;
+    std::stringstream oss;
     if (m_inputs || type) {
-        std::stringstream ss;
         Map& params = *new Map(kb, kb.type.op.Var);
         if (type) {
             params.add(kb.coding.self, *new cells::op::Var(kb, *type));
-            ss << kb.coding.self.label() << ": " << (*type).label();
+            iss << kb.coding.self.label() << ": " << (*type).label();
         }
         if (m_inputs) {
-            Visitor::visitList(inputs(), [this, &params, &ss](CellI& slot, int i) {
-                params.add(slot[kb.cells.slotRole], *new cells::op::Var(kb, slot[kb.cells.slotType]));
+            Visitor::visitList(inputs(), [this, &params, &iss](CellI& slot, int i) {
                 if (!params.empty()) {
-                    ss << ", ";
+                    iss << ", ";
                 }
-                ss << slot[kb.cells.slotRole].label() << ": " << slot[kb.cells.slotType].label();
+                iss << slot[kb.cells.slotRole].label() << ": " << slot[kb.cells.slotType].label();
+                params.add(slot[kb.cells.slotRole], *new cells::op::Var(kb, slot[kb.cells.slotType]));
             });
         }
-        function.label(std::format("{}({})", label(), ss.str()));
         function.addInputs(params);
     }
     if (m_outputs) {
         Map& params = *new Map(kb, kb.type.op.Var);
-        Visitor::visitList(outputs(), [this, &params](CellI& slot, int i) {
+        Visitor::visitList(outputs(), [this, &params, &oss](CellI& slot, int i) {
+            if (!params.empty()) {
+                oss << ", ";
+            }
+            oss << slot[kb.cells.slotRole].label() << ": " << slot[kb.cells.slotType].label();
             params.add(slot[kb.cells.slotRole], *new cells::op::Var(kb, slot[kb.cells.slotType]));
         });
         function.addOutputs(params);
+    }
+    if (m_outputs) {
+        function.label(std::format("fn {}({}) -> ({})", label(), iss.str(), oss.str()));
+    } else {
+        function.label(std::format("fn {}({})", label(), iss.str()));
     }
 }
 

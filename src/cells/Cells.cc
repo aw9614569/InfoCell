@@ -133,7 +133,11 @@ void Object::set(CellI& role, CellI& value)
 
 void Object::operator()()
 {
-    // Do nothing, this is a data cell
+    auto evalIt = m_slots.find(&kb.cells.eval);
+    if (evalIt == m_slots.end())
+        return;
+
+    evalIt->second->eval();
 }
 
 CellI& Object::operator[](CellI& role)
