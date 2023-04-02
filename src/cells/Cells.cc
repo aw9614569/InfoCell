@@ -155,6 +155,40 @@ void Object::constructor()
     getConstructor()();
 }
 
+void Object::constructor(Param param1)
+{
+    CellI& method = getConstructor();
+    setFnParam(method, param1);
+    method();
+}
+
+void Object::constructor(Param param1, Param param2)
+{
+    CellI& method = getConstructor();
+    setFnParam(method, param1);
+    setFnParam(method, param2);
+    method();
+}
+
+void Object::constructor(Param param1, Param param2, Param param3)
+{
+    CellI& method = getConstructor();
+    setFnParam(method, param1);
+    setFnParam(method, param2);
+    setFnParam(method, param3);
+    method();
+}
+
+void Object::constructor(Param param1, Param param2, Param param3, Param param4)
+{
+    CellI& method = getConstructor();
+    setFnParam(method, param1);
+    setFnParam(method, param2);
+    setFnParam(method, param3);
+    setFnParam(method, param4);
+    method();
+}
+
 void Object::destructor()
 {
     getMethod(kb.cells.destructor)();
@@ -163,6 +197,48 @@ void Object::destructor()
 CellI& Object::method(CellI& role)
 {
     CellI& method = getMethod(role);
+    method();
+
+    return getFnValue(method);
+}
+
+CellI& Object::method(CellI& role, Param param1)
+{
+    CellI& method = getMethod(role);
+    setFnParam(method, param1);
+    method();
+
+    return getFnValue(method);
+}
+
+CellI& Object::method(CellI& role, Param param1, Param param2)
+{
+    CellI& method = getMethod(role);
+    setFnParam(method, param1);
+    setFnParam(method, param2);
+    method();
+
+    return getFnValue(method);
+}
+
+CellI& Object::method(CellI& role, Param param1, Param param2, Param param3)
+{
+    CellI& method = getMethod(role);
+    setFnParam(method, param1);
+    setFnParam(method, param2);
+    setFnParam(method, param3);
+    method();
+
+    return getFnValue(method);
+}
+
+CellI& Object::method(CellI& role, Param param1, Param param2, Param param3, Param param4)
+{
+    CellI& method = getMethod(role);
+    setFnParam(method, param1);
+    setFnParam(method, param2);
+    setFnParam(method, param3);
+    setFnParam(method, param4);
     method();
 
     return getFnValue(method);

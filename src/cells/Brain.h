@@ -36,6 +36,7 @@ public:
     Object next;
     Object current;
     Object add;
+    Object empty;
 };
 
 class Dimensions
@@ -60,6 +61,7 @@ public:
     Object else_;
     Object input;
     Object item;
+    Object keyType;
     Object label;
     Object lhs;
     Object objectType;
@@ -589,6 +591,17 @@ public:
     Visualization visualization;
     Numbers numbers;
     Arc arc;
+
+    CellI& _0_;
+    CellI& _1_;
+    CellI& _2_;
+    CellI& _3_;
+    CellI& _4_;
+    CellI& _5_;
+    CellI& _6_;
+    CellI& _7_;
+    CellI& _8_;
+    CellI& _9_;
 
     CellI& toKbBool(bool value);
 

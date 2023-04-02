@@ -71,34 +71,18 @@ public:
     void accept(Visitor& visitor) override;
 
     void constructor();
-
-    template <typename... Args>
-    void constructor(Param param, Args&&... args)
-    {
-        CellI& method = getConstructor();
-        setFnParam(method, param);
-        if constexpr (sizeof...(Args) > 0) {
-            setFnParam(method, std::forward<Args>(args)...);
-        }
-        method();
-    }
+    void constructor(Param param1);
+    void constructor(Param param1, Param param2);
+    void constructor(Param param1, Param param2, Param param3);
+    void constructor(Param param1, Param param2, Param param3, Param param4);
 
     void destructor();
 
     CellI& method(CellI& role);
-
-    template <typename... Args>
-    CellI& method(CellI& role, Param param, Args&&... args)
-    {
-        CellI& method = getMethod(role);
-        setFnParam(method, param);
-        if constexpr (sizeof...(Args) > 0) {
-            setFnParam(method, std::forward<Args>(args)...);
-        }
-        method();
-
-        return getFnValue(method);
-    }
+    CellI& method(CellI& role, Param param1);
+    CellI& method(CellI& role, Param param1, Param param2);
+    CellI& method(CellI& role, Param param1, Param param2, Param param3);
+    CellI& method(CellI& role, Param param1, Param param2, Param param3, Param param4);
 
 protected:
     CellI& getConstructor();

@@ -80,24 +80,36 @@ protected:
     brain::Brain& kb;
     brain::Cells& cells = kb.cells;
     PrintAs printAs;
-    CellI& _0_ = kb.pools.numbers.get(0);
-    CellI& _1_ = kb.pools.numbers.get(1);
-    CellI& _2_ = kb.pools.numbers.get(2);
-    CellI& _3_ = kb.pools.numbers.get(3);
+    CellI& _0_    = kb.pools.numbers.get(0);
+    CellI& _1_    = kb.pools.numbers.get(1);
+    CellI& _2_    = kb.pools.numbers.get(2);
+    CellI& _3_    = kb.pools.numbers.get(3);
+    CellI& _4_    = kb.pools.numbers.get(4);
+    CellI& _5_    = kb.pools.numbers.get(5);
+    CellI& _6_    = kb.pools.numbers.get(6);
+    CellI& _7_    = kb.pools.numbers.get(7);
+    CellI& _8_    = kb.pools.numbers.get(8);
+    CellI& _9_    = kb.pools.numbers.get(9);
+    CellI& true_  = kb.boolean.true_;
+    CellI& false_ = kb.boolean.false_;
 };
 std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 
-TEST_F(CellTest, CallMethod)
+TEST_F(CellTest, List)
 {
     Object list(kb, kb.type.List);
 
     list.constructor();
     printAs.value(list);
     EXPECT_EQ(&list[kb.dimensions.size], &_0_);
+    EXPECT_EQ(&list.method(kb.dimensions.size), &_0_);
+    EXPECT_EQ(&list.method(kb.sequence.empty), &true_);
     EXPECT_EQ(&list[kb.coding.objectType], &kb.type.Cell);
 
     list.method(kb.sequence.add, { kb.coding.value, _1_ });
     EXPECT_EQ(&list[kb.dimensions.size], &_1_);
+    EXPECT_EQ(&list.method(kb.dimensions.size), &_1_);
+    EXPECT_EQ(&list.method(kb.sequence.empty), &false_);
 
     CellI& firstItem = list[kb.sequence.first];
     EXPECT_EQ(&firstItem, &list[kb.sequence.last]);
@@ -108,6 +120,8 @@ TEST_F(CellTest, CallMethod)
 
     list.method(kb.sequence.add, { kb.coding.value, kb.pools.numbers.get(2) });
     EXPECT_EQ(&list[kb.dimensions.size], &_2_);
+    EXPECT_EQ(&list.method(kb.dimensions.size), &_2_);
+    EXPECT_EQ(&list.method(kb.sequence.empty), &false_);
 
     CellI& secondItem = list[kb.sequence.last];
     EXPECT_EQ(&firstItem, &list[kb.sequence.first]);
@@ -124,6 +138,8 @@ TEST_F(CellTest, CallMethod)
     printAs.value(list);
     list.method(kb.sequence.add, { kb.coding.value, _3_ });
     EXPECT_EQ(&list[kb.dimensions.size], &_3_);
+    EXPECT_EQ(&list.method(kb.dimensions.size), &_3_);
+    EXPECT_EQ(&list.method(kb.sequence.empty), &false_);
 
     CellI& thirdItem = list[kb.sequence.last];
     EXPECT_EQ(&firstItem, &list[kb.sequence.first]);
@@ -146,13 +162,44 @@ TEST_F(CellTest, CallMethod)
     printAs.value(size);
 }
 
-TEST_F(CellTest, CreatetTypeWithConstructor)
+TEST_F(CellTest, Map)
 {
-    Object newType(kb, kb.type.Type_);
-    newType.constructor({ cells.slots, kb.map(kb.sequence.previous, kb.cells.slot(kb.sequence.previous, kb.type.ListItem)) });
-//    newType.constructor({ cells.slots, kb.list(kb.cells.slot(kb.sequence.previous, kb.type.ListItem)) });
+    Object map(kb, kb.type.Map);
 
-    printAs.cell(newType);
+    map.constructor({ kb.coding.keyType, kb.type.Number }, { kb.coding.objectType, kb.type.Color });
+    printAs.value(map);
+    printAs.cell(map);
+    EXPECT_EQ(&map[kb.dimensions.size], &_0_);
+    EXPECT_EQ(&map.method(kb.dimensions.size), &_0_);
+    EXPECT_EQ(&map.method(kb.sequence.empty), &true_);
+    EXPECT_EQ(&map[kb.coding.keyType], &kb.type.Number);
+    EXPECT_EQ(&map[kb.coding.objectType], &kb.type.Color);
+
+#if 0
+    map.method(kb.sequence.add, { _1_, kb.colors.blue });
+    EXPECT_EQ(&map[kb.dimensions.size], &_1_);
+    EXPECT_EQ(&map.method(kb.dimensions.size), &_1_);
+    EXPECT_EQ(&map.method(kb.sequence.empty), &false_);
+#endif
+}
+
+TEST_F(CellTest, CreatedTypeWithConstructor)
+{
+    Map emptyMap(kb, kb.type.Cell);
+    Object newType(kb, kb.type.Type_);
+    newType.constructor({ cells.slots, kb.map(kb.dimensions.size, kb.cells.slot(kb.dimensions.size, kb.type.Number)) },
+                        { cells.subTypes, emptyMap },
+                        { cells.memberOf, kb.map(kb.type.List, kb.type.List) },
+                        { cells.methods, emptyMap });
+    //    newType.constructor({ cells.slots, kb.list(kb.cells.slot(kb.sequence.previous, kb.type.ListItem)) });
+    printAs.value(newType[cells.slots]);
+    printAs.value(newType[cells.slots][cells.list], "newType[cells.slots][cells.list]");
+    printAs.value(newType[cells.memberOf][cells.list], "newType[cells.memberOf][cells.list]");
+    Object newObject(kb, newType);
+    printAs.cell(newObject, "Empty newObject");
+    EXPECT_ANY_THROW(newObject.set(kb.dimensions.height, _1_));
+    EXPECT_NO_THROW(newObject.set(kb.dimensions.size, _1_));
+    printAs.cell(newObject, "newObject.size = 1");
 }
 
 TEST_F(CellTest, CreatingListAdd)
@@ -231,8 +278,8 @@ TEST_F(CellTest, BasicControlOpTest)
     printAs.value(sameOpEq[kb.coding.value], "testValue1 == testValue1");
     printAs.value(sameOpNe[kb.coding.value], "testValue1 != testValue1");
 
-    EXPECT_EQ(&sameOpEq[kb.coding.value], &kb.boolean.true_);
-    EXPECT_EQ(&sameOpNe[kb.coding.value], &kb.boolean.false_);
+    EXPECT_EQ(&sameOpEq[kb.coding.value], &true_);
+    EXPECT_EQ(&sameOpNe[kb.coding.value], &false_);
 }
 
 TEST_F(CellTest, BasicControlAddTest)

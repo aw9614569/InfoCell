@@ -30,7 +30,8 @@ Sequence::Sequence(brain::Brain& kb) :
     previous(kb, kb.type.Cell, "previous"),
     next(kb, kb.type.Cell, "next"),
     current(kb, kb.type.Cell, "current"),
-    add(kb, kb.type.Cell, "add")
+    add(kb, kb.type.Cell, "add"),
+    empty(kb, kb.type.Cell, "empty")
 {
 }
 
@@ -51,6 +52,7 @@ Coding::Coding(brain::Brain& kb) :
     else_(kb, kb.type.Cell, "else_"),
     input(kb, kb.type.Cell, "input"),
     item(kb, kb.type.Cell, "item"),
+    keyType(kb, kb.type.Cell, "keyType"),
     label(kb, kb.type.Cell, "label"),
     lhs(kb, kb.type.Cell, "lhs"),
     objectType(kb, kb.type.Cell, "objectType"),
@@ -210,6 +212,7 @@ Op::Op(brain::Brain& kb) :
 
     Function.addSlots(
         cells.slot(coding.input, type.MapOf(Base)),
+        cells.slot(coding.ast, type.ast.Base),
         cells.slot(coding.op, type.ListOf(Base)),
         cells.slot(coding.output, type.MapOf(Base)));
 }
@@ -527,15 +530,7 @@ CellI& Ast::Function::compileImpl(CellI* type)
 {
     cells::op::Function& function = *new cells::op::Function(kb);
     compileParams(function, type);
-
-    std::stringstream ss;
-    Visitor::visitList(function[kb.coding.input][kb.cells.list], [this, &ss, &function](CellI& slot, int i) {
-        if (i != 0) {
-            ss << ", ";
-        }
-        ss << slot[kb.cells.slotRole].label() << ": " << slot[kb.cells.slotType].label();
-    });
-    function.label(std::format("{}({})", label(), ss.str()));
+    function.set(kb.coding.ast, asts());
     function.set(kb.coding.op, compileAst(asts(), function, type));
 
     return function;
@@ -544,15 +539,22 @@ CellI& Ast::Function::compileImpl(CellI* type)
 void Ast::Function::compileParams(cells::op::Function& function, CellI* type)
 {
     if (m_inputs || type) {
+        std::stringstream ss;
         Map& params = *new Map(kb, kb.type.op.Var);
         if (type) {
             params.add(kb.coding.self, *new cells::op::Var(kb, *type));
+            ss << kb.coding.self.label() << ": " << (*type).label();
         }
         if (m_inputs) {
-            Visitor::visitList(inputs(), [this, &params](CellI& slot, int i) {
+            Visitor::visitList(inputs(), [this, &params, &ss](CellI& slot, int i) {
                 params.add(slot[kb.cells.slotRole], *new cells::op::Var(kb, slot[kb.cells.slotType]));
+                if (!params.empty()) {
+                    ss << ", ";
+                }
+                ss << slot[kb.cells.slotRole].label() << ": " << slot[kb.cells.slotType].label();
             });
         }
+        function.label(std::format("{}({})", label(), ss.str()));
         function.addInputs(params);
     }
     if (m_outputs) {
@@ -1152,7 +1154,18 @@ Brain::Brain() :
     boolean(*this),
     visualization(*this),
     numbers(*this),
-    arc(*this)
+    arc(*this),
+    _0_(pools.numbers.get(0)),
+    _1_(pools.numbers.get(1)),
+    _2_(pools.numbers.get(2)),
+    _3_(pools.numbers.get(3)),
+    _4_(pools.numbers.get(4)),
+    _5_(pools.numbers.get(5)),
+    _6_(pools.numbers.get(6)),
+    _7_(pools.numbers.get(7)),
+    _8_(pools.numbers.get(8)),
+    _9_(pools.numbers.get(9))
+
 {
     type.Type_.addSlots(
         cells.slot(cells.slots, type.MapOf(type.Slot)),
@@ -1177,47 +1190,92 @@ Brain::Brain() :
     type.List.addMembership(
         type.Container);
 
-    Ast::Function& typeCtor = *new Ast::Function(*this, "Type::Ctor");
+    type.Map.addSlots(
+        cells.slot(coding.keyType, type.Cell),
+        cells.slot(coding.objectType, type.Cell),
+        cells.slot(cells.list, type.ListOf(type.Cell)),
+        cells.slot(cells.index, type.Index),
+        cells.slot(dimensions.size, type.Number));
 
+    Ast::Function& mapCtor = *new Ast::Function(*this, "Map::Ctor");
+    mapCtor.addInputs(list(
+        ast.parameterDecl(coding.keyType, type.Cell),
+        ast.parameterDecl(coding.objectType, type.Cell)));
+    mapCtor.addAsts(ast.block(
+        ast.setMember(ast.cell(dimensions.size), ast.cell(_0_)),
+        ast.setMember(ast.cell(coding.keyType), ast.parameter(coding.keyType)),
+        ast.setMember(ast.cell(coding.objectType), ast.parameter(coding.objectType))));
+    type.Map.addMethod(cells.constructor, mapCtor.compile(type.Map));
+
+    Ast::Function& mapAdd  = *new Ast::Function(*this, "Map::Add");
+    mapAdd.addInputs(list(
+        ast.parameterDecl(coding.keyType, type.Cell),
+        ast.parameterDecl(coding.objectType, type.Cell)));
+    mapAdd.addAsts(ast.block(
+        ast.setMember(ast.cell(dimensions.size), ast.add(ast.getMember(ast.cell(dimensions.size)), ast.cell(_1_)))));
+    type.Map.addMethod(sequence.add, mapAdd.compile(type.Map));
+
+    Ast::Function& mapSize = *new Ast::Function(*this, "Map::Size");
+    mapSize.addOutputs(list(
+        ast.parameterDecl(coding.value, type.Number)));
+    mapSize.addAsts(ast.block(
+        ast.return_(ast.getMember(ast.cell(dimensions.size)))));
+    type.Map.addMethod(dimensions.size, mapSize.compile(type.Map));
+
+    Ast::Function& mapEmpty = *new Ast::Function(*this, "Map::Empty");
+    mapEmpty.addOutputs(list(
+        ast.parameterDecl(coding.value, type.Boolean)));
+    mapEmpty.addAsts(ast.block(
+        ast.if_(ast.equal(ast.getMember(ast.cell(dimensions.size)), ast.cell(_0_)), ast.return_(ast.cell(boolean.true_)), ast.return_(ast.cell(boolean.false_)))));
+    type.Map.addMethod(sequence.empty, mapEmpty.compile(type.Map));
+
+    Ast::Function& typeCtor = *new Ast::Function(*this, "Type::Ctor");
     typeCtor.addInputs(list(
         ast.parameterDecl(cells.slots, type.ListOf(type.Slot)),
         ast.parameterDecl(cells.subTypes, type.MapOf(type.Type_)),
         ast.parameterDecl(cells.memberOf, type.MapOf(type.Type_)),
         ast.parameterDecl(cells.methods, type.MapOf(type.op.Function))));
-
     typeCtor.addAsts(ast.block(
         ast.setMember(ast.cell(cells.slots), ast.parameter(cells.slots)),
         ast.setMember(ast.cell(cells.subTypes), ast.parameter(cells.subTypes)),
         ast.setMember(ast.cell(cells.memberOf), ast.parameter(cells.memberOf)),
         ast.setMember(ast.cell(cells.methods), ast.parameter(cells.methods))));
-
     type.Type_.addMethod(cells.constructor, typeCtor.compile(type.Type_));
 
-    Ast::Function listCtor(*this, "List::Ctor");
-    Ast::Function listAdd(*this, "List::Add");
-    Ast::Function listSize(*this, "List::Size");
 
+    Ast::Function& listCtor = *new Ast::Function(*this, "List::Ctor");
     listCtor.addAsts(ast.block(
-        ast.setMember(ast.cell(dimensions.size), ast.cell(pools.numbers.get(0))),
+        ast.setMember(ast.cell(dimensions.size), ast.cell(_0_)),
         ast.setMember(ast.cell(coding.objectType), ast.cell(type.Cell))));
+    type.List.addMethod(cells.constructor, listCtor.compile(type.List));
 
+    Ast::Function& listAdd = *new Ast::Function(*this, "List::Add");
     listAdd.addInputs(list(
         ast.parameterDecl(coding.value, type.Cell)));
-
     listAdd.addAsts(ast.block(
-        ast.setVar(pools.numbers.get(1), ast.new_(ast.get(ast.get(ast.get(ast.get(ast.self(), ast.cell(cells.type)), ast.cell(cells.subTypes)), ast.cell(cells.index)), ast.cell(coding.objectType)))),
-        ast.set(ast.getVar(pools.numbers.get(1)), ast.cell(coding.value), ast.parameter(coding.value)),
+        ast.setVar(_1_, ast.new_(ast.get(ast.get(ast.get(ast.get(ast.self(), ast.cell(cells.type)), ast.cell(cells.subTypes)), ast.cell(cells.index)), ast.cell(coding.objectType)))),
+        ast.set(ast.getVar(_1_), ast.cell(coding.value), ast.parameter(coding.value)),
         ast.if_(ast.not_(ast.hasMember(ast.cell(sequence.first))),
-                ast.setMember(ast.cell(sequence.first), ast.getVar(pools.numbers.get(1))),                                                  // then
-                ast.block(ast.set(ast.get(ast.self(), ast.cell(sequence.last)), ast.cell(sequence.next), ast.getVar(pools.numbers.get(1))), // else
-                          ast.set(ast.getVar(pools.numbers.get(1)), ast.cell(sequence.previous), ast.getMember(ast.cell(sequence.last))))),
+                ast.setMember(ast.cell(sequence.first), ast.getVar(_1_)),                                                  // then
+                ast.block(ast.set(ast.get(ast.self(), ast.cell(sequence.last)), ast.cell(sequence.next), ast.getVar(_1_)), // else
+                          ast.set(ast.getVar(_1_), ast.cell(sequence.previous), ast.getMember(ast.cell(sequence.last))))),
         ast.setMember(ast.cell(sequence.last), ast.getVar(pools.numbers.get(1))),
-        ast.setMember(ast.cell(dimensions.size), ast.add(ast.getMember(ast.cell(dimensions.size)), ast.cell(pools.numbers.get(1))))));
+        ast.setMember(ast.cell(dimensions.size), ast.add(ast.getMember(ast.cell(dimensions.size)), ast.cell(_1_)))));
+    type.List.addMethod(sequence.add, listAdd.compile(type.List));
 
+    Ast::Function& listSize = *new Ast::Function(*this, "List::Size");
     listSize.addOutputs(list(
-        ast.parameterDecl(coding.value, type.Cell)));
+        ast.parameterDecl(coding.value, type.Number)));
     listSize.addAsts(ast.block(
         ast.return_(ast.getMember(ast.cell(dimensions.size)))));
+    type.List.addMethod(dimensions.size, listSize.compile(type.List));
+
+    Ast::Function& listEmpty = *new Ast::Function(*this, "List::Empty");
+    listEmpty.addOutputs(list(
+        ast.parameterDecl(coding.value, type.Boolean)));
+    listEmpty.addAsts(ast.block(
+        ast.if_(ast.equal(ast.getMember(ast.cell(dimensions.size)), ast.cell(_0_)), ast.return_(ast.cell(boolean.true_)), ast.return_(ast.cell(boolean.false_)))));
+    type.List.addMethod(sequence.empty, listEmpty.compile(type.List));
 #if 0
     listAdd.addAsts(list(
         ListItem* newListItem = new ListItem();
@@ -1239,9 +1297,6 @@ Brain::Brain() :
     methodData.set(coding.static_, boolean.false_);
     methodData.set(coding.const_, boolean.false_);
 #endif
-    type.List.addMethod(cells.constructor, listCtor.compile(type.List));
-    type.List.addMethod(sequence.add, listAdd.compile(type.List));
-    type.List.addMethod(dimensions.size, listSize.compile(type.List));
 
     type.Number.addSlots(
         cells.slot(coding.value, type.ListOf(type.Digit)),
