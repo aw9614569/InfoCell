@@ -112,6 +112,10 @@ Object::Object(brain::Brain& kb, CellI& type, const std::string& label) :
     constructor();
 }
 
+// Maybe a better idea, to allow marking ordinary methods as constructor, so we don't have to depend on the number of arguments
+// In this case we need an extra parameter for providing the id of the constructor
+// Object map(kb, kb.type.Map, kb.id.myFancyConstructor, { kb.coding.keyType, kb.type.Number }, { kb.coding.objectType, kb.type.Color });
+// We have to extend the type slot descriptor for this
 Object::Object(brain::Brain& kb, CellI& type, Param param1, const std::string& label) :
     CellI(kb, label),
     m_type(type)
