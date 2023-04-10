@@ -157,6 +157,17 @@ Object::Object(brain::Brain& kb, CellI& type, Param param1, Param param2, Param 
     constructor(param1, param2, param3, param4);
 }
 
+Object::~Object()
+{
+    if (kb.initPhase() == InitPhase::Init || kb.initPhase() == InitPhase::DestructBegin) {
+        return;
+    }
+    if (!hasMethod(kb.cells.destructor)) {
+        return;
+    }
+    destructor();
+}
+
 bool Object::has(CellI& role)
 {
     if (&role == &kb.cells.type)

@@ -67,14 +67,13 @@ public:
     Object(brain::Brain& kb, CellI& type, Param param1, Param param2, const std::string& label = "");
     Object(brain::Brain& kb, CellI& type, Param param1, Param param2, Param param3, const std::string& label = "");
     Object(brain::Brain& kb, CellI& type, Param param1, Param param2, Param param3, Param param4, const std::string& label = "");
+    ~Object();
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
-
-    void destructor();
 
     CellI& method(CellI& role);
     CellI& method(CellI& role, Param param1);
@@ -88,6 +87,7 @@ protected:
     void constructor(Param param1, Param param2);
     void constructor(Param param1, Param param2, Param param3);
     void constructor(Param param1, Param param2, Param param3, Param param4);
+    void destructor();
 
     bool hasMethod(CellI& role);
     CellI& getMethod(CellI& role);

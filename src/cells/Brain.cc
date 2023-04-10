@@ -1482,6 +1482,10 @@ Brain::Brain() :
 
     m_initPhase = InitPhase::FullyConstructed;
 }
+Brain::~Brain()
+{
+    m_initPhase = InitPhase::DestructBegin;
+}
 
 CellI& Brain::toKbBool(bool value)
 {

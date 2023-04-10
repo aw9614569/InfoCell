@@ -597,7 +597,8 @@ public:
     {
         Init,
         SlotTypeInitialzed,
-        FullyConstructed
+        FullyConstructed,
+        DestructBegin
     };
 
 protected:
@@ -606,6 +607,7 @@ protected:
 
 public:
     Brain();
+    ~Brain();
     Cells cells;
     Sequence sequence;
     Dimensions dimensions;
