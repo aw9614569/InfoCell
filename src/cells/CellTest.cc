@@ -13,7 +13,8 @@ using namespace synth::cells;
 class PrintAs
 {
 public:
-    PrintAs() :
+    PrintAs(const std::string& postfix) :
+        m_postfix(postfix),
         m_svgPrinter(800, 600),
         m_svgStructPrinter(800, 600)
     {
@@ -21,8 +22,8 @@ public:
 
     ~PrintAs()
     {
-        m_svgPrinter.writeFile(std::format("F:\\Devel\\ARC\\synth\\{:02d}.svg", 1));
-        m_svgStructPrinter.writeFile(std::format("F:\\Devel\\ARC\\synth\\struct-{:02d}.svg", 1));
+        m_svgPrinter.writeFile(std::format("F:\\Devel\\ARC\\synth\\svgv-{}.svg", m_postfix));
+        m_svgStructPrinter.writeFile(std::format("F:\\Devel\\ARC\\synth\\svgs-{}.svg", m_postfix));
     }
 
     void value(CellI& cell, const std::string& label = "")
@@ -61,6 +62,7 @@ public:
         m_svgStructPrinter.showcaseLastResult(caseName);
     }
 
+    std::string m_postfix;
     svg::Printer m_svgPrinter;
     svg::StructPrinter m_svgStructPrinter;
 };
@@ -72,7 +74,7 @@ class CellTest : public ::testing::Test
 protected:
     CellTest() :
         kb(*m_kb),
-        cells(kb.cells)
+        printAs(::testing::UnitTest::GetInstance()->current_test_info()->name())
     {
     }
 
@@ -230,7 +232,7 @@ TEST_F(CellTest, BasicObjectTest)
     EXPECT_EQ(object.label(), "testObject");
     EXPECT_EQ(&object.type(), &testType);
 
-    EXPECT_EQ(&object[kb.coding.value], &kb.cells.emptyObject);
+    EXPECT_ANY_THROW(&object[kb.coding.value]);
     EXPECT_NO_THROW(object.set(kb.coding.value, kb.pools.numbers.get(42)));
     printAs.value(object[kb.coding.value]);
     EXPECT_ANY_THROW(object.set(kb.coding.argument, kb.pools.numbers.get(42)));
@@ -307,9 +309,9 @@ TEST_F(CellTest, CreatingCustomType)
     printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list][kb.sequence.first][kb.coding.value], "Slot1 of Color");
     printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list][kb.sequence.first][kb.sequence.next], "SlotListItem2 of Color");
     printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list][kb.sequence.first][kb.sequence.next][kb.coding.value], "Slot2 of Color");
-    printAs.value(colorClass[kb.cells.slots][kb.cells.index]);
-    printAs.value(colorClass[kb.cells.slots][kb.cells.index][kb.cells.type]);
-    printAs.value(colorClass[kb.cells.slots][kb.cells.index][kb.cells.type][kb.cells.slots][kb.cells.index]);
+    printAs.value(colorClass[kb.cells.slots][kb.cells.index], "colorClass[kb.cells.slots][kb.cells.index]");
+    printAs.value(colorClass[kb.cells.slots][kb.cells.index][kb.cells.type], "colorClass[kb.cells.slots][kb.cells.index][kb.cells.type]");
+    printAs.value(colorClass[kb.cells.slots][kb.cells.index][kb.cells.type][kb.cells.slots][kb.cells.index], "colorClass[kb.cells.slots][kb.cells.index][kb.cells.type][kb.cells.slots][kb.cells.index]");
     printAs.cell(colorClass);
 
     printAs.svg(redColor);

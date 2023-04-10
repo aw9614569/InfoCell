@@ -144,7 +144,7 @@ CellI& Object::operator[](CellI& role)
 {
     auto findIt = m_slots.find(&role);
     if (findIt == m_slots.end())
-        return kb.cells.emptyObject;
+        throw "No such role!";
 
     return *findIt->second;
 }
@@ -339,19 +339,19 @@ CellI& List::Item::operator[](CellI& role)
         if (m_value.prev())
             return m_value.prev()->m_listItem;
         else
-            return kb.cells.emptyObject;
+            throw "No such role!";
     }
     if (&role == &kb.sequence.next) {
         if (m_value.next())
             return m_value.next()->m_listItem;
         else
-            return kb.cells.emptyObject;
+            throw "No such role!";
     }
     if (&role == &kb.coding.value) {
         return m_value.m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void List::Item::accept(Visitor& visitor)
@@ -431,7 +431,7 @@ CellI& List::operator[](CellI& role)
         return m_valueType;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void List::accept(Visitor& visitor)
@@ -503,19 +503,19 @@ CellI& Map::Index::Type::Slots::SlotList::Item::operator[](CellI& role)
         if (m_value.prev())
             return m_value.prev()->m_indexTypeSlotsListItem;
         else
-            return kb.cells.emptyObject;
+            throw "No such role!";
     }
     if (&role == &kb.sequence.next) {
         if (m_value.next())
             return m_value.next()->m_indexTypeSlotsListItem;
         else
-            return kb.cells.emptyObject;
+            throw "No such role!";
     }
     if (&role == &kb.coding.value) {
         return m_value.m_indexTypeSlot;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Map::Index::Type::Slots::SlotList::Item::accept(Visitor& visitor)
@@ -557,13 +557,13 @@ CellI& Map::Index::Type::Slots::SlotList::operator[](CellI& role)
     }
     if (&role == &kb.sequence.first) {
         if (m_orderedValues.empty()) {
-            return kb.cells.emptyObject;
+            throw "No such role!";
         }
         return (*m_orderedValues.begin())->m_indexTypeSlotsListItem;
     }
     if (&role == &kb.sequence.last) {
         if (m_orderedValues.empty()) {
-            return kb.cells.emptyObject;
+            throw "No such role!";
         }
         return (*m_orderedValues.rbegin())->m_indexTypeSlotsListItem;
     }
@@ -571,7 +571,7 @@ CellI& Map::Index::Type::Slots::SlotList::operator[](CellI& role)
         return kb.pools.numbers.get((int)m_orderedValues.size());
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Map::Index::Type::Slots::SlotList::accept(Visitor& visitor)
@@ -621,7 +621,7 @@ CellI& Map::Index::Type::Slots::SlotIndex::operator[](CellI& role)
         return slotIt->second.m_indexTypeSlot;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Map::Index::Type::Slots::SlotIndex::accept(Visitor& visitor)
@@ -667,7 +667,7 @@ CellI& Map::Index::Type::Slot::operator[](CellI& role)
         return m_slotRole;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Map::Index::Type::Slot::accept(Visitor& visitor)
@@ -722,7 +722,7 @@ CellI& Map::Index::Type::Slots::operator[](CellI& role)
         return m_slotList;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Map::Index::Type::Slots::accept(Visitor& visitor)
@@ -772,8 +772,16 @@ CellI& Map::Index::Type::operator[](CellI& role)
     if (&role == &kb.cells.slots) {
         return m_slots;
     }
+    if (&role == &kb.cells.memberOf) {
+        static std::unique_ptr<Map> s_memberOfList;
+        if (!s_memberOfList) {
+            s_memberOfList = std::make_unique<Map>(kb, kb.cells.type);
+            s_memberOfList->add(kb.type.List, kb.type.List);
+        }
+        return *s_memberOfList;
+    }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Map::Index::Type::accept(Visitor& visitor)
@@ -824,7 +832,7 @@ CellI& Map::Index::operator[](CellI& role)
         return slotIt->second.m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Map::Index::accept(Visitor& visitor)
@@ -904,7 +912,7 @@ CellI& Map::operator[](CellI& role)
         return kb.pools.numbers.get(size);
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Map::accept(Visitor& visitor)
@@ -997,7 +1005,7 @@ CellI& Type::operator[](CellI& role)
         return m_methods;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Type::accept(Visitor& visitor)
@@ -1046,9 +1054,13 @@ Number::Number(brain::Brain& kb, int value) :
 
 bool Number::has(CellI& role)
 {
-    if (&role == &kb.cells.type || &role == &kb.coding.value || &role == &kb.numbers.sign) {
+    if (&role == &kb.cells.type || &role == &kb.coding.value) {
         return true;
     }
+    if (&role == &kb.numbers.sign) {
+        return m_value != 0;
+    }
+
     return false;
 }
 
@@ -1068,8 +1080,8 @@ CellI& Number::operator[](CellI& role)
         return kb.type.Number;
     }
 
-    if (&role == &kb.numbers.sign) {
-        return kb.cells.emptyObject; // TODO
+    if (&role == &kb.numbers.sign && m_value != 0) {
+        return m_value > 0 ? kb.numbers.positive : kb.numbers.negative;
     }
 
     if (&role == &kb.coding.value) {
@@ -1081,7 +1093,7 @@ CellI& Number::operator[](CellI& role)
         return *m_digitsList;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Number::accept(Visitor& visitor)
@@ -1152,7 +1164,7 @@ CellI& String::operator[](CellI& role)
 
         return *m_charactersList;
     } else {
-        return kb.cells.emptyObject;
+        throw "No such role!";
     }
 }
 
@@ -1222,7 +1234,7 @@ CellI& Color::operator[](CellI& role)
         return kb.pools.numbers.get(m_inputColor.m_blue);
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Color::accept(Visitor& visitor)
@@ -1313,7 +1325,7 @@ CellI& Pixel::operator[](CellI& role)
         return m_y;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Pixel::accept(Visitor& visitor)
@@ -1396,7 +1408,7 @@ CellI& Picture::operator[](CellI& role)
         return *m_pixelsList;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Picture::accept(Visitor& visitor)
@@ -1547,7 +1559,7 @@ CellI& Block::operator[](CellI& role)
         return m_list;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Block::accept(Visitor& visitor)
@@ -1615,7 +1627,7 @@ CellI& Function::operator[](CellI& role)
         return *m_outputs;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Function::accept(Visitor& visitor)
@@ -1682,7 +1694,7 @@ CellI& Delete::operator[](CellI& role)
         return *m_cell;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Delete::accept(Visitor& visitor)
@@ -1750,7 +1762,7 @@ CellI& Set::operator[](CellI& role)
         return m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Set::accept(Visitor& visitor)
@@ -1825,7 +1837,7 @@ CellI& If::operator[](CellI& role)
         return *m_elseBranch;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void If::accept(Visitor& visitor)
@@ -1896,7 +1908,7 @@ CellI& Do::operator[](CellI& role)
         return *m_statement;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Do::accept(Visitor& visitor)
@@ -1954,7 +1966,7 @@ CellI& While::operator[](CellI& role)
         return *m_statement;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void While::accept(Visitor& visitor)
@@ -2006,7 +2018,7 @@ CellI& Ref::operator[](CellI& role)
         return *m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Ref::accept(Visitor& visitor)
@@ -2061,7 +2073,7 @@ CellI& Var::operator[](CellI& role)
         return *m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Var::accept(Visitor& visitor)
@@ -2128,7 +2140,7 @@ CellI& New::operator[](CellI& role)
         return m_objectType;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void New::accept(Visitor& visitor)
@@ -2192,7 +2204,7 @@ CellI& Same::operator[](CellI& role)
         return *m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Same::accept(Visitor& visitor)
@@ -2256,7 +2268,7 @@ CellI& NotSame::operator[](CellI& role)
         return *m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void NotSame::accept(Visitor& visitor)
@@ -2320,7 +2332,7 @@ CellI& Equal::operator[](CellI& role)
         return *m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Equal::accept(Visitor& visitor)
@@ -2382,7 +2394,7 @@ CellI& NotEqual::operator[](CellI& role)
         return *m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void NotEqual::accept(Visitor& visitor)
@@ -2446,7 +2458,7 @@ CellI& Has::operator[](CellI& role)
         return *m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Has::accept(Visitor& visitor)
@@ -2510,7 +2522,7 @@ CellI& Get::operator[](CellI& role)
         return *m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Get::accept(Visitor& visitor)
@@ -2574,7 +2586,7 @@ CellI& And::operator[](CellI& role)
         return *m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void And::accept(Visitor& visitor)
@@ -2638,7 +2650,7 @@ CellI& Or::operator[](CellI& role)
         return *m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Or::accept(Visitor& visitor)
@@ -2693,7 +2705,7 @@ CellI& Not::operator[](CellI& role)
         return *m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Not::accept(Visitor& visitor)
@@ -2756,7 +2768,7 @@ CellI& Add::operator[](CellI& role)
         return *m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Add::accept(Visitor& visitor)
@@ -2820,7 +2832,7 @@ CellI& Subtract::operator[](CellI& role)
         return *m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Subtract::accept(Visitor& visitor)
@@ -2884,7 +2896,7 @@ CellI& Multiply::operator[](CellI& role)
         return *m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Multiply::accept(Visitor& visitor)
@@ -2948,7 +2960,7 @@ CellI& Divide::operator[](CellI& role)
         return *m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void Divide::accept(Visitor& visitor)
@@ -3012,7 +3024,7 @@ CellI& LessThan::operator[](CellI& role)
         return *m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void LessThan::accept(Visitor& visitor)
@@ -3076,7 +3088,7 @@ CellI& GreaterThan::operator[](CellI& role)
         return *m_value;
     }
 
-    return kb.cells.emptyObject;
+    throw "No such role!";
 }
 
 void GreaterThan::accept(Visitor& visitor)
