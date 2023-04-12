@@ -235,6 +235,7 @@ public:
 
         brain::Brain& kb;
     };
+    class Get;
     class Cell : public BaseT<Cell>
     {
     public:
@@ -337,6 +338,16 @@ public:
     {
     public:
         Var(brain::Brain& kb, CellI& role);
+        Set& operator=(Base& value);
+        Get& operator*();
+    };
+    class Member : public BaseT<Member>
+    {
+    public:
+        Member(const Member&) = delete;
+        Member(brain::Brain& kb, CellI& role);
+        Set& operator=(Base& value);
+        Get& operator/(Base& role);
     };
     class New : public BaseT<New>
     {
@@ -376,6 +387,7 @@ public:
     {
     public:
         Get(brain::Brain& kb, Base& cell, Base& role);
+        Get& operator/(Base& role);
     };
     class And : public BaseT<And>
     {
@@ -437,10 +449,6 @@ public:
     Call& call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3);
     Call& call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
     Has& hasMember(Base& role);
-    Get& getMember(Base& role);
-    Set& setMember(Base& role, Base& value);
-    Set& setVar(CellI& role, Base& value);
-    Get& getVar(CellI& role);
 
     template <typename... Args>
     Block& block(Args&&... args);
@@ -454,6 +462,7 @@ public:
     While& while_(Base& condition, Base& statement);
     ConstVar& ref(CellI& value);
     Var& var(CellI& role);
+    Member& member(CellI& role);
     New& new_(Base& objectType);
     New& new_(Base& objectType, Slot& slot1);
     New& new_(Base& objectType, Slot& slot1, Slot& slot2);
