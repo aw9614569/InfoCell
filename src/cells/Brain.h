@@ -40,6 +40,7 @@ public:
     Object branch;
     Object cell;
     Object condition;
+    Object constructor;
     Object constructor0;
     Object constructor1;
     Object constructor2;
@@ -348,15 +349,20 @@ public:
         Member(brain::Brain& kb, CellI& role);
         Set& operator=(Base& value);
         Get& operator/(Base& role);
+        Call& call(CellI& method);
+        Call& call(CellI& method, Slot& slot1);
+        Call& call(CellI& method, Slot& slot1, Slot& slot2);
+        Call& call(CellI& method, Slot& slot1, Slot& slot2, Slot& slot3);
+        Call& call(CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
     };
     class New : public BaseT<New>
     {
     public:
         New(brain::Brain& kb, Base& objectType);
-        New(brain::Brain& kb, Base& objectType, Slot& slot1);
-        New(brain::Brain& kb, Base& objectType, Slot& slot1, Slot& slot2);
-        New(brain::Brain& kb, Base& objectType, Slot& slot1, Slot& slot2, Slot& slot3);
-        New(brain::Brain& kb, Base& objectType, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
+        New(brain::Brain& kb, Base& objectType, Base& constructor, Slot& slot1);
+        New(brain::Brain& kb, Base& objectType, Base& constructor, Slot& slot1, Slot& slot2);
+        New(brain::Brain& kb, Base& objectType, Base& constructor, Slot& slot1, Slot& slot2, Slot& slot3);
+        New(brain::Brain& kb, Base& objectType, Base& constructor, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
     };
     class Same : public BaseT<Same>
     {
@@ -464,10 +470,10 @@ public:
     Var& var(CellI& role);
     Member& member(CellI& role);
     New& new_(Base& objectType);
-    New& new_(Base& objectType, Slot& slot1);
-    New& new_(Base& objectType, Slot& slot1, Slot& slot2);
-    New& new_(Base& objectType, Slot& slot1, Slot& slot2, Slot& slot3);
-    New& new_(Base& objectType, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
+    New& new_(Base& objectType, Base& constructor, Slot& slot1);
+    New& new_(Base& objectType, Base& constructor, Slot& slot1, Slot& slot2);
+    New& new_(Base& objectType, Base& constructor, Slot& slot1, Slot& slot2, Slot& slot3);
+    New& new_(Base& objectType, Base& constructor, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
     Same& same(Base& lhs, Base& rhs);
     NotSame& notSame(Base& lhs, Base& rhs);
     Equal& equal(Base& lhs, Base& rhs);
