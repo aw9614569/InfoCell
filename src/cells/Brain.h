@@ -41,11 +41,6 @@ public:
     Object cell;
     Object condition;
     Object constructor;
-    Object constructor0;
-    Object constructor1;
-    Object constructor2;
-    Object constructor3;
-    Object constructor4;
     Object container;
     Object destructor;
     Object else_;
@@ -362,6 +357,7 @@ public:
     {
     public:
         New(brain::Brain& kb, Base& objectType);
+        New(brain::Brain& kb, Base& objectType, Base& constructor);
         New(brain::Brain& kb, Base& objectType, Base& constructor, Slot& slot1);
         New(brain::Brain& kb, Base& objectType, Base& constructor, Slot& slot1, Slot& slot2);
         New(brain::Brain& kb, Base& objectType, Base& constructor, Slot& slot1, Slot& slot2, Slot& slot3);

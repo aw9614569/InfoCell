@@ -106,59 +106,65 @@ Object::Object(brain::Brain& kb, CellI& type, const std::string& label) :
     if (kb.initPhase() == InitPhase::Init) {
         return;
     }
-    if (!hasMethod(kb.coding.constructor0)) {
-        return;
-    }
-    constructor();
 }
 
-// Maybe a better idea, to allow marking ordinary methods as constructor, so we don't have to depend on the number of arguments
-// In this case we need an extra parameter for providing the id of the constructor
-// Object map(kb, kb.type.Map, kb.id.myFancyConstructor, { kb.coding.keyType, kb.type.Number }, { kb.coding.objectType, kb.type.Color });
-// We have to extend the type slot descriptor for this
-Object::Object(brain::Brain& kb, CellI& type, Param param1, const std::string& label) :
+Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, const std::string& label) :
     CellI(kb, label),
     m_type(type)
 {
     m_slots[&kb.coding.type] = &type;
-    if (!hasMethod(kb.coding.constructor1)) {
-        return;
-    }
-    constructor(param1);
+    getMethod(constructor)();
 }
 
-Object::Object(brain::Brain& kb, CellI& type, Param param1, Param param2, const std::string& label) :
+Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, const std::string& label) :
     CellI(kb, label),
     m_type(type)
 {
     m_slots[&kb.coding.type] = &type;
-    if (!hasMethod(kb.coding.constructor2)) {
-        return;
-    }
-    constructor(param1, param2);
+
+    CellI& method = getMethod(constructor);
+    setFnParam(method, param1);
+    method();
 }
 
-Object::Object(brain::Brain& kb, CellI& type, Param param1, Param param2, Param param3, const std::string& label) :
+Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, Param param2, const std::string& label) :
     CellI(kb, label),
     m_type(type)
 {
     m_slots[&kb.coding.type] = &type;
-    if (!hasMethod(kb.coding.constructor3)) {
-        return;
-    }
-    constructor(param1, param2, param3);
+
+    CellI& method = getMethod(constructor);
+    setFnParam(method, param1);
+    setFnParam(method, param2);
+    method();
 }
 
-
-Object::Object(brain::Brain& kb, CellI& type, Param param1, Param param2, Param param3, Param param4, const std::string& label) :
+Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, Param param2, Param param3, const std::string& label) :
     CellI(kb, label),
     m_type(type)
 {
     m_slots[&kb.coding.type] = &type;
-    if (!hasMethod(kb.coding.constructor4)) {
-        return;
-    }
-    constructor(param1, param2, param3, param4);
+
+    CellI& method = getMethod(constructor);
+    setFnParam(method, param1);
+    setFnParam(method, param2);
+    setFnParam(method, param3);
+    method();
+}
+
+
+Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, Param param2, Param param3, Param param4, const std::string& label) :
+    CellI(kb, label),
+    m_type(type)
+{
+    m_slots[&kb.coding.type] = &type;
+
+    CellI& method = getMethod(constructor);
+    setFnParam(method, param1);
+    setFnParam(method, param2);
+    setFnParam(method, param3);
+    setFnParam(method, param4);
+    method();
 }
 
 Object::~Object()
@@ -442,45 +448,6 @@ CellI& Object::operator[](CellI& role)
 void Object::accept(Visitor& visitor)
 {
     visitor.visit(*this);
-}
-
-void Object::constructor()
-{
-    getMethod(kb.coding.constructor0)();
-}
-
-void Object::constructor(Param param1)
-{
-    CellI& method = getMethod(kb.coding.constructor1);
-    setFnParam(method, param1);
-    method();
-}
-
-void Object::constructor(Param param1, Param param2)
-{
-    CellI& method = getMethod(kb.coding.constructor2);
-    setFnParam(method, param1);
-    setFnParam(method, param2);
-    method();
-}
-
-void Object::constructor(Param param1, Param param2, Param param3)
-{
-    CellI& method = getMethod(kb.coding.constructor3);
-    setFnParam(method, param1);
-    setFnParam(method, param2);
-    setFnParam(method, param3);
-    method();
-}
-
-void Object::constructor(Param param1, Param param2, Param param3, Param param4)
-{
-    CellI& method = getMethod(kb.coding.constructor4);
-    setFnParam(method, param1);
-    setFnParam(method, param2);
-    setFnParam(method, param3);
-    setFnParam(method, param4);
-    method();
 }
 
 void Object::destructor()

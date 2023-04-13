@@ -63,10 +63,11 @@ class Object : public CellI
 {
 public:
     Object(brain::Brain& kb, CellI& type, const std::string& label = "");
-    Object(brain::Brain& kb, CellI& type, Param param1, const std::string& label = "");
-    Object(brain::Brain& kb, CellI& type, Param param1, Param param2, const std::string& label = "");
-    Object(brain::Brain& kb, CellI& type, Param param1, Param param2, Param param3, const std::string& label = "");
-    Object(brain::Brain& kb, CellI& type, Param param1, Param param2, Param param3, Param param4, const std::string& label = "");
+    Object(brain::Brain& kb, CellI& type, CellI& constructor, const std::string& label = "");
+    Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, const std::string& label = "");
+    Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, Param param2, const std::string& label = "");
+    Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, Param param2, Param param3, const std::string& label = "");
+    Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, Param param2, Param param3, Param param4, const std::string& label = "");
     ~Object();
 
     bool has(CellI& role) override;
@@ -82,11 +83,6 @@ public:
     CellI& method(CellI& role, Param param1, Param param2, Param param3, Param param4);
 
 protected:
-    void constructor();
-    void constructor(Param param1);
-    void constructor(Param param1, Param param2);
-    void constructor(Param param1, Param param2, Param param3);
-    void constructor(Param param1, Param param2, Param param3, Param param4);
     void destructor();
 
     bool hasMethod(CellI& role);

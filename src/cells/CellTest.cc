@@ -99,7 +99,7 @@ std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 
 TEST_F(CellTest, List)
 {
-    Object list(kb, kb.type.List, { kb.coding.objectType, kb.type.Cell });
+    Object list(kb, kb.type.List, kb.coding.constructor, { kb.coding.objectType, kb.type.Cell });
 
     printAs.value(list);
     EXPECT_EQ(&list[kb.dimensions.size], &_0_);
@@ -165,7 +165,7 @@ TEST_F(CellTest, List)
 
 TEST_F(CellTest, Map)
 {
-    Object map(kb, kb.type.Map, { kb.coding.keyType, kb.type.Number }, { kb.coding.objectType, kb.type.Color });
+    Object map(kb, kb.type.Map, kb.coding.constructor, { kb.coding.keyType, kb.type.Number }, { kb.coding.objectType, kb.type.Color });
 
     printAs.value(map);
     printAs.cell(map);
@@ -189,7 +189,7 @@ TEST_F(CellTest, Map)
 TEST_F(CellTest, CreatedTypeWithConstructor)
 {
     Map emptyMap(kb, kb.type.Cell);
-    Object newType(kb, kb.type.Type_,
+    Object newType(kb, kb.type.Type_, kb.coding.constructor,
                    { coding.slots, kb.map(kb.dimensions.size, kb.coding.slot(kb.dimensions.size, kb.type.Number)) },
                    { coding.subTypes, emptyMap },
                    { coding.memberOf, kb.map(kb.type.List, kb.type.List) },

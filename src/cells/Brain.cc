@@ -34,11 +34,6 @@ Coding::Coding(brain::Brain& kb) :
     cell(kb, kb.type.Cell, "cell"),
     condition(kb, kb.type.Cell, "condition"),
     constructor(kb, kb.type.Cell, "constructor"),
-    constructor0(kb, kb.type.Cell, "constructor0"),
-    constructor1(kb, kb.type.Cell, "constructor1"),
-    constructor2(kb, kb.type.Cell, "constructor2"),
-    constructor3(kb, kb.type.Cell, "constructor3"),
-    constructor4(kb, kb.type.Cell, "constructor4"),
     container(kb, kb.type.Cell, "container"),
     destructor(kb, kb.type.Cell, "destructor"),
     else_(kb, kb.type.Cell, "else_"),
@@ -1431,7 +1426,7 @@ Brain::Brain() :
         m_(dimensions.size)   = _(_0_),
         m_(coding.keyType)    = p_(coding.keyType),
         m_(coding.objectType) = p_(coding.objectType)));
-    type.Map.addMethod(coding.constructor2, mapCtor);
+    type.Map.addMethod(coding.constructor, mapCtor);
 
     Ast::Function& mapAdd = *new Ast::Function(*this, "Map::Add");
     mapAdd.addInputs(list(
@@ -1439,7 +1434,7 @@ Brain::Brain() :
         ast.slot(coding.value, type.Cell)));
     mapAdd.addAsts(ast.block(
         ast.if_(ast.equal(m_(dimensions.size), _(_0_)),
-                ast.block(m_(coding.list)  = ast.new_(_(type.List), _(coding.constructor1), ast.slot(_(coding.objectType), m_(coding.objectType))),
+                ast.block(m_(coding.list)  = ast.new_(_(type.List), _(coding.constructor), ast.slot(_(coding.objectType), m_(coding.objectType))),
                           m_(coding.index) = ast.new_(_(type.Index)))),
         m_(coding.list).call(_(sequence.add), ast.slot(_(coding.value), p_(coding.value))),
         // ast.set(m_(coding.index), p_(coding.value), m_(coding.list) / _(sequence.last)),
@@ -1471,7 +1466,7 @@ Brain::Brain() :
         m_(coding.subTypes) = p_(coding.subTypes),
         m_(coding.memberOf) = p_(coding.memberOf),
         m_(coding.methods)  = p_(coding.methods)));
-    type.Type_.addMethod(coding.constructor4, typeCtor);
+    type.Type_.addMethod(coding.constructor, typeCtor);
 
 
     Ast::Function& listCtor = *new Ast::Function(*this, "List::Ctor");
@@ -1487,7 +1482,7 @@ Brain::Brain() :
                                          ast.slot(_(coding.memberOf), _(list(type.ListItem))),
                                          ast.slot(_(coding.methods), _(*new List(*this, type.ast.Function))))));
 #endif
-    type.List.addMethod(coding.constructor1, listCtor);
+    type.List.addMethod(coding.constructor, listCtor);
 
     Ast::Function& listAdd = *new Ast::Function(*this, "List::Add");
     listAdd.addInputs(list(
