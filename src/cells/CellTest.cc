@@ -198,16 +198,78 @@ TEST_F(CellTest, ListItemTemplate)
     listItemType.set(coding.memberOf, kb.type.ListItem[coding.memberOf]);
     listItemType.set(coding.methods, kb.type.ListItem[coding.methods]);
 
-    Object listItemTypeObj(kb, listItemType, "listItem");
+    Object listItemTypeObj(kb, listItemType, "ListItem");
     CellI& listItemNumber = listItemTypeObj.method(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
     printAs.value(kb.type.ListItem[kb.coding.slots][kb.coding.list], "type.ListItem[slots]");
     printAs.value(listItemNumber[kb.coding.slots][kb.coding.list], "listItemNumber[slots]");
-    printAs.value(listItemNumber);
-    printAs.cell(listItemNumber);
 
-    Object listItem(kb, listItemNumber, kb.coding.constructor, { kb.coding.value, _1_ }, "ListItem<Number>");
-    printAs.value(listItem);
-    printAs.cell(listItem);
+    EXPECT_EQ(&listItemNumber[kb.coding.memberOf][kb.dimensions.size], &_1_);
+    EXPECT_TRUE(listItemNumber[kb.coding.memberOf][kb.coding.index].has(kb.type.ListItem));
+
+    EXPECT_EQ(&listItemNumber[kb.coding.slots][kb.dimensions.size], &_3_);
+    EXPECT_TRUE(listItemNumber[kb.coding.slots][kb.coding.index].has(kb.sequence.previous));
+    EXPECT_TRUE(listItemNumber[kb.coding.slots][kb.coding.index].has(kb.sequence.next));
+    EXPECT_TRUE(listItemNumber[kb.coding.slots][kb.coding.index].has(kb.coding.value));
+
+    EXPECT_EQ(&listItemNumber[kb.coding.methods], &kb.type.ListItem[kb.coding.methods]);
+}
+
+TEST_F(CellTest, ListTemplate)
+{
+    Object listType(kb, kb.type.Type_, "listType");
+    listType.set(kb.coding.slots, kb.type.List[kb.coding.slots]);
+    listType.set(coding.subTypes, kb.type.List[coding.subTypes]);
+    listType.set(coding.memberOf, kb.type.List[coding.memberOf]);
+    listType.set(coding.methods, kb.type.List[coding.methods]);
+
+    Object listTypeObj(kb, listType, "List");
+    CellI& ListOfNumbers = listTypeObj.method(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
+
+    EXPECT_EQ(&ListOfNumbers[coding.subTypes][kb.dimensions.size], &_1_);
+    EXPECT_TRUE(ListOfNumbers[coding.subTypes][coding.index].has(coding.objectType));
+    CellI& ListItemType = ListOfNumbers[coding.subTypes][coding.index][coding.objectType];
+    EXPECT_EQ(&ListItemType[kb.coding.slots][kb.coding.index][kb.coding.value][kb.coding.slotType], &kb.type.Number);
+    EXPECT_NE(&ListItemType, &kb.type.ListItem);
+    EXPECT_EQ(&ListItemType[kb.coding.memberOf][kb.dimensions.size], &_1_);
+    EXPECT_TRUE(ListItemType[kb.coding.memberOf][kb.coding.index].has(kb.type.ListItem));
+
+    EXPECT_EQ(&ListItemType[kb.coding.slots][kb.dimensions.size], &_3_);
+    EXPECT_TRUE(ListItemType[kb.coding.slots][kb.coding.index].has(kb.sequence.previous));
+    EXPECT_TRUE(ListItemType[kb.coding.slots][kb.coding.index].has(kb.sequence.next));
+    EXPECT_TRUE(ListItemType[kb.coding.slots][kb.coding.index].has(kb.coding.value));
+
+    EXPECT_EQ(&ListItemType[kb.coding.methods], &kb.type.ListItem[kb.coding.methods]);
+
+    ListItemType.label("ListItem<Number>");
+
+    EXPECT_EQ(&ListOfNumbers[kb.coding.methods], &kb.type.List[kb.coding.methods]);
+
+    EXPECT_EQ(&ListOfNumbers[kb.coding.slots][kb.dimensions.size], &_5_);
+    EXPECT_TRUE(ListOfNumbers[kb.coding.slots][kb.coding.index].has(kb.sequence.first));
+    EXPECT_EQ(&ListOfNumbers[kb.coding.slots][kb.coding.index][kb.sequence.first][kb.coding.slotType], &ListItemType);
+
+    EXPECT_TRUE(ListOfNumbers[kb.coding.slots][kb.coding.index].has(kb.sequence.last));
+    EXPECT_EQ(&ListOfNumbers[kb.coding.slots][kb.coding.index][kb.sequence.last][kb.coding.slotType], &ListItemType);
+
+    EXPECT_TRUE(ListOfNumbers[kb.coding.slots][kb.coding.index].has(kb.dimensions.size));
+    EXPECT_EQ(&ListOfNumbers[kb.coding.slots][kb.coding.index][kb.dimensions.size][kb.coding.slotType], &kb.type.Number);
+
+    EXPECT_TRUE(ListOfNumbers[kb.coding.slots][kb.coding.index].has(kb.coding.objectType));
+    EXPECT_EQ(&ListOfNumbers[kb.coding.slots][kb.coding.index][kb.coding.objectType][kb.coding.slotType], &kb.type.Number);
+
+    EXPECT_TRUE(ListOfNumbers[kb.coding.slots][kb.coding.index].has(kb.coding.item));
+    EXPECT_EQ(&ListOfNumbers[kb.coding.slots][kb.coding.index][kb.coding.item][kb.coding.slotType], &ListItemType);
+
+    EXPECT_TRUE(ListOfNumbers[kb.coding.memberOf][kb.coding.index].has(kb.type.List));
+    EXPECT_EQ(&ListOfNumbers[kb.coding.memberOf][kb.dimensions.size], &_1_);
+
+    printAs.value(kb.type.List, "type.List");
+    printAs.value(ListOfNumbers, "ListOfNumbers");
+
+    Object listOfNumbers(kb, ListOfNumbers, kb.coding.constructor, { kb.coding.objectType, kb.type.Number });
+    CellI& listItemNumber = listOfNumbers[kb.coding.item];
+    EXPECT_EQ(&ListItemType, &listItemNumber);
+    EXPECT_EQ(&ListOfNumbers[coding.subTypes][coding.index][coding.objectType], &listItemNumber);
 }
 
 TEST_F(CellTest, CreatedTypeWithConstructor)
@@ -216,7 +278,7 @@ TEST_F(CellTest, CreatedTypeWithConstructor)
     Object newType(kb, kb.type.Type_, kb.coding.constructor,
                    { coding.slots, kb.map(kb.dimensions.size, kb.coding.slot(kb.dimensions.size, kb.type.Number)) },
                    { coding.subTypes, emptyMap },
-                   { coding.memberOf, kb.map(kb.type.List, kb.type.List) },
+                   { coding.memberOf, kb.map(kb.type.Cell, kb.type.Cell) },
                    { coding.methods, emptyMap });
     printAs.value(newType[coding.slots]);
     printAs.value(newType[coding.slots][coding.list], "newType[coding.slots][coding.list]");

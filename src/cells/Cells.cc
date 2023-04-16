@@ -1036,7 +1036,7 @@ CellI& Map::Index::Type::operator[](CellI& role)
         static std::unique_ptr<Map> s_memberOfList;
         if (!s_memberOfList) {
             s_memberOfList = std::make_unique<Map>(kb, kb.coding.type);
-            s_memberOfList->add(kb.type.List, kb.type.List);
+            s_memberOfList->add(kb.type.Index, kb.type.Index);
         }
         return *s_memberOfList;
     }
@@ -1826,6 +1826,9 @@ CellI& Block::operator[](CellI& role)
         return m_ops;
     }
     if (&role == &kb.coding.value) {
+        if (!m_value) {
+            throw "No value!";
+        }
         return *m_value;
     }
 

@@ -124,8 +124,15 @@ void CellStructPrinter::printImpl(CellI& cell)
             m_ss << cell.label() << ": ";
         }
     }
-
-    m_ss << "(" << type.label() << ")";
+    if (cell.type()[kb.coding.memberOf][kb.coding.index].has(kb.type.List) || &cell.type() == &kb.type.List) {
+        m_ss << "List<" << cell[kb.coding.objectType].label() << ">";
+    } else if (cell.type()[kb.coding.memberOf][kb.coding.index].has(kb.type.ListItem) || &cell.type() == &kb.type.ListItem) {
+        m_ss << "ListItem<" << cell.type()[kb.coding.slots][kb.coding.index][kb.coding.value][kb.coding.slotType].label() << ">";
+    } else if (cell.type()[kb.coding.memberOf][kb.coding.index].has(kb.type.Map) || &cell.type() == &kb.type.Map) {
+        m_ss << "Map<" << cell[kb.coding.keyType].label() << ", " << cell[kb.coding.objectType].label() << ">";
+    } else {
+        m_ss << "(" << type.label() << ")";
+    }
     if (needId)
         m_ss << " ID" << &cell;
     m_ss << std::endl;
