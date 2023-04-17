@@ -1,3 +1,5 @@
+#include <format>
+
 #include "ValuePrinter.h"
 #include "Brain.h"
 
@@ -55,11 +57,263 @@ void CellValuePrinter::visit(Object& object)
     printImpl(object);
 }
 
+void CellValuePrinter::printOpBlock(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    m_ss << "{\n";
+    m_indent++;
+    Visitor::visitList(cell[kb.coding.ops], [this](CellI& op, int) {
+        printIndent();
+        printImpl(op);
+        m_ss << "\n";
+    });
+    m_indent--;
+    printIndent();
+    m_ss << "}";
+}
+
+void CellValuePrinter::printOpEvalVar(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    m_ss << "eval (";
+    printImpl(cell[kb.coding.value]);
+    m_ss << ")";
+}
+
+void CellValuePrinter::printOpFunction(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    m_ss << cell.label() << " ";
+    printImpl(cell[kb.coding.op]);
+}
+
+void CellValuePrinter::printOpDelete(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    m_ss << "delete (";
+    printImpl(cell[kb.coding.input]);
+    m_ss << ")";
+}
+
+void CellValuePrinter::printOpSet(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.cell]);
+    m_ss << ".";
+    printImpl(cell[kb.coding.role]);
+    m_ss << " = ";
+    printImpl(cell[kb.coding.value]);
+}
+
+void CellValuePrinter::printOpIf(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    m_ss << "if ";
+    printImpl(cell[kb.coding.condition]);
+    m_ss << " then ";
+    if (&cell[kb.coding.then].type() != &kb.type.op.Block) {
+        m_ss << "\n";
+        m_indent++;
+        printIndent();
+        m_indent--;
+    }
+    printImpl(cell[kb.coding.then]);
+    if (&cell[kb.coding.then].type() != &kb.type.op.Block) {
+        m_ss << "\n";
+        printIndent();
+    }
+    if (cell.has(kb.coding.else_)) {
+        m_ss << " else ";
+        if (&cell[kb.coding.else_].type() != &kb.type.op.Block) {
+            m_ss << "\n";
+            m_indent++;
+            printIndent();
+            m_indent--;
+        }
+        printImpl(cell[kb.coding.else_]);
+        if (&cell[kb.coding.else_].type() != &kb.type.op.Block) {
+            m_ss << "\n";
+        }
+    }
+}
+
+void CellValuePrinter::printOpDo(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    m_ss << "do ";
+    printImpl(cell[kb.coding.statement]);
+    m_ss << " (";
+    printImpl(cell[kb.coding.condition]);
+    m_ss << ")";
+}
+
+void CellValuePrinter::printOpWhile(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    m_ss << "while )";
+    printImpl(cell[kb.coding.condition]);
+    m_ss << ") ";
+    printImpl(cell[kb.coding.statement]);
+}
+
+void CellValuePrinter::printOpConstVar(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    m_ss << "[";
+    if (cell.has(kb.coding.value)) {
+        m_ss << cell[kb.coding.value].label();
+    } else {
+        m_ss << "<empty>";
+    }
+    m_ss << "]";
+}
+
+void CellValuePrinter::printOpVar(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    m_ss << "var(";
+    if (cell.has(kb.coding.value)) {
+        CellI* value = &cell[kb.coding.value];
+        std::cout << value << std::endl;
+        printImpl(*value);
+    } else {
+        cell.label().empty() ? (m_ss << "empty") : (m_ss << cell.label());
+    }
+    m_ss << ")";
+}
+
+void CellValuePrinter::printOpNew(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    m_ss << "new ";
+    printImpl(cell[kb.coding.objectType]);
+}
+
+void CellValuePrinter::printOpSame(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.lhs]);
+    m_ss << " same ";
+    printImpl(cell[kb.coding.rhs]);
+}
+
+void CellValuePrinter::printOpNotSame(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.lhs]);
+    m_ss << " not same ";
+    printImpl(cell[kb.coding.rhs]);
+}
+
+void CellValuePrinter::printOpEqual(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.lhs]);
+    m_ss << " == ";
+    printImpl(cell[kb.coding.rhs]);
+}
+
+void CellValuePrinter::printOpNotEqual(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.lhs]);
+    m_ss << " != ";
+    printImpl(cell[kb.coding.rhs]);
+}
+
+void CellValuePrinter::printOpHas(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.cell]);
+    m_ss << " has ";
+    printImpl(cell[kb.coding.role]);
+}
+
+void CellValuePrinter::printOpGet(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.cell]);
+    m_ss << "->";
+    printImpl(cell[kb.coding.role]);
+}
+
+void CellValuePrinter::printOpAnd(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.lhs]);
+    m_ss << " and ";
+    printImpl(cell[kb.coding.rhs]);
+}
+
+void CellValuePrinter::printOpOr(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.lhs]);
+    m_ss << " or ";
+    printImpl(cell[kb.coding.rhs]);
+}
+
+void CellValuePrinter::printOpNot(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    m_ss << "not ";
+    printImpl(cell[kb.coding.rhs]);
+}
+
+void CellValuePrinter::printOpAdd(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.lhs]);
+    m_ss << " + ";
+    printImpl(cell[kb.coding.rhs]);
+}
+
+void CellValuePrinter::printOpSubtract(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.lhs]);
+    m_ss << " - ";
+    printImpl(cell[kb.coding.rhs]);
+}
+
+void CellValuePrinter::printOpMultiply(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.lhs]);
+    m_ss << " * ";
+    printImpl(cell[kb.coding.rhs]);
+}
+
+void CellValuePrinter::printOpDivide(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.lhs]);
+    m_ss << " / ";
+    printImpl(cell[kb.coding.rhs]);
+}
+
+void CellValuePrinter::printOpLessThan(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.lhs]);
+    m_ss << " < ";
+    printImpl(cell[kb.coding.rhs]);
+}
+
+void CellValuePrinter::printOpGreaterThan(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.lhs]);
+    m_ss << " > ";
+    printImpl(cell[kb.coding.rhs]);
+}
+
 void CellValuePrinter::printImpl(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
+    auto is          = [this, &cell, &kb](CellI& type) -> bool { return cell.type()[kb.coding.memberOf][kb.coding.index].has(type) || &cell.type() == &type; };
 
-    if (&cell.type() == &kb.type.Slot) {
+    if (is(kb.type.Slot)) {
         CellI& cellType = cell[kb.coding.slotType];
         m_ss << cell[kb.coding.slotRole].label() << ": ";
         if (cellType.type()[kb.coding.memberOf][kb.coding.index].has(kb.type.ListItem)) {
@@ -68,9 +322,7 @@ void CellValuePrinter::printImpl(CellI& cell)
             m_ss << cellType.label();
         }
         return;
-    }
-
-    if (&cell.type() == &kb.type.Type_) {
+    } else if (is(kb.type.Type_)) {
         CellI& type = cell;
         m_ss << "Type " << type.label();
         visitList(type[kb.coding.memberOf][kb.coding.list], [this, &kb](CellI& member, int i) {
@@ -90,9 +342,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         });
         m_ss << " }";
         return;
-    }
-
-    if (cell.type()[kb.coding.memberOf][kb.coding.index].has(kb.type.List) || &cell.type() == &kb.type.List) {
+    } else if (is(kb.type.List)) {
         m_ss << "[";
         visitList(cell, [this](CellI& value, int i) {
             if (i != 0) {
@@ -103,7 +353,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         });
         m_ss << " ]";
         return;
-    } else if (cell.type()[kb.coding.memberOf][kb.coding.index].has(kb.type.Map) || &cell.type() == &kb.type.Map) {
+    } else if (is(kb.type.Map)) {
         if (!cell.has(kb.coding.list)) {
             m_ss << "{}";
             return;
@@ -117,6 +367,84 @@ void CellValuePrinter::printImpl(CellI& cell)
             value.accept(*this);
         });
         m_ss << " }";
+        return;
+    } else if (is(kb.type.op.Block)) {
+        printOpBlock(cell);
+        return;
+    } else if (is(kb.type.op.EvalVar)) {
+        printOpEvalVar(cell);
+        return;
+    } else if (is(kb.type.op.Function)) {
+        printOpFunction(cell);
+        return;
+    } else if (is(kb.type.op.Delete)) {
+        printOpDelete(cell);
+        return;
+    } else if (is(kb.type.op.Set)) {
+        printOpSet(cell);
+        return;
+    } else if (is(kb.type.op.If)) {
+        printOpIf(cell);
+        return;
+    } else if (is(kb.type.op.Do)) {
+        printOpDo(cell);
+        return;
+    } else if (is(kb.type.op.While)) {
+        printOpWhile(cell);
+        return;
+    } else if (is(kb.type.op.ConstVar)) {
+        printOpConstVar(cell);
+        return;
+    } else if (is(kb.type.op.Var)) {
+        printOpVar(cell);
+        return;
+    } else if (is(kb.type.op.New)) {
+        printOpNew(cell);
+        return;
+    } else if (is(kb.type.op.Same)) {
+        printOpSame(cell);
+        return;
+    } else if (is(kb.type.op.NotSame)) {
+        printOpNotSame(cell);
+        return;
+    } else if (is(kb.type.op.Equal)) {
+        printOpEqual(cell);
+        return;
+    } else if (is(kb.type.op.NotEqual)) {
+        printOpNotEqual(cell);
+        return;
+    } else if (is(kb.type.op.Has)) {
+        printOpHas(cell);
+        return;
+    } else if (is(kb.type.op.Get)) {
+        printOpGet(cell);
+        return;
+    } else if (is(kb.type.op.And)) {
+        printOpAnd(cell);
+        return;
+    } else if (is(kb.type.op.Or)) {
+        printOpOr(cell);
+        return;
+    } else if (is(kb.type.op.Not)) {
+        printOpNot(cell);
+        return;
+    } else if (is(kb.type.op.Add)) {
+        printOpAdd(cell);
+        return;
+    } else if (is(kb.type.op.Subtract)) {
+        printOpSubtract(cell);
+        return;
+    } else if (is(kb.type.op.Multiply)) {
+        printOpMultiply(cell);
+        return;
+    } else if (is(kb.type.op.Divide)) {
+        printOpDivide(cell);
+        return;
+    } else if (is(kb.type.op.LessThan)) {
+        printOpLessThan(cell);
+        return;
+    } else if (is(kb.type.op.GreaterThan)) {
+        printOpGreaterThan(cell);
         return;
     }
 
@@ -190,8 +518,18 @@ void CellValuePrinter::visit(op::Function& cell)
     printImpl(cell);
 }
 
+void CellValuePrinter::printIndent()
+{
+    for (int i = 0; i < m_indent; ++i) {
+        for (int j = 0; j < m_tabSize; ++j) {
+            m_ss << " ";
+        }
+    }
+}
+
 std::string CellValuePrinter::print() const
 {
+    m_indent = 0;
     return m_ss.str();
 }
 

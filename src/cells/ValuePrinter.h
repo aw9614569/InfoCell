@@ -32,8 +32,37 @@ public:
 
 protected:
     void printImpl(CellI& list);
+    void printOpBlock(CellI& cell);
+    void printOpEvalVar(CellI& cell);
+    void printOpFunction(CellI& cell);
+    void printOpDelete(CellI& cell);
+    void printOpSet(CellI& cell);
+    void printOpIf(CellI& cell);
+    void printOpDo(CellI& cell);
+    void printOpWhile(CellI& cell);
+    void printOpConstVar(CellI& cell);
+    void printOpVar(CellI& cell);
+    void printOpNew(CellI& cell);
+    void printOpSame(CellI& cell);
+    void printOpNotSame(CellI& cell);
+    void printOpEqual(CellI& cell);
+    void printOpNotEqual(CellI& cell);
+    void printOpHas(CellI& cell);
+    void printOpGet(CellI& cell);
+    void printOpAnd(CellI& cell);
+    void printOpOr(CellI& cell);
+    void printOpNot(CellI& cell);
+    void printOpAdd(CellI& cell);
+    void printOpSubtract(CellI& cell);
+    void printOpMultiply(CellI& cell);
+    void printOpDivide(CellI& cell);
+    void printOpLessThan(CellI& cell);
+    void printOpGreaterThan(CellI& cell);
+    void printIndent();
 
     std::stringstream m_ss;
+    mutable int m_indent = 0;
+    const int m_tabSize = 4;
 };
 
 } // namespace cells

@@ -216,12 +216,6 @@ void Object::operator()()
         value();
     }
     if (&m_type == &kb.type.op.Function) {
-        if (has(kb.coding.input)) {
-            CellI& inputs = get(kb.coding.input);
-            Visitor::visitList(inputs, [this](CellI& arg, int) {
-                arg();
-            });
-        }
         if (has(kb.coding.op)) {
             CellI& op = get(kb.coding.op);
             op();
@@ -1925,11 +1919,6 @@ void Function::set(CellI& role, CellI& value)
 
 void Function::operator()()
 {
-    if (m_inputs) {
-        Visitor::visitList(*m_inputs, [this](CellI& arg, int) {
-            arg();
-        });
-    }
     if (m_op) {
         m_op->eval();
     }

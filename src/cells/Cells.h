@@ -575,7 +575,7 @@ protected:
 class EvalVar : public Base
 {
 public:
-    EvalVar(brain::Brain& kb, CellI& var, const std::string& label = "Block");
+    EvalVar(brain::Brain& kb, CellI& var, const std::string& label = "EvalVar");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;

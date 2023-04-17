@@ -602,7 +602,7 @@ void Ast::Function::compileParams(cells::op::Function& function, CellI* type)
     if (m_inputs || type) {
         Map& params = *new Map(kb, kb.type.op.Var);
         if (type) {
-            params.add(kb.coding.self, *new cells::op::Var(kb, *type));
+            params.add(kb.coding.self, *new cells::op::Var(kb, *type, "self"));
             iss << kb.coding.self.label() << ": " << (*type).label();
         }
         if (m_inputs) {
@@ -610,8 +610,8 @@ void Ast::Function::compileParams(cells::op::Function& function, CellI* type)
                 if (!params.empty()) {
                     iss << ", ";
                 }
-                iss << slot[kb.coding.slotRole].label() << ": " << slot[kb.coding.slotType].label();
-                params.add(slot[kb.coding.slotRole], *new cells::op::Var(kb, slot[kb.coding.slotType]));
+                iss << "p_" << slot[kb.coding.slotRole].label() << ": " << slot[kb.coding.slotType].label();
+                params.add(slot[kb.coding.slotRole], *new cells::op::Var(kb, slot[kb.coding.slotType], std::format("p_{}", slot[kb.coding.slotRole].label())));
             });
         }
         function.addInputs(params);

@@ -97,13 +97,20 @@ protected:
 };
 std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 
+TEST_F(CellTest, PrintMethod)
+{
+    printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.coding.constructor]);
+    printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.dimensions.size]);
+    printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.sequence.add]);
+    printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.sequence.empty]);
+}
+
 TEST_F(CellTest, List)
 {
     Object list(kb, kb.type.List, kb.coding.constructor, { kb.coding.objectType, kb.type.Cell });
 
     printAs.value(list);
     printAs.cell(list);
-    printAs.cell(list[coding.item]);
     EXPECT_EQ(&list[kb.dimensions.size], &_0_);
     EXPECT_EQ(&list.method(kb.dimensions.size), &_0_);
     EXPECT_EQ(&list.method(kb.sequence.empty), &true_);
