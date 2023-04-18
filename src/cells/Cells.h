@@ -623,74 +623,6 @@ protected:
 };
 
 // ============================================================================
-class Same : public Expression
-{
-public:
-    Same(brain::Brain& kb, CellI& lhs, CellI& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_lhs;
-    CellI& m_rhs;
-};
-
-// ============================================================================
-class NotSame : public Expression
-{
-public:
-    NotSame(brain::Brain& kb, CellI& lhs, CellI& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_lhs;
-    CellI& m_rhs;
-};
-
-// ============================================================================
-class Equal : public Expression
-{
-public:
-    Equal(brain::Brain& kb, CellI& lhs, CellI& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_lhs;
-    CellI& m_rhs;
-};
-
-// ============================================================================
-class NotEqual : public Expression
-{
-public:
-    NotEqual(brain::Brain& kb, CellI& lhs, CellI& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_lhs;
-    CellI& m_rhs;
-};
-
-// ============================================================================
 class Has : public Expression
 {
 public:
@@ -804,10 +736,6 @@ public:
     virtual void visit(op::Function&) = 0;
     virtual void visit(op::ConstVar&) { }
     virtual void visit(op::New&) { }
-    virtual void visit(op::Same&) { }
-    virtual void visit(op::NotSame&) { }
-    virtual void visit(op::Equal&) { }
-    virtual void visit(op::NotEqual&) { }
     virtual void visit(op::Has&) { }
     virtual void visit(op::Get&) { }
     virtual void visit(op::And&) { }

@@ -346,8 +346,15 @@ TEST_F(CellTest, BasicControlOpTest)
 {
     ConstVar testValue1(kb, kb.type.Char);
     ConstVar testValue2(kb, kb.type.Color);
-    Same sameOpEq(kb, testValue1, testValue1);
-    Same sameOpNe(kb, testValue1, testValue2);
+
+    Object sameOpEq(kb, kb.type.op.Same, "sameOpEq");
+    sameOpEq.set(kb.coding.lhs, testValue1);
+    sameOpEq.set(kb.coding.rhs, testValue1);
+
+    Object sameOpNe(kb, kb.type.op.Same, "sameOpNe");
+    sameOpNe.set(kb.coding.lhs, testValue1);
+    sameOpNe.set(kb.coding.rhs, testValue2);
+
     sameOpEq();
     sameOpNe();
 
