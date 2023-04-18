@@ -696,7 +696,9 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         Visitor::visitList(list, [this, &compiledAsts, &ast, &function, type](CellI& ast, int) {
             compiledAsts.add(compileAst(ast, function, type));
         });
-        return *new op::Block(kb, compiledAsts);
+        Object& opBlock = *new Object(kb, kb.type.op.Block);
+        opBlock.set(kb.coding.ops, compiledAsts);
+        return opBlock;
     } else if (&ast.type() == &kb.type.ast.Cell) {
         return *new op::ConstVar(kb, ast[kb.coding.value]);
     } else if (&ast.type() == &kb.type.ast.SelfFn) {
@@ -727,7 +729,9 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         return *new op::ConstVar(kb, function.getOrCreateVar(ast[kb.coding.role], kb.type.Cell));
     } else if (&ast.type() == &kb.type.ast.New) {
         auto& compiledAsts = *new cells::List(kb, kb.type.op.Base);
-        auto& block = *new op::Block(kb, compiledAsts);
+
+        Object& block = *new Object(kb, kb.type.op.Block);
+        block.set(kb.coding.ops, compiledAsts);
         compiledAsts.add(*new op::Set(kb, compile(kb.ast.cell(block)), compile(kb.ast.cell(kb.coding.value)), *new op::New(kb, compile(ast[kb.coding.objectType]))));
         if (ast.has(kb.coding.constructor)) {
             Object callAst(kb, kb.type.ast.Call);
@@ -739,7 +743,8 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         return block;
     } else if (&ast.type() == &kb.type.ast.Call) {
         auto& compiledAsts  = *new cells::List(kb, kb.type.op.Base);
-        CellI& block        = *new op::Block(kb, compiledAsts, "Call { ... }");
+        Object& block      = *new Object(kb, kb.type.op.Block, "Call { ... }");
+        block.set(kb.coding.ops, compiledAsts);
         Ast::Get& getMethod = kb.ast.get(kb.ast.get(kb.ast.get(kb.ast.get(static_cast<Ast::Base&>(ast[kb.coding.cell]), kb.ast.cell(kb.coding.type)), kb.ast.cell(kb.coding.methods)), kb.ast.cell(kb.coding.index)), static_cast<Ast::Base&>(ast[kb.coding.method]));
         Object& varMethod   = *new Object(kb, kb.type.op.Var, "Call { var method; }");
         varMethod.set(kb.coding.objectType, kb.type.op.Function);
@@ -766,7 +771,8 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         return block;
     } else if (&ast.type() == &kb.type.ast.StaticCall) {
         auto& compiledAsts  = *new cells::List(kb, kb.type.op.Base);
-        CellI& block        = *new op::Block(kb, compiledAsts, "Call { ... }");
+        Object& block      = *new Object(kb, kb.type.op.Block, "Call { ... }");
+        block.set(kb.coding.ops, compiledAsts);
         Ast::Get& getMethod = kb.ast.get(kb.ast.get(kb.ast.get(static_cast<Ast::Base&>(ast[kb.coding.cell]), kb.ast.cell(kb.coding.methods)), kb.ast.cell(kb.coding.index)), static_cast<Ast::Base&>(ast[kb.coding.method]));
         Object& varMethod   = *new Object(kb, kb.type.op.Var, "Call { var method; }");
         varMethod.set(kb.coding.objectType, kb.type.op.Function);

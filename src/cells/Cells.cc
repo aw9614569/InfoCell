@@ -1834,66 +1834,6 @@ Base::Base(brain::Brain& kb, const std::string& label) :
 {
 }
 #pragma endregion
-#pragma region Block
-// ============================================================================
-Block::Block(brain::Brain& kb, List& ops, const std::string& label) :
-    Base(kb, label),
-    m_ops(ops)
-{
-}
-
-bool Block::has(CellI& role)
-{
-    if (&role == &kb.coding.type) {
-        return true;
-    }
-    if (&role == &kb.coding.ops) {
-        return true;
-    }
-    if (&role == &kb.coding.value && m_value) {
-        return true;
-    }
-
-    return false;
-}
-
-void Block::set(CellI& role, CellI& value)
-{
-    if (&role == &kb.coding.value) {
-        m_value = &value;
-    }
-}
-
-void Block::operator()()
-{
-    Visitor::visitList(m_ops, [this](CellI& op, int) {
-        op();
-    });
-}
-
-CellI& Block::operator[](CellI& role)
-{
-    if (&role == &kb.coding.type) {
-        return kb.type.op.Block;
-    }
-    if (&role == &kb.coding.ops) {
-        return m_ops;
-    }
-    if (&role == &kb.coding.value) {
-        if (!m_value) {
-            throw "No value!";
-        }
-        return *m_value;
-    }
-
-    throw "No such role!";
-}
-
-void Block::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
 #pragma region Function
 // ============================================================================
 Function::Function(brain::Brain& kb, const std::string& label) :

@@ -562,23 +562,6 @@ public:
 };
 
 // ============================================================================
-class Block : public Base
-{
-public:
-    Block(brain::Brain& kb, List& ops, const std::string& label = "Block");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    List& m_ops;
-    CellI* m_value = nullptr;
-};
-
-// ============================================================================
 class Function : public Base
 {
 public:
@@ -1001,7 +984,6 @@ public:
     virtual void visit(hybrid::Pixel&)   = 0;
     virtual void visit(hybrid::Picture&) = 0;
 
-    virtual void visit(op::Block&) { }
     virtual void visit(op::Function&) = 0;
     virtual void visit(op::Set&) { }
     virtual void visit(op::If&) { }
