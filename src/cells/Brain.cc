@@ -700,9 +700,13 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         opBlock.set(kb.coding.ops, compiledAsts);
         return opBlock;
     } else if (&ast.type() == &kb.type.ast.Cell) {
-        return *new op::ConstVar(kb, ast[kb.coding.value]);
+        Object& constVar = *new Object(kb, kb.type.op.ConstVar);
+        constVar.set(kb.coding.value, ast[kb.coding.value]);
+        return constVar;
     } else if (&ast.type() == &kb.type.ast.SelfFn) {
-        return *new op::ConstVar(kb, function);
+        Object& constVar = *new Object(kb, kb.type.op.ConstVar);
+        constVar.set(kb.coding.value, function);
+        return constVar;
     } else if (&ast.type() == &kb.type.ast.Self) {
         return function[kb.coding.input][kb.coding.index][kb.coding.self];
     } else if (&ast.type() == &kb.type.ast.Parameter) {
@@ -738,9 +742,13 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         opWhile.set(kb.coding.condition, compile(ast[kb.coding.statement]));
         return opWhile;
     } else if (&ast.type() == &kb.type.ast.ConstVar) {
-        return *new op::ConstVar(kb, compile(ast[kb.coding.value]));
+        Object& constVar = *new Object(kb, kb.type.op.ConstVar);
+        constVar.set(kb.coding.value, compile(ast[kb.coding.value]));
+        return constVar;
     } else if (&ast.type() == &kb.type.ast.Var) {
-        return *new op::ConstVar(kb, function.getOrCreateVar(ast[kb.coding.role], kb.type.Cell));
+        Object& constVar = *new Object(kb, kb.type.op.ConstVar);
+        constVar.set(kb.coding.value, function.getOrCreateVar(ast[kb.coding.role], kb.type.Cell));
+        return constVar;
     } else if (&ast.type() == &kb.type.ast.New) {
         auto& compiledAsts = *new cells::List(kb, kb.type.op.Base);
 

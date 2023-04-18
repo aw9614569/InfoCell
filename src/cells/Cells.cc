@@ -1825,17 +1825,10 @@ int Picture::height() const
 #pragma endregion
 } // namespace hybrid
 namespace op {
-#pragma region Base
-// ============================================================================
-Base::Base(brain::Brain& kb, const std::string& label) :
-    CellI(kb, label)
-{
-}
-#pragma endregion
 #pragma region Function
 // ============================================================================
 Function::Function(brain::Brain& kb, const std::string& label) :
-    Base(kb, label),
+    CellI(kb, label),
     m_localVars(kb, kb.type.op.Var)
 {
 }
@@ -1915,58 +1908,6 @@ CellI& Function::getOrCreateVar(CellI& role, CellI& type)
     return m_localVars.m_index[role];
 }
 
-#pragma endregion
-#pragma region Expression
-// ============================================================================
-Expression::Expression(brain::Brain& kb, const std::string& label) :
-    Base(kb, label)
-{
-}
-#pragma endregion
-#pragma region ConstVar
-// ============================================================================
-ConstVar::ConstVar(brain::Brain& kb, CellI& value, const std::string& label) :
-    Expression(kb, label)
-{
-    m_value = &value;
-}
-
-bool ConstVar::has(CellI& role)
-{
-    if (&role == &kb.coding.type) {
-        return true;
-    }
-    if (&role == &kb.coding.value && m_value) {
-        return true;
-    }
-
-    return false;
-}
-
-void ConstVar::set(CellI& role, CellI& value)
-{
-}
-
-void ConstVar::operator()()
-{
-}
-
-CellI& ConstVar::operator[](CellI& role)
-{
-    if (&role == &kb.coding.type) {
-        return kb.type.op.ConstVar;
-    }
-    if (&role == &kb.coding.value && m_value) {
-        return *m_value;
-    }
-
-    throw "No such role!";
-}
-
-void ConstVar::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
 #pragma endregion
 } // namespace control
 

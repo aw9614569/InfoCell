@@ -344,8 +344,11 @@ TEST_F(CellTest, BasicObjectTest)
 
 TEST_F(CellTest, BasicControlOpTest)
 {
-    ConstVar testValue1(kb, kb.type.Char);
-    ConstVar testValue2(kb, kb.type.Color);
+    Object testValue1(kb, kb.type.op.ConstVar);
+    testValue1.set(kb.coding.value, kb.type.Char);
+
+    Object testValue2(kb, kb.type.op.ConstVar);
+    testValue2.set(kb.coding.value, kb.type.Color);
 
     Object sameOpEq(kb, kb.type.op.Same, "sameOpEq");
     sameOpEq.set(kb.coding.lhs, testValue1);
@@ -367,8 +370,12 @@ TEST_F(CellTest, BasicControlOpTest)
 
 TEST_F(CellTest, BasicControlAddTest)
 {
-    ConstVar start(kb, kb.pools.numbers.get(42));
-    ConstVar value10(kb, kb.pools.numbers.get(10));
+    Object start(kb, kb.type.op.ConstVar);
+    start.set(kb.coding.value, kb.pools.numbers.get(42));
+
+    Object value10(kb, kb.type.op.ConstVar);
+    value10.set(kb.coding.value, kb.pools.numbers.get(10));
+
     Object add10(kb, kb.type.op.Add, "add10");
     add10.set(kb.coding.lhs, start);
     add10.set(kb.coding.rhs, value10);

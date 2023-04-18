@@ -554,15 +554,9 @@ protected:
 } // namespace hybrid
 
 namespace op {
-// ============================================================================
-class Base : public CellI
-{
-public:
-    Base(brain::Brain& kb, const std::string& label);
-};
 
 // ============================================================================
-class Function : public Base
+class Function : public CellI
 {
 public:
     explicit Function(brain::Brain& kb, const std::string& label = "Function");
@@ -582,28 +576,6 @@ protected:
     Map* m_outputs = nullptr;
     CellI* m_op     = nullptr;
     Map m_localVars;
-};
-
-// ============================================================================
-class Expression : public Base
-{
-public:
-    Expression(brain::Brain& kb, const std::string& label);
-
-    CellI* m_value = nullptr;
-};
-
-// ============================================================================
-class ConstVar : public Expression
-{
-public:
-    ConstVar(brain::Brain& kb, CellI& value, const std::string& label = "ConstVar");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
 };
 
 } // namespace control
@@ -634,7 +606,6 @@ public:
     virtual void visit(hybrid::Picture&) = 0;
 
     virtual void visit(op::Function&) = 0;
-    virtual void visit(op::ConstVar&) { }
 
     static void visitList(CellI& list, std::function<void(CellI& value, int i)> fn);
 };
