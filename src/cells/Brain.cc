@@ -706,7 +706,9 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
     } else if (&ast.type() == &kb.type.ast.Parameter) {
         return function[kb.coding.input][kb.coding.index][ast[kb.coding.role]];
     } else if (&ast.type() == &kb.type.ast.Delete) {
-        return *new op::Delete(kb, compile(ast[kb.coding.cell]));
+        Object& opDelete = *new Object(kb, kb.type.op.Delete);
+        opDelete.set(kb.coding.input, compile(ast[kb.coding.cell]));
+        return opDelete;
     } else if (&ast.type() == &kb.type.ast.Set) {
         return *new op::Set(kb, compile(ast[kb.coding.cell]), compile(ast[kb.coding.role]), compile(ast[kb.coding.value]));
     } else if (&ast.type() == &kb.type.ast.If) {

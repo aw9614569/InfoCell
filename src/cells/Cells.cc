@@ -1978,54 +1978,6 @@ CellI& Function::getOrCreateVar(CellI& role, CellI& type)
 }
 
 #pragma endregion
-#pragma region Delete
-// ============================================================================
-Delete::Delete(brain::Brain& kb, CellI& cell, const std::string& label) :
-    Base(kb, label),
-    m_cell(&cell)
-{
-}
-
-bool Delete::has(CellI& role)
-{
-    if (&role == &kb.coding.type) {
-        return true;
-    }
-    if (&role == &kb.coding.input) {
-        return true;
-    }
-
-    return false;
-}
-
-void Delete::set(CellI& role, CellI& value)
-{
-}
-
-void Delete::operator()()
-{
-    m_cell->eval();
-    CellI* cell = &(*m_cell)[kb.coding.value];
-    delete cell;
-}
-
-CellI& Delete::operator[](CellI& role)
-{
-    if (&role == &kb.coding.type) {
-        return kb.type.op.Delete;
-    }
-    if (&role == &kb.coding.input && m_cell) {
-        return *m_cell;
-    }
-
-    throw "No such role!";
-}
-
-void Delete::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
 #pragma region Set
 // ============================================================================
 Set::Set(brain::Brain& kb, CellI& cell, CellI& role, CellI& value) :
