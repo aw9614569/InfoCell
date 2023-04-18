@@ -257,7 +257,7 @@ void CellValuePrinter::printOpNot(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
     m_ss << "not ";
-    printImpl(cell[kb.coding.rhs]);
+    printImpl(cell[kb.coding.input]);
 }
 
 void CellValuePrinter::printOpAdd(CellI& cell)
