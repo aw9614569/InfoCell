@@ -140,6 +140,7 @@ public:
     Type Parameter;
     Type Slot;
     Type Call;
+    Type StaticCall;
     Type Cell;
     Type Self;
     Type SelfFn;
@@ -267,6 +268,16 @@ public:
         Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2);
         Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3);
         Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
+    };
+
+    class StaticCall : public BaseT<StaticCall>
+    {
+    public:
+        StaticCall(brain::Brain& kb, CellI& cell, CellI& method);
+        StaticCall(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1);
+        StaticCall(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2);
+        StaticCall(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3);
+        StaticCall(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
     };
 
     class Block : public BaseT<Block>
@@ -454,6 +465,12 @@ public:
     Call& call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2);
     Call& call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3);
     Call& call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
+
+    StaticCall& scall(CellI& cell, CellI& method);
+    StaticCall& scall(CellI& cell, CellI& method, Slot& slot1);
+    StaticCall& scall(CellI& cell, CellI& method, Slot& slot1, Slot& slot2);
+    StaticCall& scall(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3);
+    StaticCall& scall(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
 
     template <typename... Args>
     Block& block(Args&&... args);

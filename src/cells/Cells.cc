@@ -499,6 +499,56 @@ CellI& Object::method(CellI& role, Param param1, Param param2, Param param3, Par
     return getFnValue(method);
 }
 
+CellI& Object::smethod(CellI& role)
+{
+    CellI& method = getStaticMethod(role);
+    method();
+
+    return getFnValue(method);
+}
+
+CellI& Object::smethod(CellI& role, Param param1)
+{
+    CellI& method = getStaticMethod(role);
+    setFnParam(method, param1);
+    method();
+
+    return getFnValue(method);
+}
+
+CellI& Object::smethod(CellI& role, Param param1, Param param2)
+{
+    CellI& method = getStaticMethod(role);
+    setFnParam(method, param1);
+    setFnParam(method, param2);
+    method();
+
+    return getFnValue(method);
+}
+
+CellI& Object::smethod(CellI& role, Param param1, Param param2, Param param3)
+{
+    CellI& method = getStaticMethod(role);
+    setFnParam(method, param1);
+    setFnParam(method, param2);
+    setFnParam(method, param3);
+    method();
+
+    return getFnValue(method);
+}
+
+CellI& Object::smethod(CellI& role, Param param1, Param param2, Param param3, Param param4)
+{
+    CellI& method = getStaticMethod(role);
+    setFnParam(method, param1);
+    setFnParam(method, param2);
+    setFnParam(method, param3);
+    setFnParam(method, param4);
+    method();
+
+    return getFnValue(method);
+}
+
 bool Object::hasMethod(CellI& role)
 {
     return type().has(kb.coding.methods) && type()[kb.coding.methods][kb.coding.index].has(role);
@@ -508,6 +558,20 @@ CellI& Object::getMethod(CellI& role)
 {
     if (type().has(kb.coding.methods)) {
         CellI& methodsIndex = type()[kb.coding.methods][kb.coding.index];
+        if (methodsIndex.has(role)) {
+            CellI& method = methodsIndex[role];
+            setSelf(method);
+            return method;
+        }
+    }
+
+    throw "No such method!";
+}
+
+CellI& Object::getStaticMethod(CellI& role)
+{
+    if (has(kb.coding.methods)) {
+        CellI& methodsIndex = (*this)[kb.coding.methods][kb.coding.index];
         if (methodsIndex.has(role)) {
             CellI& method = methodsIndex[role];
             setSelf(method);

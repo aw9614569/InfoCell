@@ -103,6 +103,17 @@ TEST_F(CellTest, PrintMethod)
     printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.dimensions.size]);
     printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.sequence.add]);
     printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.sequence.empty]);
+    // TODO
+    // static method call, maybe scall and show it as cell::method()
+    // add the id to the Op node exp. to Var
+    // print function for AST nodes
+    // link the AST nodes to the Op ones
+    // inline methods
+    // somehow restore input variables after a run
+    // recognize self parameter in a function
+    // convert op:: classes to simple Objects
+    // convert Type to object
+    // maybe create a Set?
 }
 
 TEST_F(CellTest, List)
@@ -205,8 +216,7 @@ TEST_F(CellTest, ListItemTemplate)
     listItemType.set(coding.memberOf, kb.type.ListItem[coding.memberOf]);
     listItemType.set(coding.methods, kb.type.ListItem[coding.methods]);
 
-    Object listItemTypeObj(kb, listItemType, "ListItem");
-    CellI& listItemNumber = listItemTypeObj.method(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
+    CellI& listItemNumber = listItemType.smethod(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
     printAs.value(kb.type.ListItem[kb.coding.slots][kb.coding.list], "type.ListItem[slots]");
     printAs.value(listItemNumber[kb.coding.slots][kb.coding.list], "listItemNumber[slots]");
 
@@ -229,8 +239,7 @@ TEST_F(CellTest, ListTemplate)
     listType.set(coding.memberOf, kb.type.List[coding.memberOf]);
     listType.set(coding.methods, kb.type.List[coding.methods]);
 
-    Object listTypeObj(kb, listType, "List");
-    CellI& ListOfNumbers = listTypeObj.method(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
+    CellI& ListOfNumbers = listType.smethod(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
 
     EXPECT_EQ(&ListOfNumbers[coding.subTypes][kb.dimensions.size], &_1_);
     EXPECT_TRUE(ListOfNumbers[coding.subTypes][coding.index].has(coding.objectType));

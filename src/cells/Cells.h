@@ -82,11 +82,18 @@ public:
     CellI& method(CellI& role, Param param1, Param param2, Param param3);
     CellI& method(CellI& role, Param param1, Param param2, Param param3, Param param4);
 
+    CellI& smethod(CellI& role);
+    CellI& smethod(CellI& role, Param param1);
+    CellI& smethod(CellI& role, Param param1, Param param2);
+    CellI& smethod(CellI& role, Param param1, Param param2, Param param3);
+    CellI& smethod(CellI& role, Param param1, Param param2, Param param3, Param param4);
+
 protected:
     void destructor();
 
     bool hasMethod(CellI& role);
     CellI& getMethod(CellI& role);
+    CellI& getStaticMethod(CellI& role);
     CellI& getFnValue(CellI& fn);
 
     void setSelf(CellI& fn);
