@@ -584,8 +584,9 @@ protected:
 class Visitor
 {
 public:
-    virtual void visit(Type&)   = 0;
     virtual void visit(Object&) = 0;
+
+    virtual void visit(Type&)   = 0;
     virtual void visit(Number&) = 0;
     virtual void visit(String&) = 0;
 

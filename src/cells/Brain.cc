@@ -113,123 +113,149 @@ Op::Op(brain::Brain& kb) :
 {
     auto& coding = kb.coding;
     auto& type   = kb.type;
+    auto& ast    = kb.type.ast;
 
     Same.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.lhs, Base),
         coding.slot(coding.rhs, Base),
         coding.slot(coding.value, type.Boolean));
 
     NotSame.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.lhs, Base),
         coding.slot(coding.rhs, Base),
         coding.slot(coding.value, type.Boolean));
 
     Equal.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.lhs, Base),
         coding.slot(coding.rhs, Base),
         coding.slot(coding.value, type.Boolean));
 
     NotEqual.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.lhs, Base),
         coding.slot(coding.rhs, Base),
         coding.slot(coding.value, type.Boolean));
 
     Has.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.cell, Base),
         coding.slot(coding.role, Base),
         coding.slot(coding.value, type.Boolean));
 
     Get.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.cell, Base),
         coding.slot(coding.role, Base),
         coding.slot(coding.value, type.Cell));
 
     Set.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.cell, Base),
         coding.slot(coding.role, Base),
         coding.slot(coding.value, Base));
 
     And.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.lhs, Base),
         coding.slot(coding.rhs, Base),
         coding.slot(coding.value, type.Boolean));
 
     Or.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.lhs, Base),
         coding.slot(coding.rhs, Base),
         coding.slot(coding.value, type.Boolean));
 
     Not.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.input, Base),
         coding.slot(coding.value, type.Boolean));
 
     Add.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.lhs, Base),
         coding.slot(coding.rhs, Base),
         coding.slot(coding.value, type.Number));
 
     Subtract.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.lhs, Base),
         coding.slot(coding.rhs, Base),
         coding.slot(coding.value, type.Number));
 
     Multiply.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.lhs, Base),
         coding.slot(coding.rhs, Base),
         coding.slot(coding.value, type.Number));
 
     Divide.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.lhs, Base),
         coding.slot(coding.rhs, Base),
         coding.slot(coding.value, type.Number));
 
     LessThan.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.lhs, Base),
         coding.slot(coding.rhs, Base),
         coding.slot(coding.value, type.Boolean));
 
     GreaterThan.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.lhs, Base),
         coding.slot(coding.rhs, Base),
         coding.slot(coding.value, type.Boolean));
 
     ConstVar.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.value, type.Cell));
 
     Var.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.objectType, type.Type_),
         coding.slot(coding.value, type.Cell));
 
     New.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.value, type.Cell),
         coding.slot(coding.objectType, Base));
 
     Delete.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.input, Base));
 
     If.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.condition, Base),
         coding.slot(coding.then, Base),
         coding.slot(coding.else_, Base));
 
     Do.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.condition, Base),
         coding.slot(coding.statement, Base));
 
     While.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.condition, Base),
         coding.slot(coding.statement, Base));
 
     Block.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.ops, type.Cell),
         coding.slot(coding.value, type.Cell));
 
     EvalVar.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.value, Var));
 
     Function.addSlots(
+        coding.slot(coding.ast, ast.Base),
         coding.slot(coding.input, type.MapOf(Base)),
-        coding.slot(coding.ast, type.ast.Base),
         coding.slot(coding.op, type.ListOf(Base)),
         coding.slot(coding.output, type.MapOf(Base)));
 }
@@ -252,7 +278,6 @@ Ast::Ast(brain::Brain& kb) :
     Do(kb, "ast::Do"),
     While(kb, "ast::While"),
     Expression(kb, "ast::Expression"),
-    ConstVar(kb, "ast::ConstVar"),
     Var(kb, "ast::Var"),
     Member(kb, "ast::Member"),
     New(kb, "ast::New"),
@@ -274,9 +299,6 @@ Ast::Ast(brain::Brain& kb) :
 {
     auto& coding = kb.coding;
     auto& type   = kb.type;
-
-    ConstVar.addSlots(
-        coding.slot(coding.value, Base));
 
     Var.addSlots(
         coding.slot(coding.role, Base));
@@ -697,14 +719,17 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
             compiledAsts.add(compileAst(ast, function, type));
         });
         Object& opBlock = *new Object(kb, kb.type.op.Block);
+        opBlock.set(kb.coding.ast, ast);
         opBlock.set(kb.coding.ops, compiledAsts);
         return opBlock;
     } else if (&ast.type() == &kb.type.ast.Cell) {
         Object& constVar = *new Object(kb, kb.type.op.ConstVar);
+        constVar.set(kb.coding.ast, ast);
         constVar.set(kb.coding.value, ast[kb.coding.value]);
         return constVar;
     } else if (&ast.type() == &kb.type.ast.SelfFn) {
         Object& constVar = *new Object(kb, kb.type.op.ConstVar);
+        constVar.set(kb.coding.ast, ast);
         constVar.set(kb.coding.value, function);
         return constVar;
     } else if (&ast.type() == &kb.type.ast.Self) {
@@ -713,16 +738,19 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         return function[kb.coding.input][kb.coding.index][ast[kb.coding.role]];
     } else if (&ast.type() == &kb.type.ast.Delete) {
         Object& opDelete = *new Object(kb, kb.type.op.Delete);
+        opDelete.set(kb.coding.ast, ast);
         opDelete.set(kb.coding.input, compile(ast[kb.coding.cell]));
         return opDelete;
     } else if (&ast.type() == &kb.type.ast.Set) {
         Object& opSet = *new Object(kb, kb.type.op.Set);
+        opSet.set(kb.coding.ast, ast);
         opSet.set(kb.coding.cell, compile(ast[kb.coding.cell]));
         opSet.set(kb.coding.role, compile(ast[kb.coding.role]));
         opSet.set(kb.coding.value, compile(ast[kb.coding.value]));
         return opSet;
     } else if (&ast.type() == &kb.type.ast.If) {
         Object& opIf = *new Object(kb, kb.type.op.If);
+        opIf.set(kb.coding.ast, ast);
         opIf.set(kb.coding.condition, compile(ast[kb.coding.condition]));
         opIf.set(kb.coding.then, compile(ast[kb.coding.then]));
         if (ast.has(kb.coding.else_)) {
@@ -733,37 +761,39 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         }
     } else if (&ast.type() == &kb.type.ast.Do) {
         Object& opDo = *new Object(kb, kb.type.op.Do);
+        opDo.set(kb.coding.ast, ast);
         opDo.set(kb.coding.condition, compile(ast[kb.coding.condition]));
         opDo.set(kb.coding.condition, compile(ast[kb.coding.statement]));
         return opDo;
     } else if (&ast.type() == &kb.type.ast.While) {
         Object& opWhile = *new Object(kb, kb.type.op.While);
+        opWhile.set(kb.coding.ast, ast);
         opWhile.set(kb.coding.condition, compile(ast[kb.coding.condition]));
         opWhile.set(kb.coding.condition, compile(ast[kb.coding.statement]));
         return opWhile;
-    } else if (&ast.type() == &kb.type.ast.ConstVar) {
-        Object& constVar = *new Object(kb, kb.type.op.ConstVar);
-        constVar.set(kb.coding.value, compile(ast[kb.coding.value]));
-        return constVar;
     } else if (&ast.type() == &kb.type.ast.Var) {
         Object& constVar = *new Object(kb, kb.type.op.ConstVar);
+        constVar.set(kb.coding.ast, ast);
         constVar.set(kb.coding.value, function.getOrCreateVar(ast[kb.coding.role], kb.type.Cell));
         return constVar;
     } else if (&ast.type() == &kb.type.ast.New) {
         auto& compiledAsts = *new cells::List(kb, kb.type.op.Base);
 
         Object& block = *new Object(kb, kb.type.op.Block);
+        block.set(kb.coding.ast, ast);
         block.set(kb.coding.ops, compiledAsts);
         Object& opSet = *new Object(kb, kb.type.op.Set, "block.value = new objectType()");
+        opSet.set(kb.coding.ast, ast);
         opSet.set(kb.coding.cell, compile(kb.ast.cell(block)));
         opSet.set(kb.coding.role, compile(kb.ast.cell(kb.coding.value)));
         Object& opNew = *new Object(kb, kb.type.op.New);
+        opNew.set(kb.coding.ast, ast);
         opNew.set(kb.coding.objectType, compile(ast[kb.coding.objectType]));
         opSet.set(kb.coding.value, opNew);
 
         compiledAsts.add(opSet);
         if (ast.has(kb.coding.constructor)) {
-            Object callAst(kb, kb.type.ast.Call);
+            Object& callAst = *new Object(kb, kb.type.ast.Call);
             callAst.set(kb.coding.cell, kb.ast.get(kb.ast.cell(block), kb.ast.cell(kb.coding.value)));
             callAst.set(kb.coding.method, ast[kb.coding.constructor]);
             callAst.set(kb.coding.parameters, ast[kb.coding.parameters]);
@@ -773,6 +803,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
     } else if (&ast.type() == &kb.type.ast.Call) {
         auto& compiledAsts  = *new cells::List(kb, kb.type.op.Base);
         Object& block      = *new Object(kb, kb.type.op.Block, "Call { ... }");
+        block.set(kb.coding.ast, ast);
         block.set(kb.coding.ops, compiledAsts);
         Ast::Get& getMethod = kb.ast.get(kb.ast.get(kb.ast.get(kb.ast.get(static_cast<Ast::Base&>(ast[kb.coding.cell]), kb.ast.cell(kb.coding.type)), kb.ast.cell(kb.coding.methods)), kb.ast.cell(kb.coding.index)), static_cast<Ast::Base&>(ast[kb.coding.method]));
         Object& varMethod   = *new Object(kb, kb.type.op.Var, "Call { var method; }");
@@ -800,7 +831,8 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         return block;
     } else if (&ast.type() == &kb.type.ast.StaticCall) {
         auto& compiledAsts  = *new cells::List(kb, kb.type.op.Base);
-        Object& block      = *new Object(kb, kb.type.op.Block, "Call { ... }");
+        Object& block      = *new Object(kb, kb.type.op.Block, "SCall { ... }");
+        block.set(kb.coding.ast, ast);
         block.set(kb.coding.ops, compiledAsts);
         Ast::Get& getMethod = kb.ast.get(kb.ast.get(kb.ast.get(static_cast<Ast::Base&>(ast[kb.coding.cell]), kb.ast.cell(kb.coding.methods)), kb.ast.cell(kb.coding.index)), static_cast<Ast::Base&>(ast[kb.coding.method]));
         Object& varMethod   = *new Object(kb, kb.type.op.Var, "Call { var method; }");
@@ -828,80 +860,97 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         return block;
     } else if (&ast.type() == &kb.type.ast.And) {
         Object& opAnd = *new Object(kb, kb.type.op.And);
+        opAnd.set(kb.coding.ast, ast);
         opAnd.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
         opAnd.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
         return opAnd;
     } else if (&ast.type() == &kb.type.ast.Or) {
         Object& opOr = *new Object(kb, kb.type.op.Or);
+        opOr.set(kb.coding.ast, ast);
         opOr.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
         opOr.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
         return opOr;
     } else if (&ast.type() == &kb.type.ast.Not) {
         Object& opNot = *new Object(kb, kb.type.op.Not);
+        opNot.set(kb.coding.ast, ast);
         opNot.set(kb.coding.input, compile(ast[kb.coding.input]));
         return opNot;
     } else if (&ast.type() == &kb.type.ast.Add) {
         Object& opAdd = *new Object(kb, kb.type.op.Add);
+        opAdd.set(kb.coding.ast, ast);
         opAdd.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
         opAdd.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
         return opAdd;
     } else if (&ast.type() == &kb.type.ast.Subtract) {
         Object& opSubtract = *new Object(kb, kb.type.op.Subtract);
+        opSubtract.set(kb.coding.ast, ast);
         opSubtract.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
         opSubtract.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
         return opSubtract;
     } else if (&ast.type() == &kb.type.ast.Multiply) {
         Object& opMultiply = *new Object(kb, kb.type.op.Multiply);
+        opMultiply.set(kb.coding.ast, ast);
         opMultiply.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
         opMultiply.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
         return opMultiply;
     } else if (&ast.type() == &kb.type.ast.Divide) {
         Object& opDivide = *new Object(kb, kb.type.op.Divide);
+        opDivide.set(kb.coding.ast, ast);
         opDivide.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
         opDivide.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
         return opDivide;
     } else if (&ast.type() == &kb.type.ast.LessThan) {
         Object& opLessThan = *new Object(kb, kb.type.op.LessThan);
+        opLessThan.set(kb.coding.ast, ast);
         opLessThan.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
         opLessThan.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
         return opLessThan;
     } else if (&ast.type() == &kb.type.ast.GreaterThan) {
         Object& opGreaterThan = *new Object(kb, kb.type.op.GreaterThan);
+        opGreaterThan.set(kb.coding.ast, ast);
         opGreaterThan.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
         opGreaterThan.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
         return opGreaterThan;
     } else if (&ast.type() == &kb.type.ast.Same) {
         Object& opSame = *new Object(kb, kb.type.op.Same);
+        opSame.set(kb.coding.ast, ast);
         opSame.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
         opSame.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
         return opSame;
     } else if (&ast.type() == &kb.type.ast.NotSame) {
         Object& opNotSame = *new Object(kb, kb.type.op.NotSame);
+        opNotSame.set(kb.coding.ast, ast);
         opNotSame.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
         opNotSame.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
         return opNotSame;
     } else if (&ast.type() == &kb.type.ast.Equal) {
         Object& opEqual = *new Object(kb, kb.type.op.Equal);
+        opEqual.set(kb.coding.ast, ast);
         opEqual.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
         opEqual.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
         return opEqual;
     } else if (&ast.type() == &kb.type.ast.NotEqual) {
         Object& opNotEqual = *new Object(kb, kb.type.op.NotEqual);
+        opNotEqual.set(kb.coding.ast, ast);
         opNotEqual.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
         opNotEqual.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
         return opNotEqual;
     } else if (&ast.type() == &kb.type.ast.Has) {
         Object& opHas = *new Object(kb, kb.type.op.Has);
+        opHas.set(kb.coding.ast, ast);
         opHas.set(kb.coding.cell, compile(ast[kb.coding.cell]));
         opHas.set(kb.coding.role, compile(ast[kb.coding.role]));
         return opHas;
     } else if (&ast.type() == &kb.type.ast.Get) {
         Object& opGet = *new Object(kb, kb.type.op.Get);
+        opGet.set(kb.coding.ast, ast);
         opGet.set(kb.coding.cell, compile(ast[kb.coding.cell]));
         opGet.set(kb.coding.role, compile(ast[kb.coding.role]));
         return opGet;
     } else if (&ast.type() == &kb.type.ast.Member) {
-        return compile(kb.ast.get(kb.ast.self(), static_cast<Ast::Base&>(ast[kb.coding.role])));
+        CellI& member = compile(kb.ast.get(kb.ast.self(), static_cast<Ast::Base&>(ast[kb.coding.role])));
+        member.set(kb.coding.ast, ast);
+        return member;
     }
 
     throw "Unknown function AST!";
@@ -965,12 +1014,6 @@ Ast::While::While(brain::Brain& kb, Base& condition, Base& statement) :
     set(kb.coding.statement, statement);
 }
 
-Ast::ConstVar::ConstVar(brain::Brain& kb, CellI& cell) :
-    BaseT<ConstVar>(kb, kb.type.ast.ConstVar)
-{
-    set(kb.coding.value, cell);
-}
-
 Ast::Var::Var(brain::Brain& kb, CellI& role) :
     BaseT<Var>(kb, kb.type.ast.Var)
 {
@@ -996,7 +1039,6 @@ Ast::Member::Member(brain::Brain& kb, CellI& role) :
 Ast::Set& Ast::Member::operator=(Base& value)
 {
     Ast::Set& ret = Set::New(kb, Self::New(kb), static_cast<Ast::Base&>(get(kb.coding.role)), value);
-    delete this;
     return ret;
 }
 
@@ -1307,11 +1349,6 @@ Ast::Do& Ast::do_(Base& condition, Base& statement)
 Ast::While& Ast::while_(Base& condition, Base& statement)
 {
     return While::New(kb, condition, statement);
-}
-
-Ast::ConstVar& Ast::ref(CellI& cell)
-{
-    return ConstVar::New(kb, cell);
 }
 
 Ast::Var& Ast::var(CellI& role)

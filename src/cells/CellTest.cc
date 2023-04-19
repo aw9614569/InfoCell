@@ -101,6 +101,7 @@ TEST_F(CellTest, PrintMethod)
 {
     printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.coding.constructor]);
     printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.dimensions.size]);
+#if 1
     printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.sequence.add]);
     printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.sequence.empty]);
 
@@ -114,6 +115,7 @@ TEST_F(CellTest, PrintMethod)
     printAs.value(kb.type.List[kb.coding.methods][kb.coding.index][kb.sequence.add]);
     printAs.value(kb.type.List[kb.coding.methods][kb.coding.index][kb.dimensions.size]);
     printAs.value(kb.type.List[kb.coding.methods][kb.coding.index][kb.sequence.empty]);
+#endif
 
     // TODO
     // static method call, maybe scall and show it as cell::method()
@@ -123,11 +125,14 @@ TEST_F(CellTest, PrintMethod)
     // inline methods
     // somehow restore input variables after a run
     // recognize self parameter in a function
-    // convert op:: classes to simple Objects
+    // convert op::Function class to simple Objects
     // convert Type to object
-    // maybe create a Set?
+    // maybe create a Set<type>?
+    // Map(key, type)
     // type checking
-    // Map<key, type>
+    // create an own type for every function to able to save return values to the fn object
+    // Implement dynamic type for Map.index in Map::add
+    // remove .label() from CellI
 }
 
 TEST_F(CellTest, List)
@@ -224,7 +229,7 @@ TEST_F(CellTest, Map)
 
 TEST_F(CellTest, ListItemTemplate)
 {
-    Object listItemType(kb, kb.type.Type_, "listItemType");
+    Object listItemType(kb, kb.type.Type_);
     listItemType.set(kb.coding.slots, kb.type.ListItem[kb.coding.slots]);
     listItemType.set(coding.subTypes, kb.type.ListItem[coding.subTypes]);
     listItemType.set(coding.memberOf, kb.type.ListItem[coding.memberOf]);

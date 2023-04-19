@@ -60,12 +60,110 @@ void CellValuePrinter::visit(Object& object)
 void CellValuePrinter::printOpBlock(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
+    CellI& ast       = cell[kb.coding.ast];
+    if (&ast.type() == &kb.type.ast.Call) {
+        if (&ast[kb.coding.cell].type() == &kb.type.ast.Get) {
+            m_ss << "(*var_" << ast[kb.coding.cell][kb.coding.cell][kb.coding.cell][kb.coding.role].label() << ")";
+        }
+        if (&ast[kb.coding.cell].type() == &kb.type.ast.Parameter) {
+            m_ss << "p_" << ast[kb.coding.cell][kb.coding.role].label();
+        }
+        if (&ast[kb.coding.cell].type() == &kb.type.ast.Cell) {
+            m_ss << ast[kb.coding.cell][kb.coding.value].label();
+        }
+        if (&ast[kb.coding.cell].type() == &kb.type.ast.Member) {
+            m_ss << "self." << ast[kb.coding.cell][kb.coding.role][kb.coding.value].label();
+        }
+        if (ast.has(kb.coding.method)) {
+            m_ss << ".";
+            m_ss << ast[kb.coding.method][kb.coding.value].label();
+            m_ss << "(";
+            if (ast.has(kb.coding.parameters)) {
+                visitList(ast[kb.coding.parameters], [this, &kb](CellI& slot, int i) {
+                    if (i != 0) {
+                        m_ss << ", ";
+                    }
+                    m_ss << "." << slot[kb.coding.slotRole][kb.coding.value].label();
+                    m_ss << " = ";
+                    if (&slot[kb.coding.slotType].type() == &kb.type.ast.Cell) {
+                        m_ss << slot[kb.coding.slotType][kb.coding.value].label();
+                    }
+                    if (&slot[kb.coding.slotType].type() == &kb.type.ast.Member) {
+                        m_ss << "self." << slot[kb.coding.slotType][kb.coding.role][kb.coding.value].label();
+                    }
+                    if (&slot[kb.coding.slotType].type() == &kb.type.ast.Parameter) {
+                        m_ss << "p_" << slot[kb.coding.slotType][kb.coding.role].label();
+                    }
+                });
+            }
+            m_ss << ")";
+        }
+        return;
+    }
+    if (&ast.type() == &kb.type.ast.StaticCall) {
+        if (&ast[kb.coding.cell].type() == &kb.type.ast.Cell) {
+            m_ss << ast[kb.coding.cell][kb.coding.value].label();
+        }
+        if (&ast[kb.coding.cell].type() == &kb.type.ast.Member) {
+            m_ss << "self." << ast[kb.coding.cell][kb.coding.role][kb.coding.value].label();
+        }
+        if (ast.has(kb.coding.method)) {
+            m_ss << "::";
+            m_ss << ast[kb.coding.method][kb.coding.value].label();
+            m_ss << "(";
+            if (ast.has(kb.coding.parameters)) {
+                visitList(ast[kb.coding.parameters], [this, &kb](CellI& slot, int i) {
+                    if (i != 0) {
+                        m_ss << ", ";
+                    }
+                    m_ss << "." << slot[kb.coding.slotRole][kb.coding.value].label();
+                    m_ss << " = ";
+                    if (&slot[kb.coding.slotType].type() == &kb.type.ast.Cell) {
+                        m_ss << slot[kb.coding.slotType][kb.coding.value].label();
+                    }
+                    if (&slot[kb.coding.slotType].type() == &kb.type.ast.Member) {
+                        m_ss << "self." << slot[kb.coding.slotType][kb.coding.role][kb.coding.value].label();
+                    }
+                    if (&slot[kb.coding.slotType].type() == &kb.type.ast.Parameter) {
+                        m_ss << "p_" << slot[kb.coding.slotType][kb.coding.role].label();
+                    }
+                });
+            }
+            m_ss << ")";
+        }
+        return;
+    }
+    if (&ast.type() == &kb.type.ast.New) {
+        m_ss << "new ";
+        if (&ast[kb.coding.objectType].type() == &kb.type.ast.Cell) {
+            m_ss << ast[kb.coding.objectType][kb.coding.value].label();
+        }
+        if (&ast[kb.coding.objectType].type() == &kb.type.ast.Member) {
+            m_ss << "self." << ast[kb.coding.objectType][kb.coding.role][kb.coding.value].label();
+        }
+        if (ast.has(kb.coding.constructor)) {
+            m_ss << ".";
+            m_ss << ast[kb.coding.constructor][kb.coding.value].label();
+            m_ss << "(";
+            if (ast.has(kb.coding.parameters)) {
+                visitList(ast[kb.coding.parameters], [this, &kb](CellI& slot, int i) {
+                    if (i != 0) {
+                        m_ss << ", ";
+                    }
+                    m_ss << slot[kb.coding.slotRole][kb.coding.value].label();
+                });
+
+            }
+            m_ss << ")";
+        }
+        return;
+    }
     m_ss << "{\n";
     m_indent++;
     Visitor::visitList(cell[kb.coding.ops], [this](CellI& op, int) {
         printIndent();
         printImpl(op);
-        m_ss << "\n";
+        m_ss << ";\n";
     });
     m_indent--;
     printIndent();
@@ -159,27 +257,34 @@ void CellValuePrinter::printOpWhile(CellI& cell)
 void CellValuePrinter::printOpConstVar(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    m_ss << "[";
+    if (cell.has(kb.coding.ast)) {
+        CellI& ast = cell[kb.coding.ast];
+        if (&ast.type() == &kb.type.ast.Cell) {
+            m_ss << ast[kb.coding.value].label();
+            return;
+        }
+        if (&ast.type() == &kb.type.ast.Var) {
+            m_ss << "var_" << ast[kb.coding.role].label();
+            return;
+        }
+    }
     if (cell.has(kb.coding.value)) {
         m_ss << cell[kb.coding.value].label();
     } else {
         m_ss << "<empty>";
     }
-    m_ss << "]";
 }
 
 void CellValuePrinter::printOpVar(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    m_ss << "var(";
     if (cell.has(kb.coding.value)) {
         CellI* value = &cell[kb.coding.value];
-        std::cout << value << std::endl;
+        m_ss << value << std::endl;
         printImpl(*value);
     } else {
         cell.label().empty() ? (m_ss << "empty") : (m_ss << cell.label());
     }
-    m_ss << ")";
 }
 
 void CellValuePrinter::printOpNew(CellI& cell)
