@@ -139,7 +139,7 @@ void CellStructPrinter::printImpl(CellI& cell)
     m_ss << " // " << typePrinter.print() << std::endl;
     if (type.has(kb.coding.slots)) {
         CellI& slotList = type[kb.coding.slots][kb.coding.list];
-        visitList(slotList, [this, &kb, &cell](CellI& slot, int i) {
+        visitList(slotList, [this, &kb, &cell](CellI& slot, int i, bool&) {
             CellI& role = slot[kb.coding.slotRole];
             if (!cell.has(role)) {
                 return;

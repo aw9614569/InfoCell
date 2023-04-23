@@ -42,6 +42,7 @@ public:
     Object condition;
     Object constructor;
     Object container;
+    Object continue_;
     Object destructor;
     Object else_;
     Object emptyObject;
@@ -73,6 +74,8 @@ public:
     Object slots;
     Object slotType;
     Object statement;
+    Object status;
+    Object stop;
     Object subTypes;
     Object template_;
     Object then;

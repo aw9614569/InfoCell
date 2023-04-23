@@ -74,7 +74,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
             m_ss << ast[kb.coding.method][kb.coding.value].label();
             m_ss << "(";
             if (ast.has(kb.coding.parameters)) {
-                visitList(ast[kb.coding.parameters], [this, &kb](CellI& slot, int i) {
+                visitList(ast[kb.coding.parameters], [this, &kb](CellI& slot, int i, bool&) {
                     if (i != 0) {
                         m_ss << ", ";
                     }
@@ -99,7 +99,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
             m_ss << ast[kb.coding.method][kb.coding.value].label();
             m_ss << "(";
             if (ast.has(kb.coding.parameters)) {
-                visitList(ast[kb.coding.parameters], [this, &kb](CellI& slot, int i) {
+                visitList(ast[kb.coding.parameters], [this, &kb](CellI& slot, int i, bool&) {
                     if (i != 0) {
                         m_ss << ", ";
                     }
@@ -125,7 +125,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
             m_ss << ast[kb.coding.constructor][kb.coding.value].label();
             m_ss << "(";
             if (ast.has(kb.coding.parameters)) {
-                visitList(ast[kb.coding.parameters], [this, &kb](CellI& slot, int i) {
+                visitList(ast[kb.coding.parameters], [this, &kb](CellI& slot, int i, bool&) {
                     if (i != 0) {
                         m_ss << ", ";
                     }
@@ -141,7 +141,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
     }
     m_ss << "{\n";
     m_indent++;
-    Visitor::visitList(cell[kb.coding.ops], [this](CellI& op, int) {
+    Visitor::visitList(cell[kb.coding.ops], [this](CellI& op, int, bool&) {
         printIndent();
         printImpl(op);
         m_ss << ";\n";
@@ -465,7 +465,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         CellI& type = cell;
         m_ss << "Type " << type.label();
         if (type.has(kb.coding.memberOf)) {
-            visitList(type[kb.coding.memberOf][kb.coding.list], [this, &kb](CellI& member, int i) {
+            visitList(type[kb.coding.memberOf][kb.coding.list], [this, &kb](CellI& member, int i, bool&) {
                 if (i != 0) {
                     m_ss << ", ";
                 } else {
@@ -476,7 +476,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         }
         m_ss << " { ";
         if (type.has(kb.coding.slots)) {
-            visitList(type[kb.coding.slots][kb.coding.list], [this, &kb](CellI& slot, int i) {
+            visitList(type[kb.coding.slots][kb.coding.list], [this, &kb](CellI& slot, int i, bool&) {
                 if (i != 0) {
                     m_ss << ", ";
                 }
@@ -487,7 +487,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         return;
     } else if (is(kb.type.List)) {
         m_ss << "[";
-        visitList(cell, [this](CellI& value, int i) {
+        visitList(cell, [this](CellI& value, int i, bool&) {
             if (i != 0) {
                 m_ss << ",";
             }
@@ -502,7 +502,7 @@ void CellValuePrinter::printImpl(CellI& cell)
             return;
         }
         m_ss << "{";
-        visitList(cell[kb.coding.list], [this](CellI& value, int i) {
+        visitList(cell[kb.coding.list], [this](CellI& value, int i, bool&) {
             if (i != 0) {
                 m_ss << ",";
             }
@@ -621,7 +621,7 @@ void CellValuePrinter::printImpl(CellI& cell)
     m_ss << cell.type().label() << " { ";
 
     if (cell.type().has(kb.coding.slots)) {
-        visitList(cell.type()[kb.coding.slots][kb.coding.list], [this, &kb](CellI& slot, int i) {
+        visitList(cell.type()[kb.coding.slots][kb.coding.list], [this, &kb](CellI& slot, int i, bool&) {
             if (i != 0) {
                 m_ss << ", ";
             }
@@ -647,7 +647,7 @@ void CellValuePrinter::visit(List::Item& listItemCell)
 void CellValuePrinter::visit(List& list)
 {
     m_ss << "[";
-    visitList(list, [this](CellI& value, int i) {
+    visitList(list, [this](CellI& value, int i, bool&) {
         if (i != 0) {
             m_ss << ",";
         }

@@ -81,7 +81,7 @@ void Printer::visit(List::Item& cell)
 void Printer::visit(List& list)
 {
     Elements listItems;
-    visitList(list, [this, &listItems](CellI& value, int i) {
+    visitList(list, [this, &listItems](CellI& value, int i, bool&) {
         Element valueAsSvg;
         if (tryVisitWith(value, *this)) {
             valueAsSvg = m_stack.top();

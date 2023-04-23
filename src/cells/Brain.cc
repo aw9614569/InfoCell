@@ -35,6 +35,7 @@ Coding::Coding(brain::Brain& kb) :
     condition(kb, kb.type.Cell, "condition"),
     constructor(kb, kb.type.Cell, "constructor"),
     container(kb, kb.type.Cell, "container"),
+    continue_(kb, kb.type.Cell, "continue"),
     destructor(kb, kb.type.Cell, "destructor"),
     else_(kb, kb.type.Cell, "else_"),
     emptyObject(kb, kb.type.Cell, "emptyObject"),
@@ -66,6 +67,8 @@ Coding::Coding(brain::Brain& kb) :
     slots(kb, kb.type.Cell, "slots"),
     slotType(kb, kb.type.Cell, "slotType"),
     statement(kb, kb.type.Cell, "statement"),
+    status(kb, kb.type.Cell, "status"),
+    stop(kb, kb.type.Cell, "stop"),
     subTypes(kb, kb.type.Cell, "subTypes"),
     template_(kb, kb.type.Cell, "template"),
     then(kb, kb.type.Cell, "then"),
@@ -146,6 +149,7 @@ Op::Op(brain::Brain& kb) :
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.status, coding.slot(coding.status, type.Cell),
                   coding.ops, coding.slot(coding.ops, type.Cell),
                   coding.value, coding.slot(coding.value, type.Cell));
     Block.set(coding.slots, *map);
@@ -169,6 +173,7 @@ Op::Op(brain::Brain& kb) :
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.status, coding.slot(coding.status, type.Cell),
                   coding.condition, coding.slot(coding.condition, Base),
                   coding.statement, coding.slot(coding.statement, Base));
     Do.set(coding.slots, *map);
@@ -216,6 +221,7 @@ Op::Op(brain::Brain& kb) :
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.status, coding.slot(coding.status, type.Cell),
                   coding.condition, coding.slot(coding.condition, Base),
                   coding.then, coding.slot(coding.then, Base),
                   coding.else_, coding.slot(coding.else_, Base));
@@ -308,6 +314,7 @@ Op::Op(brain::Brain& kb) :
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.status, coding.slot(coding.status, type.Cell),
                   coding.condition, coding.slot(coding.condition, Base),
                   coding.statement, coding.slot(coding.statement, Base));
     While.set(coding.slots, *map);
@@ -831,7 +838,7 @@ void Ast::Function::compileParams(cells::Object& function, CellI* type)
             iss << kb.coding.self.label() << ": " << (*type).label();
         }
         if (m_inputs) {
-            Visitor::visitList(inputs(), [this, &params, &iss](CellI& slot, int i) {
+            Visitor::visitList(inputs(), [this, &params, &iss](CellI& slot, int i, bool& stop) {
                 if (!params.empty()) {
                     iss << ", ";
                 }
@@ -846,7 +853,7 @@ void Ast::Function::compileParams(cells::Object& function, CellI* type)
     }
     if (m_outputs) {
         Map& params = *new Map(kb, kb.type.Cell, kb.type.op.Var);
-        Visitor::visitList(outputs(), [this, &params, &oss](CellI& slot, int i) {
+        Visitor::visitList(outputs(), [this, &params, &oss](CellI& slot, int i, bool& stop) {
             if (!params.empty()) {
                 oss << ", ";
             }
@@ -871,7 +878,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
     if (&ast.type() == &kb.type.ast.Block) {
         CellI& list        = ast[kb.coding.asts];
         auto& compiledAsts = *new cells::List(kb, kb.type.op.Base);
-        Visitor::visitList(list, [this, &compiledAsts, &ast, &function, type](CellI& ast, int) {
+        Visitor::visitList(list, [this, &compiledAsts, &ast, &function, type](CellI& ast, int, bool&) {
             compiledAsts.add(compileAst(ast, function, type));
         });
         Object& opBlock = *new Object(kb, kb.type.op.Block);
@@ -984,7 +991,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
         storeMethod.label("Call { storeMethod; }");
         setSelf.label("Call { setSelf; }");
         if (ast.has(kb.coding.parameters)) {
-            Visitor::visitList(ast[kb.coding.parameters], [this, &ast, &function, type, &compiledAsts, &varMethod](CellI& ast, int) {
+            Visitor::visitList(ast[kb.coding.parameters], [this, &ast, &function, type, &compiledAsts, &varMethod](CellI& ast, int, bool&) {
                 CellI& setParam = compileAst(kb.ast.set(kb.ast.get(kb.ast.get(kb.ast.get(kb.ast.get(kb.ast.cell(varMethod), kb.ast.cell(kb.coding.value)), kb.ast.cell(kb.coding.input)), kb.ast.cell(kb.coding.index)), static_cast<Ast::Base&>(ast[kb.coding.slotRole])), kb.ast.cell(kb.coding.value), static_cast<Ast::Base&>(ast[kb.coding.slotType])), function, type);
                 setParam.label("Call { setParam; }");
                 compiledAsts.add(setParam);
@@ -1015,7 +1022,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
         storeMethod.label("Call { storeMethod; }");
         setSelf.label("Call { setSelf; }");
         if (ast.has(kb.coding.parameters)) {
-            Visitor::visitList(ast[kb.coding.parameters], [this, &ast, &function, type, &compiledAsts, &varMethod](CellI& ast, int) {
+            Visitor::visitList(ast[kb.coding.parameters], [this, &ast, &function, type, &compiledAsts, &varMethod](CellI& ast, int, bool&) {
                 CellI& setParam = compileAst(kb.ast.set(kb.ast.get(kb.ast.get(kb.ast.get(kb.ast.get(kb.ast.cell(varMethod), kb.ast.cell(kb.coding.value)), kb.ast.cell(kb.coding.input)), kb.ast.cell(kb.coding.index)), static_cast<Ast::Base&>(ast[kb.coding.slotRole])), kb.ast.cell(kb.coding.value), static_cast<Ast::Base&>(ast[kb.coding.slotType])), function, type);
                 setParam.label("Call { setParam; }");
                 compiledAsts.add(setParam);

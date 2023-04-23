@@ -547,7 +547,7 @@ public:
     virtual void visit(hybrid::Pixel&)   = 0;
     virtual void visit(hybrid::Picture&) = 0;
 
-    static void visitList(CellI& list, std::function<void(CellI& value, int i)> fn);
+    static void visitList(CellI& list, std::function<void(CellI& value, int i, bool& stop)> fn);
 };
 
 bool tryVisitWith(CellI& cell, Visitor& visitor);

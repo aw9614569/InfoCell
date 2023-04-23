@@ -212,11 +212,19 @@ void Object::set(CellI& role, CellI& value)
 void Object::operator()()
 {
     if (&m_type == &kb.type.op.Block) {
-        Visitor::visitList(get(kb.coding.ops), [this](CellI& op, int) {
+        Visitor::visitList(get(kb.coding.ops), [this](CellI& op, int, bool& stop) {
             if (&op.type() == &kb.type.op.Return) {
+                set(kb.coding.status, kb.coding.stop);
+                stop = true;
                 return;
             }
+            set(kb.coding.status, kb.coding.continue_);
             op();
+            if (op.has(kb.coding.status) && &op[kb.coding.status] == &kb.coding.stop) {
+                set(kb.coding.status, kb.coding.stop);
+                stop = true;
+                return;
+            }
         });
     }
     if (&m_type == &kb.type.op.EvalVar) {
@@ -252,34 +260,69 @@ void Object::operator()()
         CellI& inputCondition = get(kb.coding.condition);
         CellI& thenBranch     = get(kb.coding.then);
         inputCondition();
+        set(kb.coding.status, kb.coding.continue_);
         bool condition = &inputCondition[kb.coding.value] == &kb.boolean.true_;
         if (condition) {
+            if (&thenBranch.type() == &kb.type.op.Return) {
+                set(kb.coding.status, kb.coding.stop);
+                return;
+            }
             thenBranch();
+            if (thenBranch.has(kb.coding.status) && &thenBranch[kb.coding.status] == &kb.coding.stop) {
+                set(kb.coding.status, kb.coding.stop);
+                return;
+            }
         } else {
             if (has(kb.coding.else_)) {
                 CellI& elseBranch = get(kb.coding.else_);
+                if (&elseBranch.type() == &kb.type.op.Return) {
+                    set(kb.coding.status, kb.coding.stop);
+                    return;
+                }
                 elseBranch();
+                if (elseBranch.has(kb.coding.status) && &elseBranch[kb.coding.status] == &kb.coding.stop) {
+                    set(kb.coding.status, kb.coding.stop);
+                    return;
+                }
             }
         }
     }
     if (&m_type == &kb.type.op.Do) {
         bool condition = false;
+        set(kb.coding.status, kb.coding.continue_);
         do {
             CellI& statement      = get(kb.coding.statement);
             CellI& inputCondition = get(kb.coding.condition);
+            if (&statement.type() == &kb.type.op.Return) {
+                set(kb.coding.status, kb.coding.stop);
+                return;
+            }
             statement();
+            if (statement.has(kb.coding.status) && &statement[kb.coding.status] == &kb.coding.stop) {
+                set(kb.coding.status, kb.coding.stop);
+                return;
+            }
             inputCondition();
             condition = &inputCondition[kb.coding.value] == &kb.boolean.true_;
         } while (condition);
     }
     if (&m_type == &kb.type.op.While) {
         bool condition = false;
+        set(kb.coding.status, kb.coding.continue_);
         CellI& inputCondition = get(kb.coding.condition);
         CellI& statement      = get(kb.coding.statement);
         inputCondition();
         condition = &inputCondition[kb.coding.value] == &kb.boolean.true_;
         while (condition) {
+            if (&statement.type() == &kb.type.op.Return) {
+                set(kb.coding.status, kb.coding.stop);
+                return;
+            }
             statement();
+            if (statement.has(kb.coding.status) && &statement[kb.coding.status] == &kb.coding.stop) {
+                set(kb.coding.status, kb.coding.stop);
+                return;
+            }
             inputCondition();
             condition = &inputCondition[kb.coding.value] == &kb.boolean.true_;
         };
@@ -1742,7 +1785,7 @@ int Picture::height() const
 #pragma endregion
 } // namespace hybrid
 
-void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i)> visitFn)
+void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, bool& stop)> visitFn)
 {
     brain::Brain& kb = list.kb;
     int i            = 0;
@@ -1751,8 +1794,12 @@ void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i)> vi
     while (currentListItemPtr) {
         CellI& currentListItem = *currentListItemPtr;
         CellI& value           = currentListItem[kb.coding.value];
+        bool stop              = false;
 
-        visitFn(value, i++);
+        visitFn(value, i++, stop);
+        if (stop) {
+            return;
+        }
 
         currentListItemPtr = currentListItem.has(kb.sequence.next) ? &currentListItem[kb.sequence.next] : nullptr;
     }
