@@ -605,7 +605,7 @@ CellI& Object::smethod(CellI& role, Param param1, Param param2, Param param3, Pa
 
 bool Object::hasMethod(CellI& role)
 {
-    return type().has(kb.coding.methods) && type()[kb.coding.methods][kb.coding.index].has(role);
+    return type().has(kb.coding.methods) && type()[kb.coding.methods].has(kb.coding.index) && type()[kb.coding.methods][kb.coding.index].has(role);
 }
 
 CellI& Object::getMethod(CellI& role)

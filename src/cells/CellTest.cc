@@ -130,6 +130,12 @@ TEST_F(CellTest, PrintMethod)
     // type checking
     // create an own type for every function to able to save return values to the fn object
     // remove .label() from CellI
+    //
+    // Map::index should be present even if the map is empty, just see:
+    // bool Object::hasMethod(CellI & role)
+    // {
+    //     return type().has(kb.coding.methods) && type()[kb.coding.methods].has(kb.coding.index) && type()[kb.coding.methods][kb.coding.index].has(role);
+    // }                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 }
 
 TEST_F(CellTest, List)
@@ -201,7 +207,8 @@ TEST_F(CellTest, List)
 
 TEST_F(CellTest, Map)
 {
-    Object map(kb, kb.type.MapOf(kb.type.Number, kb.type.Color), kb.coding.constructor);
+    CellI& mapNumberToColor = kb.type.Map.smethod(kb.coding.template_, { kb.coding.keyType, kb.type.Number }, { kb.coding.objectType, kb.type.Color });
+    Object map(kb, mapNumberToColor, kb.coding.constructor);
 
     printAs.value(map);
     printAs.cell(map);
@@ -314,12 +321,16 @@ TEST_F(CellTest, ListTemplate)
 
 TEST_F(CellTest, CreatedTypeWithConstructor)
 {
-    Map emptyMap(kb, kb.type.Cell, kb.type.Cell);
+    Object emptySubTypesMap(kb, kb.type.MapCellToType, kb.coding.constructor);
+    Object emptyMethodsMap(kb, kb.type.MapCellToType, kb.coding.constructor);
+    Object slotsMap(kb, kb.type.MapCellToSlot, kb.coding.constructor);
+    slotsMap.method(kb.sequence.add, { kb.coding.key, kb.dimensions.size }, { kb.coding.value, kb.coding.slot(kb.dimensions.size, kb.type.Number) });
+
     Object newType(kb, kb.type.Type_, kb.coding.constructor,
-                   { coding.slots, kb.map(kb.type.Cell, kb.type.Slot, kb.dimensions.size, kb.coding.slot(kb.dimensions.size, kb.type.Number)) },
-                   { coding.subTypes, emptyMap },
+                   { coding.slots, slotsMap },
+                   { coding.subTypes, emptySubTypesMap },
                    { coding.memberOf, kb.map(kb.type.Cell, kb.type.Cell) },
-                   { coding.methods, emptyMap });
+                   { coding.methods, emptyMethodsMap });
     printAs.value(newType[coding.slots]);
     printAs.value(newType[coding.slots][coding.list], "newType[coding.slots][coding.list]");
     printAs.value(newType[coding.memberOf][coding.list], "newType[coding.memberOf][coding.list]");
