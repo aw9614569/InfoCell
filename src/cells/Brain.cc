@@ -2021,8 +2021,8 @@ Brain::Brain() :
 
         ast.call(*var_(coding.result), _(methods.addMembership), ast.slot(_(coding.cell), _(type.ListItem))),
 
-        ast.call(*var_(coding.result), _(methods.addSlot), ast.slot(_(coding.slotRole), _(sequence.previous)), ast.slot(_(coding.slotType), ast.self())),
-        ast.call(*var_(coding.result), _(methods.addSlot), ast.slot(_(coding.slotRole), _(sequence.next)), ast.slot(_(coding.slotType), ast.self())),
+        ast.call(*var_(coding.result), _(methods.addSlot), ast.slot(_(coding.slotRole), _(sequence.previous)), ast.slot(_(coding.slotType), *var_(coding.result))),
+        ast.call(*var_(coding.result), _(methods.addSlot), ast.slot(_(coding.slotRole), _(sequence.next)), ast.slot(_(coding.slotType), *var_(coding.result))),
         ast.call(*var_(coding.result), _(methods.addSlot), ast.slot(_(coding.slotRole), _(coding.value)), ast.slot(_(coding.slotType), in_(coding.objectType))),
 
         ast.set(*var_(coding.result), _(coding.methods), m_(coding.methods)),
