@@ -128,9 +128,11 @@ public:
     Object Function;
     Object Get;
     Object GreaterThan;
+    Object GreaterThanOrEqual;
     Object Has;
     Object If;
     Object LessThan;
+    Object LessThanOrEqual;
     Object Missing;
     Object Multiply;
     Object New;
@@ -168,10 +170,12 @@ public:
     Object Function;
     Object Get;
     Object GreaterThan;
+    Object GreaterThanOrEqual;
     Object Has;
     Object If;
     Object Input;
     Object LessThan;
+    Object LessThanOrEqual;
     Object Member;
     Object Missing;
     Object Multiply;
@@ -265,6 +269,7 @@ public:
     {
     public:
         Cell(brain::Brain& kb, CellI& value);
+        Get& operator/(Base& role);
     };
     class Self : public BaseT<Self>
     {
@@ -485,10 +490,20 @@ public:
     public:
         LessThan(brain::Brain& kb, Base& lhs, Base& rhs);
     };
+    class LessThanOrEqual : public BaseT<LessThanOrEqual>
+    {
+    public:
+        LessThanOrEqual(brain::Brain& kb, Base& lhs, Base& rhs);
+    };
     class GreaterThan : public BaseT<GreaterThan>
     {
     public:
         GreaterThan(brain::Brain& kb, Base& lhs, Base& rhs);
+    };
+    class GreaterThanOrEqual : public BaseT<GreaterThanOrEqual>
+    {
+    public:
+        GreaterThanOrEqual(brain::Brain& kb, Base& lhs, Base& rhs);
     };
 
     Ast(brain::Brain& kb);
@@ -546,7 +561,9 @@ public:
     Multiply& multiply(Base& lhs, Base& rhs);
     Divide& divide(Base& lhs, Base& rhs);
     LessThan& lessThan(Base& lhs, Base& rhs);
+    LessThanOrEqual& lessThanOrEqual(Base& lhs, Base& rhs);
     GreaterThan& greaterThan(Base& lhs, Base& rhs);
+    GreaterThanOrEqual& greaterThanOrEqual(Base& lhs, Base& rhs);
 
 protected:
     brain::Brain& kb;
@@ -660,6 +677,14 @@ public:
     Object examples;
 };
 
+class Test
+{
+public:
+    Test(brain::Brain& kb);
+
+    Object factorial;
+};
+
 class Brain
 {
 public:
@@ -692,6 +717,7 @@ public:
     Visualization visualization;
     Numbers numbers;
     Arc arc;
+    Test test;
 
     CellI& _0_;
     CellI& _1_;

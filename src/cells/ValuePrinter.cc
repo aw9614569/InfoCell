@@ -56,7 +56,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
     CellI& ast       = cell[kb.coding.ast];
-    if (&ast.type() == &kb.type.ast.Call) {
+    if (&ast.type() == &kb.type.ast.Call || &ast.type() == &kb.type.ast.StaticCall) {
         if (&ast[kb.coding.cell].type() == &kb.type.ast.Get) {
             printImpl(ast[kb.coding.cell]);
         }
@@ -66,36 +66,18 @@ void CellValuePrinter::printOpBlock(CellI& cell)
         if (&ast[kb.coding.cell].type() == &kb.type.ast.Cell) {
             m_ss << ast[kb.coding.cell][kb.coding.value].label();
         }
+        if (&ast[kb.coding.cell].type() == &kb.type.ast.Self) {
+            m_ss << "self";
+        }
         if (&ast[kb.coding.cell].type() == &kb.type.ast.Member) {
             m_ss << "self." << ast[kb.coding.cell][kb.coding.role].label();
         }
         if (ast.has(kb.coding.method)) {
-            m_ss << ".";
-            m_ss << ast[kb.coding.method][kb.coding.value].label();
-            m_ss << "(";
-            if (ast.has(kb.coding.parameters)) {
-                visitList(ast[kb.coding.parameters], [this, &kb](CellI& slot, int i, bool&) {
-                    if (i != 0) {
-                        m_ss << ", ";
-                    }
-                    m_ss << slot[kb.coding.slotRole][kb.coding.value].label();
-                    m_ss << ": ";
-                    printImpl(slot[kb.coding.slotType]);
-                });
+            if (&ast.type() == &kb.type.ast.Call) {
+                m_ss << ".";
+            } else {
+                m_ss << "::";
             }
-            m_ss << ")";
-        }
-        return;
-    }
-    if (&ast.type() == &kb.type.ast.StaticCall) {
-        if (&ast[kb.coding.cell].type() == &kb.type.ast.Cell) {
-            m_ss << ast[kb.coding.cell][kb.coding.value].label();
-        }
-        if (&ast[kb.coding.cell].type() == &kb.type.ast.Member) {
-            m_ss << "self." << ast[kb.coding.cell][kb.coding.role][kb.coding.value].label();
-        }
-        if (ast.has(kb.coding.method)) {
-            m_ss << "::";
             m_ss << ast[kb.coding.method][kb.coding.value].label();
             m_ss << "(";
             if (ast.has(kb.coding.parameters)) {
@@ -386,11 +368,27 @@ void CellValuePrinter::printOpLessThan(CellI& cell)
     printImpl(cell[kb.coding.rhs]);
 }
 
+void CellValuePrinter::printOpLessThanOrEqual(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.lhs]);
+    m_ss << " <= ";
+    printImpl(cell[kb.coding.rhs]);
+}
+
 void CellValuePrinter::printOpGreaterThan(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
     printImpl(cell[kb.coding.lhs]);
     m_ss << " > ";
+    printImpl(cell[kb.coding.rhs]);
+}
+
+void CellValuePrinter::printOpGreaterThanOrEqual(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.lhs]);
+    m_ss << " >= ";
     printImpl(cell[kb.coding.rhs]);
 }
 
@@ -439,6 +437,14 @@ void CellValuePrinter::printAstMember(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
     m_ss << "m_" << cell[kb.coding.role].label();
+}
+
+void CellValuePrinter::printAstSubtract(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.lhs]);
+    m_ss << " - ";
+    printImpl(cell[kb.coding.rhs]);
 }
 
 void CellValuePrinter::printOpReturn(CellI& cell)
@@ -613,8 +619,14 @@ void CellValuePrinter::printImpl(CellI& cell)
     } else if (is(kb.type.op.LessThan)) {
         printOpLessThan(cell);
         return;
+    } else if (is(kb.type.op.LessThanOrEqual)) {
+        printOpLessThanOrEqual(cell);
+        return;
     } else if (is(kb.type.op.GreaterThan)) {
         printOpGreaterThan(cell);
+        return;
+    } else if (is(kb.type.op.GreaterThanOrEqual)) {
+        printOpGreaterThanOrEqual(cell);
         return;
     } else if (is(kb.type.op.Return)) {
         printOpReturn(cell);
@@ -636,6 +648,9 @@ void CellValuePrinter::printImpl(CellI& cell)
         return;
     } else if (is(kb.type.ast.Member)) {
         printAstMember(cell);
+        return;
+    } else if (is(kb.type.ast.Subtract)) {
+        printAstSubtract(cell);
         return;
     }
 

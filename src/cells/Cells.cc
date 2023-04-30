@@ -449,6 +449,14 @@ void Object::operator()()
         int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
         int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
         set(kb.coding.value, lhs < rhs ? kb.boolean.true_ : kb.boolean.false_);
+    } else if (&m_type == &kb.type.op.LessThanOrEqual) {
+        CellI& inputLhs = get(kb.coding.lhs);
+        CellI& inputRhs = get(kb.coding.rhs);
+        inputLhs();
+        inputRhs();
+        int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
+        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
+        set(kb.coding.value, lhs <= rhs ? kb.boolean.true_ : kb.boolean.false_);
     } else if (&m_type == &kb.type.op.GreaterThan) {
         CellI& inputLhs = get(kb.coding.lhs);
         CellI& inputRhs = get(kb.coding.rhs);
@@ -457,6 +465,14 @@ void Object::operator()()
         int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
         int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
         set(kb.coding.value, lhs > rhs ? kb.boolean.true_ : kb.boolean.false_);
+    } else if (&m_type == &kb.type.op.GreaterThanOrEqual) {
+        CellI& inputLhs = get(kb.coding.lhs);
+        CellI& inputRhs = get(kb.coding.rhs);
+        inputLhs();
+        inputRhs();
+        int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
+        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
+        set(kb.coding.value, lhs >= rhs ? kb.boolean.true_ : kb.boolean.false_);
     }
 }
 

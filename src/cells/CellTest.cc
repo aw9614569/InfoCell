@@ -121,6 +121,8 @@ TEST_F(CellTest, PrintMethod)
     printOp(kb.type.List, kb.dimensions.size);
     printOp(kb.type.List, kb.sequence.empty);
 
+    printOp(kb.type.Number, kb.test.factorial);
+
 #endif
 
     // TODO
