@@ -219,7 +219,6 @@ protected:
 
 public:
     Object Type_;
-    Object Type2_;
     Object Cell;
     Object Slot;
     Object Container;
@@ -227,10 +226,7 @@ public:
     Object List;
     Object ListOfSlot;
     Object ListItem;
-    Object List2;
-    Object ListItem2;
     Object Map;
-    Object Map2;
     Object MapCellToSlot;
     Object MapCellToType;
     Object MapCellToAstFunction;

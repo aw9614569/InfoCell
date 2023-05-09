@@ -565,7 +565,6 @@ Ast::Ast(brain::Brain& kb) :
 Types::Types(brain::Brain& kb) :
     kb(kb),
     Type_(kb, kb.type.Type_, "Type"),
-    Type2_(kb, kb.type.Type2_, "Type2"),
     Cell(kb, kb.type.Type_, "Cell"),
     Slot(kb, kb.type.Type_, "Slot"),
     Container(kb, kb.type.Type_, "Conatainer"),
@@ -573,10 +572,7 @@ Types::Types(brain::Brain& kb) :
     List(kb, kb.type.Type_, "List"),
     ListOfSlot(kb, kb.type.Type_, "List<Slot>"),
     ListItem(kb, kb.type.Type_, "ListItem"),
-    List2(kb, kb.type.Type_, "List2"),
-    ListItem2(kb, kb.type.Type_, "ListItem2"),
     Map(kb, kb.type.Type_, "Map"),
-    Map2(kb, kb.type.Type_, "Map2"),
     MapCellToSlot(kb, kb.type.Type_, "Map<Cell, Slot>"),
     MapCellToType(kb, kb.type.Type_, "Map<Cell, Type>"),
     MapCellToAstFunction(kb, kb.type.Type_, "Map<Cell, ast::Function>"),
@@ -2050,41 +2046,6 @@ Brain::Brain() :
                   coding.objectType, type.Cell);
     type.Map.set(coding.subTypes, *mapPtr);
     type.Map.set(coding.memberOf, map(type.Type_, type.Type_, type.Container, type.Container));
-
-    Ast::Function& mapCtor2 = *new Ast::Function(*this, "Map2::constructor");
-    mapCtor2.addBlock(ast.block(
-        m_(coding.indexType)  = ast.new_(_(type.Type_)),
-        ast.set(m_(coding.indexType), _(coding.slots), ast.new_(_(type.MapCellToSlot))),
-        ast.set(m_(coding.indexType) / _(coding.slots), _(coding.indexType), m_(coding.indexType)),
-        ast.set(m_(coding.indexType) / _(coding.slots), _(coding.keyType), _(type.Cell)),
-        ast.set(m_(coding.indexType) / _(coding.slots), _(coding.objectType), _(type.Slot)),
-        ast.set(m_(coding.indexType) / _(coding.slots), _(coding.list), ast.new_(_(type.List), _(coding.constructor), ast.slot(_(coding.objectType), _(type.Slot)))),
-        ast.set(m_(coding.indexType) / _(coding.slots), _(coding.index), ast.new_(_(type.Index))),
-        ast.set(m_(coding.indexType), _(coding.memberOf), _(map(type.Type_, type.Type_, type.Index, type.Index))),
-        m_(coding.index) = ast.new_(m_(coding.indexType))));
-
-    Ast::Function& mapTemplate2 = *new Ast::Function(*this, "static Map2::template");
-    mapTemplate2.addInputs(list(
-        ast.slot(coding.keyType, type.Type_),
-        ast.slot(coding.objectType, type.Type_)));
-    mapTemplate2.addOutputs(list(
-        ast.slot(coding.value, type.Map2)));
-    mapTemplate2.addBlock(ast.block(
-        var_(coding.indexType) = ast.new_(_(type.Type_)),
-        var_(coding.result)    = ast.new_(*var_(coding.indexType)),
-        var_(type.List)        = ast.scall(_(type.List), _(coding.template_), ast.slot(_(coding.objectType), in_(coding.objectType))),
-
-        ast.set(*var_(coding.indexType), _(coding.slots), ast.new_(_(type.MapCellToSlot))),
-        ast.set(*var_(coding.indexType) / _(coding.slots) / _(coding.type), _(coding.slots), *var_(coding.indexType) / _(coding.slots)),
-
-        ast.call(*var_(coding.result), _(methods.addSubType), ast.slot(_(coding.slotRole), _(coding.keyType)), ast.slot(_(coding.slotType), in_(coding.keyType))),
-        ast.call(*var_(coding.result), _(methods.addSubType), ast.slot(_(coding.slotRole), _(coding.objectType)), ast.slot(_(coding.slotType), in_(coding.objectType))),
-
-        ast.call(*var_(coding.result), _(methods.addMembership), ast.slot(_(coding.cell), _(type.Map))),
-
-        ast.set(*var_(coding.result), _(coding.methods), m_(coding.methods)),
-
-        ast.return_(*var_(coding.result))));
 
     Ast::Function& mapCtor = *new Ast::Function(*this, "Map::constructor");
     mapCtor.addBlock(ast.block(
