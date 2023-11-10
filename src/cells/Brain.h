@@ -91,6 +91,36 @@ public:
     Object value;
 };
 
+class ID
+{
+    brain::Brain& kb;
+
+public:
+    ID(brain::Brain& kb);
+
+    Object addPixel;
+    Object checkPixel;
+    Object checkPixels;
+    Object direction;
+    Object empty;
+    Object erase;
+    Object firstPixel;
+    Object has;
+    Object inputPixels;
+    Object insert;
+    Object shape;
+    Object shapes;
+    Object picture;
+    Object pixel;
+    Object pixels;
+    Object process;
+    Object processAdjacentPixel;
+    Object processInputPixels;
+    Object processPixel;
+    Object shapeId;
+    Object sortPixels;
+};
+
 class Methods
 {
     brain::Brain& kb;
@@ -252,7 +282,7 @@ public:
     Object Stack;
     Object StackFrame;
     Object Directions;
-    Object Patch;
+    Object Shape;
 
     type::Op op;
     type::Ast ast;
@@ -722,6 +752,7 @@ public:
     Sequence sequence;
     Dimensions dimensions;
     Coding coding;
+    ID id;
     Methods methods;
     Types type;
     Pools pools;

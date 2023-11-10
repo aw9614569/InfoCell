@@ -270,10 +270,10 @@ private:
 };
 
 // ============================================================================
-class Patch
+class Shape
 {
 public:
-    Patch(int id, input::Color color, int width, int height) :
+    Shape(int id, input::Color color, int width, int height) :
         m_id(id), m_color(color), m_width(width), m_height(height) { }
 
     void addPixel(cells::hybrid::Pixel& pixel);
@@ -321,7 +321,7 @@ public:
         return pixel.y * m_width + pixel.x;
     }
 
-    bool operator<(const Patch& rhs) const
+    bool operator<(const Shape& rhs) const
     {
         return firstPixelIndex() < rhs.firstPixelIndex();
     }
@@ -339,29 +339,29 @@ private:
 };
 
 // ============================================================================
-class PatchBoard
+class Shaper
 {
 public:
-    PatchBoard(const cells::hybrid::Picture& picture);
+    Shaper(const cells::hybrid::Picture& picture);
 
     void process();
 
-    const std::vector<std::shared_ptr<Patch>>& patches() const
+    const std::vector<std::shared_ptr<Shape>>& shapes() const
     {
-        return m_patches;
+        return m_shapes;
     }
 
 protected:
     void processInputPixels();
-    void processPixel(Patch& patch, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel);
-    cells::hybrid::Pixel* processAdjacentPixel(cells::CellI& direction, Patch& patch, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel);
+    void processPixel(Shape& shape, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel);
+    cells::hybrid::Pixel* processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel);
 
     cells::brain::Brain& kb;
     const int m_width;
     const int m_height;
     const cells::hybrid::Picture& m_picture;
     std::set<cells::hybrid::Pixel*> m_inputPixels;
-    std::vector<std::shared_ptr<Patch>> m_patches;
+    std::vector<std::shared_ptr<Shape>> m_shapes;
 };
 
 // ============================================================================
@@ -419,10 +419,10 @@ private:
 class Grid
 {
 public:
-    Grid(std::vector<std::shared_ptr<Patch>> patches);
+    Grid(std::vector<std::shared_ptr<Shape>> shapes);
 
 private:
-    std::vector<VectorShape> shapes;
+    std::vector<VectorShape> vectorShapes;
 };
 
 // ============================================================================

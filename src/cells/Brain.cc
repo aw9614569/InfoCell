@@ -84,6 +84,32 @@ Coding::Coding(brain::Brain& kb) :
 {
 }
 
+ID::ID(brain::Brain& kb) :
+    kb(kb),
+    addPixel(kb, kb.type.Struct, "addPixel"),
+    checkPixel(kb, kb.type.Struct, "checkPixel"),
+    checkPixels(kb, kb.type.Struct, "checkPixels"),
+    direction(kb, kb.type.Struct, "direction"),
+    empty(kb, kb.type.Struct, "empty"),
+    erase(kb, kb.type.Struct, "erase"),
+    firstPixel(kb, kb.type.Struct, "firstPixel"),
+    has(kb, kb.type.Struct, "has"),
+    inputPixels(kb, kb.type.Struct, "inputPixels"),
+    insert(kb, kb.type.Struct, "insert"),
+    shape(kb, kb.type.Struct, "shape"),
+    shapes(kb, kb.type.Struct, "shapes"),
+    picture(kb, kb.type.Struct, "picture"),
+    pixel(kb, kb.type.Struct, "pixel"),
+    pixels(kb, kb.type.Struct, "pixels"),
+    process(kb, kb.type.Struct, "process"),
+    processAdjacentPixel(kb, kb.type.Struct, "processAdjacentPixel"),
+    processInputPixels(kb, kb.type.Struct, "processInputPixels"),
+    processPixel(kb, kb.type.Struct, "processPixel"),
+    shapeId(kb, kb.type.Struct, "shapeId"),
+    sortPixels(kb, kb.type.Struct, "sortPixels")
+{
+}
+
 cells::CellI& Coding::slot(cells::CellI& role, cells::CellI& type)
 {
     CellI& ret = *new Object(kb, kb.type.Slot);
@@ -599,7 +625,7 @@ Types::Types(brain::Brain& kb) :
     Stack(kb, kb.type.Type_, "Stack"),
     StackFrame(kb, kb.type.Type_, "StackFrame"),
     Directions(kb, kb.type.Enum, "Directions"),
-    Patch(kb, kb.type.Struct, "Patch"),
+    Shape(kb, kb.type.Struct, "Shape"),
     op(kb),
     ast(kb)
 {
@@ -2006,6 +2032,7 @@ Brain::Brain() :
     sequence(*this),
     dimensions(*this),
     coding(*this),
+    id(*this),
     methods(*this),
     type(*this),
     pools(*this),
@@ -2474,49 +2501,6 @@ Brain::Brain() :
     m_initPhase = InitPhase::FullyConstructed;
 
 #if 0
-    struct ID
-    {
-        ID(brain::Brain& kb) :
-            addPixel(kb, kb.type.Struct, "addPixel"),
-            checkPixel(kb, kb.type.Struct, "checkPixel"),
-            checkPixels(kb, kb.type.Struct, "checkPixels"),
-            direction(kb, kb.type.Struct, "direction"),
-            empty(kb, kb.type.Struct, "empty"),
-            erase(kb, kb.type.Struct, "erase"),
-            firstPixel(kb, kb.type.Struct, "firstPixel"),
-            has(kb, kb.type.Struct, "has"),
-            inputPixels(kb, kb.type.Struct, "inputPixels"),
-            insert(kb, kb.type.Struct, "insert"),
-            patch(kb, kb.type.Struct, "patch"),
-            patches(kb, kb.type.Struct, "patches"),
-            pixel(kb, kb.type.Struct, "pixel"),
-            process(kb, kb.type.Struct, "process"),
-            processAdjacentPixel(kb, kb.type.Struct, "processAdjacentPixel"),
-            processPixel(kb, kb.type.Struct, "processPixel"),
-            shapeId(kb, kb.type.Struct, "shapeId"),
-            sortPixels(kb, kb.type.Struct, "sortPixels")
-        {
-        }
-        Object addPixel;
-        Object checkPixel;
-        Object checkPixels;
-        Object direction;
-        Object empty;
-        Object erase;
-        Object firstPixel;
-        Object has;
-        Object inputPixels;
-        Object insert;
-        Object patch;
-        Object patches;
-        Object pixel;
-        Object process;
-        Object processAdjacentPixel;
-        Object processPixel;
-        Object shapeId;
-        Object sortPixels;
-    };
-    ID id(*this);
     struct Shaper
     {
         Shaper(brain::Brain& kb) :
@@ -2526,8 +2510,16 @@ Brain::Brain() :
         Object type;
     };
     Shaper shaper(*this);
+
+    mapPtr = &map(type.Cell, type.Slot,
+                  dimensions.width, coding.slot(dimensions.width, type.Number),
+                  dimensions.height, coding.slot(dimensions.height, type.Number),
+                  id.picture, coding.slot(id.picture, type.Picture),
+                  id.shapes, coding.slot(id.shapes, type.List),
+                  id.inputPixels, coding.slot(id.inputPixels, type.List));
+    shaper.type.set(coding.slots, *mapPtr);
     /*
-    PatchBoard::PatchBoard(const cells::hybrid::Picture& picture) :
+    Shaper::Shaper(const cells::hybrid::Picture& picture) :
         m_width(picture.width()),
         m_height(picture.height()),
         m_picture(picture),
@@ -2536,9 +2528,18 @@ Brain::Brain() :
         processInputPixels();
     }
     */
-
+    Ast::Function& shapeCtor = *new Ast::Function(*this, shaper.type, coding.constructor, "Shaper::Shaper");
+    shapeCtor.addInputs(list(
+        ast.slot(dimensions.width, type.Number),
+        ast.slot(dimensions.height, type.Number),
+        ast.slot(id.picture, type.Picture)));
+    shapeCtor.addBlock(ast.block(
+        m_(dimensions.width)  = in_(dimensions.width),
+        m_(dimensions.height) = in_(dimensions.height),
+        m_(id.picture)        = in_(id.picture),
+        ast.call(ast.self(), _(id.processInputPixels))));
     /*
-    void PatchBoard::processInputPixels()
+    void Shaper::processInputPixels()
     {
         std::vector<cells::hybrid::Pixel>& pixels = const_cast<cells::hybrid::Picture&>(m_picture).pixels();
         for (cells::hybrid::Pixel& pixel : pixels) {
@@ -2546,27 +2547,35 @@ Brain::Brain() :
         }
     }
     */
+    Ast::Function& shapeProcessInputPixels = *new Ast::Function(*this, shaper.type, id.processInputPixels, "Shaper::processInputPixels");
+    shapeProcessInputPixels.addBlock(ast.block(
+        ast.var(id.pixels) = m_(id.picture) / _(visualization.pixels),
+        ast.var(id.pixel) = *var_(id.pixels)/ _(sequence.first),
+        ast.while_(ast.equal(*ast.var(id.pixel), *var_(id.pixels) / _(sequence.last)),
+                   ast.block(
+                          ast.call(m_(id.inputPixels), _(sequence.add), ast.slot(_(coding.value), *var_(id.pixel))),
+                          ast.var(id.pixel) = *var_(id.pixels)/ _(sequence.first)))));
 
     /*
-    void PatchBoard::process()
+    void Shaper::process()
     {
-        int patchId = 1;
+        int shapeId = 1;
         while (!m_inputPixels.empty()) {
             cells::hybrid::Pixel& firstPixel = **m_inputPixels.begin();
-            m_patches.push_back(std::make_shared<Patch>(patchId++, firstPixel.color(), m_width, m_height));
-            Patch& patch = *m_patches.back();
+            m_shapes.push_back(std::make_shared<Shape>(shapeId++, firstPixel.color(), m_width, m_height));
+            Shape& shape = *m_shapes.back();
             std::set<cells::hybrid::Pixel*> checkPixels;
             checkPixels.insert(&firstPixel);
             while (!checkPixels.empty()) {
                 auto checkPixelIt                = checkPixels.begin();
                 cells::hybrid::Pixel& checkPixel = **checkPixelIt;
-                processPixel(patch, checkPixels, checkPixel);
+                processPixel(shape, checkPixels, checkPixel);
                 checkPixels.erase(checkPixelIt);
             }
-            patch.sortPixels();
+            shape.sortPixels();
         }
-        std::sort(m_patches.begin(), m_patches.end(),
-            [](const std::shared_ptr<Patch>& lhs, const std::shared_ptr<Patch>& rhs)
+        std::sort(m_shapes.begin(), m_shapes.end(),
+            [](const std::shared_ptr<Shape>& lhs, const std::shared_ptr<Shape>& rhs)
             { return *lhs < *rhs; }
         );
     }
@@ -2577,16 +2586,16 @@ Brain::Brain() :
         ast.while_(ast.not_(ast.call(m_(id.inputPixels), _(sequence.empty))),
                    ast.block(
                        ast.var(id.firstPixel) = ast.call(m_(id.inputPixels), _(sequence.first), ast.slot(_(id.pixel), in_(id.checkPixel))),
-                       ast.call(m_(id.patches), _(sequence.add), ast.slot(_(coding.value), in_(id.checkPixel) /*TODO*/)),
-                       ast.var(id.patch)       = ast.call(m_(id.patches), _(sequence.last)),
+                       ast.call(m_(id.shapes), _(sequence.add), ast.slot(_(coding.value), in_(id.checkPixel) /*TODO*/)),
+                       ast.var(id.shape)       = ast.call(m_(id.shapes), _(sequence.last)),
                        ast.var(id.checkPixels) = ast.new_(_(type.List)),
                        ast.call(*var_(id.checkPixels), _(sequence.add), ast.slot(_(coding.value), *var_(id.firstPixel))),
                        ast.while_(ast.not_(ast.call(*var_(id.checkPixels), _(sequence.empty))),
                                   ast.block(
                                       ast.call(*var_(id.checkPixels), _(sequence.add), ast.slot(_(coding.value), *var_(id.firstPixel))),
-                                      ast.call(ast.self(), _(id.processPixel), ast.slot(id.patch, *var_(id.patch)), ast.slot(id.checkPixels, *var_(id.checkPixels)), ast.slot(id.checkPixel, *var_(id.checkPixel))),
+                                      ast.call(ast.self(), _(id.processPixel), ast.slot(id.shape, *var_(id.shape)), ast.slot(id.checkPixels, *var_(id.checkPixels)), ast.slot(id.checkPixel, *var_(id.checkPixel))),
                                       ast.call(*var_(id.checkPixels), _(sequence.erase), ast.slot(_(coding.value), *var_(id.firstPixel))))),
-                       ast.call(*var_(id.patch), _(id.sortPixels))))));
+                       ast.call(*var_(id.shape), _(id.sortPixels))))));
 
     mapPtr = &map(type.Cell, type.ast.Function,
                   id.process, shapeProcess);
@@ -2597,43 +2606,43 @@ Brain::Brain() :
 
 
     /*
-    void PatchBoard::processPixel(Patch& patch, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
+    void Shaper::processPixel(Shape& shape, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
     {
-        patch.addPixel(checkPixel);
+        shape.addPixel(checkPixel);
         m_inputPixels.erase(&checkPixel);
 
-        if (cells::hybrid::Pixel* pixel = processAdjacentPixel(kb.directions.up, patch, checkPixels, checkPixel)) {
-            processAdjacentPixel(kb.directions.left, patch, checkPixels, *pixel);
-            processAdjacentPixel(kb.directions.right, patch, checkPixels, *pixel);
+        if (cells::hybrid::Pixel* pixel = processAdjacentPixel(kb.directions.up, shape, checkPixels, checkPixel)) {
+            processAdjacentPixel(kb.directions.left, shape, checkPixels, *pixel);
+            processAdjacentPixel(kb.directions.right, shape, checkPixels, *pixel);
         }
-        if (cells::hybrid::Pixel* pixel = processAdjacentPixel(kb.directions.down, patch, checkPixels, checkPixel)) {
-            processAdjacentPixel(kb.directions.left, patch, checkPixels, *pixel);
-            processAdjacentPixel(kb.directions.right, patch, checkPixels, *pixel);
+        if (cells::hybrid::Pixel* pixel = processAdjacentPixel(kb.directions.down, shape, checkPixels, checkPixel)) {
+            processAdjacentPixel(kb.directions.left, shape, checkPixels, *pixel);
+            processAdjacentPixel(kb.directions.right, shape, checkPixels, *pixel);
         }
-        processAdjacentPixel(kb.directions.left, patch, checkPixels, checkPixel);
-        processAdjacentPixel(kb.directions.right, patch, checkPixels, checkPixel);
+        processAdjacentPixel(kb.directions.left, shape, checkPixels, checkPixel);
+        processAdjacentPixel(kb.directions.right, shape, checkPixels, checkPixel);
     }
     */
     Ast::Function& shapeProcessPixel = *new Ast::Function(*this, shaper.type, id.processPixel, "Shaper::processPixel");
     shapeProcessPixel.addInputs(list(
-        ast.slot(id.patch, type.Patch),
+        ast.slot(id.shape, type.Shape),
         ast.slot(id.checkPixels, type.ListOf(type.Pixel)),
         ast.slot(id.checkPixel, type.Pixel)));
     shapeProcessPixel.addOutputs(list(
         ast.slot(coding.value, type.Number)));
     shapeProcessPixel.addBlock(ast.block(
-        ast.call(in_(id.patch), _(id.addPixel), ast.slot(_(id.pixel), in_(id.checkPixel))),
+        ast.call(in_(id.shape), _(id.addPixel), ast.slot(_(id.pixel), in_(id.checkPixel))),
         ast.call(m_(id.inputPixels), _(id.erase), ast.slot(_(id.pixel), in_(id.checkPixel))),
-        ast.if_(ast.var(id.pixel) = ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.up)), ast.slot(id.patch, in_(id.patch)), ast.slot(id.checkPixels, in_(id.checkPixels)), ast.slot(id.checkPixel, in_(id.checkPixel))),
+        ast.if_(ast.var(id.pixel) = ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.up)), ast.slot(id.shape, in_(id.shape)), ast.slot(id.checkPixels, in_(id.checkPixels)), ast.slot(id.checkPixel, in_(id.checkPixel))),
                 ast.block(
-                    ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.left)), ast.slot(id.patch, in_(id.patch)), ast.slot(id.checkPixels, in_(id.checkPixels)), ast.slot(id.checkPixel, *var_(id.pixel))),
-                    ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.right)), ast.slot(id.patch, in_(id.patch)), ast.slot(id.checkPixels, in_(id.checkPixels)), ast.slot(id.checkPixel, *var_(id.pixel))))),
-        ast.if_(ast.var(id.pixel) = ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.down)), ast.slot(id.patch, in_(id.patch)), ast.slot(id.checkPixels, in_(id.checkPixels)), ast.slot(id.checkPixel, in_(id.checkPixel))),
+                    ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.left)), ast.slot(id.shape, in_(id.shape)), ast.slot(id.checkPixels, in_(id.checkPixels)), ast.slot(id.checkPixel, *var_(id.pixel))),
+                    ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.right)), ast.slot(id.shape, in_(id.shape)), ast.slot(id.checkPixels, in_(id.checkPixels)), ast.slot(id.checkPixel, *var_(id.pixel))))),
+        ast.if_(ast.var(id.pixel) = ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.down)), ast.slot(id.shape, in_(id.shape)), ast.slot(id.checkPixels, in_(id.checkPixels)), ast.slot(id.checkPixel, in_(id.checkPixel))),
                 ast.block(
-                    ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.left)), ast.slot(id.patch, in_(id.patch)), ast.slot(id.checkPixels, in_(id.checkPixels)), ast.slot(id.checkPixel, *var_(id.pixel))),
-                    ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.right)), ast.slot(id.patch, in_(id.patch)), ast.slot(id.checkPixels, in_(id.checkPixels)), ast.slot(id.checkPixel, *var_(id.pixel))))),
-        ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.left)), ast.slot(id.patch, in_(id.patch)), ast.slot(id.checkPixels, in_(id.checkPixels)), ast.slot(id.checkPixel, in_(id.checkPixel))),
-        ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.right)), ast.slot(id.patch, in_(id.patch)), ast.slot(id.checkPixels, in_(id.checkPixels)), ast.slot(id.checkPixel, in_(id.checkPixel)))));
+                    ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.left)), ast.slot(id.shape, in_(id.shape)), ast.slot(id.checkPixels, in_(id.checkPixels)), ast.slot(id.checkPixel, *var_(id.pixel))),
+                    ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.right)), ast.slot(id.shape, in_(id.shape)), ast.slot(id.checkPixels, in_(id.checkPixels)), ast.slot(id.checkPixel, *var_(id.pixel))))),
+        ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.left)), ast.slot(id.shape, in_(id.shape)), ast.slot(id.checkPixels, in_(id.checkPixels)), ast.slot(id.checkPixel, in_(id.checkPixel))),
+        ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.right)), ast.slot(id.shape, in_(id.shape)), ast.slot(id.checkPixels, in_(id.checkPixels)), ast.slot(id.checkPixel, in_(id.checkPixel)))));
 
     mapPtr = &map(type.Cell, type.ast.Function,
                   id.processPixel, shapeProcessPixel);
@@ -2643,11 +2652,11 @@ Brain::Brain() :
     shaper.type.set(coding.methods, *mapPtr);
 
     /*
-    cells::hybrid::Pixel* PatchBoard::processAdjacentPixel(cells::CellI& direction, Patch& patch, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
+    cells::hybrid::Pixel* Shaper::processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
     {
         if (checkPixel.has(direction)) {
             cells::hybrid::Pixel& pixel = static_cast<cells::hybrid::Pixel&>(checkPixel[direction]);
-            if (pixel.color() == patch.color() && !patch.hasPixel(pixel)) {
+            if (pixel.color() == shape.color() && !shape.hasPixel(pixel)) {
                 checkPixels.insert(&pixel);
             }
             return &pixel;
@@ -2659,7 +2668,7 @@ Brain::Brain() :
     Ast::Function& shapeProcessAdjacentPixel = *new Ast::Function(*this, shaper.type, id.processAdjacentPixel, "Shaper::processAdjacentPixel");
     shapeProcessAdjacentPixel.addInputs(list(
         ast.slot(id.direction, type.Directions),
-        ast.slot(id.patch, type.Patch),
+        ast.slot(id.shape, type.Shape),
         ast.slot(id.checkPixels, type.ListOf(type.Pixel)),
         ast.slot(id.checkPixel, type.Pixel)));
     shapeProcessAdjacentPixel.addOutputs(list(
@@ -2668,15 +2677,23 @@ Brain::Brain() :
         ast.if_(ast.call(*var_(id.checkPixel), _(id.has), ast.slot(_(id.direction), in_(id.direction))),
                 ast.block(
                     ast.var(id.pixel) = _(id.checkPixel) / _(id.direction),
-                    ast.if_(ast.and_(ast.equal(*var_(id.pixel) / _(visualization.color), *var_(id.patch) / _(visualization.color)), ast.not_(ast.call(*var_(id.patch), _(id.has), ast.slot(_(id.pixel), *var_(id.pixel))))),
+                    ast.if_(ast.and_(ast.equal(*var_(id.pixel) / _(visualization.color), *var_(id.shape) / _(visualization.color)), ast.not_(ast.call(*var_(id.shape), _(id.has), ast.slot(_(id.pixel), *var_(id.pixel))))),
                         ast.call(*var_(id.checkPixels), _(id.insert), ast.slot(_(id.pixel), *var_(id.pixel)))),
                     ast.return_(_(id.pixel))),
         ast.return_(_(coding.emptyObject)))));
 
     mapPtr = &map(type.Cell, type.ast.Function,
+                  coding.constructor, shapeCtor,
+                  id.processInputPixels, shapeProcessInputPixels,
+                  id.process, shapeProcess,
+                  id.processPixel, shapeProcessPixel,
                   id.processAdjacentPixel, shapeProcessAdjacentPixel);
     shaper.type.set(coding.asts, *mapPtr);
     mapPtr = &map(type.Cell, type.op.Function,
+                  coding.constructor, shapeCtor.compile(shaper.type),
+                  id.processInputPixels, shapeProcessInputPixels.compile(shaper.type),
+                  id.process, shapeProcess.compile(shaper.type),
+                  id.processPixel, shapeProcessPixel.compile(shaper.type),
                   id.processAdjacentPixel, shapeProcessAdjacentPixel.compile(shaper.type));
     shaper.type.set(coding.methods, *mapPtr);
 #endif

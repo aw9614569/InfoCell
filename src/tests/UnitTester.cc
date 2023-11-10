@@ -63,52 +63,52 @@ std::vector<TestCase> TestCases::m_testCases;
 
 void TestCases::addTestCases()
 {
-    add(TestCase("PatchTest", []() {
+    add(TestCase("ShapeTest", []() {
         input::Picture inputPicture("test", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
         cells::brain::Brain kb;
         cells::hybrid::Picture picture(kb, inputPicture);
-        PatchBoard patchBoard(picture);
-        patchBoard.process();
+        Shaper shaper(picture);
+        shaper.process();
 #if 0
-        for (std::shared_ptr<Patch> patch : patchBoard.patches()) {
-            loggerPtr->log(DEBUG) << "Patch:";
-            loggerPtr->logBoard(DEBUG) << patch->toString() << "\n";
+        for (std::shared_ptr<Shape> shape : shaper.shapes()) {
+            loggerPtr->log(DEBUG) << "Shape:";
+            loggerPtr->logBoard(DEBUG) << shape->toString() << "\n";
         }
 #endif
-        loggerPtr->log(DEBUG) << "Number of patches found: " << patchBoard.patches().size();
-        assert(patchBoard.patches().size() == 3);
+        loggerPtr->log(DEBUG) << "Number of shapes found: " << shaper.shapes().size();
+        assert(shaper.shapes().size() == 3);
     }));
 
-    add(TestCase("PatchTestDiagonal", []() {
+    add(TestCase("ShapeTestDiagonal", []() {
         input::Picture inputPicture("test", "[[7, 0, 0], [0, 7, 0], [0, 0, 7]]");
         cells::brain::Brain kb;
         cells::hybrid::Picture picture(kb, inputPicture);
-        PatchBoard patchBoard(picture);
-        patchBoard.process();
+        Shaper shaper(picture);
+        shaper.process();
 #if 0
-        for (std::shared_ptr<Patch> patch : patchBoard.patches()) {
-            loggerPtr->log(DEBUG) << "Patch:";
-            loggerPtr->logBoard(DEBUG) << patch->toString() << "\n";
+        for (std::shared_ptr<Shape> shape : shaper.shapes()) {
+            loggerPtr->log(DEBUG) << "Shape:";
+            loggerPtr->logBoard(DEBUG) << shape->toString() << "\n";
         }
 #endif
-        loggerPtr->log(DEBUG) << "Number of patches found: " << patchBoard.patches().size();
-        assert(patchBoard.patches().size() == 2);
+        loggerPtr->log(DEBUG) << "Number of shapes found: " << shaper.shapes().size();
+        assert(shaper.shapes().size() == 2);
     }));
 
-    add(TestCase("PatchMergeTest", []() {
+    add(TestCase("ShapeMergeTest", []() {
         input::Picture inputPicture("test", "[[7, 0, 7], [7, 0, 7], [7, 7, 7]]");
         cells::brain::Brain kb;
         cells::hybrid::Picture picture(kb, inputPicture);
-        PatchBoard patchBoard(picture);
-        patchBoard.process();
+        Shaper shaper(picture);
+        shaper.process();
 #if 0
-        for (std::shared_ptr<Patch> patch : patchBoard.patches()) {
-            loggerPtr->log(DEBUG) << "Patch:";
-            loggerPtr->logBoard(DEBUG) << patch->toString() << "\n";
+        for (std::shared_ptr<Shape> shape : shaper.shapes()) {
+            loggerPtr->log(DEBUG) << "Shape:";
+            loggerPtr->logBoard(DEBUG) << shape->toString() << "\n";
         }
 #endif
-        loggerPtr->log(DEBUG) << "Number of patches found: " << patchBoard.patches().size();
-        assert(patchBoard.patches().size() == 2);
+        loggerPtr->log(DEBUG) << "Number of shapes found: " << shaper.shapes().size();
+        assert(shaper.shapes().size() == 2);
     }));
 
     add(TestCase("StretchTest", []() {

@@ -379,18 +379,18 @@ VectorShapeRelation VectorShape::compare(const VectorShape& other)
     return ret;
 }
 
-void Patch::addPixel(cells::hybrid::Pixel& pixel)
+void Shape::addPixel(cells::hybrid::Pixel& pixel)
 {
     m_pixels.push_back({ pixel.m_x.value(), pixel.m_y.value() });
     m_hybridPixels.insert(&pixel);
 }
 
-bool Patch::hasPixel(cells::hybrid::Pixel& pixel) const
+bool Shape::hasPixel(cells::hybrid::Pixel& pixel) const
 {
     return m_hybridPixels.find(&pixel) != m_hybridPixels.end();
 }
 
-void Patch::sortPixels()
+void Shape::sortPixels()
 {
     int width = m_width;
     std::sort(m_pixels.begin(), m_pixels.end(), [width](const Pixel& p1, const Pixel& p2) {
@@ -398,7 +398,7 @@ void Patch::sortPixels()
     });
 }
 
-std::string Patch::toString() const
+std::string Shape::toString() const
 {
     char boardColor = '0' + cellColorsToColorId.at(color());
     std::string board(m_width * m_height, '.');
@@ -415,7 +415,7 @@ std::string Patch::toString() const
     return ret;
 }
 
-VectorShape Patch::toVectorShape() const
+VectorShape Shape::toVectorShape() const
 {
     VectorShape ret(color());
     ret.fromPixels(pixels());
@@ -609,7 +609,7 @@ std::string DrawingBoard::toString() const
     return ret;
 }
 
-PatchBoard::PatchBoard(const cells::hybrid::Picture& picture) :
+Shaper::Shaper(const cells::hybrid::Picture& picture) :
     m_width(picture.width()),
     m_height(picture.height()),
     m_picture(picture),
@@ -618,7 +618,7 @@ PatchBoard::PatchBoard(const cells::hybrid::Picture& picture) :
     processInputPixels();
 }
 
-void PatchBoard::processInputPixels()
+void Shaper::processInputPixels()
 {
     std::vector<cells::hybrid::Pixel>& pixels = const_cast<cells::hybrid::Picture&>(m_picture).pixels();
     for (cells::hybrid::Pixel& pixel : pixels) {
@@ -629,55 +629,55 @@ void PatchBoard::processInputPixels()
 // The object extractor algorithm
 // - has an input set of pixels (x:0, y:0, color)
 // - has a rule for grouping same pixels:
-//     + when a pixel-group (currently this is the class Patch) is started, the color of the pixel-group will be the color of the first pixel
+//     + when a pixel-group (currently this is the class Shape) is started, the color of the pixel-group will be the color of the first pixel
 //     + try growing the pixel in every possible (8) direction by moving pixels from the input set to the group's set
 //     + when no more possibility for growing start a new pixel-group
 // - so this algo only dealing with one pixel-group a time
-void PatchBoard::process()
+void Shaper::process()
 {
-    int patchId = 1;
+    int shapeId = 1;
     while (!m_inputPixels.empty()) {
         cells::hybrid::Pixel& firstPixel = **m_inputPixels.begin();
-        m_patches.push_back(std::make_shared<Patch>(patchId++, firstPixel.color(), m_width, m_height));
-        Patch& patch = *m_patches.back();
+        m_shapes.push_back(std::make_shared<Shape>(shapeId++, firstPixel.color(), m_width, m_height));
+        Shape& shape = *m_shapes.back();
         std::set<cells::hybrid::Pixel*> checkPixels;
         checkPixels.insert(&firstPixel);
         while (!checkPixels.empty()) {
             auto checkPixelIt                = checkPixels.begin();
             cells::hybrid::Pixel& checkPixel = **checkPixelIt;
-            processPixel(patch, checkPixels, checkPixel);
+            processPixel(shape, checkPixels, checkPixel);
             checkPixels.erase(checkPixelIt);
         }
-        patch.sortPixels();
+        shape.sortPixels();
     }
-    std::sort(m_patches.begin(), m_patches.end(),
-        [](const std::shared_ptr<Patch>& lhs, const std::shared_ptr<Patch>& rhs)
+    std::sort(m_shapes.begin(), m_shapes.end(),
+        [](const std::shared_ptr<Shape>& lhs, const std::shared_ptr<Shape>& rhs)
         { return *lhs < *rhs; }
     );
 }
 
-void PatchBoard::processPixel(Patch& patch, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
+void Shaper::processPixel(Shape& shape, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
 {
-    patch.addPixel(checkPixel);
+    shape.addPixel(checkPixel);
     m_inputPixels.erase(&checkPixel);
 
-    if (cells::hybrid::Pixel* pixel = processAdjacentPixel(kb.directions.up, patch, checkPixels, checkPixel)) {
-        processAdjacentPixel(kb.directions.left, patch, checkPixels, *pixel);
-        processAdjacentPixel(kb.directions.right, patch, checkPixels, *pixel);
+    if (cells::hybrid::Pixel* pixel = processAdjacentPixel(kb.directions.up, shape, checkPixels, checkPixel)) {
+        processAdjacentPixel(kb.directions.left, shape, checkPixels, *pixel);
+        processAdjacentPixel(kb.directions.right, shape, checkPixels, *pixel);
     }
-    if (cells::hybrid::Pixel* pixel = processAdjacentPixel(kb.directions.down, patch, checkPixels, checkPixel)) {
-        processAdjacentPixel(kb.directions.left, patch, checkPixels, *pixel);
-        processAdjacentPixel(kb.directions.right, patch, checkPixels, *pixel);
+    if (cells::hybrid::Pixel* pixel = processAdjacentPixel(kb.directions.down, shape, checkPixels, checkPixel)) {
+        processAdjacentPixel(kb.directions.left, shape, checkPixels, *pixel);
+        processAdjacentPixel(kb.directions.right, shape, checkPixels, *pixel);
     }
-    processAdjacentPixel(kb.directions.left, patch, checkPixels, checkPixel);
-    processAdjacentPixel(kb.directions.right, patch, checkPixels, checkPixel);
+    processAdjacentPixel(kb.directions.left, shape, checkPixels, checkPixel);
+    processAdjacentPixel(kb.directions.right, shape, checkPixels, checkPixel);
 }
 
-cells::hybrid::Pixel* PatchBoard::processAdjacentPixel(cells::CellI& direction, Patch& patch, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
+cells::hybrid::Pixel* Shaper::processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
 {
     if (checkPixel.has(direction)) {
         cells::hybrid::Pixel& pixel = static_cast<cells::hybrid::Pixel&>(checkPixel[direction]);
-        if (pixel.color() == patch.color() && !patch.hasPixel(pixel)) {
+        if (pixel.color() == shape.color() && !shape.hasPixel(pixel)) {
             checkPixels.insert(&pixel);
         }
         return &pixel;
@@ -686,10 +686,10 @@ cells::hybrid::Pixel* PatchBoard::processAdjacentPixel(cells::CellI& direction, 
     return nullptr;
 }
 
-Grid::Grid(std::vector<std::shared_ptr<Patch>> patches)
+Grid::Grid(std::vector<std::shared_ptr<Shape>> shapes)
 {
-    for (const auto& patch : patches) {
-        shapes.push_back(patch->toVectorShape());
+    for (const auto& shape : shapes) {
+        vectorShapes.push_back(shape->toVectorShape());
     }
 }
 
@@ -725,16 +725,16 @@ void Solver::solve()
 
 Grid Solver::parse(const cells::hybrid::Picture& picture)
 {
-    PatchBoard patchBoard(picture);
-    patchBoard.process();
-    for (std::shared_ptr<Patch> patch : patchBoard.patches()) {
-        logger.log(DEBUG) << "Patch:";
-        logger.logBoard(DEBUG) << patch->toString() << "\n";
-        VectorShape vectorShape = patch->toVectorShape();
+    Shaper shaper(picture);
+    shaper.process();
+    for (std::shared_ptr<Shape> shape : shaper.shapes()) {
+        logger.log(DEBUG) << "Shape:";
+        logger.logBoard(DEBUG) << shape->toString() << "\n";
+        VectorShape vectorShape = shape->toVectorShape();
     }
-    logger.log(DEBUG) << "Number of patches found: " << patchBoard.patches().size();
+    logger.log(DEBUG) << "Number of shapes found: " << shaper.shapes().size();
 
-    return Grid(patchBoard.patches());
+    return Grid(shaper.shapes());
 }
 
 Rules Solver::gridDiff(const Grid& input, const Grid& output)
@@ -917,18 +917,18 @@ Nagyjából a következő feldolgozási sorhoz állt össze a fejemben:
 Van egy bemenő és kimenő pixelhalmazunk, ahol a pixelek mátrix szerűen kapcsolódnak egymáshoz. A mátrix szerű kapcsolódás azt jelenti, hogy minden pixelnek van le/fel/jobbra/balra tulajdonsága.
 A feladatunk az, hogy megtaláljuk azt a transzformációs sort, ami eljuttat a bementből a kimenetbe.
 
-Az első transzformációs lépés, hogy a bemenő pixeleket szín alapján csoportosítsuk. Egy ilyen színcsoport neve folt / alakzat (patch) lesz.
+Az első transzformációs lépés, hogy a bemenő pixeleket szín alapján csoportosítsuk. Egy ilyen színcsoport neve folt / alakzat (shape) lesz.
 Ez azért jó, mert egy ilyen alakzat már lehet transtformálni, pl. forgatni, mozgatni, nagyítani, kicsinyíteni, átszinezni.
 Ez már le is van kódolva,
 
     const cells::Picture& picture = input;
-    PatchBoard patchBoard(picture);
-    patchBoard.process();
-    for (auto patch : patchBoard.patches()) ...
+    Shaper shaper(picture);
+    shaper.process();
+    for (auto shape : shaper.shapes()) ...
 
 Felmerül a kérdés, hogy ezt az algoritmust biztos nekünk kell leprogramozni? Mi lenne, ha ezt az algoritmust egy általánosabb algoritmus készítené, hisz valamelyik fázisában a programnak, valahol kell ilyet csinálnia.
 
-Szóval a feldolgozási sor a következő: Picture (ami pixelek halmaza) amiből készítünk PatchBoard-ot (ami Patch-ek halmaza)
+Szóval a feldolgozási sor a következő: Picture (ami pixelek halmaza) amiből készítünk Shapert (ami Shape-ek halmaza)
 
 Valahogy az algoritmusnak rá kellene jönnie, hogy azonos színű összekapcsolódott pixelhalmazokat hozunk létre.
 
