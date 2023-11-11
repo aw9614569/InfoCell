@@ -29,29 +29,41 @@ public:
     Object size;
 };
 
-class Coding
+class ID
 {
     brain::Brain& kb;
-public:
-    Coding(brain::Brain& kb);
-    cells::CellI& slot(cells::CellI& role, cells::CellI& type);
 
+public:
+    ID(brain::Brain& kb);
+
+    Object addPixel;
     Object argument;
     Object ast;
     Object asts;
     Object branch;
     Object cell;
+    Object checkPixel;
+    Object checkPixels;
     Object condition;
     Object constructor;
     Object container;
     Object continue_;
     Object destructor;
+    Object direction;
     Object else_;
+    Object empty;
     Object emptyObject;
+    Object erase;
     Object eval;
+    Object firstPixel;
+    Object has;
+    Object hasPixel;
+    Object id;
     Object index;
     Object indexType;
     Object input;
+    Object inputPixels;
+    Object insert;
     Object item;
     Object itemType;
     Object key;
@@ -72,13 +84,24 @@ public:
     Object output;
     Object parameter;
     Object parameters;
+    Object picture;
+    Object pixel;
+    Object pixels;
+    Object process;
+    Object processAdjacentPixel;
+    Object processInputPixels;
+    Object processPixel;
     Object result;
     Object rhs;
     Object role;
     Object self;
+    Object shape;
+    Object shapeId;
+    Object shapes;
     Object slotRole;
     Object slots;
     Object slotType;
+    Object sortPixels;
     Object stack;
     Object statement;
     Object static_;
@@ -89,36 +112,6 @@ public:
     Object then;
     Object type;
     Object value;
-};
-
-class ID
-{
-    brain::Brain& kb;
-
-public:
-    ID(brain::Brain& kb);
-
-    Object addPixel;
-    Object checkPixel;
-    Object checkPixels;
-    Object direction;
-    Object empty;
-    Object erase;
-    Object firstPixel;
-    Object has;
-    Object inputPixels;
-    Object insert;
-    Object shape;
-    Object shapes;
-    Object picture;
-    Object pixel;
-    Object pixels;
-    Object process;
-    Object processAdjacentPixel;
-    Object processInputPixels;
-    Object processPixel;
-    Object shapeId;
-    Object sortPixels;
 };
 
 class Methods
@@ -235,6 +228,21 @@ public:
     Object While;
 };
 
+class Arc
+{
+public:
+    Arc(brain::Brain& kb);
+
+protected:
+    brain::Brain& kb;
+
+public:
+    Object Demonstration;
+    Object Task;
+    Object Shape;
+    Object Shaper;
+};
+
 } // namespace type
 
 class Types
@@ -242,6 +250,7 @@ class Types
 public:
     Types(brain::Brain& kb);
 
+    cells::CellI& slot(cells::CellI& role, cells::CellI& type);
     Object& ListOf(CellI& type);
     Object& MapOf(CellI& keyType, CellI& valueType);
 
@@ -286,6 +295,7 @@ public:
 
     type::Op op;
     type::Ast ast;
+    type::Arc arc;
 };
 
 class Ast
@@ -751,7 +761,6 @@ public:
     ~Brain();
     Sequence sequence;
     Dimensions dimensions;
-    Coding coding;
     ID id;
     Methods methods;
     Types type;

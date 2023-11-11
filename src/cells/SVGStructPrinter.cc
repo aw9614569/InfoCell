@@ -127,17 +127,17 @@ void StructPrinter::printStruct(CellI& cell)
                       filler() | size(WIDTH, EQUAL, 10),
                       text(type.label())->fontSize(14)->fontColor(typeColor),
                       filler() | size(WIDTH, EQUAL, 10),
-                      text(std::format("{}", (void*)&cell[kb.coding.type]))->fontSize(14)->fontColor(typeColor) });
+                      text(std::format("{}", (void*)&cell[kb.id.type]))->fontSize(14)->fontColor(typeColor) });
 
-    if (type.has(kb.coding.slots)) {
-        CellI& slotList = type[kb.coding.slots][kb.coding.list];
+    if (type.has(kb.id.slots)) {
+        CellI& slotList = type[kb.id.slots][kb.id.list];
         visitList(slotList, [this, &kb, &cell, &roleColor, &typeColor, &lines, &flexConfig](CellI& slot, int i, bool&) {
-            CellI& role = slot[kb.coding.slotRole];
+            CellI& role = slot[kb.id.slotRole];
             if (!cell.has(role)) {
                 return;
             }
 
-            CellI& slotType                = slot[kb.coding.slotType];
+            CellI& slotType                = slot[kb.id.slotType];
             CellI& connectedCell           = cell[role];
             std::string connectedCellLabel = connectedCell.label().empty() ? std::format("A {}", connectedCell.type().label()) : connectedCell.label();
 

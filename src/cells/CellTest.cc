@@ -78,7 +78,7 @@ protected:
 
     static std::unique_ptr<brain::Brain> m_kb;
     brain::Brain& kb;
-    brain::Coding& coding = kb.coding;
+    brain::ID& id = kb.id;
     PrintAs printAs;
     CellI& _0_    = kb._0_;
     CellI& _1_    = kb._1_;
@@ -97,38 +97,38 @@ std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 
 TEST_F(CellTest, PrintMethod)
 {
-    const auto printOp = [this](CellI& type, CellI& method) { printAs.value(type[kb.coding.methods][kb.coding.index][method]); };
+    const auto printOp = [this](CellI& type, CellI& method) { printAs.value(type[kb.id.methods][kb.id.index][method]); };
 
-    printOp(kb.type.Map, kb.coding.constructor);
-    printOp(kb.type.Map, kb.coding.template_);
+    printOp(kb.type.Map, kb.id.constructor);
+    printOp(kb.type.Map, kb.id.template_);
     printOp(kb.type.Map, kb.dimensions.size);
     printOp(kb.type.Map, kb.sequence.add);
     printOp(kb.type.Map, kb.sequence.empty);
 
 #if 1
-    printOp(kb.type.Type_, kb.coding.constructor);
+    printOp(kb.type.Type_, kb.id.constructor);
     printOp(kb.type.Type_, kb.methods.addSlot);
     printOp(kb.type.Type_, kb.methods.addSubType);
     printOp(kb.type.Type_, kb.methods.addMembership);
     printOp(kb.type.Type_, kb.methods.addSlots);
 
-    printOp(kb.type.ListItem, kb.coding.template_);
-    printOp(kb.type.ListItem, kb.coding.constructor);
+    printOp(kb.type.ListItem, kb.id.template_);
+    printOp(kb.type.ListItem, kb.id.constructor);
 
-    printOp(kb.type.List, kb.coding.template_);
-    printOp(kb.type.List, kb.coding.constructor);
+    printOp(kb.type.List, kb.id.template_);
+    printOp(kb.type.List, kb.id.constructor);
     printOp(kb.type.List, kb.sequence.add);
     printOp(kb.type.List, kb.dimensions.size);
     printOp(kb.type.List, kb.sequence.empty);
 
     printOp(kb.type.Number, kb.test.factorial);
     Object testNumber(kb, kb.type.Number, "testNumber");
-    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.coding.input, _0_ }), &_1_);
-    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.coding.input, _1_ }), &_1_);
-    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.coding.input, _2_ }), &_2_);
-    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.coding.input, _3_ }), &_6_);
-    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.coding.input, _4_ }), &kb.pools.numbers.get(24));
-    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.coding.input, _5_ }), &kb.pools.numbers.get(120));
+    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.id.input, _0_ }), &_1_);
+    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.id.input, _1_ }), &_1_);
+    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.id.input, _2_ }), &_2_);
+    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.id.input, _3_ }), &_6_);
+    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.id.input, _4_ }), &kb.pools.numbers.get(24));
+    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.id.input, _5_ }), &kb.pools.numbers.get(120));
 #endif
 
     // TODO
@@ -143,16 +143,16 @@ TEST_F(CellTest, PrintMethod)
 
 TEST_F(CellTest, List)
 {
-    Object list(kb, kb.type.List, kb.coding.constructor);
+    Object list(kb, kb.type.List, kb.id.constructor);
 
     printAs.value(list);
     printAs.cell(list);
     EXPECT_EQ(&list[kb.dimensions.size], &_0_);
     EXPECT_EQ(&list.method(kb.dimensions.size), &_0_);
     EXPECT_EQ(&list.method(kb.sequence.empty), &true_);
-    EXPECT_EQ(&list[kb.coding.objectType], &kb.type.Cell);
+    EXPECT_EQ(&list[kb.id.objectType], &kb.type.Cell);
 
-    list.method(kb.sequence.add, { kb.coding.value, _1_ });
+    list.method(kb.sequence.add, { kb.id.value, _1_ });
     EXPECT_EQ(&list[kb.dimensions.size], &_1_);
     EXPECT_EQ(&list.method(kb.dimensions.size), &_1_);
     EXPECT_EQ(&list.method(kb.sequence.empty), &false_);
@@ -161,10 +161,10 @@ TEST_F(CellTest, List)
     EXPECT_EQ(&firstItem, &list[kb.sequence.last]);
     EXPECT_EQ(firstItem.has(kb.sequence.previous), false);
     EXPECT_EQ(firstItem.has(kb.sequence.next), false);
-    EXPECT_EQ(&firstItem[kb.coding.value], &_1_);
+    EXPECT_EQ(&firstItem[kb.id.value], &_1_);
     printAs.value(list);
 
-    list.method(kb.sequence.add, { kb.coding.value, kb.pools.numbers.get(2) });
+    list.method(kb.sequence.add, { kb.id.value, kb.pools.numbers.get(2) });
     EXPECT_EQ(&list[kb.dimensions.size], &_2_);
     EXPECT_EQ(&list.method(kb.dimensions.size), &_2_);
     EXPECT_EQ(&list.method(kb.sequence.empty), &false_);
@@ -175,14 +175,14 @@ TEST_F(CellTest, List)
 
     EXPECT_EQ(firstItem.has(kb.sequence.previous), false);
     EXPECT_EQ(&firstItem[kb.sequence.next], &secondItem);
-    EXPECT_EQ(&firstItem[kb.coding.value], &_1_);
+    EXPECT_EQ(&firstItem[kb.id.value], &_1_);
 
     EXPECT_EQ(&secondItem[kb.sequence.previous], &firstItem);
     EXPECT_EQ(secondItem.has(kb.sequence.next), false);
-    EXPECT_EQ(&secondItem[kb.coding.value], &_2_);
+    EXPECT_EQ(&secondItem[kb.id.value], &_2_);
 
     printAs.value(list);
-    list.method(kb.sequence.add, { kb.coding.value, _3_ });
+    list.method(kb.sequence.add, { kb.id.value, _3_ });
     EXPECT_EQ(&list[kb.dimensions.size], &_3_);
     EXPECT_EQ(&list.method(kb.dimensions.size), &_3_);
     EXPECT_EQ(&list.method(kb.sequence.empty), &false_);
@@ -193,15 +193,15 @@ TEST_F(CellTest, List)
 
     EXPECT_EQ(firstItem.has(kb.sequence.previous), false);
     EXPECT_EQ(&firstItem[kb.sequence.next], &secondItem);
-    EXPECT_EQ(&firstItem[kb.coding.value], &_1_);
+    EXPECT_EQ(&firstItem[kb.id.value], &_1_);
 
     EXPECT_EQ(&secondItem[kb.sequence.previous], &firstItem);
     EXPECT_EQ(&secondItem[kb.sequence.next], &thirdItem);
-    EXPECT_EQ(&secondItem[kb.coding.value], &_2_);
+    EXPECT_EQ(&secondItem[kb.id.value], &_2_);
 
     EXPECT_EQ(&thirdItem[kb.sequence.previous], &secondItem);
     EXPECT_EQ(thirdItem.has(kb.sequence.next), false);
-    EXPECT_EQ(&thirdItem[kb.coding.value], &_3_);
+    EXPECT_EQ(&thirdItem[kb.id.value], &_3_);
 
     printAs.value(list);
     CellI& size = list.method(kb.dimensions.size);
@@ -210,17 +210,17 @@ TEST_F(CellTest, List)
 
 TEST_F(CellTest, ListOfNumber)
 {
-    CellI& ListOfNumber = kb.type.List.smethod(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
-    Object list(kb, ListOfNumber, kb.coding.constructor);
+    CellI& ListOfNumber = kb.type.List.smethod(kb.id.template_, { kb.id.objectType, kb.type.Number });
+    Object list(kb, ListOfNumber, kb.id.constructor);
 
     printAs.value(list);
     printAs.cell(list);
     EXPECT_EQ(&list[kb.dimensions.size], &_0_);
     EXPECT_EQ(&list.method(kb.dimensions.size), &_0_);
     EXPECT_EQ(&list.method(kb.sequence.empty), &true_);
-    EXPECT_EQ(&list[kb.coding.objectType], &kb.type.Number);
+    EXPECT_EQ(&list[kb.id.objectType], &kb.type.Number);
 
-    list.method(kb.sequence.add, { kb.coding.value, _1_ });
+    list.method(kb.sequence.add, { kb.id.value, _1_ });
     EXPECT_EQ(&list[kb.dimensions.size], &_1_);
     EXPECT_EQ(&list.method(kb.dimensions.size), &_1_);
     EXPECT_EQ(&list.method(kb.sequence.empty), &false_);
@@ -229,10 +229,10 @@ TEST_F(CellTest, ListOfNumber)
     EXPECT_EQ(&firstItem, &list[kb.sequence.last]);
     EXPECT_EQ(firstItem.has(kb.sequence.previous), false);
     EXPECT_EQ(firstItem.has(kb.sequence.next), false);
-    EXPECT_EQ(&firstItem[kb.coding.value], &_1_);
+    EXPECT_EQ(&firstItem[kb.id.value], &_1_);
     printAs.value(list);
 
-    list.method(kb.sequence.add, { kb.coding.value, kb.pools.numbers.get(2) });
+    list.method(kb.sequence.add, { kb.id.value, kb.pools.numbers.get(2) });
     EXPECT_EQ(&list[kb.dimensions.size], &_2_);
     EXPECT_EQ(&list.method(kb.dimensions.size), &_2_);
     EXPECT_EQ(&list.method(kb.sequence.empty), &false_);
@@ -243,14 +243,14 @@ TEST_F(CellTest, ListOfNumber)
 
     EXPECT_EQ(firstItem.has(kb.sequence.previous), false);
     EXPECT_EQ(&firstItem[kb.sequence.next], &secondItem);
-    EXPECT_EQ(&firstItem[kb.coding.value], &_1_);
+    EXPECT_EQ(&firstItem[kb.id.value], &_1_);
 
     EXPECT_EQ(&secondItem[kb.sequence.previous], &firstItem);
     EXPECT_EQ(secondItem.has(kb.sequence.next), false);
-    EXPECT_EQ(&secondItem[kb.coding.value], &_2_);
+    EXPECT_EQ(&secondItem[kb.id.value], &_2_);
 
     printAs.value(list);
-    list.method(kb.sequence.add, { kb.coding.value, _3_ });
+    list.method(kb.sequence.add, { kb.id.value, _3_ });
     EXPECT_EQ(&list[kb.dimensions.size], &_3_);
     EXPECT_EQ(&list.method(kb.dimensions.size), &_3_);
     EXPECT_EQ(&list.method(kb.sequence.empty), &false_);
@@ -261,15 +261,15 @@ TEST_F(CellTest, ListOfNumber)
 
     EXPECT_EQ(firstItem.has(kb.sequence.previous), false);
     EXPECT_EQ(&firstItem[kb.sequence.next], &secondItem);
-    EXPECT_EQ(&firstItem[kb.coding.value], &_1_);
+    EXPECT_EQ(&firstItem[kb.id.value], &_1_);
 
     EXPECT_EQ(&secondItem[kb.sequence.previous], &firstItem);
     EXPECT_EQ(&secondItem[kb.sequence.next], &thirdItem);
-    EXPECT_EQ(&secondItem[kb.coding.value], &_2_);
+    EXPECT_EQ(&secondItem[kb.id.value], &_2_);
 
     EXPECT_EQ(&thirdItem[kb.sequence.previous], &secondItem);
     EXPECT_EQ(thirdItem.has(kb.sequence.next), false);
-    EXPECT_EQ(&thirdItem[kb.coding.value], &_3_);
+    EXPECT_EQ(&thirdItem[kb.id.value], &_3_);
 
     printAs.value(list);
     CellI& size = list.method(kb.dimensions.size);
@@ -278,284 +278,284 @@ TEST_F(CellTest, ListOfNumber)
 
 TEST_F(CellTest, Map)
 {
-    Object map(kb, kb.type.Map, kb.coding.constructor);
+    Object map(kb, kb.type.Map, kb.id.constructor);
 
     printAs.value(map);
     printAs.cell(map);
     EXPECT_EQ(&map[kb.dimensions.size], &_0_);
     EXPECT_EQ(&map.method(kb.dimensions.size), &_0_);
     EXPECT_EQ(&map.method(kb.sequence.empty), &true_);
-    EXPECT_EQ(&map[kb.coding.keyType], &kb.type.Cell);
-    EXPECT_EQ(&map[kb.coding.objectType], &kb.type.Cell);
+    EXPECT_EQ(&map[kb.id.keyType], &kb.type.Cell);
+    EXPECT_EQ(&map[kb.id.objectType], &kb.type.Cell);
 
-    map.method(kb.sequence.add, { coding.key, _1_ }, { coding.value, kb.colors.red });
+    map.method(kb.sequence.add, { id.key, _1_ }, { id.value, kb.colors.red });
     printAs.value(map);
     printAs.cell(map);
     EXPECT_EQ(&map[kb.dimensions.size], &_1_);
     EXPECT_EQ(&map.method(kb.dimensions.size), &_1_);
-    EXPECT_EQ(&map[coding.list][kb.dimensions.size], &_1_);
-    EXPECT_EQ(&map[coding.list][kb.coding.objectType], &kb.type.Cell);
-    EXPECT_EQ(&map[coding.list][kb.sequence.first][kb.coding.value], &kb.colors.red);
-    EXPECT_EQ(&map[coding.list][kb.sequence.first], &map[coding.list][kb.sequence.last]);
-    EXPECT_TRUE(map[coding.index].has(_1_));
-    EXPECT_EQ(&map[coding.index][_1_], &kb.colors.red);
+    EXPECT_EQ(&map[id.list][kb.dimensions.size], &_1_);
+    EXPECT_EQ(&map[id.list][kb.id.objectType], &kb.type.Cell);
+    EXPECT_EQ(&map[id.list][kb.sequence.first][kb.id.value], &kb.colors.red);
+    EXPECT_EQ(&map[id.list][kb.sequence.first], &map[id.list][kb.sequence.last]);
+    EXPECT_TRUE(map[id.index].has(_1_));
+    EXPECT_EQ(&map[id.index][_1_], &kb.colors.red);
     EXPECT_EQ(&map.method(kb.sequence.empty), &false_);
-    EXPECT_TRUE(map[coding.index][kb.coding.type][kb.coding.memberOf][kb.coding.index].has(kb.type.Index));
+    EXPECT_TRUE(map[id.index][kb.id.type][kb.id.memberOf][kb.id.index].has(kb.type.Index));
 
-    map.method(kb.sequence.add, { coding.key, _2_ }, { coding.value, kb.colors.green });
-    map.method(kb.sequence.add, { coding.key, _3_ }, { coding.value, kb.colors.blue });
-    EXPECT_EQ(&map[coding.index][_1_], &kb.colors.red);
-    EXPECT_EQ(&map[coding.index][_2_], &kb.colors.green);
-    EXPECT_EQ(&map[coding.index][_3_], &kb.colors.blue);
+    map.method(kb.sequence.add, { id.key, _2_ }, { id.value, kb.colors.green });
+    map.method(kb.sequence.add, { id.key, _3_ }, { id.value, kb.colors.blue });
+    EXPECT_EQ(&map[id.index][_1_], &kb.colors.red);
+    EXPECT_EQ(&map[id.index][_2_], &kb.colors.green);
+    EXPECT_EQ(&map[id.index][_3_], &kb.colors.blue);
     printAs.value(map);
     printAs.cell(map);
 }
 
 TEST_F(CellTest, MapTypes)
 {
-    Object map(kb, kb.type.Map, kb.coding.constructor);
+    Object map(kb, kb.type.Map, kb.id.constructor);
     printAs.value(map.type());
-    printAs.value(map[kb.coding.list].type());
-    printAs.value(map[kb.coding.index], "map[kb.coding.index]");
-    printAs.value(map[kb.coding.index].type(), "map[kb.coding.index].type()");
-    map.method(kb.sequence.add, { coding.key, _1_ }, { coding.value, kb.colors.red });
-    printAs.value(map[kb.coding.index], "map[kb.coding.index]");
-    printAs.value(map[kb.coding.index].type(), "map[kb.coding.index].type()");
-    printAs.cell(map[kb.coding.index].type()[kb.coding.slots], "map[kb.coding.index].type()[kb.coding.slots]");
-    printAs.cell(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index], "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index]");
-    printAs.value(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index], "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index]");
+    printAs.value(map[kb.id.list].type());
+    printAs.value(map[kb.id.index], "map[kb.id.index]");
+    printAs.value(map[kb.id.index].type(), "map[kb.id.index].type()");
+    map.method(kb.sequence.add, { id.key, _1_ }, { id.value, kb.colors.red });
+    printAs.value(map[kb.id.index], "map[kb.id.index]");
+    printAs.value(map[kb.id.index].type(), "map[kb.id.index].type()");
+    printAs.cell(map[kb.id.index].type()[kb.id.slots], "map[kb.id.index].type()[kb.id.slots]");
+    printAs.cell(map[kb.id.index].type()[kb.id.slots][kb.id.index], "map[kb.id.index].type()[kb.id.slots][kb.id.index]");
+    printAs.value(map[kb.id.index].type()[kb.id.slots][kb.id.index], "map[kb.id.index].type()[kb.id.slots][kb.id.index]");
 }
 
 TEST_F(CellTest, BuiltInMapTypes)
 {
     Map& map = *new cells::Map(kb, kb.type.Number, kb.type.Color);
     printAs.value(map.type());
-    printAs.value(map[kb.coding.list].type());
-    printAs.cell(map[kb.coding.index], "map[kb.coding.index]");
-    printAs.value(map[kb.coding.index], "map[kb.coding.index]");
-    printAs.value(map[kb.coding.index].type(), "map[kb.coding.index].type()");
+    printAs.value(map[kb.id.list].type());
+    printAs.cell(map[kb.id.index], "map[kb.id.index]");
+    printAs.value(map[kb.id.index], "map[kb.id.index]");
+    printAs.value(map[kb.id.index].type(), "map[kb.id.index].type()");
     map.add(_1_, kb.colors.red);
-    printAs.cell(map[kb.coding.index], "map[kb.coding.index]");
-    printAs.value(map[kb.coding.index], "map[kb.coding.index]");
-    printAs.value(map[kb.coding.index].type(), "map[kb.coding.index].type()");
-    printAs.cell(map[kb.coding.index].type()[kb.coding.slots], "map[kb.coding.index].type()[kb.coding.slots]");
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.dimensions.size], &_1_);
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.keyType], &kb.type.Cell);
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.objectType], &kb.type.Slot);
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.listType], &kb.type.ListOf(kb.type.Slot));
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.list][kb.dimensions.size], &_1_);
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index][_1_][kb.coding.slotRole], &_1_);
-    CellI& debug = map[kb.coding.index].type()[kb.coding.slots][kb.coding.index][_1_][kb.coding.slotType];
-//    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index][_1_][kb.coding.slotType], &kb.type.Color);
+    printAs.cell(map[kb.id.index], "map[kb.id.index]");
+    printAs.value(map[kb.id.index], "map[kb.id.index]");
+    printAs.value(map[kb.id.index].type(), "map[kb.id.index].type()");
+    printAs.cell(map[kb.id.index].type()[kb.id.slots], "map[kb.id.index].type()[kb.id.slots]");
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.dimensions.size], &_1_);
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.keyType], &kb.type.Cell);
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.objectType], &kb.type.Slot);
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.listType], &kb.type.ListOf(kb.type.Slot));
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.list][kb.dimensions.size], &_1_);
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.slotRole], &_1_);
+    CellI& debug = map[kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.slotType];
+//    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.slotType], &kb.type.Color);
 
-    EXPECT_TRUE(map[kb.coding.index].type().has(kb.coding.slots));
-    EXPECT_TRUE(map[kb.coding.index].type()[kb.coding.slots].has(kb.coding.index));
-    EXPECT_TRUE(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].has(kb.coding.type));
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type(), &map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index].type());
+    EXPECT_TRUE(map[kb.id.index].type().has(kb.id.slots));
+    EXPECT_TRUE(map[kb.id.index].type()[kb.id.slots].has(kb.id.index));
+    EXPECT_TRUE(map[kb.id.index].type()[kb.id.slots][kb.id.index].has(kb.id.type));
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index].type(), &map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index].type());
 
-    EXPECT_TRUE(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type().has(kb.coding.slots));
-    printAs.cell(map[kb.coding.index].type()[kb.coding.slots], "map[kb.coding.index].type()[kb.coding.slots][]");
-    printAs.cell(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index], "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index]");
-    printAs.value(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type(), "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()");
-    printAs.value(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots], "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots]");
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.dimensions.size], &_1_);
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index][_1_][kb.coding.slotRole], &_1_);
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index][_1_][kb.coding.slotType], &kb.type.Slot);
-    printAs.value(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index], "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index]");
-    printAs.value(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index].type(), "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()");
+    EXPECT_TRUE(map[kb.id.index].type()[kb.id.slots][kb.id.index].type().has(kb.id.slots));
+    printAs.cell(map[kb.id.index].type()[kb.id.slots], "map[kb.id.index].type()[kb.id.slots][]");
+    printAs.cell(map[kb.id.index].type()[kb.id.slots][kb.id.index], "map[kb.id.index].type()[kb.id.slots][kb.id.index]");
+    printAs.value(map[kb.id.index].type()[kb.id.slots][kb.id.index].type(), "map[kb.id.index].type()[kb.id.slots][kb.id.index].type()");
+    printAs.value(map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots], "map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots]");
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.dimensions.size], &_1_);
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.slotRole], &_1_);
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.slotType], &kb.type.Slot);
+    printAs.value(map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index], "map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index]");
+    printAs.value(map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index].type(), "map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index].type()");
 }
 
 
 TEST_F(CellTest, MapTemplateTypes)
 {
-    CellI& MapNumberToColor = kb.type.Map.smethod(kb.coding.template_, { kb.coding.keyType, kb.type.Number }, { kb.coding.objectType, kb.type.Color });
-    Object map(kb, MapNumberToColor, kb.coding.constructor);
+    CellI& MapNumberToColor = kb.type.Map.smethod(kb.id.template_, { kb.id.keyType, kb.type.Number }, { kb.id.objectType, kb.type.Color });
+    Object map(kb, MapNumberToColor, kb.id.constructor);
     printAs.value(map.type());
-    printAs.value(map[kb.coding.list].type());
-    printAs.cell(map[kb.coding.index], "map[kb.coding.index]");
-    printAs.value(map[kb.coding.index], "map[kb.coding.index]");
-    printAs.value(map[kb.coding.index].type(), "map[kb.coding.index].type()");
-    map.method(kb.sequence.add, { coding.key, _1_ }, { coding.value, kb.colors.red });
-    printAs.cell(map[kb.coding.index], "map[kb.coding.index]");
-    printAs.value(map[kb.coding.index], "map[kb.coding.index]");
-    printAs.value(map[kb.coding.index].type(), "map[kb.coding.index].type()");
-    printAs.cell(map[kb.coding.index].type()[kb.coding.slots], "map[kb.coding.index].type()[kb.coding.slots]");
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.dimensions.size], &_1_);
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.keyType], &kb.type.Cell);
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.objectType], &kb.type.Slot);
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.listType], &kb.type.ListOf(kb.type.Slot));
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.list][kb.dimensions.size], &_1_);
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index][_1_][kb.coding.slotRole], &_1_);
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index][_1_][kb.coding.slotType], &kb.type.Color);
+    printAs.value(map[kb.id.list].type());
+    printAs.cell(map[kb.id.index], "map[kb.id.index]");
+    printAs.value(map[kb.id.index], "map[kb.id.index]");
+    printAs.value(map[kb.id.index].type(), "map[kb.id.index].type()");
+    map.method(kb.sequence.add, { id.key, _1_ }, { id.value, kb.colors.red });
+    printAs.cell(map[kb.id.index], "map[kb.id.index]");
+    printAs.value(map[kb.id.index], "map[kb.id.index]");
+    printAs.value(map[kb.id.index].type(), "map[kb.id.index].type()");
+    printAs.cell(map[kb.id.index].type()[kb.id.slots], "map[kb.id.index].type()[kb.id.slots]");
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.dimensions.size], &_1_);
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.keyType], &kb.type.Cell);
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.objectType], &kb.type.Slot);
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.listType], &kb.type.ListOf(kb.type.Slot));
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.list][kb.dimensions.size], &_1_);
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.slotRole], &_1_);
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.slotType], &kb.type.Color);
 
-    EXPECT_TRUE(map[kb.coding.index].type().has(kb.coding.slots));
-    EXPECT_TRUE(map[kb.coding.index].type()[kb.coding.slots].has(kb.coding.index));
-    EXPECT_TRUE(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].has(kb.coding.type));
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type(), &map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index].type());
+    EXPECT_TRUE(map[kb.id.index].type().has(kb.id.slots));
+    EXPECT_TRUE(map[kb.id.index].type()[kb.id.slots].has(kb.id.index));
+    EXPECT_TRUE(map[kb.id.index].type()[kb.id.slots][kb.id.index].has(kb.id.type));
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index].type(), &map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index].type());
 
-    EXPECT_TRUE(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type().has(kb.coding.slots));
-    printAs.cell(map[kb.coding.index].type()[kb.coding.slots], "map[kb.coding.index].type()[kb.coding.slots][]");
-    printAs.cell(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index], "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index]");
-    printAs.value(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type(), "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()");
-    printAs.value(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots], "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots]");
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.dimensions.size], &_1_);
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index][_1_][kb.coding.slotRole], &_1_);
-    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index][_1_][kb.coding.slotType], &kb.type.Slot);
-    printAs.value(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index], "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index]");
-    printAs.value(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index].type(), "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()");
+    EXPECT_TRUE(map[kb.id.index].type()[kb.id.slots][kb.id.index].type().has(kb.id.slots));
+    printAs.cell(map[kb.id.index].type()[kb.id.slots], "map[kb.id.index].type()[kb.id.slots][]");
+    printAs.cell(map[kb.id.index].type()[kb.id.slots][kb.id.index], "map[kb.id.index].type()[kb.id.slots][kb.id.index]");
+    printAs.value(map[kb.id.index].type()[kb.id.slots][kb.id.index].type(), "map[kb.id.index].type()[kb.id.slots][kb.id.index].type()");
+    printAs.value(map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots], "map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots]");
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.dimensions.size], &_1_);
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.slotRole], &_1_);
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.slotType], &kb.type.Slot);
+    printAs.value(map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index], "map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index]");
+    printAs.value(map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index].type(), "map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index].type()");
 }
 
 TEST_F(CellTest, MapNumberToColor)
 {
-    CellI& MapNumberToColor = kb.type.Map.smethod(kb.coding.template_, { kb.coding.keyType, kb.type.Number }, { kb.coding.objectType, kb.type.Color });
-    Object map(kb, MapNumberToColor, kb.coding.constructor);
+    CellI& MapNumberToColor = kb.type.Map.smethod(kb.id.template_, { kb.id.keyType, kb.type.Number }, { kb.id.objectType, kb.type.Color });
+    Object map(kb, MapNumberToColor, kb.id.constructor);
 
     printAs.value(map);
     printAs.cell(map);
     EXPECT_EQ(&map[kb.dimensions.size], &_0_);
     EXPECT_EQ(&map.method(kb.dimensions.size), &_0_);
     EXPECT_EQ(&map.method(kb.sequence.empty), &true_);
-    EXPECT_EQ(&map[kb.coding.keyType], &kb.type.Number);
-    EXPECT_EQ(&map[kb.coding.objectType], &kb.type.Color);
+    EXPECT_EQ(&map[kb.id.keyType], &kb.type.Number);
+    EXPECT_EQ(&map[kb.id.objectType], &kb.type.Color);
 
-    map.method(kb.sequence.add, { coding.key, _1_}, { coding.value, kb.colors.red });
+    map.method(kb.sequence.add, { id.key, _1_}, { id.value, kb.colors.red });
     printAs.value(map);
     printAs.cell(map);
     EXPECT_EQ(&map[kb.dimensions.size], &_1_);
     EXPECT_EQ(&map.method(kb.dimensions.size), &_1_);
-    EXPECT_EQ(&map[coding.list][kb.dimensions.size], &_1_);
-    EXPECT_EQ(&map[coding.list][kb.coding.objectType], &kb.type.Color);
-    EXPECT_EQ(&map[coding.list][kb.sequence.first][kb.coding.value], &kb.colors.red);
-    EXPECT_EQ(&map[coding.list][kb.sequence.first], &map[coding.list][kb.sequence.last]);
-    EXPECT_TRUE(map[coding.index].has(_1_));
-    EXPECT_EQ(&map[coding.index][_1_], &kb.colors.red);
+    EXPECT_EQ(&map[id.list][kb.dimensions.size], &_1_);
+    EXPECT_EQ(&map[id.list][kb.id.objectType], &kb.type.Color);
+    EXPECT_EQ(&map[id.list][kb.sequence.first][kb.id.value], &kb.colors.red);
+    EXPECT_EQ(&map[id.list][kb.sequence.first], &map[id.list][kb.sequence.last]);
+    EXPECT_TRUE(map[id.index].has(_1_));
+    EXPECT_EQ(&map[id.index][_1_], &kb.colors.red);
     EXPECT_EQ(&map.method(kb.sequence.empty), &false_);
-    EXPECT_TRUE(map[coding.index][kb.coding.type][kb.coding.memberOf][kb.coding.index].has(kb.type.Index));
+    EXPECT_TRUE(map[id.index][kb.id.type][kb.id.memberOf][kb.id.index].has(kb.type.Index));
 
-    map.method(kb.sequence.add, { coding.key, _2_ }, { coding.value, kb.colors.green });
-    map.method(kb.sequence.add, { coding.key, _3_ }, { coding.value, kb.colors.blue });
-    EXPECT_EQ(&map[coding.index][_1_], &kb.colors.red);
-    EXPECT_EQ(&map[coding.index][_2_], &kb.colors.green);
-    EXPECT_EQ(&map[coding.index][_3_], &kb.colors.blue);
+    map.method(kb.sequence.add, { id.key, _2_ }, { id.value, kb.colors.green });
+    map.method(kb.sequence.add, { id.key, _3_ }, { id.value, kb.colors.blue });
+    EXPECT_EQ(&map[id.index][_1_], &kb.colors.red);
+    EXPECT_EQ(&map[id.index][_2_], &kb.colors.green);
+    EXPECT_EQ(&map[id.index][_3_], &kb.colors.blue);
     printAs.value(map);
     printAs.cell(map);
 }
 
 TEST_F(CellTest, ListItem)
 {
-    Object listItem(kb, kb.type.ListItem, kb.coding.constructor, { coding.value, kb.colors.green });
+    Object listItem(kb, kb.type.ListItem, kb.id.constructor, { id.value, kb.colors.green });
 
-    EXPECT_EQ(&listItem[kb.coding.value], &kb.colors.green);
+    EXPECT_EQ(&listItem[kb.id.value], &kb.colors.green);
 
-    EXPECT_EQ(&listItem.type()[kb.coding.memberOf][kb.dimensions.size], &_1_);
-    EXPECT_TRUE(listItem.type()[kb.coding.memberOf][kb.coding.index].has(kb.type.Iterator));
+    EXPECT_EQ(&listItem.type()[kb.id.memberOf][kb.dimensions.size], &_1_);
+    EXPECT_TRUE(listItem.type()[kb.id.memberOf][kb.id.index].has(kb.type.Iterator));
 
-    EXPECT_EQ(&listItem.type()[kb.coding.slots][kb.dimensions.size], &_3_);
-    EXPECT_TRUE(listItem.type()[kb.coding.slots][kb.coding.index].has(kb.sequence.previous));
-    EXPECT_TRUE(listItem.type()[kb.coding.slots][kb.coding.index].has(kb.sequence.next));
-    EXPECT_TRUE(listItem.type()[kb.coding.slots][kb.coding.index].has(kb.coding.value));
+    EXPECT_EQ(&listItem.type()[kb.id.slots][kb.dimensions.size], &_3_);
+    EXPECT_TRUE(listItem.type()[kb.id.slots][kb.id.index].has(kb.sequence.previous));
+    EXPECT_TRUE(listItem.type()[kb.id.slots][kb.id.index].has(kb.sequence.next));
+    EXPECT_TRUE(listItem.type()[kb.id.slots][kb.id.index].has(kb.id.value));
 
-    EXPECT_TRUE(listItem.type()[kb.coding.methods][kb.coding.index].has(kb.coding.template_));
-    EXPECT_TRUE(listItem.type()[kb.coding.methods][kb.coding.index].has(kb.coding.constructor));
+    EXPECT_TRUE(listItem.type()[kb.id.methods][kb.id.index].has(kb.id.template_));
+    EXPECT_TRUE(listItem.type()[kb.id.methods][kb.id.index].has(kb.id.constructor));
 }
 
 TEST_F(CellTest, ListItemTemplate)
 {
-    CellI& ListItemNumber = kb.type.ListItem.smethod(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
-    Object listItemNumber(kb, ListItemNumber, kb.coding.constructor, { coding.value, _1_ });
+    CellI& ListItemNumber = kb.type.ListItem.smethod(kb.id.template_, { kb.id.objectType, kb.type.Number });
+    Object listItemNumber(kb, ListItemNumber, kb.id.constructor, { id.value, _1_ });
 
-    EXPECT_EQ(&listItemNumber[kb.coding.value], &_1_);
+    EXPECT_EQ(&listItemNumber[kb.id.value], &_1_);
 
     printAs.value(kb.type.ListItem, "type.ListItem");
     printAs.value(ListItemNumber, "listItemNumber");
-    printAs.value(kb.type.ListItem[kb.coding.slots][kb.coding.list], "type.ListItem[slots]");
-    printAs.value(ListItemNumber[kb.coding.slots][kb.coding.list], "listItemNumber[slots]");
+    printAs.value(kb.type.ListItem[kb.id.slots][kb.id.list], "type.ListItem[slots]");
+    printAs.value(ListItemNumber[kb.id.slots][kb.id.list], "listItemNumber[slots]");
 
-    EXPECT_EQ(&ListItemNumber[kb.coding.memberOf][kb.dimensions.size], &_1_);
-    EXPECT_TRUE(ListItemNumber[kb.coding.memberOf][kb.coding.index].has(kb.type.ListItem));
+    EXPECT_EQ(&ListItemNumber[kb.id.memberOf][kb.dimensions.size], &_1_);
+    EXPECT_TRUE(ListItemNumber[kb.id.memberOf][kb.id.index].has(kb.type.ListItem));
 
-    EXPECT_EQ(&ListItemNumber[kb.coding.slots][kb.dimensions.size], &_3_);
-    EXPECT_TRUE(ListItemNumber[kb.coding.slots][kb.coding.index].has(kb.sequence.previous));
-    EXPECT_TRUE(ListItemNumber[kb.coding.slots][kb.coding.index].has(kb.sequence.next));
-    EXPECT_TRUE(ListItemNumber[kb.coding.slots][kb.coding.index].has(kb.coding.value));
+    EXPECT_EQ(&ListItemNumber[kb.id.slots][kb.dimensions.size], &_3_);
+    EXPECT_TRUE(ListItemNumber[kb.id.slots][kb.id.index].has(kb.sequence.previous));
+    EXPECT_TRUE(ListItemNumber[kb.id.slots][kb.id.index].has(kb.sequence.next));
+    EXPECT_TRUE(ListItemNumber[kb.id.slots][kb.id.index].has(kb.id.value));
 
-    EXPECT_EQ(&ListItemNumber[kb.coding.methods], &kb.type.ListItem[kb.coding.methods]);
+    EXPECT_EQ(&ListItemNumber[kb.id.methods], &kb.type.ListItem[kb.id.methods]);
 }
 
 TEST_F(CellTest, ListTemplate)
 {
-    CellI& ListOfNumbers = kb.type.List.smethod(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
+    CellI& ListOfNumbers = kb.type.List.smethod(kb.id.template_, { kb.id.objectType, kb.type.Number });
 
-    EXPECT_EQ(&ListOfNumbers[coding.subTypes][kb.dimensions.size], &_2_);
-    EXPECT_TRUE(ListOfNumbers[coding.subTypes][coding.index].has(coding.objectType));
-    EXPECT_EQ(&ListOfNumbers[coding.subTypes][coding.index][coding.objectType], &kb.type.Number);
-    EXPECT_TRUE(ListOfNumbers[coding.subTypes][coding.index].has(coding.itemType));
-    CellI& ListItemType = ListOfNumbers[coding.subTypes][coding.index][coding.itemType];
-    EXPECT_EQ(&ListItemType[kb.coding.slots][kb.coding.index][kb.coding.value][kb.coding.slotType], &kb.type.Number);
+    EXPECT_EQ(&ListOfNumbers[id.subTypes][kb.dimensions.size], &_2_);
+    EXPECT_TRUE(ListOfNumbers[id.subTypes][id.index].has(id.objectType));
+    EXPECT_EQ(&ListOfNumbers[id.subTypes][id.index][id.objectType], &kb.type.Number);
+    EXPECT_TRUE(ListOfNumbers[id.subTypes][id.index].has(id.itemType));
+    CellI& ListItemType = ListOfNumbers[id.subTypes][id.index][id.itemType];
+    EXPECT_EQ(&ListItemType[kb.id.slots][kb.id.index][kb.id.value][kb.id.slotType], &kb.type.Number);
     EXPECT_NE(&ListItemType, &kb.type.ListItem);
-    EXPECT_EQ(&ListItemType[kb.coding.memberOf][kb.dimensions.size], &_1_);
-    EXPECT_TRUE(ListItemType[kb.coding.memberOf][kb.coding.index].has(kb.type.ListItem));
+    EXPECT_EQ(&ListItemType[kb.id.memberOf][kb.dimensions.size], &_1_);
+    EXPECT_TRUE(ListItemType[kb.id.memberOf][kb.id.index].has(kb.type.ListItem));
 
-    EXPECT_EQ(&ListItemType[kb.coding.slots][kb.dimensions.size], &_3_);
-    EXPECT_TRUE(ListItemType[kb.coding.slots][kb.coding.index].has(kb.sequence.previous));
-    EXPECT_TRUE(ListItemType[kb.coding.slots][kb.coding.index].has(kb.sequence.next));
-    EXPECT_TRUE(ListItemType[kb.coding.slots][kb.coding.index].has(kb.coding.value));
+    EXPECT_EQ(&ListItemType[kb.id.slots][kb.dimensions.size], &_3_);
+    EXPECT_TRUE(ListItemType[kb.id.slots][kb.id.index].has(kb.sequence.previous));
+    EXPECT_TRUE(ListItemType[kb.id.slots][kb.id.index].has(kb.sequence.next));
+    EXPECT_TRUE(ListItemType[kb.id.slots][kb.id.index].has(kb.id.value));
 
-    EXPECT_EQ(&ListItemType[kb.coding.methods], &kb.type.ListItem[kb.coding.methods]);
+    EXPECT_EQ(&ListItemType[kb.id.methods], &kb.type.ListItem[kb.id.methods]);
 
-    EXPECT_EQ(&ListOfNumbers[kb.coding.methods], &kb.type.List[kb.coding.methods]);
+    EXPECT_EQ(&ListOfNumbers[kb.id.methods], &kb.type.List[kb.id.methods]);
 
-    EXPECT_EQ(&ListOfNumbers[kb.coding.slots][kb.dimensions.size], &_5_);
-    EXPECT_TRUE(ListOfNumbers[kb.coding.slots][kb.coding.index].has(kb.sequence.first));
-    EXPECT_EQ(&ListOfNumbers[kb.coding.slots][kb.coding.index][kb.sequence.first][kb.coding.slotType], &ListItemType);
+    EXPECT_EQ(&ListOfNumbers[kb.id.slots][kb.dimensions.size], &_5_);
+    EXPECT_TRUE(ListOfNumbers[kb.id.slots][kb.id.index].has(kb.sequence.first));
+    EXPECT_EQ(&ListOfNumbers[kb.id.slots][kb.id.index][kb.sequence.first][kb.id.slotType], &ListItemType);
 
-    EXPECT_TRUE(ListOfNumbers[kb.coding.slots][kb.coding.index].has(kb.sequence.last));
-    EXPECT_EQ(&ListOfNumbers[kb.coding.slots][kb.coding.index][kb.sequence.last][kb.coding.slotType], &ListItemType);
+    EXPECT_TRUE(ListOfNumbers[kb.id.slots][kb.id.index].has(kb.sequence.last));
+    EXPECT_EQ(&ListOfNumbers[kb.id.slots][kb.id.index][kb.sequence.last][kb.id.slotType], &ListItemType);
 
-    EXPECT_TRUE(ListOfNumbers[kb.coding.slots][kb.coding.index].has(kb.dimensions.size));
-    EXPECT_EQ(&ListOfNumbers[kb.coding.slots][kb.coding.index][kb.dimensions.size][kb.coding.slotType], &kb.type.Number);
+    EXPECT_TRUE(ListOfNumbers[kb.id.slots][kb.id.index].has(kb.dimensions.size));
+    EXPECT_EQ(&ListOfNumbers[kb.id.slots][kb.id.index][kb.dimensions.size][kb.id.slotType], &kb.type.Number);
 
-    EXPECT_TRUE(ListOfNumbers[kb.coding.slots][kb.coding.index].has(kb.coding.objectType));
-    EXPECT_EQ(&ListOfNumbers[kb.coding.slots][kb.coding.index][kb.coding.objectType][kb.coding.slotType], &kb.type.Number);
+    EXPECT_TRUE(ListOfNumbers[kb.id.slots][kb.id.index].has(kb.id.objectType));
+    EXPECT_EQ(&ListOfNumbers[kb.id.slots][kb.id.index][kb.id.objectType][kb.id.slotType], &kb.type.Number);
 
-    EXPECT_TRUE(ListOfNumbers[kb.coding.slots][kb.coding.index].has(kb.coding.itemType));
-    EXPECT_EQ(&ListOfNumbers[kb.coding.slots][kb.coding.index][kb.coding.itemType][kb.coding.slotType], &ListItemType);
+    EXPECT_TRUE(ListOfNumbers[kb.id.slots][kb.id.index].has(kb.id.itemType));
+    EXPECT_EQ(&ListOfNumbers[kb.id.slots][kb.id.index][kb.id.itemType][kb.id.slotType], &ListItemType);
 
-    EXPECT_TRUE(ListOfNumbers[kb.coding.memberOf][kb.coding.index].has(kb.type.List));
-    EXPECT_EQ(&ListOfNumbers[kb.coding.memberOf][kb.dimensions.size], &_1_);
+    EXPECT_TRUE(ListOfNumbers[kb.id.memberOf][kb.id.index].has(kb.type.List));
+    EXPECT_EQ(&ListOfNumbers[kb.id.memberOf][kb.dimensions.size], &_1_);
 
     printAs.value(kb.type.List, "type.List");
     printAs.value(ListOfNumbers, "ListOfNumbers");
 
-    Object listOfNumbers(kb, ListOfNumbers, kb.coding.constructor);
-    CellI& listItemNumber = listOfNumbers[kb.coding.itemType];
+    Object listOfNumbers(kb, ListOfNumbers, kb.id.constructor);
+    CellI& listItemNumber = listOfNumbers[kb.id.itemType];
     EXPECT_EQ(&ListItemType, &listItemNumber);
-    EXPECT_EQ(&ListOfNumbers[coding.subTypes][coding.index][coding.itemType], &listItemNumber);
+    EXPECT_EQ(&ListOfNumbers[id.subTypes][id.index][id.itemType], &listItemNumber);
 }
 
 TEST_F(CellTest, FunctionTypes)
 {
-    CellI& function = kb.type.Type_[kb.coding.methods][kb.coding.index][kb.methods.addSlot];
+    CellI& function = kb.type.Type_[kb.id.methods][kb.id.index][kb.methods.addSlot];
     printAs.cell(function.type(), "function");
-    printAs.cell(function.type()[kb.coding.subTypes][kb.coding.index][kb.coding.localVars], "function[kb.coding.subTypes][kb.coding.localVars]");
-    printAs.value(function.type()[kb.coding.subTypes][kb.coding.index][kb.coding.localVars], "function[kb.coding.subTypes][kb.coding.localVars]");
+    printAs.cell(function.type()[kb.id.subTypes][kb.id.index][kb.id.localVars], "function[kb.id.subTypes][kb.id.localVars]");
+    printAs.value(function.type()[kb.id.subTypes][kb.id.index][kb.id.localVars], "function[kb.id.subTypes][kb.id.localVars]");
 }
 
 TEST_F(CellTest, CreatedTypeWithConstructor)
 {
-    Object emptySubTypesMap(kb, kb.type.MapCellToType, kb.coding.constructor);
-    Object emptyMethodsMap(kb, kb.type.MapCellToType, kb.coding.constructor);
-    Object slotsMap(kb, kb.type.MapCellToSlot, kb.coding.constructor);
-    slotsMap.method(kb.sequence.add, { kb.coding.key, kb.dimensions.size }, { kb.coding.value, kb.coding.slot(kb.dimensions.size, kb.type.Number) });
+    Object emptySubTypesMap(kb, kb.type.MapCellToType, kb.id.constructor);
+    Object emptyMethodsMap(kb, kb.type.MapCellToType, kb.id.constructor);
+    Object slotsMap(kb, kb.type.MapCellToSlot, kb.id.constructor);
+    slotsMap.method(kb.sequence.add, { kb.id.key, kb.dimensions.size }, { kb.id.value, kb.type.slot(kb.dimensions.size, kb.type.Number) });
 
-    Object newType(kb, kb.type.Type_, kb.coding.constructor,
-                   { coding.slots, slotsMap },
-                   { coding.subTypes, emptySubTypesMap },
-                   { coding.memberOf, kb.map(kb.type.Cell, kb.type.Cell) },
-                   { coding.methods, emptyMethodsMap });
-    printAs.value(newType[coding.slots]);
-    printAs.value(newType[coding.slots][coding.list], "newType[coding.slots][coding.list]");
-    printAs.value(newType[coding.memberOf][coding.list], "newType[coding.memberOf][coding.list]");
+    Object newType(kb, kb.type.Type_, kb.id.constructor,
+                   { id.slots, slotsMap },
+                   { id.subTypes, emptySubTypesMap },
+                   { id.memberOf, kb.map(kb.type.Cell, kb.type.Cell) },
+                   { id.methods, emptyMethodsMap });
+    printAs.value(newType[id.slots]);
+    printAs.value(newType[id.slots][id.list], "newType[id.slots][id.list]");
+    printAs.value(newType[id.memberOf][id.list], "newType[id.memberOf][id.list]");
     Object newObject(kb, newType);
     printAs.cell(newObject, "Empty newObject");
     EXPECT_ANY_THROW(newObject.set(kb.dimensions.height, _1_));
@@ -573,82 +573,82 @@ TEST_F(CellTest, HybridPicture)
     printAs.svg(picture[kb.visualization.pixels]);
     printAs.value(picture[kb.visualization.pixels]);
 
-    EXPECT_EQ(&picture[kb.coding.type], &kb.type.Picture);
+    EXPECT_EQ(&picture[kb.id.type], &kb.type.Picture);
     EXPECT_EQ(&picture[kb.dimensions.width], &kb.pools.numbers.get(3));
     EXPECT_EQ(&picture[kb.dimensions.height], &kb.pools.numbers.get(3));
-    EXPECT_EQ(&picture[kb.visualization.pixels][kb.coding.type], &kb.type.ListOf(kb.type.Pixel));
+    EXPECT_EQ(&picture[kb.visualization.pixels][kb.id.type], &kb.type.ListOf(kb.type.Pixel));
 
-    CellI& ListOfPixels = kb.type.List.smethod(kb.coding.template_, { kb.coding.objectType, kb.type.Pixel });
-    Object listOfPixels(kb, ListOfPixels, kb.coding.constructor, "listOfPixels");
-    listOfPixels.method(kb.sequence.add, { kb.coding.value, picture[kb.visualization.pixels][kb.sequence.first][kb.coding.value] });
-    listOfPixels.method(kb.sequence.add, { kb.coding.value, picture[kb.visualization.pixels][kb.sequence.first][kb.sequence.next][kb.coding.value] });
+    CellI& ListOfPixels = kb.type.List.smethod(kb.id.template_, { kb.id.objectType, kb.type.Pixel });
+    Object listOfPixels(kb, ListOfPixels, kb.id.constructor, "listOfPixels");
+    listOfPixels.method(kb.sequence.add, { kb.id.value, picture[kb.visualization.pixels][kb.sequence.first][kb.id.value] });
+    listOfPixels.method(kb.sequence.add, { kb.id.value, picture[kb.visualization.pixels][kb.sequence.first][kb.sequence.next][kb.id.value] });
     printAs.value(listOfPixels);
 }
 
 TEST_F(CellTest, BasicObjectTest)
 {
     Object testType(kb, kb.type.Type_, "Test");
-    Object emptyList(kb, kb.type.List, kb.coding.constructor);
+    Object emptyList(kb, kb.type.List, kb.id.constructor);
 
-    testType.method(kb.methods.addSlots, { kb.coding.list, emptyList });
+    testType.method(kb.methods.addSlots, { kb.id.list, emptyList });
 
-    testType.method(kb.methods.addSlots, { kb.coding.list, kb.list(
-        coding.slot(kb.coding.result, kb.type.Digit),
-        coding.slot(kb.coding.value, kb.type.Number))}); // TODO implement type checking
+    testType.method(kb.methods.addSlots, { kb.id.list, kb.list(
+        kb.type.slot(kb.id.result, kb.type.Digit),
+        kb.type.slot(kb.id.value, kb.type.Number))}); // TODO implement type checking
 
     Object object(kb, testType, "testObject");
 
     EXPECT_EQ(object.label(), "testObject");
     EXPECT_EQ(&object.type(), &testType);
 
-    EXPECT_ANY_THROW(&object[kb.coding.value]);
-    EXPECT_NO_THROW(object.set(kb.coding.value, kb.pools.numbers.get(42)));
-    printAs.value(object[kb.coding.value]);
-    EXPECT_ANY_THROW(object.set(kb.coding.argument, kb.pools.numbers.get(42)));
+    EXPECT_ANY_THROW(&object[kb.id.value]);
+    EXPECT_NO_THROW(object.set(kb.id.value, kb.pools.numbers.get(42)));
+    printAs.value(object[kb.id.value]);
+    EXPECT_ANY_THROW(object.set(kb.id.argument, kb.pools.numbers.get(42)));
 }
 
 TEST_F(CellTest, BasicControlOpTest)
 {
     Object testValue1(kb, kb.type.op.ConstVar);
-    testValue1.set(kb.coding.value, kb.type.Char);
+    testValue1.set(kb.id.value, kb.type.Char);
 
     Object testValue2(kb, kb.type.op.ConstVar);
-    testValue2.set(kb.coding.value, kb.type.Color);
+    testValue2.set(kb.id.value, kb.type.Color);
 
     Object sameOpEq(kb, kb.type.op.Same, "sameOpEq");
-    sameOpEq.set(kb.coding.lhs, testValue1);
-    sameOpEq.set(kb.coding.rhs, testValue1);
+    sameOpEq.set(kb.id.lhs, testValue1);
+    sameOpEq.set(kb.id.rhs, testValue1);
 
     Object sameOpNe(kb, kb.type.op.Same, "sameOpNe");
-    sameOpNe.set(kb.coding.lhs, testValue1);
-    sameOpNe.set(kb.coding.rhs, testValue2);
+    sameOpNe.set(kb.id.lhs, testValue1);
+    sameOpNe.set(kb.id.rhs, testValue2);
 
     sameOpEq();
     sameOpNe();
 
-    printAs.value(sameOpEq[kb.coding.value], "testValue1 == testValue1");
-    printAs.value(sameOpNe[kb.coding.value], "testValue1 != testValue1");
+    printAs.value(sameOpEq[kb.id.value], "testValue1 == testValue1");
+    printAs.value(sameOpNe[kb.id.value], "testValue1 != testValue1");
 
-    EXPECT_EQ(&sameOpEq[kb.coding.value], &true_);
-    EXPECT_EQ(&sameOpNe[kb.coding.value], &false_);
+    EXPECT_EQ(&sameOpEq[kb.id.value], &true_);
+    EXPECT_EQ(&sameOpNe[kb.id.value], &false_);
 }
 
 TEST_F(CellTest, BasicControlAddTest)
 {
     Object start(kb, kb.type.op.ConstVar);
-    start.set(kb.coding.value, kb.pools.numbers.get(42));
+    start.set(kb.id.value, kb.pools.numbers.get(42));
 
     Object value10(kb, kb.type.op.ConstVar);
-    value10.set(kb.coding.value, kb.pools.numbers.get(10));
+    value10.set(kb.id.value, kb.pools.numbers.get(10));
 
     Object add10(kb, kb.type.op.Add, "add10");
-    add10.set(kb.coding.lhs, start);
-    add10.set(kb.coding.rhs, value10);
+    add10.set(kb.id.lhs, start);
+    add10.set(kb.id.rhs, value10);
     add10();
     std::cout << "42 + 10 = ";
-    printAs.value(add10[kb.coding.value]);
+    printAs.value(add10[kb.id.value]);
 
-    EXPECT_EQ(&add10[kb.coding.value], &kb.pools.numbers.get(52));
+    EXPECT_EQ(&add10[kb.id.value], &kb.pools.numbers.get(52));
 }
 
 TEST_F(CellTest, CreatingCustomType)
@@ -659,11 +659,11 @@ TEST_F(CellTest, CreatingCustomType)
 
     Object colorClass(kb, kb.type.Type_, "Color");
 #if 1 // TODO
-    Object* slotMapPtr = new Object(kb, kb.type.MapCellToSlot, kb.coding.constructor);
-    colorClass.set(coding.slots, *slotMapPtr);
+    Object* slotMapPtr = new Object(kb, kb.type.MapCellToSlot, kb.id.constructor);
+    colorClass.set(id.slots, *slotMapPtr);
 #endif
 
-    colorClass.method(kb.methods.addSlots, { kb.coding.list, kb.list(coding.slot(colorRed, kb.type.Number), coding.slot(colorGreen, kb.type.Number), coding.slot(colorBlue, kb.type.Number)) });
+    colorClass.method(kb.methods.addSlots, { kb.id.list, kb.list(kb.type.slot(colorRed, kb.type.Number), kb.type.slot(colorGreen, kb.type.Number), kb.type.slot(colorBlue, kb.type.Number)) });
 
     Object redColor(kb, colorClass, "redColor");
     redColor.set(colorRed, kb.pools.numbers.get(255));
@@ -671,39 +671,39 @@ TEST_F(CellTest, CreatingCustomType)
     redColor.set(colorBlue, kb.pools.numbers.get(0));
 
     printAs.value(colorClass, "colorClass:");
-    printAs.value(colorClass[kb.coding.slots][kb.coding.list], "colorClass::slots");
-    printAs.value(colorClass[kb.coding.slots][kb.coding.index][colorRed]);
-    EXPECT_TRUE(colorClass[kb.coding.slots][kb.coding.index].has(colorRed));
-    EXPECT_TRUE(colorClass[kb.coding.slots][kb.coding.index].has(colorGreen));
-    EXPECT_TRUE(colorClass[kb.coding.slots][kb.coding.index].has(colorBlue));
-    printAs.value(colorClass[kb.coding.slots][kb.coding.index][colorRed][kb.coding.type], "colorClass slot of colorRed");
-    EXPECT_EQ(&colorClass[kb.coding.slots][kb.coding.index][colorRed][kb.coding.type], &kb.type.Slot);
-    EXPECT_EQ(&colorClass[kb.coding.slots][kb.coding.index][colorRed][kb.coding.type], &kb.type.Slot);
-    EXPECT_EQ(&colorClass[kb.coding.slots][kb.coding.index][colorGreen][kb.coding.type], &kb.type.Slot);
-    EXPECT_EQ(&colorClass[kb.coding.slots][kb.coding.index][colorBlue][kb.coding.type], &kb.type.Slot);
+    printAs.value(colorClass[kb.id.slots][kb.id.list], "colorClass::slots");
+    printAs.value(colorClass[kb.id.slots][kb.id.index][colorRed]);
+    EXPECT_TRUE(colorClass[kb.id.slots][kb.id.index].has(colorRed));
+    EXPECT_TRUE(colorClass[kb.id.slots][kb.id.index].has(colorGreen));
+    EXPECT_TRUE(colorClass[kb.id.slots][kb.id.index].has(colorBlue));
+    printAs.value(colorClass[kb.id.slots][kb.id.index][colorRed][kb.id.type], "colorClass slot of colorRed");
+    EXPECT_EQ(&colorClass[kb.id.slots][kb.id.index][colorRed][kb.id.type], &kb.type.Slot);
+    EXPECT_EQ(&colorClass[kb.id.slots][kb.id.index][colorRed][kb.id.type], &kb.type.Slot);
+    EXPECT_EQ(&colorClass[kb.id.slots][kb.id.index][colorGreen][kb.id.type], &kb.type.Slot);
+    EXPECT_EQ(&colorClass[kb.id.slots][kb.id.index][colorBlue][kb.id.type], &kb.type.Slot);
     printAs.value(redColor);
 
     printAs.cell(redColor);
-    printAs.cell(colorClass[kb.coding.slots][kb.coding.index][colorRed], "colorClass[kb.coding.slots][kb.coding.index][colorRed]");
-    printAs.cell(colorClass[kb.coding.slots][kb.coding.index], "colorClass[kb.coding.slots][kb.coding.index]");
+    printAs.cell(colorClass[kb.id.slots][kb.id.index][colorRed], "colorClass[kb.id.slots][kb.id.index][colorRed]");
+    printAs.cell(colorClass[kb.id.slots][kb.id.index], "colorClass[kb.id.slots][kb.id.index]");
 
     printAs.svgStruct(redColor, "redColor");
     printAs.svgStruct(colorRed, "colorRed");
     printAs.svgStruct(colorClass, "Color");
-    printAs.svgStruct(colorClass[kb.coding.slots][kb.coding.index], "SlotIndex of Color");
-    printAs.svgStruct(colorClass[kb.coding.slots][kb.coding.list], "SlotList of Color");
-    printAs.svgStruct(colorClass[kb.coding.slots][kb.coding.list][kb.sequence.first], "SlotListItem1 of Color");
-    printAs.svgStruct(colorClass[kb.coding.slots][kb.coding.list][kb.sequence.first][kb.coding.value], "Slot1 of Color");
-    printAs.svgStruct(colorClass[kb.coding.slots][kb.coding.list][kb.sequence.first][kb.sequence.next], "SlotListItem2 of Color");
-    printAs.svgStruct(colorClass[kb.coding.slots][kb.coding.list][kb.sequence.first][kb.sequence.next][kb.coding.value], "Slot2 of Color");
-    printAs.value(colorClass[kb.coding.slots][kb.coding.index], "colorClass[kb.coding.slots][kb.coding.index]");
-    printAs.value(colorClass[kb.coding.slots][kb.coding.index][kb.coding.type], "colorClass[kb.coding.slots][kb.coding.index][kb.coding.type]");
-    printAs.value(colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots], "colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots]");
-    printAs.value(colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots][kb.coding.index], "colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots][kb.coding.index]");
+    printAs.svgStruct(colorClass[kb.id.slots][kb.id.index], "SlotIndex of Color");
+    printAs.svgStruct(colorClass[kb.id.slots][kb.id.list], "SlotList of Color");
+    printAs.svgStruct(colorClass[kb.id.slots][kb.id.list][kb.sequence.first], "SlotListItem1 of Color");
+    printAs.svgStruct(colorClass[kb.id.slots][kb.id.list][kb.sequence.first][kb.id.value], "Slot1 of Color");
+    printAs.svgStruct(colorClass[kb.id.slots][kb.id.list][kb.sequence.first][kb.sequence.next], "SlotListItem2 of Color");
+    printAs.svgStruct(colorClass[kb.id.slots][kb.id.list][kb.sequence.first][kb.sequence.next][kb.id.value], "Slot2 of Color");
+    printAs.value(colorClass[kb.id.slots][kb.id.index], "colorClass[kb.id.slots][kb.id.index]");
+    printAs.value(colorClass[kb.id.slots][kb.id.index][kb.id.type], "colorClass[kb.id.slots][kb.id.index][kb.id.type]");
+    printAs.value(colorClass[kb.id.slots][kb.id.index][kb.id.type][kb.id.slots], "colorClass[kb.id.slots][kb.id.index][kb.id.type][kb.id.slots]");
+    printAs.value(colorClass[kb.id.slots][kb.id.index][kb.id.type][kb.id.slots][kb.id.index], "colorClass[kb.id.slots][kb.id.index][kb.id.type][kb.id.slots][kb.id.index]");
     printAs.cell(colorClass);
 
     printAs.svg(redColor);
-    printAs.svg(colorClass[kb.coding.slots][kb.coding.index][colorRed]);
+    printAs.svg(colorClass[kb.id.slots][kb.id.index][colorRed]);
     printAs.svg(colorClass);
 }
 
@@ -713,25 +713,25 @@ TEST_F(CellTest, CreatingNumber)
     Number& number_255 = kb.pools.numbers.get(255);
 
     printAs.value(number_255);
-    printAs.value(number_255[kb.coding.value][kb.sequence.first][kb.coding.value]);
+    printAs.value(number_255[kb.id.value][kb.sequence.first][kb.id.value]);
 
-    printAs.svgStruct(kb.coding.emptyObject, "emptyObject");
+    printAs.svgStruct(kb.id.emptyObject, "emptyObject");
 
     printAs.cell(number_255);
     printAs.cell(number_255[kb.numbers.sign]);
-    printAs.cell(number_255[kb.coding.value]);
-    printAs.cell(number_255[kb.coding.value][kb.sequence.first]);
-    printAs.cell(number_255[kb.coding.value][kb.sequence.first][kb.coding.value]);
-    printAs.cell(number_255[kb.coding.value][kb.sequence.last]);
-    printAs.cell(number_255[kb.coding.value][kb.dimensions.size]);
+    printAs.cell(number_255[kb.id.value]);
+    printAs.cell(number_255[kb.id.value][kb.sequence.first]);
+    printAs.cell(number_255[kb.id.value][kb.sequence.first][kb.id.value]);
+    printAs.cell(number_255[kb.id.value][kb.sequence.last]);
+    printAs.cell(number_255[kb.id.value][kb.dimensions.size]);
 
     printAs.svg(number_255);
     printAs.svg(number_255[kb.numbers.sign]);
-    printAs.svg(number_255[kb.coding.value]);
-    printAs.svg(number_255[kb.coding.value][kb.sequence.first]);
-    printAs.svg(number_255[kb.coding.value][kb.sequence.first][kb.coding.value]);
-    printAs.svg(number_255[kb.coding.value][kb.sequence.last]);
-    printAs.svg(number_255[kb.coding.value][kb.dimensions.size]);
+    printAs.svg(number_255[kb.id.value]);
+    printAs.svg(number_255[kb.id.value][kb.sequence.first]);
+    printAs.svg(number_255[kb.id.value][kb.sequence.first][kb.id.value]);
+    printAs.svg(number_255[kb.id.value][kb.sequence.last]);
+    printAs.svg(number_255[kb.id.value][kb.dimensions.size]);
 }
 
 int main(int argc, char** argv)
