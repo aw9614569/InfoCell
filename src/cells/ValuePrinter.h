@@ -36,6 +36,7 @@ protected:
     void printOpFunction(CellI& cell);
     void printOpDelete(CellI& cell);
     void printOpSet(CellI& cell);
+    void printOpErase(CellI& cell);
     void printOpIf(CellI& cell);
     void printOpDo(CellI& cell);
     void printOpWhile(CellI& cell);

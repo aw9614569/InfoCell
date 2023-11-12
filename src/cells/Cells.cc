@@ -209,6 +209,19 @@ void Object::set(CellI& role, CellI& value)
     }
 }
 
+void Object::erase(CellI& role)
+{
+    if (&role == &kb.id.type) {
+        throw "Type change not allowed.";
+    }
+
+    auto slotIt = m_slots.find(&role);
+    if (slotIt == m_slots.end()) {
+        return;
+    }
+    m_slots.erase(slotIt);
+}
+
 void Object::operator()()
 {
     if (&m_type == &kb.type.op.Block) {
@@ -257,6 +270,15 @@ void Object::operator()()
         CellI& value = inputValue[kb.id.value];
 
         cell.set(role, value);
+    } else if (&m_type == &kb.type.op.Erase) {
+        CellI& inputCell = get(kb.id.cell);
+        inputCell();
+        CellI& cell      = inputCell[kb.id.value];
+        CellI& inputRole = get(kb.id.role);
+        inputRole();
+        CellI& role       = inputRole[kb.id.value];
+
+        cell.erase(role);
     } else if (&m_type == &kb.type.op.If) {
         CellI& inputCondition = get(kb.id.condition);
         inputCondition();
@@ -708,6 +730,11 @@ void List::Item::set(CellI& role, CellI& value)
     // Do nothing
 }
 
+void List::Item::erase(CellI& role)
+{
+    // Do nothing
+}
+
 void List::Item::operator()()
 {
     // Do nothing
@@ -785,6 +812,11 @@ bool List::has(CellI& role)
 }
 
 void List::set(CellI& role, CellI& value)
+{
+    throw "Not supported";
+}
+
+void List::erase(CellI& role)
 {
     throw "Not supported";
 }
@@ -872,6 +904,11 @@ void Map::Index::Type::Slots::SlotList::Item::set(CellI& role, CellI& value)
     // Do nothing
 }
 
+void Map::Index::Type::Slots::SlotList::Item::erase(CellI& role)
+{
+    // Do nothing
+}
+
 void Map::Index::Type::Slots::SlotList::Item::operator()()
 {
     // Do nothing, this is a data cell
@@ -924,6 +961,11 @@ bool Map::Index::Type::Slots::SlotList::has(CellI& role)
 }
 
 void Map::Index::Type::Slots::SlotList::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void Map::Index::Type::Slots::SlotList::erase(CellI& role)
 {
     // Do nothing
 }
@@ -989,6 +1031,11 @@ void Map::Index::Type::Slots::SlotIndex::set(CellI& role, CellI& value)
     // Do nothing
 }
 
+void Map::Index::Type::Slots::SlotIndex::erase(CellI& role)
+{
+    // Do nothing
+}
+
 void Map::Index::Type::Slots::SlotIndex::operator()()
 {
     // Do nothing, this is a data cell
@@ -1029,6 +1076,11 @@ bool Map::Index::Type::Slot::has(CellI& role)
 }
 
 void Map::Index::Type::Slot::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void Map::Index::Type::Slot::erase(CellI& role)
 {
     // Do nothing
 }
@@ -1086,6 +1138,11 @@ bool Map::Index::Type::Slots::has(CellI& role)
 }
 
 void Map::Index::Type::Slots::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void Map::Index::Type::Slots::erase(CellI& role)
 {
     // Do nothing
 }
@@ -1161,6 +1218,11 @@ void Map::Index::Type::set(CellI& role, CellI& value)
     // Do nothing
 }
 
+void Map::Index::Type::erase(CellI& role)
+{
+    // Do nothing
+}
+
 void Map::Index::Type::operator()()
 {
     // Do nothing, this is a data cell
@@ -1215,6 +1277,11 @@ bool Map::Index::has(CellI& role)
 }
 
 void Map::Index::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void Map::Index::erase(CellI& role)
 {
     // Do nothing
 }
@@ -1289,6 +1356,11 @@ bool Map::has(CellI& role)
 }
 
 void Map::set(CellI& role, CellI& value)
+{
+    throw "Not supported";
+}
+
+void Map::erase(CellI& role)
 {
     throw "Not supported";
 }
@@ -1368,7 +1440,12 @@ bool Number::has(CellI& role)
 
 void Number::set(CellI& role, CellI& value)
 {
-    throw "Not supported";
+    throw "Changing a hybrid number cell is not possible!";
+}
+
+void Number::erase(CellI& role)
+{
+    throw "Changing a hybrid number cell is not possible!";
 }
 
 void Number::operator()()
@@ -1446,7 +1523,12 @@ bool String::has(CellI& role)
 
 void String::set(CellI& role, CellI& value)
 {
-    throw "Not supported";
+    throw "Changing a hybrid string cell is not possible!";
+}
+
+void String::erase(CellI& role)
+{
+    throw "Changing a hybrid string cell is not possible!";
 }
 
 void String::operator()()
@@ -1514,6 +1596,12 @@ bool Color::has(CellI& role)
 
 void Color::set(CellI& role, CellI& value)
 {
+    throw "Changing a hybrid color cell is not possible!";
+}
+
+void Color::erase(CellI& role)
+{
+    throw "Changing a hybrid color cell is not possible!";
 }
 
 void Color::operator()()
@@ -1592,7 +1680,12 @@ bool Pixel::has(CellI& role)
 
 void Pixel::set(CellI& role, CellI& value)
 {
-    throw "Setting a generated pixelRef cell is not possible";
+    throw "Changing a hybrid pixel cell is not possible!";
+}
+
+void Pixel::erase(CellI& role)
+{
+    throw "Changing a hybrid pixel cell is not possible!";
 }
 
 void Pixel::operator()()
@@ -1688,7 +1781,12 @@ bool Picture::has(CellI& role)
 
 void Picture::set(CellI& role, CellI& value)
 {
-    throw "Setting a generated Picture cell is not possible";
+    throw "Changing a hybrid picture cell is not possible!";
+}
+
+void Picture::erase(CellI& role)
+{
+    throw "Changing a hybrid picture cell is not possible!";
 }
 
 void Picture::operator()()

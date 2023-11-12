@@ -203,6 +203,15 @@ void CellValuePrinter::printOpSet(CellI& cell)
     printImpl(cell[kb.id.value]);
 }
 
+void CellValuePrinter::printOpErase(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.id.cell]);
+    m_ss << ".erase(";
+    printImpl(cell[kb.id.role]);
+    m_ss << ")";
+}
+
 void CellValuePrinter::printOpIf(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
@@ -627,6 +636,9 @@ void CellValuePrinter::printImpl(CellI& cell)
         return;
     } else if (is(kb.type.op.Set)) {
         printOpSet(cell);
+        return;
+    } else if (is(kb.type.op.Erase)) {
+        printOpErase(cell);
         return;
     } else if (is(kb.type.op.If)) {
         printOpIf(cell);

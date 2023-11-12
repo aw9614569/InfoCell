@@ -26,6 +26,7 @@ public:
 
     virtual bool has(CellI& role)               = 0;
     virtual void set(CellI& role, CellI& value) = 0;
+    virtual void erase(CellI& role)            = 0;
     virtual void operator()()                   = 0;
     virtual CellI& operator[](CellI& role)      = 0;
     virtual void accept(Visitor& visitor)       = 0;
@@ -73,6 +74,7 @@ public:
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
@@ -135,6 +137,7 @@ public:
 
         bool has(CellI& role) override;
         void set(CellI& role, CellI& value) override;
+        void erase(CellI& role) override;
         void operator()() override;
         CellI& operator[](CellI& role) override;
         void accept(Visitor& visitor) override;
@@ -164,6 +167,7 @@ public:
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
@@ -267,6 +271,7 @@ public:
 
                         bool has(CellI& role) override;
                         void set(CellI& role, CellI& value) override;
+                        void erase(CellI& role) override;
                         void operator()() override;
                         CellI& operator[](CellI& role) override;
                         void accept(Visitor& visitor) override;
@@ -278,6 +283,7 @@ public:
 
                     bool has(CellI& role) override;
                     void set(CellI& role, CellI& value) override;
+                    void erase(CellI& role) override;
                     void operator()() override;
                     CellI& operator[](CellI& role) override;
                     void accept(Visitor& visitor) override;
@@ -292,6 +298,7 @@ public:
 
                     bool has(CellI& role) override;
                     void set(CellI& role, CellI& value) override;
+                    void erase(CellI& role) override;
                     void operator()() override;
                     CellI& operator[](CellI& role) override;
                     void accept(Visitor& visitor) override;
@@ -304,6 +311,7 @@ public:
 
                 bool has(CellI& role) override;
                 void set(CellI& role, CellI& value) override;
+                void erase(CellI& role) override;
                 void operator()() override;
                 CellI& operator[](CellI& role) override;
                 void accept(Visitor& visitor) override;
@@ -319,6 +327,7 @@ public:
 
                 bool has(CellI& role) override;
                 void set(CellI& role, CellI& value) override;
+                void erase(CellI& role) override;
                 void operator()() override;
                 CellI& operator[](CellI& role) override;
                 void accept(Visitor& visitor) override;
@@ -330,6 +339,7 @@ public:
 
             bool has(CellI& role) override;
             void set(CellI& role, CellI& value) override;
+            void erase(CellI& role) override;
             void operator()() override;
             CellI& operator[](CellI& role) override;
             void accept(Visitor& visitor) override;
@@ -342,6 +352,7 @@ public:
 
         bool has(CellI& role) override;
         void set(CellI& role, CellI& value) override;
+        void erase(CellI& role) override;
         void operator()() override;
         CellI& operator[](CellI& role) override;
         void accept(Visitor& visitor) override;
@@ -369,6 +380,7 @@ public:
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
@@ -398,6 +410,169 @@ public:
 };
 
 // ============================================================================
+class Set : public CellI
+{
+public:
+    struct Value;
+    typedef std::map<CellI*, Value> IndexedValues;
+    typedef std::list<Value*> OrderedValues;
+
+    class Index : public CellI
+    {
+    public:
+        class Type : public CellI
+        {
+        public:
+            class Slots : public CellI
+            {
+            public:
+                class SlotList : public CellI
+                {
+                public:
+                    class Item : public CellI
+                    {
+                    public:
+                        Item(brain::Brain& kb, Value& value);
+
+                        bool has(CellI& role) override;
+                        void set(CellI& role, CellI& value) override;
+                        void erase(CellI& role) override;
+                        void operator()() override;
+                        CellI& operator[](CellI& role) override;
+                        void accept(Visitor& visitor) override;
+
+                        Value& m_value;
+                    };
+
+                    SlotList(brain::Brain& kb, OrderedValues& orderedValues);
+
+                    bool has(CellI& role) override;
+                    void set(CellI& role, CellI& value) override;
+                    void erase(CellI& role) override;
+                    void operator()() override;
+                    CellI& operator[](CellI& role) override;
+                    void accept(Visitor& visitor) override;
+
+                    OrderedValues& m_orderedValues;
+                };
+
+                class SlotIndex : public CellI
+                {
+                public:
+                    SlotIndex(brain::Brain& kb, IndexedValues& indexedValues, Type& type);
+
+                    bool has(CellI& role) override;
+                    void set(CellI& role, CellI& value) override;
+                    void erase(CellI& role) override;
+                    void operator()() override;
+                    CellI& operator[](CellI& role) override;
+                    void accept(Visitor& visitor) override;
+
+                    IndexedValues& m_indexedValues;
+                    Type& m_type;
+                };
+
+                Slots(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType, Type& type);
+
+                bool has(CellI& role) override;
+                void set(CellI& role, CellI& value) override;
+                void erase(CellI& role) override;
+                void operator()() override;
+                CellI& operator[](CellI& role) override;
+                void accept(Visitor& visitor) override;
+
+                SlotList m_slotList;
+                SlotIndex m_slotIndex;
+            };
+
+            class Slot : public CellI
+            {
+            public:
+                Slot(brain::Brain& kb, CellI& slotRole);
+
+                bool has(CellI& role) override;
+                void set(CellI& role, CellI& value) override;
+                void erase(CellI& role) override;
+                void operator()() override;
+                CellI& operator[](CellI& role) override;
+                void accept(Visitor& visitor) override;
+
+                CellI& m_slotRole;
+            };
+
+            Type(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType);
+
+            bool has(CellI& role) override;
+            void set(CellI& role, CellI& value) override;
+            void erase(CellI& role) override;
+            void operator()() override;
+            CellI& operator[](CellI& role) override;
+            void accept(Visitor& visitor) override;
+
+            Slots m_slots;
+            IndexedValues& m_indexedValues;
+        };
+
+        Index(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType);
+
+        bool has(CellI& role) override;
+        void set(CellI& role, CellI& value) override;
+        void erase(CellI& role) override;
+        void operator()() override;
+        CellI& operator[](CellI& role) override;
+        void accept(Visitor& visitor) override;
+
+        Type m_type;
+        IndexedValues& m_indexedValues;
+        OrderedValues& m_orderedValues;
+    };
+
+    struct Value
+    {
+        Value(Map& group, CellI& value, CellI& index, size_t listItemIndex);
+
+        Value* prev();
+        Value* next();
+
+        Map& m_group;
+        CellI& m_value;
+        std::list<Value*>::iterator m_iterator;
+        Index::Type::Slots::SlotList::Item m_indexTypeSlotsListItem;
+        Index::Type::Slot m_indexTypeSlot;
+    };
+
+    Set(brain::Brain& kb, CellI& valueType, const std::string& label = "");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    bool contains(CellI& key);
+
+    void add(CellI& value);
+    template <typename... Args>
+    void add(CellI& value, Args&&... args)
+    {
+        add(value);
+        add(std::forward<Args>(args)...);
+    }
+    bool empty() const;
+
+protected:
+    CellI& m_valueType;
+
+    IndexedValues m_indexedValues;
+    OrderedValues m_orderedValues;
+
+public:
+    List m_list;
+    Index m_index;
+};
+
+// ============================================================================
 class Number : public CellI
 {
 public:
@@ -405,6 +580,7 @@ public:
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
@@ -428,6 +604,7 @@ public:
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
@@ -452,6 +629,7 @@ public:
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
@@ -470,6 +648,7 @@ public:
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
@@ -496,6 +675,7 @@ public:
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;

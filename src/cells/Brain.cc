@@ -39,6 +39,7 @@ ID::ID(brain::Brain& kb) :
     condition(kb, kb.type.Cell, "condition"),
     constructor(kb, kb.type.Cell, "constructor"),
     container(kb, kb.type.Cell, "container"),
+    contains(kb, kb.type.Cell, "contains"),
     continue_(kb, kb.type.Cell, "continue"),
     destructor(kb, kb.type.Cell, "destructor"),
     direction(kb, kb.type.Struct, "direction"),
@@ -63,6 +64,7 @@ ID::ID(brain::Brain& kb) :
     label(kb, kb.type.Cell, "label"),
     lhs(kb, kb.type.Cell, "lhs"),
     list(kb, kb.type.Cell, "list"),
+    listItem(kb, kb.type.Cell, "listItem"),
     listType(kb, kb.type.Cell, "listType"),
     localVars(kb, kb.type.Cell, "localVars"),
     memberOf(kb, kb.type.Cell, "memberOf"),
@@ -129,6 +131,7 @@ Op::Op(brain::Brain& kb) :
     Divide(kb, kb.type.Type_, "op::Divide"),
     Do(kb, kb.type.Type_, "op::Do"),
     Equal(kb, kb.type.Type_, "op::Equal"),
+    Erase(kb, kb.type.Type_, "op::Erase"),
     EvalVar(kb, kb.type.Type_, "op::EvalVar"),
     Function(kb, kb.type.Type_, "op::Function"),
     Get(kb, kb.type.Type_, "op::Get"),
@@ -209,6 +212,13 @@ Op::Op(brain::Brain& kb) :
                   id.rhs, type.slot(id.rhs, Base),
                   id.value, type.slot(id.value, type.Boolean));
     Equal.set(id.slots, *map);
+
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  id.ast, type.slot(id.ast, ast.Base),
+                  id.cell, type.slot(id.cell, Base),
+                  id.role, type.slot(id.role, Base),
+                  id.value, type.slot(id.value, Base));
+    Erase.set(id.slots, *map);
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   id.ast, type.slot(id.ast, ast.Base),
@@ -371,6 +381,7 @@ Ast::Ast(brain::Brain& kb) :
     Divide(kb, kb.type.Type_, "ast::Divide"),
     Do(kb, kb.type.Type_, "ast::Do"),
     Equal(kb, kb.type.Type_, "ast::Equal"),
+    Erase(kb, kb.type.Type_, "ast::Erase"),
     Function(kb, kb.type.Type_, "ast::Function"),
     Get(kb, kb.type.Type_, "ast::Get"),
     GreaterThan(kb, kb.type.Type_, "ast::GreaterThan"),
@@ -446,6 +457,11 @@ Ast::Ast(brain::Brain& kb) :
                   id.lhs, type.slot(id.lhs, Base),
                   id.rhs, type.slot(id.rhs, Base));
     Equal.set(id.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
+                  id.cell, type.slot(id.cell, Base),
+                  id.role, type.slot(id.role, Base));
+    Erase.set(id.slots, *map);
 
     map = &kb.map(type.Cell, type.Slot,
                   id.objectType, type.slot(id.objectType, type.Cell),
@@ -612,6 +628,7 @@ Types::Types(brain::Brain& kb) :
     MapCellToOpBase(kb, kb.type.Type_, "Map<Cell, op::Base>"),
     MapTypeToType(kb, kb.type.Type_, "Map<Type, Type>"),
     Index(kb, kb.type.Type_, "Index"),
+    Set(kb, kb.type.Type_, "Set"),
     Boolean(kb, kb.type.Type_, "Boolean"),
     Char(kb, kb.type.Type_, "Char"),
     Digit(kb, kb.type.Type_, "Digit"),
@@ -1043,6 +1060,12 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
         retOp.set(kb.id.role, compile(ast[kb.id.role]));
         retOp.set(kb.id.value, compile(ast[kb.id.value]));
         return retOp;
+    } else if (&ast.type() == &kb.type.ast.Erase) {
+        Object& retOp = *new Object(kb, kb.type.op.Erase);
+        retOp.set(kb.id.ast, ast);
+        retOp.set(kb.id.cell, compile(ast[kb.id.cell]));
+        retOp.set(kb.id.role, compile(ast[kb.id.role]));
+        return retOp;
     } else if (&ast.type() == &kb.type.ast.If) {
         Object& retOp = *new Object(kb, kb.type.op.If);
         retOp.set(kb.id.ast, ast);
@@ -1357,6 +1380,13 @@ Ast::Set::Set(brain::Brain& kb, Base& cell, Base& role, Base& value) :
     set(kb.id.cell, cell);
     set(kb.id.role, role);
     set(kb.id.value, value);
+}
+
+Ast::Erase::Erase(brain::Brain& kb, Base& cell, Base& role) :
+    BaseT<Erase>(kb, kb.type.ast.Erase, "ast.erase")
+{
+    set(kb.id.cell, cell);
+    set(kb.id.role, role);
 }
 
 Ast::If::If(brain::Brain& kb, Base& condition, Base& thenBranch) :
@@ -1738,6 +1768,11 @@ Ast::Set& Ast::set(Base& cell, Base& role, Base& value)
     return Set::New(kb, cell, role, value);
 }
 
+Ast::Erase& Ast::erase(Base& cell, Base& role)
+{
+    return Erase::New(kb, cell, role);
+}
+
 Ast::If& Ast::if_(Base& condition, Base& thenBranch)
 {
     return If::New(kb, condition, thenBranch);
@@ -2106,6 +2141,20 @@ Brain::Brain() :
     type.Map.set(id.subTypes, *mapPtr);
     type.Map.set(id.memberOf, map(type.Type_, type.Type_, type.Container, type.Container));
 
+    mapPtr = &map(type.Cell, type.Slot,
+                  id.objectType, type.slot(id.objectType, type.Cell),
+                  id.list, type.slot(id.list, type.ListOf(type.Cell)),
+                  id.listType, type.slot(id.list, type.ListOf(type.Cell)),
+                  id.index, type.slot(id.index, type.Index),
+                  id.indexType, type.slot(id.indexType, type.Type_),
+                  dimensions.size, type.slot(dimensions.size, type.Number));
+    type.Set.set(id.slots, *mapPtr);
+    mapPtr = &map(type.Cell, type.Type_,
+                  id.objectType, type.Cell,
+                  id.listType, type.ListOf(type.Cell));
+    type.Set.set(id.subTypes, *mapPtr);
+    type.Set.set(id.memberOf, map(type.Type_, type.Type_, type.Container, type.Container));
+
     Ast::Function& mapCtor = *new Ast::Function(*this, type.Map, id.constructor, "Map::constructor");
     mapCtor.addBlock(ast.block(
         m_(dimensions.size)   = _(_0_),
@@ -2265,6 +2314,117 @@ Brain::Brain() :
     type.MapTypeToType.set(id.slots, *mapPtr);
     type.MapTypeToType.set(id.methods, map(type.Cell, type.op.Function, id.constructor, mapCtor.compile(type.Map), dimensions.size, mapSize.compile(type.Map), sequence.add, mapAdd.compile(type.Map), sequence.empty, mapEmpty.compile(type.Map)));
 
+    Ast::Function& setCtor = *new Ast::Function(*this, type.Set, id.constructor, "Set::constructor");
+    setCtor.addBlock(ast.block(
+        m_(dimensions.size) = _(_0_),
+        m_(id.objectType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType),
+        m_(id.listType)     = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType),
+        m_(id.list)         = ast.new_(m_(id.listType), _(id.constructor)),
+        m_(id.indexType)    = ast.new_(_(type.Type_)),
+        ast.set(m_(id.indexType), _(id.slots), ast.new_(_(type.MapCellToSlot), _(id.constructor))),
+        ast.set(m_(id.indexType), _(id.memberOf), _(map(type.Type_, type.Type_, type.Index, type.Index))),
+        m_(id.index) = ast.new_(m_(id.indexType))));
+
+    // MapCellToSlot;
+    // MapCellToType;
+    // MapCellToAstFunction;
+    // MapCellToOpFunction;
+    // MapCellToOpVar;
+    // MapCellToOpBase;
+    // MapTypeToType;
+    Ast::Function& setTemplate = *new Ast::Function(*this, type.Set, id.template_, "static Set::template");
+    setTemplate.set(id.static_, boolean.true_);
+    setTemplate.addInputs(list(
+        ast.slot(id.objectType, type.Type_)));
+    setTemplate.addOutputs(list(
+        ast.slot(id.value, type.Set)));
+    setTemplate.addBlock(ast.block(
+        var_(id.result)   = ast.new_(_(type.Type_)),
+        var_(id.listType) = ast.scall(_(type.List), _(id.template_), ast.slot(_(id.objectType), in_(id.objectType))),
+
+        ast.call(*var_(id.result), _(methods.addSubType), ast.slot(_(id.slotRole), _(id.objectType)), ast.slot(_(id.slotType), in_(id.objectType))),
+        ast.call(*var_(id.result), _(methods.addSubType), ast.slot(_(id.slotRole), _(id.listType)), ast.slot(_(id.slotType), *var_(id.listType))),
+
+        ast.call(*var_(id.result), _(methods.addMembership), ast.slot(_(id.cell), _(type.Map))),
+
+        ast.call(*var_(id.result), _(methods.addSlot), ast.slot(_(id.slotRole), _(id.objectType)), ast.slot(_(id.slotType), in_(id.objectType))),
+        ast.call(*var_(id.result), _(methods.addSlot), ast.slot(_(id.slotRole), _(id.list)), ast.slot(_(id.slotType), *var_(id.listType))),
+        ast.call(*var_(id.result), _(methods.addSlot), ast.slot(_(id.slotRole), _(id.listType)), ast.slot(_(id.slotType), *var_(id.listType))),
+        ast.call(*var_(id.result), _(methods.addSlot), ast.slot(_(id.slotRole), _(id.index)), ast.slot(_(id.slotType), _(type.Index))),
+        ast.call(*var_(id.result), _(methods.addSlot), ast.slot(_(id.slotRole), _(id.indexType)), ast.slot(_(id.slotType), _(type.Type_))),
+        ast.call(*var_(id.result), _(methods.addSlot), ast.slot(_(id.slotRole), _(dimensions.size)), ast.slot(_(id.slotType), _(type.Number))),
+
+        ast.set(*var_(id.result), _(id.methods), m_(id.methods)),
+
+        ast.return_(*var_(id.result))));
+
+    Ast::Function& setAdd = *new Ast::Function(*this, type.Set, sequence.add, "Set::add");
+    setAdd.addInputs(list(
+        ast.slot(id.value, type.Cell)));
+    setAdd.addOutputs(list(
+        ast.slot(id.value, type.ListItem)));
+    setAdd.addBlock(ast.block(
+        ast.if_(ast.has(m_(id.index), in_(id.value)),
+                ast.return_(m_(id.index) / in_(id.value))),
+        var_(id.listItem)   = m_(id.list).call(_(sequence.add), ast.slot(_(id.value), in_(id.value))),
+        m_(dimensions.size) = ast.add(m_(dimensions.size), _(_1_)),
+        ast.call(m_(id.indexType) / _(id.slots), _(sequence.add), ast.slot(_(id.key), in_(id.value)), ast.slot(_(id.value), *var_(id.listItem))),
+        ast.set(m_(id.index), in_(id.value), *var_(id.listItem)),
+        ast.return_(*var_(id.listItem))));
+
+    Ast::Function& setContains = *new Ast::Function(*this, type.Set, id.contains, "Set::contains");
+    setContains.addInputs(list(
+        ast.slot(id.value, type.Cell)));
+    setContains.addOutputs(list(
+        ast.slot(id.value, type.Boolean)));
+    setContains.addBlock(ast.block(
+        ast.if_(ast.has(m_(id.index), in_(id.value)),
+                ast.return_(_(boolean.true_)),
+                ast.return_(_(boolean.false_)))));
+
+    Ast::Function& setErase = *new Ast::Function(*this, type.Set, sequence.add, "Set::erase");
+    setErase.addInputs(list(
+        ast.slot(id.value, type.Cell)));
+    setErase.addOutputs(list(
+        ast.slot(id.value, type.ListItem)));
+    setErase.addBlock(ast.block(
+        ast.if_(ast.missing(m_(id.index), in_(id.value)),
+                ast.return_(_(id.emptyObject))),
+        ast.erase(m_(id.index), in_(id.value)),
+        m_(dimensions.size) = ast.subtract(m_(dimensions.size), _(_1_))));
+
+
+    Ast::Function& setSize = *new Ast::Function(*this, type.Set, dimensions.size, "Set::size");
+    setSize.addOutputs(list(
+        ast.slot(id.value, type.Number)));
+    setSize.addBlock(ast.block(
+        ast.return_(m_(dimensions.size))));
+
+    Ast::Function& setEmpty = *new Ast::Function(*this, type.Set, sequence.empty, "Set::empty");
+    setEmpty.addOutputs(list(
+        ast.slot(id.value, type.Boolean)));
+    setEmpty.addBlock(ast.block(
+        ast.if_(ast.equal(m_(dimensions.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_)))));
+
+    mapPtr = &map(type.Cell, type.ast.Function,
+                  id.constructor, setCtor,
+                  id.template_, setTemplate,
+                  sequence.add, setAdd,
+                  id.contains, setContains,
+                  dimensions.size, setSize,
+                  sequence.empty, setEmpty);
+    type.Set.set(id.asts, *mapPtr);
+
+    mapPtr = &map(type.Cell, type.op.Function,
+                  id.constructor, setCtor.compile(type.Set),
+                  id.template_, setTemplate.compile(type.Set),
+                  sequence.add, setAdd.compile(type.Set),
+                  id.contains, setContains.compile(type.Set),
+                  dimensions.size, setSize.compile(type.Set),
+                  sequence.empty, setEmpty.compile(type.Set));
+    type.Set.set(id.methods, *mapPtr);
+
+
     Ast::Function& listItemTemplate = *new Ast::Function(*this, type.ListItem, id.template_, "static ListItem::template");
     listItemTemplate.set(id.static_, boolean.true_);
     listItemTemplate.addInputs(list(
@@ -2339,6 +2499,8 @@ Brain::Brain() :
     Ast::Function& listAdd = *new Ast::Function(*this, type.List, sequence.add, "List::add");
     listAdd.addInputs(list(
         ast.slot(id.value, type.Cell)));
+    listAdd.addOutputs(list(
+        ast.slot(id.value, type.ListItem)));
     listAdd.addBlock(ast.block(
         var_(id.item) = ast.new_(m_(id.itemType), _(id.constructor), ast.slot(_(id.value), in_(id.value))),
         ast.if_(ast.not_(m_(sequence.first).exist()),
@@ -2346,7 +2508,8 @@ Brain::Brain() :
                 ast.block(ast.set(m_(sequence.last), _(sequence.next), *var_(id.item)), // else
                           ast.set(*var_(id.item), _(sequence.previous), m_(sequence.last)))),
         m_(sequence.last)   = *var_(id.item),
-        m_(dimensions.size) = ast.add(m_(dimensions.size), _(_1_))));
+        m_(dimensions.size) = ast.add(m_(dimensions.size), _(_1_)),
+        ast.return_(*var_(id.item))));
 
     Ast::Function& listSize = *new Ast::Function(*this, type.List, dimensions.size, "List::size");
     listSize.addOutputs(list(
@@ -2554,11 +2717,17 @@ public:
     shapeAddPixel.addBlock(ast.block(
         ast.call(m_(id.pixels), _(sequence.add), ast.slot(_(id.value), in_(id.pixel)))));
 
+    /*
+    bool Shape::hasPixel(cells::hybrid::Pixel& pixel) const
+    {
+        return m_hybridPixels.find(&pixel) != m_hybridPixels.end();
+    }
+    */
     Ast::Function& shapeHasPixel = *new Ast::Function(*this, type.arc.Shaper, id.addPixel, "Shape::hasPixel");
     shapeHasPixel.addInputs(list(
         ast.slot(id.pixel, type.Pixel)));
     shapeHasPixel.addBlock(ast.block(
-        ast.call(m_(id.pixels), _(sequence.add), ast.slot(_(id.value), in_(id.pixel)))));
+        m_(id.pixels) / _(id.index) / in_(id.pixel))); // TODO we need a Set class
 
     /*
     Shaper::Shaper(const cells::hybrid::Picture& picture) :

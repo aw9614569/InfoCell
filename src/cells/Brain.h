@@ -47,6 +47,7 @@ public:
     Object condition;
     Object constructor;
     Object container;
+    Object contains;
     Object continue_;
     Object destructor;
     Object direction;
@@ -71,6 +72,7 @@ public:
     Object label;
     Object lhs;
     Object list;
+    Object listItem;
     Object listType;
     Object localVars;
     Object memberOf;
@@ -155,6 +157,7 @@ public:
     Object Divide;
     Object Do;
     Object Equal;
+    Object Erase;
     Object EvalVar;
     Object Function;
     Object Get;
@@ -198,6 +201,7 @@ public:
     Object Divide;
     Object Do;
     Object Equal;
+    Object Erase;
     Object Function;
     Object Get;
     Object GreaterThan;
@@ -280,6 +284,7 @@ public:
     Object MapCellToOpBase;
     Object MapTypeToType;
     Object Index;
+    Object Set;
     Object Boolean;
     Object Char;
     Object Digit;
@@ -419,6 +424,11 @@ public:
     {
     public:
         Set(brain::Brain& kb, Base& cell, Base& role, Base& value);
+    };
+    class Erase : public BaseT<Erase>
+    {
+    public:
+        Erase(brain::Brain& kb, Base& cell, Base& role);
     };
     class If : public BaseT<If>
     {
@@ -590,6 +600,7 @@ public:
     Function& function(List& inputs, Block& asts, List& outputs);
     Delete& delete_(Base& cell);
     Set& set(Base& cell, Base& role, Base& value);
+    Erase& erase(Base& cell, Base& role);
     If& if_(Base& condition, Base& thenBranch);
     If& if_(Base& condition, Base& thenBranch, Base& elseBranch);
     Do& do_(Base& condition, Base& statement);
@@ -804,6 +815,17 @@ public:
     Map& map(CellI& key, CellI& value, Args&&... args)
     {
         Map& ret = *new Map(*this, key.type(), value.type(), std::format("Map<{}, {}>(...)", key.type().label(), value.type().label()));
+        if constexpr (sizeof...(Args) > 0) {
+            ret.add(std::forward<Args>(args)...);
+        }
+
+        return ret;
+    }
+
+    template <typename... Args>
+    Set& set(CellI& value, Args&&... args)
+    {
+        Set& ret = *new Set(*this, value.type(), std::format("Map<{}, {}>(...)", value.type().label()));
         if constexpr (sizeof...(Args) > 0) {
             ret.add(std::forward<Args>(args)...);
         }
