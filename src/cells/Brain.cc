@@ -746,7 +746,35 @@ Object& Types::MapOf(CellI& keyType, CellI& valueType)
                   kb.dimensions.size, kb.type.slot(kb.dimensions.size, kb.type.Number));
     mapType.set(kb.id.slots, *map);
 
-    return it.first->second;
+    return mapType;
+}
+
+Object& Types::SetOf(CellI& valueType)
+{
+    auto valueTypeIt = m_setTypes.find(&valueType);
+    if (valueTypeIt != m_setTypes.end()) {
+        return valueTypeIt->second;
+    } else {
+        valueTypeIt = m_setTypes.emplace(std::piecewise_construct,
+                                         std::forward_as_tuple(&valueType),
+                                         std::forward_as_tuple(kb, kb.type.Type_, std::format("Set<{}>", valueType.label()))).first;
+    }
+    Object& setType = valueTypeIt->second;
+    CellI* map      = nullptr;
+
+    setType.set(kb.id.methods, kb.type.Set[kb.id.methods]);
+    setType.set(kb.id.memberOf, kb.map(kb.type.Type_, kb.type.Type_, kb.type.Set, kb.type.Set));
+    setType.set(kb.id.subTypes, kb.map(kb.type.Cell, kb.type.Type_, kb.id.objectType, valueType));
+
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  kb.id.list, kb.type.slot(kb.id.list, ListOf(valueType)),
+                  kb.id.index, kb.type.slot(kb.id.index, kb.type.Index),
+                  kb.id.indexType, kb.type.slot(kb.id.indexType, kb.type.Type_),
+                  kb.id.objectType, kb.type.slot(kb.id.objectType, valueType),
+                  kb.dimensions.size, kb.type.slot(kb.dimensions.size, kb.type.Number));
+    setType.set(kb.id.slots, *map);
+
+    return setType;
 }
 
 // ============================================================================

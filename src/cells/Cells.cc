@@ -854,10 +854,14 @@ void List::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-void List::add(CellI& value)
+List::Item* List::add(CellI& value)
 {
     m_items.emplace_back(*this, value);
-    m_items.back().m_iterator = std::prev(m_items.end());
+    Value& item = m_items.back();
+    item.m_iterator = std::prev(m_items.end());
+    m_itemToValue[&item.m_listItem] = &item;
+
+    return &item.m_listItem;
 }
 
 bool List::empty() const
@@ -876,6 +880,544 @@ CellI& List::toNative()
 }
 
 #pragma endregion
+namespace nextgen {
+#pragma region List::Item
+// ============================================================================
+List::Item::Item(brain::Brain& kb, List& list, CellI& value) :
+    CellI(kb),
+    m_list(list),
+    m_value(value)
+{
+}
+
+bool List::Item::has(CellI& role)
+{
+    if (&role == &kb.id.type || &role == &kb.id.value) {
+        return true;
+    }
+    if (&role == &kb.sequence.previous && m_previous) {
+        return true;
+    }
+    if (&role == &kb.sequence.next && m_next) {
+        return true;
+    }
+
+    return false;
+}
+
+void List::Item::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void List::Item::erase(CellI& role)
+{
+    if (&role == &kb.sequence.next) {
+        m_next = nullptr;
+    }
+    if (&role == &kb.sequence.previous) {
+        m_previous = nullptr;
+    }
+    throw "No such role!";
+}
+
+void List::Item::operator()()
+{
+    // Do nothing
+}
+
+CellI& List::Item::operator[](CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return kb.type.ListOf(m_list.m_valueType)[kb.id.subTypes][kb.id.index][kb.id.objectType];
+    }
+    if (&role == &kb.sequence.previous) {
+        if (m_previous)
+            return *m_previous;
+        else
+            throw "No such role!";
+    }
+    if (&role == &kb.sequence.next) {
+        if (m_next)
+            return *m_next;
+        else
+            throw "No such role!";
+    }
+    if (&role == &kb.id.value) {
+        return m_value;
+    }
+
+    throw "No such role!";
+}
+
+void List::Item::accept(Visitor& visitor)
+{
+    //    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region List
+// ============================================================================
+List::List(brain::Brain& kb, CellI& valueType) :
+    CellI(kb),
+    m_valueType(valueType)
+{
+}
+
+bool List::has(CellI& role)
+{
+    if (&role == &kb.id.type || &role == &kb.dimensions.size) {
+        return true;
+    }
+    if (&role == &kb.sequence.first && m_firstItem) {
+        return true;
+    }
+    if (&role == &kb.sequence.last && m_lastItem) {
+        return true;
+    }
+    if (&role == &kb.id.objectType) {
+        return true;
+    }
+
+    return false;
+}
+
+void List::set(CellI& role, CellI& value)
+{
+    throw "Not supported";
+}
+
+void List::erase(CellI& role)
+{
+    throw "Not supported";
+}
+
+void List::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& List::operator[](CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return kb.type.ListOf(m_valueType);
+    }
+    if (&role == &kb.sequence.first) {
+        return *m_firstItem;
+    }
+    if (&role == &kb.sequence.last) {
+        return *m_lastItem;
+    }
+    if (&role == &kb.dimensions.size) {
+        int size = (int)m_size;
+
+        return kb.pools.numbers.get(size);
+    }
+    if (&role == &kb.id.objectType) {
+        return m_valueType;
+    }
+
+    throw "No such role!";
+}
+
+void List::accept(Visitor& visitor)
+{
+    //    visitor.visit(*this);
+}
+
+List::Item* List::add(CellI& value)
+{
+    Item* item = new Item(kb, *this, value);
+    if (m_lastItem) {
+        m_lastItem->m_next = item;
+        item->m_previous   = m_lastItem;
+    }
+    m_lastItem = item;
+    if (!m_firstItem) {
+        m_firstItem = m_lastItem;
+    }
+    ++m_size;
+
+    return item;
+}
+
+void List::removeItem(Item* item)
+{
+    if (item->m_previous) {
+        item->m_previous->m_next = item->m_next;
+    } else {
+        m_firstItem = item->m_next;
+    }
+    if (item->m_next) {
+        item->m_next->m_previous = item->m_previous;
+    } else {
+        m_lastItem = item->m_previous;
+    }
+    --m_size;
+}
+
+bool List::empty() const
+{
+    return m_size == 0;
+}
+
+#pragma endregion
+#pragma region Type
+// ============================================================================
+Type::Type(brain::Brain& kb) :
+    CellI(kb),
+    m_slots(new Map(kb, kb.type.Cell, kb.type.Slot))
+{
+}
+
+bool Type::has(CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return true;
+    }
+    if (&role == &kb.id.slots) {
+        return m_slots;
+    }
+    if (&role == &kb.id.subTypes) {
+        return m_subTypes;
+    }
+    if (&role == &kb.id.memberOf) {
+        return m_memberOf;
+    }
+    if (&role == &kb.id.asts) {
+        return m_asts;
+    }
+    if (&role == &kb.id.methods) {
+        return m_methods;
+    }
+
+    return false;
+}
+
+void Type::set(CellI& key, CellI& value)
+{
+    throw "Not supported";
+}
+
+void Type::erase(CellI& role)
+{
+    throw "Not supported";
+}
+
+void Type::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& Type::operator[](CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return kb.type.Type_;
+    }
+    if (&role == &kb.id.slots) {
+        return *m_slots;
+    }
+    if (&role == &kb.id.subTypes) {
+        return *m_subTypes;
+    }
+    if (&role == &kb.id.memberOf) {
+        return *m_memberOf;
+    }
+    if (&role == &kb.id.asts) {
+        return *m_asts;
+    }
+    if (&role == &kb.id.methods) {
+        return *m_methods;
+    }
+
+    throw "No such role!";
+}
+
+void Type::addSlot(CellI& role, CellI& slot)
+{
+    m_slots->add(role, slot);
+}
+
+bool Type::hasSlot(CellI& role)
+{
+    return m_slots->hasKey(role);
+}
+
+void Type::deleteSlot(CellI& role)
+{
+    m_slots->erase(role);
+}
+
+void Type::accept(Visitor& visitor)
+{
+    //    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Index
+// ============================================================================
+Index::Index(brain::Brain& kb) :
+    CellI(kb)
+{
+}
+
+bool Index::has(CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return true;
+    }
+    if (m_slots.find(&role) != m_slots.end()) {
+        return true;
+    }
+
+    return false;
+}
+
+void Index::set(CellI& key, CellI& value)
+{
+    if (&key == &kb.id.type) {
+        throw "The type key can not be changed!";
+    }
+    Object& slot = *new Object(kb, kb.type.Slot);
+    slot.set(kb.id.slotRole, key);
+    slot.set(kb.id.slotType, value);
+    m_type->addSlot(key, slot);
+    m_slots[&key] = &value;
+}
+
+void Index::erase(CellI& role)
+{
+    if (m_type->hasSlot(role)) {
+        m_slots.erase(&role);
+        m_type->deleteSlot(role);
+    }
+}
+
+void Index::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& Index::operator[](CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return *m_type;
+    }
+    auto slotIt = m_slots.find(&role);
+    if (slotIt != m_slots.end()) {
+        return *slotIt->second;
+    }
+
+    throw "No such role!";
+}
+
+void Index::accept(Visitor& visitor)
+{
+//    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Map
+// ============================================================================
+Map::Map(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& label) :
+    CellI(kb, label),
+    m_keyType(keyType),
+    m_valueType(valueType)
+{
+}
+
+bool Map::has(CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return true;
+    }
+    if (&role == &kb.id.list) {
+        return m_list;
+    }
+    if (&role == &kb.id.index) {
+        return m_index;
+    }
+    if (&role == &kb.id.indexType) {
+        return m_index;
+    }
+    if (&role == &kb.id.keyType) {
+        return true;
+    }
+    if (&role == &kb.id.objectType) {
+        return true;
+    }
+    if (&role == &kb.dimensions.size) {
+        return true;
+    }
+
+    return false;
+}
+
+void Map::set(CellI& key, CellI& value)
+{
+    throw "Not supported";
+}
+
+void Map::erase(CellI& role)
+{
+    throw "Not supported";
+}
+
+void Map::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& Map::operator[](CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return kb.type.Map;
+    }
+    if (&role == &kb.id.list) {
+        return *m_list;
+    }
+    if (&role == &kb.id.index) {
+        return *m_index;
+    }
+    if (&role == &kb.id.indexType) { // WTF
+        return m_index->type();
+    }
+    if (&role == &kb.id.keyType) {
+        return m_keyType;
+    }
+    if (&role == &kb.id.objectType) {
+        return m_valueType;
+    }
+    if (&role == &kb.dimensions.size) {
+        return kb.pools.numbers.get(m_size);
+    }
+
+    throw "No such role!";
+}
+
+
+bool Map::hasKey(CellI& key)
+{
+    return m_index->has(key);
+}
+
+CellI& Map::getValue(CellI& key)
+{
+    if (m_index->has(key)) {
+        return (*m_index)[key][kb.id.value];
+    }
+    throw "No such role!";
+}
+
+void Map::add(CellI& key, CellI& value)
+{
+    if (&key == &kb.id.type) {
+        throw "id.type can not be stored in a map!";
+    }
+    if (m_index->has(key)) {
+        throw "A value already registered with this role";
+    }
+    List::Item& item = *m_list->add(value);
+    m_index->set(key, item);
+    ++m_size;
+}
+
+void Map::remove(CellI& key)
+{
+    if (!m_index->has(key)) {
+        return;
+    }
+    List::Item* item = &static_cast<List::Item&>((*m_index)[key]);
+    m_list->removeItem(item);
+    m_index->erase(key);
+    --m_size;
+}
+
+bool Map::empty() const
+{
+    return m_size == 0;
+}
+
+void Map::accept(Visitor& visitor)
+{
+    //    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Set
+// ============================================================================
+Set::Set(brain::Brain& kb, CellI& valueType, const std::string& label) :
+    CellI(kb, label),
+    m_valueType(valueType),
+    m_index(kb)
+{
+}
+
+bool Set::has(CellI& role)
+{
+    if (&role == &kb.id.type || &role == &kb.dimensions.size) {
+        return true;
+    }
+    if (&role == &kb.id.index) {
+        return true;
+    }
+
+    return false;
+}
+
+void Set::set(CellI& role, CellI& value)
+{
+    throw "Not supported";
+}
+
+void Set::erase(CellI& role)
+{
+    throw "Not supported";
+}
+
+void Set::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& Set::operator[](CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return kb.type.SetOf(m_valueType);
+    }
+    if (&role == &kb.id.index) {
+        return m_index;
+    }
+    if (&role == &kb.dimensions.size) {
+        int size = (int)m_size;
+
+        return kb.pools.numbers.get(size);
+    }
+
+    throw "No such role!";
+}
+
+bool Set::contains(CellI& key)
+{
+    return m_index.has(key);
+}
+
+void Set::add(CellI& value)
+{
+    if (m_index.has(value)) {
+        throw "A value already registered with this role";
+    }
+    m_index.set(value, value);
+}
+
+bool Set::empty() const
+{
+    return m_size == 0;
+}
+
+void Set::accept(Visitor& visitor)
+{
+//    visitor.visit(*this);
+}
+#pragma endregion
+} // namespace nextgen
+
 #pragma region Map::Index::Type::Slots::SlotList::Item
 // ============================================================================
 Map::Index::Type::Slots::SlotList::Item::Item(brain::Brain& kb, Value& value) :
@@ -1061,9 +1603,10 @@ void Map::Index::Type::Slots::SlotIndex::accept(Visitor& visitor)
 #pragma endregion
 #pragma region Map::Index::Type::Slot
 // ============================================================================
-Map::Index::Type::Slot::Slot(brain::Brain& kb, CellI& slotRole) :
+Map::Index::Type::Slot::Slot(brain::Brain& kb, CellI& slotRole, CellI& slotType) :
     CellI(kb),
-    m_slotRole(slotRole)
+    m_slotRole(slotRole),
+    m_slotType(slotType)
 {
 }
 
@@ -1096,7 +1639,7 @@ CellI& Map::Index::Type::Slot::operator[](CellI& role)
         return kb.type.Slot;
     }
     if (&role == &kb.id.slotType) {
-        return kb.type.Slot;
+        return m_slotType;
     }
     if (&role == &kb.id.slotRole) {
         return m_slotRole;
@@ -1173,7 +1716,7 @@ CellI& Map::Index::Type::Slots::operator[](CellI& role)
         return kb.type.Slot;
     }
     if (&role == &kb.dimensions.size) {
-        return kb.pools.numbers.get(m_slotIndex.m_indexedValues.size());
+        return kb.pools.numbers.get((int)m_slotIndex.m_indexedValues.size());
     }
 
     throw "No such role!";
@@ -1311,22 +1854,22 @@ void Map::Index::accept(Visitor& visitor)
 #pragma endregion
 #pragma region Map::Value
 // ============================================================================
-Map::Value::Value(Map& group, CellI& value, CellI& index, size_t listItemIndex) :
-    m_group(group),
+Map::Value::Value(Map& map, CellI& value, CellI& index, size_t listItemIndex) :
+    m_map(map),
     m_value(value),
-    m_indexTypeSlotsListItem(group.kb, *this),
-    m_indexTypeSlot(group.kb, index)
+    m_indexTypeSlotsListItem(map.kb, *this),
+    m_indexTypeSlot(map.kb, index, m_map.m_valueType)
 {
 }
 
 Map::Value* Map::Value::prev()
 {
-    return m_iterator != m_group.m_orderedValues.begin() ? *std::prev(m_iterator) : nullptr;
+    return m_iterator != m_map.m_orderedValues.begin() ? *std::prev(m_iterator) : nullptr;
 }
 
 Map::Value* Map::Value::next()
 {
-    return m_iterator != std::prev(m_group.m_orderedValues.end()) ? *std::next(m_iterator) : nullptr;
+    return m_iterator != std::prev(m_map.m_orderedValues.end()) ? *std::next(m_iterator) : nullptr;
 }
 #pragma endregion
 #pragma region Map
@@ -1418,6 +1961,549 @@ bool Map::empty() const
     return m_indexedValues.empty();
 }
 #pragma endregion
+#if 1
+#pragma region Set::Index::Type::Slots::SlotList::Item
+// ============================================================================
+Set::Index::Type::Slots::SlotList::Item::Item(brain::Brain& kb, Value& value) :
+    CellI(kb),
+    m_value(value)
+{
+}
+
+bool Set::Index::Type::Slots::SlotList::Item::has(CellI& role)
+{
+    if (&role == &kb.id.type || &role == &kb.id.value) {
+        return true;
+    }
+    if (&role == &kb.sequence.previous && m_value.prev()) {
+        return true;
+    }
+    if (&role == &kb.sequence.next && m_value.next()) {
+        return true;
+    }
+
+    return false;
+}
+
+void Set::Index::Type::Slots::SlotList::Item::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void Set::Index::Type::Slots::SlotList::Item::erase(CellI& role)
+{
+    // Do nothing
+}
+
+void Set::Index::Type::Slots::SlotList::Item::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& Set::Index::Type::Slots::SlotList::Item::operator[](CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return kb.type.ListOf(kb.type.Slot)[kb.id.subTypes][kb.id.index][kb.id.objectType];
+    }
+    if (&role == &kb.sequence.previous) {
+        if (m_value.prev())
+            return m_value.prev()->m_indexTypeSlotsListItem;
+        else
+            throw "No such role!";
+    }
+    if (&role == &kb.sequence.next) {
+        if (m_value.next())
+            return m_value.next()->m_indexTypeSlotsListItem;
+        else
+            throw "No such role!";
+    }
+    if (&role == &kb.id.value) {
+        return m_value.m_indexTypeSlot;
+    }
+
+    throw "No such role!";
+}
+
+void Set::Index::Type::Slots::SlotList::Item::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Set::Index::Type::Slots::SlotList
+// ============================================================================
+Set::Index::Type::Slots::SlotList::SlotList(brain::Brain& kb, OrderedValues& orderedValues) :
+    CellI(kb),
+    m_orderedValues(orderedValues)
+{
+}
+
+bool Set::Index::Type::Slots::SlotList::has(CellI& role)
+{
+    if (&role == &kb.id.type || &role == &kb.sequence.first || &role == &kb.sequence.last || &role == &kb.dimensions.size) {
+        return true;
+    }
+
+    return false;
+}
+
+void Set::Index::Type::Slots::SlotList::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void Set::Index::Type::Slots::SlotList::erase(CellI& role)
+{
+    // Do nothing
+}
+
+void Set::Index::Type::Slots::SlotList::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& Set::Index::Type::Slots::SlotList::operator[](CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return kb.type.ListOf(kb.type.Slot);
+    }
+    if (&role == &kb.sequence.first) {
+        if (m_orderedValues.empty()) {
+            throw "No such role!";
+        }
+        return (*m_orderedValues.begin())->m_indexTypeSlotsListItem;
+    }
+    if (&role == &kb.sequence.last) {
+        if (m_orderedValues.empty()) {
+            throw "No such role!";
+        }
+        return (*m_orderedValues.rbegin())->m_indexTypeSlotsListItem;
+    }
+    if (&role == &kb.dimensions.size) {
+        return kb.pools.numbers.get((int)m_orderedValues.size());
+    }
+
+    throw "No such role!";
+}
+
+void Set::Index::Type::Slots::SlotList::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Set::Index::Type::Slots::SlotIndex
+// ============================================================================
+Set::Index::Type::Slots::SlotIndex::SlotIndex(brain::Brain& kb, IndexedValues& indexedValues, Type& type) :
+    CellI(kb),
+    m_indexedValues(indexedValues),
+    m_type(type)
+{
+}
+
+bool Set::Index::Type::Slots::SlotIndex::has(CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return true;
+    }
+    auto slotIt = m_indexedValues.find(&role);
+    if (slotIt != m_indexedValues.end()) {
+        return true;
+    }
+
+    return false;
+}
+
+void Set::Index::Type::Slots::SlotIndex::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void Set::Index::Type::Slots::SlotIndex::erase(CellI& role)
+{
+    // Do nothing
+}
+
+void Set::Index::Type::Slots::SlotIndex::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& Set::Index::Type::Slots::SlotIndex::operator[](CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return m_type;
+    }
+    auto slotIt = m_indexedValues.find(&role);
+    if (slotIt != m_indexedValues.end()) {
+        return slotIt->second.m_indexTypeSlot;
+    }
+
+    throw "No such role!";
+}
+
+void Set::Index::Type::Slots::SlotIndex::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Set::Index::Type::Slot
+// ============================================================================
+Set::Index::Type::Slot::Slot(brain::Brain& kb, CellI& slotRole) :
+    CellI(kb),
+    m_slotRole(slotRole)
+{
+}
+
+bool Set::Index::Type::Slot::has(CellI& role)
+{
+    if (&role == &kb.id.type || &role == &kb.id.slotType || &role == &kb.id.slotRole) {
+        return true;
+    }
+    return false;
+}
+
+void Set::Index::Type::Slot::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void Set::Index::Type::Slot::erase(CellI& role)
+{
+    // Do nothing
+}
+
+void Set::Index::Type::Slot::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& Set::Index::Type::Slot::operator[](CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return kb.type.Slot;
+    }
+    if (&role == &kb.id.slotType) {
+        return kb.type.Slot;
+    }
+    if (&role == &kb.id.slotRole) {
+        return m_slotRole;
+    }
+
+    throw "No such role!";
+}
+
+void Set::Index::Type::Slot::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Set::Index::Type::Slots
+// ============================================================================
+Set::Index::Type::Slots::Slots(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType, Type& type) :
+    CellI(kb),
+    m_slotList(kb, orderedValues),
+    m_slotIndex(kb, indexedValues, type)
+{
+    if (&valueType == &kb.type.Slot) {
+        label("Index<Slot>::Set");
+    } else if (&valueType == &kb.type.ast.Function) {
+        label("Index<Ast::Function>::Set");
+    } else if (&valueType == &kb.type.op.Function) {
+        label("Index<Op::Function>::Set");
+    } else {
+        label(std::format("Index<{}>::Set", valueType.label()));
+    }
+}
+
+bool Set::Index::Type::Slots::has(CellI& role)
+{
+    if (&role == &kb.id.type || &role == &kb.id.index || &role == &kb.id.list) {
+        return true;
+    }
+
+    return false;
+}
+
+void Set::Index::Type::Slots::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void Set::Index::Type::Slots::erase(CellI& role)
+{
+    // Do nothing
+}
+
+void Set::Index::Type::Slots::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& Set::Index::Type::Slots::operator[](CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return kb.type.MapCellToSlot;
+    }
+    if (&role == &kb.id.index) {
+        return m_slotIndex;
+    }
+    if (&role == &kb.id.list) {
+        return m_slotList;
+    }
+    if (&role == &kb.id.listType) {
+        return kb.type.ListOf(kb.type.Slot);
+    }
+    if (&role == &kb.id.keyType) {
+        return kb.type.Cell;
+    }
+    if (&role == &kb.id.objectType) {
+        return kb.type.Slot;
+    }
+    if (&role == &kb.dimensions.size) {
+        return kb.pools.numbers.get((int)m_slotIndex.m_indexedValues.size());
+    }
+
+    throw "No such role!";
+}
+
+void Set::Index::Type::Slots::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Set::Index::Type
+// ============================================================================
+Set::Index::Type::Type(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType) :
+    CellI(kb),
+    m_slots(kb, indexedValues, orderedValues, valueType, *this),
+    m_indexedValues(indexedValues)
+{
+    if (&valueType == &kb.type.Slot) {
+        label("Index<Slot>");
+    } else if (&valueType == &kb.type.ast.Function) {
+        label("Index<Ast::Function>");
+    } else if (&valueType == &kb.type.op.Function) {
+        label("Index<Op::Function>");
+    } else {
+        label(std::format("Index<{}>", valueType.label()));
+    }
+}
+
+bool Set::Index::Type::has(CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return true;
+    } else if (&role == &kb.id.slots && !m_indexedValues.empty()) {
+        return true;
+    }
+
+    return false;
+}
+
+void Set::Index::Type::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void Set::Index::Type::erase(CellI& role)
+{
+    // Do nothing
+}
+
+void Set::Index::Type::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& Set::Index::Type::operator[](CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return kb.type.Type_;
+    }
+    if (&role == &kb.id.slots) {
+        return m_slots;
+    }
+    if (&role == &kb.id.memberOf) {
+        static std::unique_ptr<Map> s_memberOfList;
+        if (!s_memberOfList) {
+            s_memberOfList = std::make_unique<Map>(kb, kb.type.Cell, kb.id.type);
+            s_memberOfList->add(kb.type.Index, kb.type.Index);
+        }
+        return *s_memberOfList;
+    }
+
+    throw "No such role!";
+}
+
+void Set::Index::Type::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Set::Index
+// ============================================================================
+Set::Index::Index(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType) :
+    CellI(kb),
+    m_type(kb, indexedValues, orderedValues, valueType),
+    m_indexedValues(indexedValues),
+    m_orderedValues(orderedValues)
+{
+}
+
+bool Set::Index::has(CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return true;
+    }
+    auto slotIt = m_indexedValues.find(&role);
+    if (slotIt != m_indexedValues.end()) {
+        return true;
+    }
+
+    return false;
+}
+
+void Set::Index::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void Set::Index::erase(CellI& role)
+{
+    // Do nothing
+}
+
+void Set::Index::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& Set::Index::operator[](CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return m_type;
+    }
+    auto slotIt = m_indexedValues.find(&role);
+    if (slotIt != m_indexedValues.end()) {
+        return slotIt->second.m_value;
+    }
+
+    throw "No such role!";
+}
+
+void Set::Index::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Set::Value
+// ============================================================================
+Set::Value::Value(Set& set, CellI& value, CellI& index, size_t listItemIndex) :
+    m_set(set),
+    m_value(value),
+    m_indexTypeSlotsListItem(set.kb, *this),
+    m_indexTypeSlot(set.kb, index)
+{
+}
+
+Set::Value* Set::Value::prev()
+{
+    return m_iterator != m_set.m_orderedValues.begin() ? *std::prev(m_iterator) : nullptr;
+}
+
+Set::Value* Set::Value::next()
+{
+    return m_iterator != std::prev(m_set.m_orderedValues.end()) ? *std::next(m_iterator) : nullptr;
+}
+#pragma endregion
+#pragma region Set
+// ============================================================================
+Set::Set(brain::Brain& kb, CellI& valueType, const std::string& label) :
+    CellI(kb, label),
+    m_valueType(valueType),
+    m_list(kb, valueType),
+    m_index(kb, m_indexedValues, m_orderedValues, valueType)
+{
+}
+
+bool Set::has(CellI& role)
+{
+    if (&role == &kb.id.type || &role == &kb.dimensions.size) {
+        return true;
+    }
+    if (&role == &kb.id.index && !m_orderedValues.empty()) {
+        return true;
+    }
+    if (&role == &kb.id.list && !m_orderedValues.empty()) {
+        return true;
+    }
+
+    return false;
+}
+
+void Set::set(CellI& role, CellI& value)
+{
+    throw "Not supported";
+}
+
+void Set::erase(CellI& role)
+{
+    throw "Not supported";
+}
+
+void Set::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& Set::operator[](CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return kb.type.SetOf(m_valueType);
+    }
+    if (&role == &kb.id.index) {
+        return m_index;
+    }
+    if (&role == &kb.id.list) {
+        return m_list;
+    }
+    if (&role == &kb.dimensions.size) {
+        int size = (int)m_orderedValues.size();
+
+        return kb.pools.numbers.get(size);
+    }
+
+    throw "No such role!";
+}
+
+void Set::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+bool Set::contains(CellI& key)
+{
+    return m_indexedValues.find(&key) != m_indexedValues.end();
+}
+
+void Set::add(CellI& value)
+{
+    if (m_indexedValues.find(&value) != m_indexedValues.end()) {
+        throw "A value already registered with this role";
+    }
+    auto it = m_indexedValues.emplace(std::piecewise_construct,
+                                      std::forward_as_tuple(&value),
+                                      std::forward_as_tuple(*this, value, value, m_orderedValues.size()));
+    m_orderedValues.push_back(&it.first->second);
+    m_orderedValues.back()->m_iterator = std::prev(m_orderedValues.end());
+    m_list.add(value);
+}
+
+bool Set::empty() const
+{
+    return m_indexedValues.empty();
+}
+#pragma endregion
+#endif
 #pragma region Number
 // ============================================================================
 Number::Number(brain::Brain& kb, int value) :

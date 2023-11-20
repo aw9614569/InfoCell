@@ -257,11 +257,13 @@ public:
     cells::CellI& slot(cells::CellI& role, cells::CellI& type);
     Object& ListOf(CellI& type);
     Object& MapOf(CellI& keyType, CellI& valueType);
+    Object& SetOf(CellI& valueType);
 
 protected:
     brain::Brain& kb;
     std::map<CellI*, Object> m_listTypes;
     std::map<CellI*, std::map<CellI*, Object>> m_mapTypes;
+    std::map<CellI*, Object> m_setTypes;
     friend class TypeInit;
 
 public:

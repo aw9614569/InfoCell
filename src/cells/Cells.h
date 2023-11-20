@@ -4,6 +4,7 @@
 #include <iostream>
 #include <list>
 #include <map>
+#include <set>
 #include <vector>
 
 #include "app/Picture.h"
@@ -26,7 +27,7 @@ public:
 
     virtual bool has(CellI& role)               = 0;
     virtual void set(CellI& role, CellI& value) = 0;
-    virtual void erase(CellI& role)            = 0;
+    virtual void erase(CellI& role)             = 0;
     virtual void operator()()                   = 0;
     virtual CellI& operator[](CellI& role)      = 0;
     virtual void accept(Visitor& visitor)       = 0;
@@ -172,7 +173,7 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-    void add(CellI& value);
+    Item* add(CellI& value);
 
     template <typename... Args>
     void add(CellI& value, Args&&... args)
@@ -201,7 +202,201 @@ public:
 protected:
     CellI& m_valueType;
     std::list<Value> m_items;
+    std::map<Item*, Value*> m_itemToValue;
 };
+
+namespace nextgen {
+
+// ============================================================================
+class List : public CellI
+{
+public:
+    class Item : public CellI
+    {
+    public:
+        Item(brain::Brain& kb, List& list, CellI& value);
+
+        bool has(CellI& role) override;
+        void set(CellI& role, CellI& value) override;
+        void erase(CellI& role) override;
+        void operator()() override;
+        CellI& operator[](CellI& role) override;
+        void accept(Visitor& visitor) override;
+
+        List& m_list;
+        CellI& m_value;
+        Item* m_previous = nullptr;
+        Item* m_next     = nullptr;
+    };
+
+    List(brain::Brain& kb, CellI& valueType);
+
+    template <typename T>
+    List(brain::Brain& kb, std::vector<T>& values) :
+        List(kb, util::ref(values.front()).type())
+    {
+        for (auto& valueT : values) {
+            add(util::ref(valueT));
+        }
+    }
+
+    template <typename Key, typename Value>
+    List(brain::Brain& kb, std::map<Key, Value>& values) :
+        List(kb, util::ref((*values.begin())).second.type())
+    {
+        for (auto& valuePairs : values) {
+            add(util::ref(valuePairs.second));
+        }
+    }
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    Item* add(CellI& value);
+
+    template <typename... Args>
+    void add(CellI& value, Args&&... args)
+    {
+        add(value);
+        add(std::forward<Args>(args)...);
+    }
+    void removeItem(Item* item);
+
+
+    bool empty() const;
+
+protected:
+    CellI& m_valueType;
+    Item* m_firstItem = nullptr;
+    Item* m_lastItem  = nullptr;
+    int m_size     = 0;
+};
+
+class Map;
+class Type : public CellI
+{
+public:
+    Type(brain::Brain& kb);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    void addSlot(CellI& role, CellI& slot);
+    bool hasSlot(CellI& role);
+    void deleteSlot(CellI& role);
+
+    Map* m_slots;
+    Map* m_subTypes;
+    Map* m_memberOf;
+    Map* m_asts;
+    Map* m_methods;
+};
+
+#if 0
+We would like to store 3 cells: { Cell1, Cell2, Cell3 }
+index[Cell1] will point to a ListItem1 which has a value of Cell1
+index[Cell2] will point to a ListItem2 which has a value of Cell2
+index[Cell3] will point to a ListItem3 which has a value of Cell3
+
+set.list = { ListItem{ value = Cell1 }, ListItem{ value = Cell2 }, ListItem{ value = Cell3 } }
+#endif
+class Index : public CellI
+{
+public:
+    Index(brain::Brain& kb);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    bool empty() const;
+
+    Type* m_type;
+    std::map<CellI*, CellI*> m_slots;
+};
+
+class Map : public CellI
+{
+public:
+    Map(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& label = "");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    bool hasKey(CellI& key);
+    CellI& getValue(CellI& key);
+
+    void add(CellI& key, CellI& value);
+    template <typename... Args>
+    void add(CellI& key, CellI& value, Args&&... args)
+    {
+        add(key, value);
+        add(std::forward<Args>(args)...);
+    }
+    void remove(CellI& key);
+    bool empty() const;
+
+private:
+    List* m_list;
+    Index* m_index;
+    CellI& m_keyType;
+    CellI& m_valueType;
+    int m_size = 0;
+};
+
+/*
+We would like to store 3 cells : { Cell1, Cell2, Cell3 } set.index[Cell1] will point to a ListItem1 which has a value of Cell1
+set.index[Cell2] will point to a ListItem2 which has a value of Cell2
+set.index[Cell3] will point to a ListItem3 which has a value of Cell3
+
+set.list = { ListItem{ value = Cell1 }, ListItem{ value = Cell2 }, ListItem{ value = Cell3 } }
+*/
+// ============================================================================
+class Set : public CellI
+{
+public:
+    Set(brain::Brain& kb, CellI& valueType, const std::string& label = "");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    bool contains(CellI& key);
+
+    void add(CellI& value);
+    template <typename... Args>
+    void add(CellI& value, Args&&... args)
+    {
+        add(value);
+        add(std::forward<Args>(args)...);
+    }
+    bool empty() const;
+
+protected:
+    CellI& m_valueType;
+    Index m_index;
+    int m_size = 0;
+};
+
+} // namespace nextgen
 
 // ============================================================================
 class Map : public CellI
@@ -212,9 +407,9 @@ SomeValue
     roleSize: Number
     roleName: String
 
-SlotMap
-    list:   List
-    index:  Index
+Map
+    list:   List   // for iterating
+    index:  Index  // quick access to value
 
     Index
         type:     Index::Type
@@ -245,6 +440,182 @@ SlotMap
                 type:     Index::Type // !!
                 roleSize: Index::Type::Slot1
                 roleName: Index::Type::Slot2
+
+#endif
+public:
+    struct Value;
+    typedef std::map<CellI*, Value> IndexedValues;
+    typedef std::list<Value*> OrderedValues;
+
+    class Index : public CellI
+    {
+    public:
+        class Type : public CellI
+        {
+        public:
+            class Slots : public CellI
+            {
+            public:
+                class SlotList : public CellI
+                {
+                public:
+                    class Item : public CellI
+                    {
+                    public:
+                        Item(brain::Brain& kb, Value& value);
+
+                        bool has(CellI& role) override;
+                        void set(CellI& role, CellI& value) override;
+                        void erase(CellI& role) override;
+                        void operator()() override;
+                        CellI& operator[](CellI& role) override;
+                        void accept(Visitor& visitor) override;
+
+                        Value& m_value;
+                    };
+
+                    SlotList(brain::Brain& kb, OrderedValues& orderedValues);
+
+                    bool has(CellI& role) override;
+                    void set(CellI& role, CellI& value) override;
+                    void erase(CellI& role) override;
+                    void operator()() override;
+                    CellI& operator[](CellI& role) override;
+                    void accept(Visitor& visitor) override;
+
+                    OrderedValues& m_orderedValues;
+                };
+
+                class SlotIndex : public CellI
+                {
+                public:
+                    SlotIndex(brain::Brain& kb, IndexedValues& indexedValues, Type& type);
+
+                    bool has(CellI& role) override;
+                    void set(CellI& role, CellI& value) override;
+                    void erase(CellI& role) override;
+                    void operator()() override;
+                    CellI& operator[](CellI& role) override;
+                    void accept(Visitor& visitor) override;
+
+                    IndexedValues& m_indexedValues;
+                    Type& m_type;
+                };
+
+                Slots(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType, Type& type);
+
+                bool has(CellI& role) override;
+                void set(CellI& role, CellI& value) override;
+                void erase(CellI& role) override;
+                void operator()() override;
+                CellI& operator[](CellI& role) override;
+                void accept(Visitor& visitor) override;
+
+                SlotList m_slotList;
+                SlotIndex m_slotIndex;
+            };
+
+            class Slot : public CellI
+            {
+            public:
+                Slot(brain::Brain& kb, CellI& slotRole, CellI& slotType);
+
+                bool has(CellI& role) override;
+                void set(CellI& role, CellI& value) override;
+                void erase(CellI& role) override;
+                void operator()() override;
+                CellI& operator[](CellI& role) override;
+                void accept(Visitor& visitor) override;
+
+                CellI& m_slotRole;
+                CellI& m_slotType;
+            };
+
+            Type(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType);
+
+            bool has(CellI& role) override;
+            void set(CellI& role, CellI& value) override;
+            void erase(CellI& role) override;
+            void operator()() override;
+            CellI& operator[](CellI& role) override;
+            void accept(Visitor& visitor) override;
+
+            Slots m_slots;
+            IndexedValues& m_indexedValues;
+        };
+
+        Index(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType);
+
+        bool has(CellI& role) override;
+        void set(CellI& role, CellI& value) override;
+        void erase(CellI& role) override;
+        void operator()() override;
+        CellI& operator[](CellI& role) override;
+        void accept(Visitor& visitor) override;
+
+        Type m_type;
+        IndexedValues& m_indexedValues;
+        OrderedValues& m_orderedValues;
+    };
+
+    struct Value
+    {
+        Value(Map& map, CellI& value, CellI& index, size_t listItemIndex);
+
+        Value* prev();
+        Value* next();
+
+        Map& m_map;
+        CellI& m_value;
+        std::list<Value*>::iterator m_iterator;
+        Index::Type::Slots::SlotList::Item m_indexTypeSlotsListItem;
+        Index::Type::Slot m_indexTypeSlot;
+    };
+
+    Map(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& label = "");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    bool hasKey(CellI& key);
+    CellI& getValue(CellI& key);
+
+    void add(CellI& key, CellI& value);
+    template <typename... Args>
+    void add(CellI& key, CellI& value, Args&&... args)
+    {
+        add(key, value);
+        add(std::forward<Args>(args)...);
+    }
+    bool empty() const;
+
+protected:
+    CellI& m_keyType;
+    CellI& m_valueType;
+
+    IndexedValues m_indexedValues;
+    OrderedValues m_orderedValues;
+
+public:
+    List m_list;
+    Index m_index;
+};
+
+// ============================================================================
+class Set : public CellI
+{
+#if 0
+
+We would like to store 3 cells: { Cell1, Cell2, Cell3 }
+set.index[Cell1] will point to a ListItem1 which has a value of Cell1
+set.index[Cell2] will point to a ListItem2 which has a value of Cell2
+set.index[Cell3] will point to a ListItem3 which has a value of Cell3
+
+set.list = { ListItem{ value = Cell1 }, ListItem{ value = Cell2 }, ListItem{ value = Cell3 } }
 
 #endif
 public:
@@ -364,177 +735,12 @@ public:
 
     struct Value
     {
-        Value(Map& group, CellI& value, CellI& index, size_t listItemIndex);
+        Value(Set& set, CellI& value, CellI& index, size_t listItemIndex);
 
         Value* prev();
         Value* next();
 
-        Map& m_group;
-        CellI& m_value;
-        std::list<Value*>::iterator m_iterator;
-        Index::Type::Slots::SlotList::Item m_indexTypeSlotsListItem;
-        Index::Type::Slot m_indexTypeSlot;
-    };
-
-    Map(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& label = "");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void erase(CellI& role) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    bool hasKey(CellI& key);
-    CellI& getValue(CellI& key);
-
-    void add(CellI& key, CellI& value);
-    template <typename... Args>
-    void add(CellI& key, CellI& value, Args&&... args)
-    {
-        add(key, value);
-        add(std::forward<Args>(args)...);
-    }
-    bool empty() const;
-
-protected:
-    CellI& m_keyType;
-    CellI& m_valueType;
-
-    IndexedValues m_indexedValues;
-    OrderedValues m_orderedValues;
-
-public:
-    List m_list;
-    Index m_index;
-};
-
-// ============================================================================
-class Set : public CellI
-{
-public:
-    struct Value;
-    typedef std::map<CellI*, Value> IndexedValues;
-    typedef std::list<Value*> OrderedValues;
-
-    class Index : public CellI
-    {
-    public:
-        class Type : public CellI
-        {
-        public:
-            class Slots : public CellI
-            {
-            public:
-                class SlotList : public CellI
-                {
-                public:
-                    class Item : public CellI
-                    {
-                    public:
-                        Item(brain::Brain& kb, Value& value);
-
-                        bool has(CellI& role) override;
-                        void set(CellI& role, CellI& value) override;
-                        void erase(CellI& role) override;
-                        void operator()() override;
-                        CellI& operator[](CellI& role) override;
-                        void accept(Visitor& visitor) override;
-
-                        Value& m_value;
-                    };
-
-                    SlotList(brain::Brain& kb, OrderedValues& orderedValues);
-
-                    bool has(CellI& role) override;
-                    void set(CellI& role, CellI& value) override;
-                    void erase(CellI& role) override;
-                    void operator()() override;
-                    CellI& operator[](CellI& role) override;
-                    void accept(Visitor& visitor) override;
-
-                    OrderedValues& m_orderedValues;
-                };
-
-                class SlotIndex : public CellI
-                {
-                public:
-                    SlotIndex(brain::Brain& kb, IndexedValues& indexedValues, Type& type);
-
-                    bool has(CellI& role) override;
-                    void set(CellI& role, CellI& value) override;
-                    void erase(CellI& role) override;
-                    void operator()() override;
-                    CellI& operator[](CellI& role) override;
-                    void accept(Visitor& visitor) override;
-
-                    IndexedValues& m_indexedValues;
-                    Type& m_type;
-                };
-
-                Slots(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType, Type& type);
-
-                bool has(CellI& role) override;
-                void set(CellI& role, CellI& value) override;
-                void erase(CellI& role) override;
-                void operator()() override;
-                CellI& operator[](CellI& role) override;
-                void accept(Visitor& visitor) override;
-
-                SlotList m_slotList;
-                SlotIndex m_slotIndex;
-            };
-
-            class Slot : public CellI
-            {
-            public:
-                Slot(brain::Brain& kb, CellI& slotRole);
-
-                bool has(CellI& role) override;
-                void set(CellI& role, CellI& value) override;
-                void erase(CellI& role) override;
-                void operator()() override;
-                CellI& operator[](CellI& role) override;
-                void accept(Visitor& visitor) override;
-
-                CellI& m_slotRole;
-            };
-
-            Type(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType);
-
-            bool has(CellI& role) override;
-            void set(CellI& role, CellI& value) override;
-            void erase(CellI& role) override;
-            void operator()() override;
-            CellI& operator[](CellI& role) override;
-            void accept(Visitor& visitor) override;
-
-            Slots m_slots;
-            IndexedValues& m_indexedValues;
-        };
-
-        Index(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType);
-
-        bool has(CellI& role) override;
-        void set(CellI& role, CellI& value) override;
-        void erase(CellI& role) override;
-        void operator()() override;
-        CellI& operator[](CellI& role) override;
-        void accept(Visitor& visitor) override;
-
-        Type m_type;
-        IndexedValues& m_indexedValues;
-        OrderedValues& m_orderedValues;
-    };
-
-    struct Value
-    {
-        Value(Map& group, CellI& value, CellI& index, size_t listItemIndex);
-
-        Value* prev();
-        Value* next();
-
-        Map& m_group;
+        Set& m_set;
         CellI& m_value;
         std::list<Value*>::iterator m_iterator;
         Index::Type::Slots::SlotList::Item m_indexTypeSlotsListItem;
@@ -725,6 +931,14 @@ public:
     virtual void visit(Map::Index::Type&)                        = 0;
     virtual void visit(Map::Index&)                              = 0;
     virtual void visit(Map&)                                     = 0;
+    virtual void visit(Set::Index::Type::Slots::SlotList::Item&) {}
+    virtual void visit(Set::Index::Type::Slots::SlotList&)       {}
+    virtual void visit(Set::Index::Type::Slots::SlotIndex&)      {}
+    virtual void visit(Set::Index::Type::Slots&)                 {}
+    virtual void visit(Set::Index::Type::Slot&)                  {}
+    virtual void visit(Set::Index::Type&)                        {}
+    virtual void visit(Set::Index&)                              {}
+    virtual void visit(Set&) { }
 
     virtual void visit(hybrid::Color&)   = 0;
     virtual void visit(hybrid::Pixel&)   = 0;

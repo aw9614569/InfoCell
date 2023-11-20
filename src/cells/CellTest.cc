@@ -339,14 +339,14 @@ TEST_F(CellTest, BuiltInMapTypes)
     printAs.value(map[kb.id.index], "map[kb.id.index]");
     printAs.value(map[kb.id.index].type(), "map[kb.id.index].type()");
     printAs.cell(map[kb.id.index].type()[kb.id.slots], "map[kb.id.index].type()[kb.id.slots]");
+    EXPECT_EQ(&map[kb.id.index][_1_], &kb.colors.red);
     EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.dimensions.size], &_1_);
     EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.keyType], &kb.type.Cell);
     EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.objectType], &kb.type.Slot);
     EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.listType], &kb.type.ListOf(kb.type.Slot));
     EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.list][kb.dimensions.size], &_1_);
     EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.slotRole], &_1_);
-    CellI& debug = map[kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.slotType];
-//    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.slotType], &kb.type.Color);
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.slotType], &kb.type.Color);
 
     EXPECT_TRUE(map[kb.id.index].type().has(kb.id.slots));
     EXPECT_TRUE(map[kb.id.index].type()[kb.id.slots].has(kb.id.index));
@@ -360,7 +360,7 @@ TEST_F(CellTest, BuiltInMapTypes)
     printAs.value(map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots], "map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots]");
     EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.dimensions.size], &_1_);
     EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.slotRole], &_1_);
-    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.slotType], &kb.type.Slot);
+    EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.slotType], &kb.type.Color);
     printAs.value(map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index], "map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index]");
     printAs.value(map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index].type(), "map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index].type()");
 }
