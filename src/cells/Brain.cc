@@ -699,7 +699,7 @@ Object& Types::ListOf(CellI& type)
                       kb.sequence.first, kb.type.slot(kb.sequence.first, itemType),
                       kb.sequence.last, kb.type.slot(kb.sequence.last, itemType),
                       kb.dimensions.size, kb.type.slot(kb.dimensions.size, kb.type.Number),
-                      kb.id.itemType, kb.type.slot(kb.id.item, itemType),
+                      kb.id.itemType, kb.type.slot(kb.id.itemType, itemType),
                       kb.id.objectType, kb.type.slot(kb.id.objectType, type));
         listType.set(kb.id.slots, *map);
 

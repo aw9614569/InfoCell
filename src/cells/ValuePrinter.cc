@@ -68,6 +68,7 @@ void CellValuePrinter::visit(nextgen::Index& cell)
 
 void CellValuePrinter::visit(nextgen::Map& cell)
 {
+    m_nextGenMap = true;
     printImpl(cell);
 }
 
@@ -613,14 +614,25 @@ void CellValuePrinter::printImpl(CellI& cell)
         }
         printTypeName(cell.type());
         m_ss << "{";
-        visitList(cell[kb.id.index][kb.id.type][kb.id.slots][kb.id.list], [this, &kb, &cell](CellI& value, int i, bool&) {
-            if (i != 0) {
-                m_ss << ", ";
-            }
-            value[kb.id.slotRole].accept(*this);
-            m_ss << ": ";
-            cell[kb.id.index][value[kb.id.slotRole]].accept(*this);
-        });
+        if (m_nextGenMap) {
+            visitList(cell[kb.id.index][kb.id.type][kb.id.slots][kb.id.list], [this, &kb, &cell](CellI& value, int i, bool&) {
+                if (i != 0) {
+                    m_ss << ", ";
+                }
+                value[kb.id.slotRole].accept(*this);
+                m_ss << ": ";
+                cell[kb.id.index][value[kb.id.slotRole]][kb.id.value].accept(*this);
+            });
+        } else {
+            visitList(cell[kb.id.index][kb.id.type][kb.id.slots][kb.id.list], [this, &kb, &cell](CellI& value, int i, bool&) {
+                if (i != 0) {
+                    m_ss << ", ";
+                }
+                value[kb.id.slotRole].accept(*this);
+                m_ss << ": ";
+                cell[kb.id.index][value[kb.id.slotRole]].accept(*this);
+            });
+        }
         m_ss << "}";
         return;
     } else if (is(kb.type.Type_)) {

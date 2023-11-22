@@ -929,7 +929,7 @@ void List::Item::operator()()
 CellI& List::Item::operator[](CellI& role)
 {
     if (&role == &kb.id.type) {
-        return kb.type.ListOf(m_list.m_valueType)[kb.id.subTypes][kb.id.index][kb.id.objectType];
+        return kb.type.ListOf(m_list.m_valueType)[kb.id.subTypes][kb.id.index][kb.id.itemType];
     }
     if (&role == &kb.sequence.previous) {
         if (m_previous)
@@ -1150,7 +1150,7 @@ bool Type::hasSlot(CellI& role)
 
 void Type::deleteSlot(CellI& role)
 {
-    m_slots->erase(role);
+    m_slots->remove(role);
 }
 
 void Type::accept(Visitor& visitor)

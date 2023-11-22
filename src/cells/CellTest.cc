@@ -809,6 +809,7 @@ TEST_F(CellTest, NextgenMap)
     printAs.value(map[kb.id.index], "map[kb.id.index]");
     printAs.value(map[kb.id.index].type(), "map[kb.id.index].type()");
     map.add(_1_, kb.colors.red);
+    printAs.value(map, "map");
     printAs.cell(map[kb.id.index], "map[kb.id.index]");
     printAs.value(map[kb.id.index], "map[kb.id.index]");
     printAs.value(map[kb.id.index].type(), "map[kb.id.index].type()");
@@ -829,15 +830,18 @@ TEST_F(CellTest, NextgenMap)
 
     EXPECT_TRUE(map[kb.id.index].type()[kb.id.slots][kb.id.index].type().has(kb.id.slots));
     printAs.cell(map[kb.id.index].type()[kb.id.slots], "map[kb.id.index].type()[kb.id.slots][]");
-//    printAs.cell(map[kb.id.index].type()[kb.id.slots][kb.id.index], "map[kb.id.index].type()[kb.id.slots][kb.id.index]");
+    printAs.cell(map[kb.id.index].type()[kb.id.slots][kb.id.index], "map[kb.id.index].type()[kb.id.slots][kb.id.index]");
     printAs.value(map[kb.id.index].type()[kb.id.slots][kb.id.index].type(), "map[kb.id.index].type()[kb.id.slots][kb.id.index].type()");
-//    printAs.value(map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots], "map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots]");
+    printAs.value(map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots], "map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots]");
     EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.dimensions.size], &_1_);
     EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.value][kb.id.slotRole], &_1_);
     CellI& debug = map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.value][kb.id.slotType];
     EXPECT_EQ(&map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index][_1_][kb.id.value][kb.id.slotType], &kb.type.Slot);
     printAs.value(map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index], "map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index]");
     printAs.value(map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index].type(), "map[kb.id.index].type()[kb.id.slots][kb.id.index].type()[kb.id.slots][kb.id.index].type()");
+
+    map.remove(_1_);
+    printAs.value(map, "map");
 }
 
 TEST_F(CellTest, NextgenType)

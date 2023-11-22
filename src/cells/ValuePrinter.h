@@ -81,6 +81,7 @@ protected:
     std::stringstream m_ss;
     mutable int m_indent = 0;
     const int m_tabSize = 4;
+    bool m_nextGenMap    = false;
 };
 
 } // namespace cells
