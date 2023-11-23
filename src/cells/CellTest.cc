@@ -848,7 +848,7 @@ TEST_F(CellTest, NextgenType)
 {
     nextgen::Map map(kb, kb.type.Number, kb.type.Color);
     map.add(_1_, kb.colors.blue);
-    CellI& list = map[kb.id.index][kb.id.type][kb.id.slots][kb.id.list];
+    CellI& list = map[id.index][id.type][id.slots][id.list];
     printAs.value(list, "Map<Number, Color>::index::type::slots::list");
     printAs.value(map, "Map<Number, Color>");
 
@@ -859,6 +859,21 @@ TEST_F(CellTest, NextgenType)
     nextgen::Type type(kb, "type");
     type.addSlot(_1_, kb.type.slot(_1_, kb.type.Number));
     printAs.value(type);
+
+    nextgen::Set set(kb, kb.type.Number);
+    EXPECT_EQ(&set[kb.dimensions.size], &_0_);
+    set.add(_1_);
+    EXPECT_EQ(&set[kb.dimensions.size], &_1_);
+    printAs.value(set[id.index], "set.index");
+    set.add(_2_);
+    EXPECT_EQ(&set[kb.dimensions.size], &_2_);
+    printAs.value(set[id.index], "set.index");
+    set.remove(_1_);
+    EXPECT_EQ(&set[kb.dimensions.size], &_1_);
+    printAs.value(set[id.index], "set.index");
+    set.remove(_2_);
+    EXPECT_EQ(&set[kb.dimensions.size], &_0_);
+    printAs.value(set[id.index], "set.index");
 }
 
 int main(int argc, char** argv)

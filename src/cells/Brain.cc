@@ -161,211 +161,180 @@ Op::Op(brain::Brain& kb) :
 
     CellI* map = nullptr;
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base),
-                  id.value, type.slot(id.value, type.Number));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base),
+                    type.slot(id.value, type.Number));
     Add.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base),
-                  id.value, type.slot(id.value, type.Boolean));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base),
+                    type.slot(id.value, type.Boolean));
     And.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.status, type.slot(id.status, type.Cell),
-                  id.ops, type.slot(id.ops, type.Cell),
-                  id.value, type.slot(id.value, type.Cell));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.status, type.Cell),
+                    type.slot(id.ops, type.Cell),
+                    type.slot(id.value, type.Cell));
     Block.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.value, type.slot(id.value, type.Cell));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.value, type.Cell));
     ConstVar.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.input, type.slot(id.input, Base));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.input, Base));
     Delete.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base),
-                  id.value, type.slot(id.value, type.Number));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base),
+                    type.slot(id.value, type.Number));
     Divide.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.status, type.slot(id.status, type.Cell),
-                  id.condition, type.slot(id.condition, Base),
-                  id.statement, type.slot(id.statement, Base));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.status, type.Cell),
+                    type.slot(id.condition, Base),
+                    type.slot(id.statement, Base));
     Do.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base),
-                  id.value, type.slot(id.value, type.Boolean));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base),
+                    type.slot(id.value, type.Boolean));
     Equal.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.cell, type.slot(id.cell, Base),
-                  id.role, type.slot(id.role, Base),
-                  id.value, type.slot(id.value, Base));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.cell, Base),
+                    type.slot(id.role, Base),
+                    type.slot(id.value, Base));
     Erase.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.value, type.slot(id.value, Var));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.value, Var));
     EvalVar.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.stack, type.slot(id.stack, type.Stack),
-                  id.op, type.slot(id.op, type.ListOf(Base)),
-                  id.static_, type.slot(id.static_, type.Boolean));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.stack, type.Stack),
+                    type.slot(id.op, type.ListOf(Base)),
+                    type.slot(id.static_, type.Boolean));
     Function.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.cell, type.slot(id.cell, Base),
-                  id.role, type.slot(id.role, Base),
-                  id.value, type.slot(id.value, type.Cell));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.cell, Base),
+                    type.slot(id.role, Base),
+                    type.slot(id.value, type.Cell));
     Get.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base),
-                  id.value, type.slot(id.value, type.Boolean));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base),
+                    type.slot(id.value, type.Boolean));
     GreaterThan.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base),
-                  id.value, type.slot(id.value, type.Boolean));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base),
+                    type.slot(id.value, type.Boolean));
     GreaterThanOrEqual.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.cell, type.slot(id.cell, Base),
-                  id.role, type.slot(id.role, Base),
-                  id.value, type.slot(id.value, type.Boolean));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.cell, Base),
+                    type.slot(id.role, Base),
+                    type.slot(id.value, type.Boolean));
     Has.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.status, type.slot(id.status, type.Cell),
-                  id.condition, type.slot(id.condition, Base),
-                  id.then, type.slot(id.then, Base),
-                  id.else_, type.slot(id.else_, Base));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.status, type.Cell),
+                    type.slot(id.condition, Base),
+                    type.slot(id.then, Base),
+                    type.slot(id.else_, Base));
     If.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base),
-                  id.value, type.slot(id.value, type.Boolean));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base),
+                    type.slot(id.value, type.Boolean));
     LessThan.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base),
-                  id.value, type.slot(id.value, type.Boolean));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base),
+                    type.slot(id.value, type.Boolean));
     LessThanOrEqual.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.cell, type.slot(id.cell, Base),
-                  id.role, type.slot(id.role, Base),
-                  id.value, type.slot(id.value, type.Boolean));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.cell, Base),
+                    type.slot(id.role, Base),
+                    type.slot(id.value, type.Boolean));
     Missing.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base),
-                  id.value, type.slot(id.value, type.Number));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base),
+                    type.slot(id.value, type.Number));
     Multiply.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.value, type.slot(id.value, type.Cell),
-                  id.objectType, type.slot(id.objectType, Base));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.value, type.Cell),
+                    type.slot(id.objectType, Base));
     New.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.input, type.slot(id.input, Base),
-                  id.value, type.slot(id.value, type.Boolean));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.input, Base),
+                    type.slot(id.value, type.Boolean));
     Not.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base),
-                  id.value, type.slot(id.value, type.Boolean));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base),
+                    type.slot(id.value, type.Boolean));
     NotEqual.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base),
-                  id.value, type.slot(id.value, type.Boolean));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base),
+                    type.slot(id.value, type.Boolean));
     NotSame.set(kb.id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base),
-                  id.value, type.slot(id.value, type.Boolean));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base),
+                    type.slot(id.value, type.Boolean));
     Or.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.result, type.slot(id.result, ast.Base));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.result, ast.Base));
     Return.set(kb.id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base),
-                  id.value, type.slot(id.value, type.Boolean));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base),
+                    type.slot(id.value, type.Boolean));
     Same.set(kb.id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.cell, type.slot(id.cell, Base),
-                  id.role, type.slot(id.role, Base),
-                  id.value, type.slot(id.value, Base));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.cell, Base),
+                    type.slot(id.role, Base),
+                    type.slot(id.value, Base));
     Set.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base),
-                  id.value, type.slot(id.value, type.Number));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base),
+                    type.slot(id.value, type.Number));
     Subtract.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.objectType, type.slot(id.objectType, type.Type_),
-                  id.value, type.slot(id.value, type.Cell));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.objectType, type.Type_),
+                    type.slot(id.value, type.Cell));
     Var.set(id.slots, *map);
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  id.ast, type.slot(id.ast, ast.Base),
-                  id.status, type.slot(id.status, type.Cell),
-                  id.condition, type.slot(id.condition, Base),
-                  id.statement, type.slot(id.statement, Base));
+    map = &kb.slots(type.slot(id.ast, ast.Base),
+                    type.slot(id.status, type.Cell),
+                    type.slot(id.condition, Base),
+                    type.slot(id.statement, Base));
     While.set(id.slots, *map);
 }
 
@@ -415,184 +384,148 @@ Ast::Ast(brain::Brain& kb) :
     auto& type = kb.type;
     CellI* map = nullptr;
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base));
+    map = &kb.slots(type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base));
     Add.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base));
+    map = &kb.slots(type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base));
     And.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.asts, type.slot(id.asts, type.Cell));
+    map = &kb.slots(type.slot(id.asts, type.Cell));
     Block.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.cell, type.slot(id.cell, Base),
-                  id.method, type.slot(id.method, Base),
-                  id.parameters, type.slot(id.parameters, type.ListOf(Slot)));
+    map = &kb.slots(type.slot(id.cell, Base),
+                    type.slot(id.method, Base),
+                    type.slot(id.parameters, type.ListOf(Slot)));
     Call.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.value, type.slot(id.value, type.Cell));
+    map = &kb.slots(type.slot(id.value, type.Cell));
     Cell.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.cell, type.slot(id.cell, Base));
+    map = &kb.slots(type.slot(id.cell, Base));
     Delete.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base));
+    map = &kb.slots(type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base));
     Divide.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.condition, type.slot(id.condition, Base),
-                  id.statement, type.slot(id.statement, Base));
+    map = &kb.slots(type.slot(id.condition, Base),
+                    type.slot(id.statement, Base));
     Do.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base));
+    map = &kb.slots(type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base));
     Equal.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.cell, type.slot(id.cell, Base),
-                  id.role, type.slot(id.role, Base));
+    map = &kb.slots(type.slot(id.cell, Base),
+                    type.slot(id.role, Base));
     Erase.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.objectType, type.slot(id.objectType, type.Cell),
-                  id.name, type.slot(id.name, type.Cell),
-                  id.input, type.slot(id.input, type.ListOf(Slot)),
-                  id.ast, type.slot(id.ast, type.ListOf(Base)),
-                  id.output, type.slot(id.output, type.ListOf(Slot)),
-                  id.static_, type.slot(id.static_, type.Boolean));
+    map = &kb.slots(type.slot(id.objectType, type.Cell),
+                    type.slot(id.name, type.Cell),
+                    type.slot(id.input, type.ListOf(Slot)),
+                    type.slot(id.ast, type.ListOf(Base)),
+                    type.slot(id.output, type.ListOf(Slot)),
+                    type.slot(id.static_, type.Boolean));
     Function.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.cell, type.slot(id.cell, Base),
-                  id.role, type.slot(id.role, Base));
+    map = &kb.slots(type.slot(id.cell, Base),
+                    type.slot(id.role, Base));
     Get.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base));
+    map = &kb.slots(type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base));
     GreaterThan.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base));
+    map = &kb.slots(type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base));
     GreaterThanOrEqual.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.cell, type.slot(id.cell, Base),
-                  id.role, type.slot(id.role, Base));
+    map = &kb.slots(type.slot(id.cell, Base),
+                    type.slot(id.role, Base));
     Has.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.condition, type.slot(id.condition, Base),
-                  id.then, type.slot(id.then, Base),
-                  id.else_, type.slot(id.else_, Base));
+    map = &kb.slots(type.slot(id.condition, Base),
+                    type.slot(id.then, Base),
+                    type.slot(id.else_, Base));
     If.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.role, type.slot(id.role, type.Cell));
+    map = &kb.slots(type.slot(id.role, type.Cell));
     Input.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base));
+    map = &kb.slots(type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base));
     LessThan.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base));
+    map = &kb.slots(type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base));
     LessThanOrEqual.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.role, type.slot(id.role, Base));
+    map = &kb.slots(type.slot(id.role, Base));
     Member.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.cell, type.slot(id.cell, Base),
-                  id.role, type.slot(id.role, Base));
+    map = &kb.slots(type.slot(id.cell, Base),
+                    type.slot(id.role, Base));
     Missing.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base));
+    map = &kb.slots(type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base));
     Multiply.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.objectType, type.slot(id.objectType, Base),
-                  id.constructor, type.slot(id.constructor, Base),
-                  id.parameters, type.slot(id.parameters, type.ListOf(type.ast.Slot)));
+    map = &kb.slots(type.slot(id.objectType, Base),
+                    type.slot(id.constructor, Base),
+                    type.slot(id.parameters, type.ListOf(type.ast.Slot)));
     New.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.input, type.slot(id.input, Base));
+    map = &kb.slots(type.slot(id.input, Base));
     Not.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base));
+    map = &kb.slots(type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base));
     NotEqual.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base));
+    map = &kb.slots(type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base));
     NotSame.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base));
+    map = &kb.slots(type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base));
     Or.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.role, type.slot(id.role, type.Cell));
+    map = &kb.slots(type.slot(id.role, type.Cell));
     Output.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.value, type.slot(id.value, type.Cell));
+    map = &kb.slots(type.slot(id.value, type.Cell));
     Return.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base));
+    map = &kb.slots(type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base));
     Same.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.cell, type.slot(id.cell, Base),
-                  id.role, type.slot(id.role, Base),
-                  id.value, type.slot(id.value, Base));
+    map = &kb.slots(type.slot(id.cell, Base),
+                    type.slot(id.role, Base),
+                    type.slot(id.value, Base));
     Set.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.slotRole, type.slot(id.slotRole, Base),
-                  id.slotType, type.slot(id.slotType, Base));
+    map = &kb.slots(type.slot(id.slotRole, Base),
+                    type.slot(id.slotType, Base));
     Slot.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.cell, type.slot(id.cell, Base),
-                  id.method, type.slot(id.method, Base),
-                  id.parameters, type.slot(id.parameters, type.ListOf(Slot)));
+    map = &kb.slots(type.slot(id.cell, Base),
+                    type.slot(id.method, Base),
+                    type.slot(id.parameters, type.ListOf(Slot)));
     StaticCall.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.lhs, type.slot(id.lhs, Base),
-                  id.rhs, type.slot(id.rhs, Base));
+    map = &kb.slots(type.slot(id.lhs, Base),
+                    type.slot(id.rhs, Base));
     Subtract.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.role, type.slot(id.role, Base));
+    map = &kb.slots(type.slot(id.role, Base));
     Var.set(id.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  id.condition, type.slot(id.condition, Base),
-                  id.statement, type.slot(id.statement, Base));
+    map = &kb.slots(type.slot(id.condition, Base),
+                    type.slot(id.statement, Base));
     While.set(id.slots, *map);
 }
 
@@ -649,21 +582,18 @@ Types::Types(brain::Brain& kb) :
     auto& id   = kb.id;
     auto& type = kb.type;
 
-    map = &kb.map(Cell, Slot,
-                  kb.id.slotType, kb.type.slot(kb.id.slotType, kb.type.Type_),
-                  kb.id.slotRole, kb.type.slot(kb.id.slotRole, kb.type.Cell));
+    map = &kb.slots(type.slot(id.slotType, type.Type_),
+                    type.slot(id.slotRole, type.Cell));
     Slot.set(kb.id.slots, *map);
 
-    map = &kb.map(Cell, Slot,
-                  id.slots, type.slot(id.slots, MapCellToSlot),
-                  id.subTypes, type.slot(id.subTypes, MapCellToType),
-                  id.memberOf, type.slot(id.memberOf, MapTypeToType),
-                  id.asts, type.slot(id.asts, MapCellToAstFunction),
-                  id.methods, type.slot(id.methods, MapCellToOpFunction));
+    map = &kb.slots(type.slot(id.slots, MapCellToSlot),
+                    type.slot(id.subTypes, MapCellToType),
+                    type.slot(id.memberOf, MapTypeToType),
+                    type.slot(id.asts, MapCellToAstFunction),
+                    type.slot(id.methods, MapCellToOpFunction));
     Type_.set(id.slots, *map);
 
-    map = &kb.map(Cell, Slot,
-                  id.members, type.slot(id.members, List));
+    map = &kb.slots(type.slot(id.members, List));
     Enum.set(id.slots, *map);
 
     kb.m_initPhase = Brain::InitPhase::SlotTypeInitialzed;
@@ -695,18 +625,16 @@ Object& Types::ListOf(CellI& type)
 
         CellI* map = nullptr;
 
-        map = &kb.map(kb.type.Cell, kb.type.Slot,
-                      kb.sequence.first, kb.type.slot(kb.sequence.first, itemType),
-                      kb.sequence.last, kb.type.slot(kb.sequence.last, itemType),
-                      kb.dimensions.size, kb.type.slot(kb.dimensions.size, kb.type.Number),
-                      kb.id.itemType, kb.type.slot(kb.id.itemType, itemType),
-                      kb.id.objectType, kb.type.slot(kb.id.objectType, type));
+        map = &kb.slots(kb.type.slot(kb.sequence.first, itemType),
+                        kb.type.slot(kb.sequence.last, itemType),
+                        kb.type.slot(kb.dimensions.size, kb.type.Number),
+                        kb.type.slot(kb.id.itemType, itemType),
+                        kb.type.slot(kb.id.objectType, type));
         listType.set(kb.id.slots, *map);
 
-        map = &kb.map(kb.type.Cell, kb.type.Slot,
-                      kb.sequence.previous, kb.type.slot(kb.sequence.previous, itemType),
-                      kb.sequence.next, kb.type.slot(kb.sequence.next, itemType),
-                      kb.id.value, kb.type.slot(kb.id.value, type));
+        map = &kb.slots(kb.type.slot(kb.sequence.previous, itemType),
+                        kb.type.slot(kb.sequence.next, itemType),
+                        kb.type.slot(kb.id.value, type));
         itemType.set(kb.id.slots, *map);
 
         return it.first->second;
@@ -737,13 +665,12 @@ Object& Types::MapOf(CellI& keyType, CellI& valueType)
     mapType.set(kb.id.memberOf, kb.map(kb.type.Type_, kb.type.Type_, kb.type.Map, kb.type.Map));
     mapType.set(kb.id.subTypes, kb.map(kb.type.Cell, kb.type.Type_, kb.id.keyType, keyType, kb.id.objectType, valueType));
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  kb.id.list, kb.type.slot(kb.id.list, ListOf(valueType)),
-                  kb.id.index, kb.type.slot(kb.id.index, kb.type.Index),
-                  kb.id.indexType, kb.type.slot(kb.id.indexType, kb.type.Type_),
-                  kb.id.keyType, kb.type.slot(kb.id.keyType, keyType),
-                  kb.id.objectType, kb.type.slot(kb.id.objectType, valueType),
-                  kb.dimensions.size, kb.type.slot(kb.dimensions.size, kb.type.Number));
+    map = &kb.slots(kb.type.slot(kb.id.list, ListOf(valueType)),
+                    kb.type.slot(kb.id.index, kb.type.Index),
+                    kb.type.slot(kb.id.indexType, kb.type.Type_),
+                    kb.type.slot(kb.id.keyType, keyType),
+                    kb.type.slot(kb.id.objectType, valueType),
+                    kb.type.slot(kb.dimensions.size, kb.type.Number));
     mapType.set(kb.id.slots, *map);
 
     return mapType;
@@ -766,12 +693,11 @@ Object& Types::SetOf(CellI& valueType)
     setType.set(kb.id.memberOf, kb.map(kb.type.Type_, kb.type.Type_, kb.type.Set, kb.type.Set));
     setType.set(kb.id.subTypes, kb.map(kb.type.Cell, kb.type.Type_, kb.id.objectType, valueType));
 
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  kb.id.list, kb.type.slot(kb.id.list, ListOf(valueType)),
-                  kb.id.index, kb.type.slot(kb.id.index, kb.type.Index),
-                  kb.id.indexType, kb.type.slot(kb.id.indexType, kb.type.Type_),
-                  kb.id.objectType, kb.type.slot(kb.id.objectType, valueType),
-                  kb.dimensions.size, kb.type.slot(kb.dimensions.size, kb.type.Number));
+    map = &kb.slots(kb.type.slot(kb.id.list, ListOf(valueType)),
+                    kb.type.slot(kb.id.index, kb.type.Index),
+                    kb.type.slot(kb.id.indexType, kb.type.Type_),
+                    kb.type.slot(kb.id.objectType, valueType),
+                    kb.type.slot(kb.dimensions.size, kb.type.Number));
     setType.set(kb.id.slots, *map);
 
     return setType;
@@ -2174,31 +2100,28 @@ Brain::Brain() :
 
     CellI* mapPtr = nullptr;
 
-    mapPtr = &map(type.Cell, type.Slot,
-                  sequence.previous, type.slot(sequence.previous, type.ListItem),
-                  sequence.next, type.slot(sequence.next, type.ListItem),
-                  id.value, type.slot(id.value, type.Cell));
+    mapPtr = &slots(type.slot(sequence.previous, type.ListItem),
+                    type.slot(sequence.next, type.ListItem),
+                    type.slot(id.value, type.Cell));
     type.ListItem.set(id.slots, *mapPtr);
     type.ListItem.set(id.memberOf, map(type.Type_, type.Type_, type.Iterator, type.Iterator));
 
-    mapPtr = &map(type.Cell, type.Slot,
-                  sequence.first, type.slot(sequence.first, type.ListItem),
-                  sequence.last, type.slot(sequence.last, type.ListItem),
-                  dimensions.size, type.slot(dimensions.size, type.Number),
-                  id.itemType, type.slot(id.itemType, type.ListItem),
-                  id.objectType, type.slot(id.objectType, type.Cell));
+    mapPtr = &slots(type.slot(sequence.first, type.ListItem),
+                    type.slot(sequence.last, type.ListItem),
+                    type.slot(dimensions.size, type.Number),
+                    type.slot(id.itemType, type.ListItem),
+                    type.slot(id.objectType, type.Cell));
     type.List.set(id.slots, *mapPtr);
     type.List.set(id.subTypes, map(type.Cell, type.Type_, id.itemType, type.ListItem, id.objectType, type.Cell));
     type.List.set(id.memberOf, map(type.Type_, type.Type_, type.Container, type.Container));
 
-    mapPtr = &map(type.Cell, type.Slot,
-                  id.keyType, type.slot(id.keyType, type.Cell),
-                  id.objectType, type.slot(id.objectType, type.Cell),
-                  id.list, type.slot(id.list, type.ListOf(type.Cell)),
-                  id.listType, type.slot(id.list, type.ListOf(type.Cell)),
-                  id.index, type.slot(id.index, type.Index),
-                  id.indexType, type.slot(id.indexType, type.Type_),
-                  dimensions.size, type.slot(dimensions.size, type.Number));
+    mapPtr = &slots(type.slot(id.keyType, type.Cell),
+                    type.slot(id.objectType, type.Cell),
+                    type.slot(id.list, type.ListOf(type.Cell)),
+                    type.slot(id.listType, type.Type_),
+                    type.slot(id.index, type.Index),
+                    type.slot(id.indexType, type.Type_),
+                    type.slot(dimensions.size, type.Number));
     type.Map.set(id.slots, *mapPtr);
     mapPtr = &map(type.Cell, type.Type_,
                   id.keyType, type.Cell,
@@ -2207,13 +2130,12 @@ Brain::Brain() :
     type.Map.set(id.subTypes, *mapPtr);
     type.Map.set(id.memberOf, map(type.Type_, type.Type_, type.Container, type.Container));
 
-    mapPtr = &map(type.Cell, type.Slot,
-                  id.objectType, type.slot(id.objectType, type.Cell),
-                  id.list, type.slot(id.list, type.ListOf(type.Cell)),
-                  id.listType, type.slot(id.list, type.ListOf(type.Cell)),
-                  id.index, type.slot(id.index, type.Index),
-                  id.indexType, type.slot(id.indexType, type.Type_),
-                  dimensions.size, type.slot(dimensions.size, type.Number));
+    mapPtr = &slots(type.slot(id.objectType, type.Cell),
+                    type.slot(id.list, type.ListOf(type.Cell)),
+                    type.slot(id.listType, type.Type_),
+                    type.slot(id.index, type.Index),
+                    type.slot(id.indexType, type.Type_),
+                    type.slot(dimensions.size, type.Number));
     type.Set.set(id.slots, *mapPtr);
     mapPtr = &map(type.Cell, type.Type_,
                   id.objectType, type.Cell,
@@ -2341,14 +2263,13 @@ Brain::Brain() :
     // Map<Cell, Slot>
     type.MapCellToSlot.set(id.subTypes, map(type.Cell, type.Type_, id.keyType, type.Cell, id.objectType, type.Slot, id.listType, type.ListOf(type.Slot)));
     type.MapCellToSlot.set(id.memberOf, map(type.Type_, type.Type_, type.Map, type.Map));
-    mapPtr = &map(type.Cell, type.Slot,
-                  id.list, type.slot(id.list, type.ListOf(type.Slot)),
-                  id.listType, type.slot(id.listType, type.ListOf(type.Slot)),
-                  id.index, type.slot(id.index, type.Index),
-                  id.indexType, type.slot(id.indexType, type.Type_),
-                  id.keyType, type.slot(id.keyType, type.Cell),
-                  id.objectType, type.slot(id.objectType, type.Slot),
-                  dimensions.size, type.slot(dimensions.size, type.Number));
+    mapPtr = &slots(type.slot(id.list, type.ListOf(type.Slot)),
+                    type.slot(id.listType, type.ListOf(type.Slot)),
+                    type.slot(id.index, type.Index),
+                    type.slot(id.indexType, type.Type_),
+                    type.slot(id.keyType, type.Cell),
+                    type.slot(id.objectType, type.Slot),
+                    type.slot(dimensions.size, type.Number));
     type.MapCellToSlot.set(id.slots, *mapPtr);
     type.MapCellToSlot.set(id.methods, map(type.Cell, type.op.Function, id.constructor, mapCtor.compile(type.Map), dimensions.size, mapSize.compile(type.Map), sequence.add, mapAdd.compile(type.Map), sequence.empty, mapEmpty.compile(type.Map)));
 
@@ -2683,17 +2604,15 @@ Brain::Brain() :
     methodData.set(id.static_, boolean.false_);
     methodData.set(id.const_, boolean.false_);
 #endif
-    mapPtr = &map(type.Cell, type.Slot,
-                  id.value, type.slot(id.value, type.ListOf(type.Digit)),
-                  numbers.sign, type.slot(numbers.sign, type.Number)); // TODO sign has no class currently
+    mapPtr = &slots(type.slot(id.value, type.ListOf(type.Digit)),
+                    type.slot(numbers.sign, type.Number)); // TODO sign has no class currently
     type.Number.set(id.slots, *mapPtr);
 
-    mapPtr = &map(type.Cell, type.Slot,
-                  id.stack, type.slot(id.stack, type.ListOf(type.StackFrame)),
-                  id.method, type.slot(id.method, type.op.Function),
-                  id.input, type.slot(id.input, type.ListOf(type.op.Var)),
-                  id.output, type.slot(id.output, type.ListOf(type.op.Var)),
-                  id.localVars, type.slot(id.localVars, type.Index));
+    mapPtr = &slots(type.slot(id.stack, type.ListOf(type.StackFrame)),
+                    type.slot(id.method, type.op.Function),
+                    type.slot(id.input, type.ListOf(type.op.Var)),
+                    type.slot(id.output, type.ListOf(type.op.Var)),
+                    type.slot(id.localVars, type.Index));
     type.StackFrame.set(id.slots, *mapPtr);
 
     type.String.method(methods.addSlots, { id.list, list(type.slot(id.value, type.ListOf(type.Char))) });
@@ -2736,19 +2655,17 @@ Brain::Brain() :
 
     m_initPhase = InitPhase::FullyConstructed;
 
-    mapPtr = &map(type.Cell, type.Slot,
-                  visualization.color, type.slot(visualization.color, type.Color),
-                  dimensions.width, type.slot(dimensions.width, type.Number),
-                  dimensions.height, type.slot(dimensions.height, type.Number),
-                  id.pixels, type.slot(id.pixels, type.List));
+    mapPtr = &slots(type.slot(visualization.color, type.Color),
+                    type.slot(dimensions.width, type.Number),
+                    type.slot(dimensions.height, type.Number),
+                    type.slot(id.pixels, type.List));
     type.arc.Shape.set(id.slots, *mapPtr);
 
-    mapPtr = &map(type.Cell, type.Slot,
-                  dimensions.width, type.slot(dimensions.width, type.Number),
-                  dimensions.height, type.slot(dimensions.height, type.Number),
-                  id.picture, type.slot(id.picture, type.Picture),
-                  id.shapes, type.slot(id.shapes, type.List),
-                  id.inputPixels, type.slot(id.inputPixels, type.List));
+    mapPtr = &slots(type.slot(dimensions.width, type.Number),
+                    type.slot(dimensions.height, type.Number),
+                    type.slot(id.picture, type.Picture),
+                    type.slot(id.shapes, type.List),
+                    type.slot(id.inputPixels, type.List));
     type.arc.Shaper.set(id.slots, *mapPtr);
 
     /*

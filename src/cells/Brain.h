@@ -835,6 +835,27 @@ public:
         return ret;
     }
 
+    void addSlots(Map&)
+    {
+        // Do nothing
+    }
+
+    template <typename... Args>
+    void addSlots(Map& map, CellI& value, Args&&... args)
+    {
+        map.add(value[id.slotRole], value);
+        addSlots(map, std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    Map& slots(CellI& value, Args&&... args)
+    {
+        Map& ret = *new Map(*this, type.Cell, type.Slot, "Map<Cell, Slot>(...)");
+        addSlots(ret, value, std::forward<Args>(args)...);
+
+        return ret;
+    }
+
     InitPhase initPhase();
 };
 

@@ -257,7 +257,6 @@ public:
     void accept(Visitor& visitor) override;
 
     Item* add(CellI& value);
-
     template <typename... Args>
     void add(CellI& value, Args&&... args)
     {
@@ -265,9 +264,8 @@ public:
         add(std::forward<Args>(args)...);
     }
     void removeItem(Item* item);
-
-
     bool empty() const;
+    int size();
 
 protected:
     CellI& m_valueType;
@@ -275,7 +273,7 @@ protected:
     Item* m_lastItem  = nullptr;
     int m_size     = 0;
 };
-
+// ============================================================================
 class Map;
 class Type : public CellI
 {
@@ -296,23 +294,15 @@ public:
 
     void addSlot(CellI& role, CellI& slot);
     bool hasSlot(CellI& role);
-    void deleteSlot(CellI& role);
+    void removeSlot(CellI& role);
 
-    Map* m_slots;
+    Map& m_slots;
     Map* m_subTypes = nullptr;
     Map* m_memberOf = nullptr;
     Map* m_asts     = nullptr;
     Map* m_methods  = nullptr;
 };
-
-#if 0
-We would like to store 3 cells: { Cell1, Cell2, Cell3 }
-index[Cell1] will point to a ListItem1 which has a value of Cell1
-index[Cell2] will point to a ListItem2 which has a value of Cell2
-index[Cell3] will point to a ListItem3 which has a value of Cell3
-
-set.list = { ListItem{ value = Cell1 }, ListItem{ value = Cell2 }, ListItem{ value = Cell3 } }
-#endif
+// ============================================================================
 class Index : public CellI
 {
 public:
@@ -327,12 +317,13 @@ public:
     void accept(Visitor& visitor) override;
 
     bool empty() const;
+    int size();
 
     Type* m_type;
     bool m_recursiveType = false;
     std::map<CellI*, CellI*> m_slots;
 };
-
+// ============================================================================
 class Map : public CellI
 {
 public:
@@ -358,6 +349,7 @@ public:
     }
     void remove(CellI& key);
     bool empty() const;
+    int size();
 
 private:
     List m_list;
@@ -366,14 +358,6 @@ private:
     CellI& m_valueType;
     int m_size = 0;
 };
-
-/*
-We would like to store 3 cells : { Cell1, Cell2, Cell3 } set.index[Cell1] will point to a ListItem1 which has a value of Cell1
-set.index[Cell2] will point to a ListItem2 which has a value of Cell2
-set.index[Cell3] will point to a ListItem3 which has a value of Cell3
-
-set.list = { ListItem{ value = Cell1 }, ListItem{ value = Cell2 }, ListItem{ value = Cell3 } }
-*/
 // ============================================================================
 class Set : public CellI
 {
@@ -396,14 +380,15 @@ public:
         add(value);
         add(std::forward<Args>(args)...);
     }
+    void remove(CellI& key);
     bool empty() const;
+    int size();
 
 protected:
     CellI& m_valueType;
     Index m_index;
     int m_size = 0;
 };
-
 } // namespace nextgen
 
 // ============================================================================
@@ -954,14 +939,6 @@ public:
     virtual void visit(Map::Index::Type&)                        = 0;
     virtual void visit(Map::Index&)                              = 0;
     virtual void visit(Map&)                                     = 0;
-    virtual void visit(Set::Index::Type::Slots::SlotList::Item&) {}
-    virtual void visit(Set::Index::Type::Slots::SlotList&)       {}
-    virtual void visit(Set::Index::Type::Slots::SlotIndex&)      {}
-    virtual void visit(Set::Index::Type::Slots&)                 {}
-    virtual void visit(Set::Index::Type::Slot&)                  {}
-    virtual void visit(Set::Index::Type&)                        {}
-    virtual void visit(Set::Index&)                              {}
-    virtual void visit(Set&) { }
 
     virtual void visit(hybrid::Color&)   = 0;
     virtual void visit(hybrid::Pixel&)   = 0;
