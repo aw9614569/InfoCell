@@ -76,7 +76,7 @@ bool CellI::operator==(CellI& rhs)
         return false;
     }
     CellI& slotList    = type()[kb.id.slots][kb.id.list];
-    CellI* slotItemPtr = slotList.has(kb.sequence.first) ? &slotList[kb.sequence.first] : nullptr;
+    CellI* slotItemPtr = slotList.has(kb.id.first) ? &slotList[kb.id.first] : nullptr;
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
         CellI& slot     = slotItem[kb.id.value];
@@ -90,7 +90,7 @@ bool CellI::operator==(CellI& rhs)
             return false;
         }
 
-        slotItemPtr = slotItem.has(kb.sequence.next) ? &slotItem[kb.sequence.next] : nullptr;
+        slotItemPtr = slotItem.has(kb.id.next) ? &slotItem[kb.id.next] : nullptr;
     }
 
     return true;
@@ -715,10 +715,10 @@ bool List::Item::has(CellI& role)
     if (&role == &kb.id.type || &role == &kb.id.value) {
         return true;
     }
-    if (&role == &kb.sequence.previous && m_value.prev()) {
+    if (&role == &kb.id.previous && m_value.prev()) {
         return true;
     }
-    if (&role == &kb.sequence.next && m_value.next()) {
+    if (&role == &kb.id.next && m_value.next()) {
         return true;
     }
 
@@ -745,13 +745,13 @@ CellI& List::Item::operator[](CellI& role)
     if (&role == &kb.id.type) {
         return kb.type.ListOf(m_value.m_list.m_valueType)[kb.id.subTypes][kb.id.index][kb.id.objectType];
     }
-    if (&role == &kb.sequence.previous) {
+    if (&role == &kb.id.previous) {
         if (m_value.prev())
             return m_value.prev()->m_listItem;
         else
             throw "No such role!";
     }
-    if (&role == &kb.sequence.next) {
+    if (&role == &kb.id.next) {
         if (m_value.next())
             return m_value.next()->m_listItem;
         else
@@ -798,10 +798,10 @@ List::List(brain::Brain& kb, CellI& valueType) :
 
 bool List::has(CellI& role)
 {
-    if (&role == &kb.id.type || &role == &kb.dimensions.size) {
+    if (&role == &kb.id.type || &role == &kb.id.size) {
         return true;
     }
-    if ((&role == &kb.sequence.first || &role == &kb.sequence.last) && !m_items.empty()) {
+    if ((&role == &kb.id.first || &role == &kb.id.last) && !m_items.empty()) {
         return true;
     }
     if (&role == &kb.id.objectType) {
@@ -831,13 +831,13 @@ CellI& List::operator[](CellI& role)
     if (&role == &kb.id.type) {
         return kb.type.ListOf(m_valueType);
     }
-    if (&role == &kb.sequence.first) {
+    if (&role == &kb.id.first) {
         return m_items.front().m_listItem;
     }
-    if (&role == &kb.sequence.last) {
+    if (&role == &kb.id.last) {
         return m_items.back().m_listItem;
     }
-    if (&role == &kb.dimensions.size) {
+    if (&role == &kb.id.size) {
         int size = (int)m_items.size();
 
         return kb.pools.numbers.get(size);
@@ -872,9 +872,9 @@ bool List::empty() const
 CellI& List::toNative()
 {
     Object& ret = *new Object(kb, get(kb.id.type));
-    ret.set(kb.sequence.first, get(kb.sequence.first));
-    ret.set(kb.sequence.last, get(kb.sequence.first));
-    ret.set(kb.dimensions.size, get(kb.dimensions.size));
+    ret.set(kb.id.first, get(kb.id.first));
+    ret.set(kb.id.last, get(kb.id.first));
+    ret.set(kb.id.size, get(kb.id.size));
 
     return ret;
 }
@@ -895,10 +895,10 @@ bool List::Item::has(CellI& role)
     if (&role == &kb.id.type || &role == &kb.id.value) {
         return true;
     }
-    if (&role == &kb.sequence.previous && m_previous) {
+    if (&role == &kb.id.previous && m_previous) {
         return true;
     }
-    if (&role == &kb.sequence.next && m_next) {
+    if (&role == &kb.id.next && m_next) {
         return true;
     }
 
@@ -912,10 +912,10 @@ void List::Item::set(CellI& role, CellI& value)
 
 void List::Item::erase(CellI& role)
 {
-    if (&role == &kb.sequence.next) {
+    if (&role == &kb.id.next) {
         m_next = nullptr;
     }
-    if (&role == &kb.sequence.previous) {
+    if (&role == &kb.id.previous) {
         m_previous = nullptr;
     }
     throw "No such role!";
@@ -931,13 +931,13 @@ CellI& List::Item::operator[](CellI& role)
     if (&role == &kb.id.type) {
         return kb.type.ListOf(m_list.m_valueType)[kb.id.subTypes][kb.id.index][kb.id.itemType];
     }
-    if (&role == &kb.sequence.previous) {
+    if (&role == &kb.id.previous) {
         if (m_previous)
             return *m_previous;
         else
             throw "No such role!";
     }
-    if (&role == &kb.sequence.next) {
+    if (&role == &kb.id.next) {
         if (m_next)
             return *m_next;
         else
@@ -965,13 +965,13 @@ List::List(brain::Brain& kb, CellI& valueType, const std::string& label) :
 
 bool List::has(CellI& role)
 {
-    if (&role == &kb.id.type || &role == &kb.dimensions.size) {
+    if (&role == &kb.id.type || &role == &kb.id.size) {
         return true;
     }
-    if (&role == &kb.sequence.first && m_firstItem) {
+    if (&role == &kb.id.first && m_firstItem) {
         return true;
     }
-    if (&role == &kb.sequence.last && m_lastItem) {
+    if (&role == &kb.id.last && m_lastItem) {
         return true;
     }
     if (&role == &kb.id.objectType) {
@@ -1001,13 +1001,13 @@ CellI& List::operator[](CellI& role)
     if (&role == &kb.id.type) {
         return kb.type.ListOf(m_valueType);
     }
-    if (&role == &kb.sequence.first) {
+    if (&role == &kb.id.first) {
         return *m_firstItem;
     }
-    if (&role == &kb.sequence.last) {
+    if (&role == &kb.id.last) {
         return *m_lastItem;
     }
-    if (&role == &kb.dimensions.size) {
+    if (&role == &kb.id.size) {
         int size = (int)m_size;
 
         return kb.pools.numbers.get(size);
@@ -1277,7 +1277,7 @@ bool Map::has(CellI& role)
     if (&role == &kb.id.objectType) {
         return true;
     }
-    if (&role == &kb.dimensions.size) {
+    if (&role == &kb.id.size) {
         return true;
     }
 
@@ -1319,7 +1319,7 @@ CellI& Map::operator[](CellI& role)
     if (&role == &kb.id.objectType) {
         return m_valueType;
     }
-    if (&role == &kb.dimensions.size) {
+    if (&role == &kb.id.size) {
         return kb.pools.numbers.get(m_size);
     }
 
@@ -1389,7 +1389,7 @@ Set::Set(brain::Brain& kb, CellI& valueType, const std::string& label) :
 
 bool Set::has(CellI& role)
 {
-    if (&role == &kb.id.type || &role == &kb.dimensions.size) {
+    if (&role == &kb.id.type || &role == &kb.id.size) {
         return true;
     }
     if (&role == &kb.id.index) {
@@ -1422,7 +1422,7 @@ CellI& Set::operator[](CellI& role)
     if (&role == &kb.id.index) {
         return m_index;
     }
-    if (&role == &kb.dimensions.size) {
+    if (&role == &kb.id.size) {
         int size = (int)m_size;
 
         return kb.pools.numbers.get(size);
@@ -1484,10 +1484,10 @@ bool Map::Index::Type::Slots::SlotList::Item::has(CellI& role)
     if (&role == &kb.id.type || &role == &kb.id.value) {
         return true;
     }
-    if (&role == &kb.sequence.previous && m_value.prev()) {
+    if (&role == &kb.id.previous && m_value.prev()) {
         return true;
     }
-    if (&role == &kb.sequence.next && m_value.next()) {
+    if (&role == &kb.id.next && m_value.next()) {
         return true;
     }
 
@@ -1514,13 +1514,13 @@ CellI& Map::Index::Type::Slots::SlotList::Item::operator[](CellI& role)
     if (&role == &kb.id.type) {
         return kb.type.ListOf(kb.type.Slot)[kb.id.subTypes][kb.id.index][kb.id.objectType];
     }
-    if (&role == &kb.sequence.previous) {
+    if (&role == &kb.id.previous) {
         if (m_value.prev())
             return m_value.prev()->m_indexTypeSlotsListItem;
         else
             throw "No such role!";
     }
-    if (&role == &kb.sequence.next) {
+    if (&role == &kb.id.next) {
         if (m_value.next())
             return m_value.next()->m_indexTypeSlotsListItem;
         else
@@ -1548,7 +1548,7 @@ Map::Index::Type::Slots::SlotList::SlotList(brain::Brain& kb, OrderedValues& ord
 
 bool Map::Index::Type::Slots::SlotList::has(CellI& role)
 {
-    if (&role == &kb.id.type || &role == &kb.sequence.first || &role == &kb.sequence.last || &role == &kb.dimensions.size) {
+    if (&role == &kb.id.type || &role == &kb.id.first || &role == &kb.id.last || &role == &kb.id.size) {
         return true;
     }
 
@@ -1575,19 +1575,19 @@ CellI& Map::Index::Type::Slots::SlotList::operator[](CellI& role)
     if (&role == &kb.id.type) {
         return kb.type.ListOf(kb.type.Slot);
     }
-    if (&role == &kb.sequence.first) {
+    if (&role == &kb.id.first) {
         if (m_orderedValues.empty()) {
             throw "No such role!";
         }
         return (*m_orderedValues.begin())->m_indexTypeSlotsListItem;
     }
-    if (&role == &kb.sequence.last) {
+    if (&role == &kb.id.last) {
         if (m_orderedValues.empty()) {
             throw "No such role!";
         }
         return (*m_orderedValues.rbegin())->m_indexTypeSlotsListItem;
     }
-    if (&role == &kb.dimensions.size) {
+    if (&role == &kb.id.size) {
         return kb.pools.numbers.get((int)m_orderedValues.size());
     }
 
@@ -1768,7 +1768,7 @@ CellI& Map::Index::Type::Slots::operator[](CellI& role)
     if (&role == &kb.id.objectType) {
         return kb.type.Slot;
     }
-    if (&role == &kb.dimensions.size) {
+    if (&role == &kb.id.size) {
         return kb.pools.numbers.get((int)m_slotIndex.m_indexedValues.size());
     }
 
@@ -1938,7 +1938,7 @@ Map::Map(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& 
 
 bool Map::has(CellI& role)
 {
-    if (&role == &kb.id.type || &role == &kb.dimensions.size) {
+    if (&role == &kb.id.type || &role == &kb.id.size) {
         return true;
     }
     if (&role == &kb.id.index && !m_orderedValues.empty()) {
@@ -1977,7 +1977,7 @@ CellI& Map::operator[](CellI& role)
     if (&role == &kb.id.list) {
         return m_list;
     }
-    if (&role == &kb.dimensions.size) {
+    if (&role == &kb.id.size) {
         int size = (int)m_orderedValues.size();
 
         return kb.pools.numbers.get(size);
@@ -2261,7 +2261,7 @@ bool Pixel::has(CellI& role)
     if (&role == &kb.directions.right && m_right) {
         return true;
     }
-    if (&role == &kb.visualization.color) {
+    if (&role == &kb.id.color) {
         return true;
     }
     if (&role == &kb.coordinates.x) {
@@ -2306,7 +2306,7 @@ CellI& Pixel::operator[](CellI& role)
     if (&role == &kb.directions.right && m_right) {
         return *m_right;
     }
-    if (&role == &kb.visualization.color) {
+    if (&role == &kb.id.color) {
         return m_color;
     }
     if (&role == &kb.coordinates.x) {
@@ -2368,7 +2368,7 @@ Picture::Picture(brain::Brain& kb, input::Picture& picture) :
 
 bool Picture::has(CellI& role)
 {
-    if (&role == &kb.id.type || &role == &kb.dimensions.width || &role == &kb.dimensions.height || &role == &kb.visualization.pixels) {
+    if (&role == &kb.id.type || &role == &kb.id.width || &role == &kb.id.height || &role == &kb.id.pixels) {
         return true;
     }
 
@@ -2394,13 +2394,13 @@ CellI& Picture::operator[](CellI& role)
     if (&role == &kb.id.type) {
         return kb.type.Picture;
     }
-    if (&role == &kb.dimensions.width) {
+    if (&role == &kb.id.width) {
         return m_widthCell;
     }
-    if (&role == &kb.dimensions.height) {
+    if (&role == &kb.id.height) {
         return m_heightCell;
     }
-    if (&role == &kb.visualization.pixels) {
+    if (&role == &kb.id.pixels) {
         return *m_pixelsList;
     }
 
@@ -2512,7 +2512,7 @@ void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, boo
     brain::Brain& kb = list.kb;
     int i            = 0;
 
-    CellI* currentListItemPtr = list.has(kb.sequence.first) ? &list[kb.sequence.first] : nullptr;
+    CellI* currentListItemPtr = list.has(kb.id.first) ? &list[kb.id.first] : nullptr;
     while (currentListItemPtr) {
         CellI& currentListItem = *currentListItemPtr;
         CellI& value           = currentListItem[kb.id.value];
@@ -2523,7 +2523,7 @@ void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, boo
             return;
         }
 
-        currentListItemPtr = currentListItem.has(kb.sequence.next) ? &currentListItem[kb.sequence.next] : nullptr;
+        currentListItemPtr = currentListItem.has(kb.id.next) ? &currentListItem[kb.id.next] : nullptr;
     }
 }
 

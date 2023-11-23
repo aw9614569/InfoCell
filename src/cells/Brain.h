@@ -6,29 +6,6 @@ namespace synth {
 namespace cells {
 namespace brain {
 
-class Sequence
-{
-public:
-    Sequence(brain::Brain& kb);
-    Object first;
-    Object last;
-    Object previous;
-    Object next;
-    Object current;
-    Object add;
-    Object erase;
-    Object empty;
-};
-
-class Dimensions
-{
-public:
-    Dimensions(brain::Brain& kb);
-    Object width;
-    Object height;
-    Object size;
-};
-
 class ID
 {
     brain::Brain& kb;
@@ -36,6 +13,12 @@ class ID
 public:
     ID(brain::Brain& kb);
 
+    Object addMembership;
+    Object addMethod;
+    Object addSlot;
+    Object addSlots;
+    Object addSubType;
+    Object add;
     Object addPixel;
     Object argument;
     Object ast;
@@ -44,11 +27,13 @@ public:
     Object cell;
     Object checkPixel;
     Object checkPixels;
+    Object color;
     Object condition;
     Object constructor;
     Object container;
     Object contains;
     Object continue_;
+    Object current;
     Object destructor;
     Object direction;
     Object else_;
@@ -56,9 +41,11 @@ public:
     Object emptyObject;
     Object erase;
     Object eval;
+    Object first;
     Object firstPixel;
     Object has;
     Object hasPixel;
+    Object height;
     Object id;
     Object index;
     Object indexType;
@@ -70,6 +57,7 @@ public:
     Object key;
     Object keyType;
     Object label;
+    Object last;
     Object lhs;
     Object list;
     Object listItem;
@@ -80,6 +68,7 @@ public:
     Object method;
     Object methods;
     Object name;
+    Object next;
     Object objectType;
     Object op;
     Object ops;
@@ -89,6 +78,7 @@ public:
     Object picture;
     Object pixel;
     Object pixels;
+    Object previous;
     Object process;
     Object processAdjacentPixel;
     Object processInputPixels;
@@ -100,6 +90,7 @@ public:
     Object shape;
     Object shapeId;
     Object shapes;
+    Object size;
     Object slotRole;
     Object slots;
     Object slotType;
@@ -114,20 +105,7 @@ public:
     Object then;
     Object type;
     Object value;
-};
-
-class Methods
-{
-    brain::Brain& kb;
-
-public:
-    Methods(brain::Brain& kb);
-
-    Object addMembership;
-    Object addMethod;
-    Object addSlot;
-    Object addSlots;
-    Object addSubType;
+    Object width;
 };
 
 template <typename T>
@@ -673,14 +651,6 @@ public:
     Object false_;
 };
 
-class Visualization
-{
-public:
-    Visualization(brain::Brain& kb);
-    Object color;
-    Object pixels;
-};
-
 class Numbers
 {
 public:
@@ -772,10 +742,7 @@ protected:
 public:
     Brain();
     ~Brain();
-    Sequence sequence;
-    Dimensions dimensions;
     ID id;
-    Methods methods;
     Types type;
     Pools pools;
     Ast ast;
@@ -783,7 +750,6 @@ public:
     Coordinates coordinates;
     Colors colors;
     Boolean boolean;
-    Visualization visualization;
     Numbers numbers;
     Arc arc;
     Test test;
