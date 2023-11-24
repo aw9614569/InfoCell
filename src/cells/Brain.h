@@ -30,8 +30,9 @@ public:
     Object color;
     Object condition;
     Object constructor;
+    Object constructorWithIndexType;
     Object constructorWithRecursiveType;
-    Object constructorWithType;
+    Object constructorWithSelfType;
     Object container;
     Object contains;
     Object continue_;
@@ -45,7 +46,9 @@ public:
     Object eval;
     Object first;
     Object firstPixel;
+    Object getValue;
     Object has;
+    Object hasKey;
     Object hasPixel;
     Object hasSlot;
     Object height;
@@ -263,6 +266,7 @@ public:
     Object ListOfSlot;
     Object ListItem;
     Object Map;
+    Object Map2;
     Object MapCellToSlot;
     Object MapCellToType;
     Object MapCellToAstFunction;

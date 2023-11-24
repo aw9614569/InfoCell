@@ -26,8 +26,9 @@ ID::ID(brain::Brain& kb) :
     color(kb, kb.type.Cell, "color"),
     condition(kb, kb.type.Cell, "condition"),
     constructor(kb, kb.type.Cell, "constructor"),
+    constructorWithIndexType(kb, kb.type.Cell, "constructorWithIndexType"),
     constructorWithRecursiveType(kb, kb.type.Cell, "constructorWithRecursiveType"),
-    constructorWithType(kb, kb.type.Cell, "constructorWithType"),
+    constructorWithSelfType(kb, kb.type.Cell, "constructorWithSelfType"),
     container(kb, kb.type.Cell, "container"),
     contains(kb, kb.type.Cell, "contains"),
     continue_(kb, kb.type.Cell, "continue"),
@@ -41,7 +42,9 @@ ID::ID(brain::Brain& kb) :
     eval(kb, kb.type.Cell, "eval"),
     first(kb, kb.type.Cell, "first"),
     firstPixel(kb, kb.type.Struct, "firstPixel"),
+    getValue(kb, kb.type.Cell, "getValue"),
     has(kb, kb.type.Struct, "has"),
+    hasKey(kb, kb.type.Cell, "hasKey"),
     hasPixel(kb, kb.type.Struct, "hasPixel"),
     hasSlot(kb, kb.type.Cell, "hasSlot"),
     height(kb, kb.type.Cell, "height"),
@@ -546,6 +549,7 @@ Types::Types(brain::Brain& kb) :
     ListOfSlot(kb, kb.type.Type_, "List<Slot>"),
     ListItem(kb, kb.type.Type_, "ListItem"),
     Map(kb, kb.type.Type_, "Map"),
+    Map2(kb, kb.type.Type_, "Map2"),
     MapCellToSlot(kb, kb.type.Type_, "Map<Cell, Slot>"),
     MapCellToType(kb, kb.type.Type_, "Map<Cell, Type>"),
     MapCellToAstFunction(kb, kb.type.Type_, "Map<Cell, ast::Function>"),
@@ -2251,7 +2255,7 @@ Brain::Brain() :
         var_(id.item) = in_(id.list) / _(id.first),
         ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))),
         ast.do_(ast.block(
-                    ast.var(id.next) = _(boolean.true_),
+                    var_(id.next) = _(boolean.true_),
                     ast.call(m_(id.slots), _(id.add), ast.slot(_(id.key), *var_(id.item) / _(id.value) / _(id.slotRole)), ast.slot(_(id.value), *var_(id.item) / _(id.value))),
                     ast.if_(ast.has(*var_(id.item), _(id.next)),
                             var_(id.item) = *var_(id.item) / _(id.next),
@@ -2270,11 +2274,12 @@ Brain::Brain() :
 
     Ast::Function& indexCtor = *new Ast::Function(*this, type.Index, id.constructor, "Index::constructor");
     indexCtor.addBlock(ast.block(
-        ast.set(ast.self(), m_(id.type), ast.new_(_(type.Type_), _(id.constructorWithRecursiveType)))));
+        ast.set(ast.self(), m_(id.type), ast.new_(_(type.Type_), _(id.constructorWithRecursiveType))),
+        ast.set(m_(id.type), _(id.memberOf), _(map(type.Type_, type.Type_, type.Index, type.Index)))));
 
-    Ast::Function& indexCtorWithType = *new Ast::Function(*this, type.Index, id.constructor, "Index::constructor");
+    Ast::Function& indexCtorWithType = *new Ast::Function(*this, type.Index, id.constructorWithSelfType, "Index::constructorWithSelfType");
     indexCtorWithType.addInputs(list(
-        ast.slot(id.type, type.Type_)));
+        param(id.type, type.Type_)));
     indexCtorWithType.addBlock(ast.block(
         ast.set(ast.self(), m_(id.type), in_(id.type))));
 
@@ -2295,51 +2300,52 @@ Brain::Brain() :
     */
     Ast::Function& indexInsert = *new Ast::Function(*this, type.Index, id.insert, "Index::insert");
     indexInsert.addInputs(list(
-        ast.slot(id.key, type.Cell),
-        ast.slot(id.value, type.Cell)));
+        param(id.key, type.Cell),
+        param(id.value, type.Cell)));
     indexInsert.addBlock(ast.block(
         ast.if_(ast.equal(in_(id.key), _(id.type)), ast.return_()),
         var_(id.slot) = ast.new_(_(type.Slot)),
         ast.set(*var_(id.slot), _(id.slotRole), in_(id.key)),
         ast.set(*var_(id.slot), _(id.slotType), _(type.Slot)),
         ast.if_(ast.equal(m_(id.recursiveType), _(boolean.false_)),
-                ast.call(m_(id.type), _(id.addSlot), ast.slot(_(id.slotRole), in_(id.key)), ast.slot(_(id.slotType), *var_(id.slot)))),
+                ast.call(m_(id.type), _(id.addSlot), param(_(id.slotRole), in_(id.key)), param(_(id.slotType), *var_(id.slot)))),
         ast.set(ast.self(), in_(id.key), in_(id.value))));
 
 
     Ast::Function& indexEmpty = *new Ast::Function(*this, type.Index, id.size, "Index::empty");
     indexEmpty.addOutputs(list(
-        ast.slot(id.value, type.Number)));
+        param(id.value, type.Number)));
     indexEmpty.addBlock(ast.block(
         ast.return_(ast.call(m_(id.type) / _(id.slots), _(id.empty)))));
 
     /*
     void Index::erase(CellI& role)
     {
-        if (m_type->hasSlot(role)) {
-            m_slots.erase(&role);
-            m_type->removeSlot(role);
+        if (!m_type->hasSlot(role)) {
+            return;
         }
+        m_slots.erase(&role);
+        m_type->removeSlot(role);
     }
     */
     Ast::Function& indexRemove = *new Ast::Function(*this, type.Index, id.remove, "Index::remove");
     indexRemove.addInputs(list(
-        ast.slot(id.key, type.Cell)));
+        param(id.key, type.Cell)));
     indexRemove.addBlock(ast.block(
-        ast.if_(ast.call(m_(id.type), _(id.hasSlot), ast.slot(_(id.slotRole), in_(id.key))),
-                ast.block(
-                   ast.erase(ast.self(), in_(id.key)),
-                   ast.call(m_(id.type), _(id.removeSlot), ast.slot(_(id.slotRole), in_(id.key)))))));
+        ast.if_(ast.not_(ast.call(m_(id.type), _(id.hasSlot), param(_(id.slotRole), in_(id.key)))),
+                ast.return_()),
+        ast.erase(ast.self(), in_(id.key)),
+        ast.call(m_(id.type), _(id.removeSlot), param(_(id.slotRole), in_(id.key)))));
 
     Ast::Function& indexSize = *new Ast::Function(*this, type.Index, id.size, "Index::size");
     indexSize.addOutputs(list(
-        ast.slot(id.value, type.Number)));
+        param(id.value, type.Number)));
     indexSize.addBlock(ast.block(
         ast.return_(ast.call(m_(id.type) / _(id.slots), _(id.size)))));
 
     registerMethods(type.Index,
                     id.constructor, indexCtor,
-                    id.constructorWithType, indexCtorWithType,
+                    id.constructorWithSelfType, indexCtorWithType,
                     id.empty, indexEmpty,
                     id.insert, indexInsert,
                     id.remove, indexRemove,
@@ -2363,7 +2369,7 @@ Brain::Brain() :
 
     Ast::Function& mapCtor = *new Ast::Function(*this, type.Map, id.constructor, "Map::constructor");
     mapCtor.addBlock(ast.block(
-        m_(id.size)   = _(_0_),
+        m_(id.size)       = _(_0_),
         m_(id.keyType)    = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.keyType),
         m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType),
         m_(id.listType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType),
@@ -2510,6 +2516,165 @@ Brain::Brain() :
     type.MapTypeToType.set(id.slots, *mapPtr);
     type.MapTypeToType.set(id.methods, map(type.Cell, type.op.Function, id.constructor, mapCtor.compile(type.Map), id.size, mapSize.compile(type.Map), id.add, mapAdd.compile(type.Map), id.empty, mapEmpty.compile(type.Map)));
 #pragma endregion
+#pragma region Map2
+    mapPtr = &slots(type.slot(id.keyType, type.Cell),
+                    type.slot(id.objectType, type.Cell),
+                    type.slot(id.list, type.ListOf(type.Cell)),
+                    type.slot(id.index, type.Index),
+                    type.slot(id.size, type.Number));
+    type.Map2.set(id.slots, *mapPtr);
+    mapPtr = &map(type.Cell, type.Type_,
+                  id.keyType, type.Cell,
+                  id.objectType, type.Cell,
+                  id.listType, type.ListOf(type.Cell));
+    type.Map2.set(id.subTypes, *mapPtr);
+    type.Map2.set(id.memberOf, map(type.Type_, type.Type_, type.Container, type.Container));
+
+    Ast::Function& map2Ctor = *new Ast::Function(*this, type.Map, id.constructor, "Map::constructor");
+    map2Ctor.addBlock(ast.block(
+        m_(id.size)       = _(_0_),
+        m_(id.keyType)    = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.keyType),
+        m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType),
+        m_(id.list)       = ast.new_(m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType), _(id.constructor)),
+        m_(id.index)      = ast.new_(_(type.Index), _(id.constructor))));
+
+    Ast::Function& map2CtorWithIndexType = *new Ast::Function(*this, type.Map, id.constructorWithIndexType, "Map::constructorWithIndexType");
+    map2CtorWithIndexType.addInputs(list(
+        param(id.indexType, type.Type_)));
+    map2CtorWithIndexType.addBlock(ast.block(
+        m_(id.size)       = _(_0_),
+        m_(id.keyType)    = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.keyType),
+        m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType),
+        m_(id.list)       = ast.new_(m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType), _(id.constructor)),
+        m_(id.index)      = ast.new_(_(type.Index), _(id.constructorWithSelfType), param(_(id.type), in_(id.indexType)))));
+
+    Ast::Function& map2Template = *new Ast::Function(*this, type.Map, id.template_, "static Map::template");
+    map2Template.set(id.static_, boolean.true_);
+    map2Template.addInputs(list(
+        ast.slot(id.keyType, type.Type_),
+        ast.slot(id.objectType, type.Type_)));
+    map2Template.addOutputs(list(
+        ast.slot(id.value, type.Map)));
+    map2Template.addBlock(ast.block(
+        var_(id.result)   = ast.new_(_(type.Type_)),
+        var_(id.listType) = ast.scall(_(type.List), _(id.template_), ast.slot(_(id.objectType), in_(id.objectType))),
+
+        ast.call(*var_(id.result), _(id.addSubType), ast.slot(_(id.slotRole), _(id.keyType)), ast.slot(_(id.slotType), in_(id.keyType))),
+        ast.call(*var_(id.result), _(id.addSubType), ast.slot(_(id.slotRole), _(id.objectType)), ast.slot(_(id.slotType), in_(id.objectType))),
+        ast.call(*var_(id.result), _(id.addSubType), ast.slot(_(id.slotRole), _(id.listType)), ast.slot(_(id.slotType), *var_(id.listType))),
+
+        ast.call(*var_(id.result), _(id.addMembership), ast.slot(_(id.cell), _(type.Map))),
+
+        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.keyType)), ast.slot(_(id.slotType), in_(id.keyType))),
+        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.objectType)), ast.slot(_(id.slotType), in_(id.objectType))),
+        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.list)), ast.slot(_(id.slotType), *var_(id.listType))),
+        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.listType)), ast.slot(_(id.slotType), *var_(id.listType))),
+        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.index)), ast.slot(_(id.slotType), _(type.Index))),
+        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.indexType)), ast.slot(_(id.slotType), _(type.Type_))),
+        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.size)), ast.slot(_(id.slotType), _(type.Number))),
+
+        ast.set(*var_(id.result), _(id.methods), m_(id.methods)),
+
+        ast.return_(*var_(id.result))));
+    /*
+    bool Map::hasKey(CellI& key)
+    {
+        return m_index.has(key);
+    }
+    */
+    Ast::Function& map2HasKey = *new Ast::Function(*this, type.Map, id.hasKey, "Map::hasKey");
+    map2HasKey.addInputs(list(
+        param(id.key, type.Cell)));
+    map2HasKey.addBlock(ast.block(
+        ast.if_(ast.has(m_(id.index), in_(id.key)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_)))));
+
+    /*
+    CellI& Map::getValue(CellI& key)
+    {
+        if (m_index.has(key)) {
+            return m_index[key][kb.id.value];
+        }
+        throw "No such role!";
+    }
+    */
+    Ast::Function& map2GetValue = *new Ast::Function(*this, type.Map, id.hasKey, "Map::getValue");
+    map2GetValue.addInputs(list(
+        param(id.key, type.Cell)));
+    map2GetValue.addBlock(ast.block(
+        ast.if_(ast.has(m_(id.index), in_(id.key)), ast.return_(m_(id.index) / in_(id.key) / _(id.value)), ast.return_(_(id.emptyObject)))));
+
+
+    /*
+    void Map::add(CellI& key, CellI& value)
+    {
+        if (&key == &kb.id.type) {
+            throw "id.type can not be stored in a map!";
+        }
+        if (m_index.has(key)) {
+            throw "A value already registered with this role";
+        }
+        List::Item& item = *m_list.add(value);
+        m_index.insert(key, item);
+        ++m_size;
+    }
+    */
+    Ast::Function& map2Add = *new Ast::Function(*this, type.Map, id.add, "Map::add");
+    map2Add.addInputs(list(
+        param(id.key, type.Cell),
+        param(id.value, type.Cell)));
+    map2Add.addBlock(ast.block(
+        ast.if_(ast.equal(in_(id.key), _(id.type)), ast.return_()),
+        ast.if_(ast.has(m_(id.index), in_(id.key)), ast.return_()),
+        var_(id.item) = m_(id.list).call(_(id.add), param(_(id.value), in_(id.value))),
+        ast.call(m_(id.index), _(id.insert), param(_(id.key), in_(id.key)), param(_(id.value), in_(id.value))),
+        m_(id.size) = ast.add(m_(id.size), _(_1_))));
+
+    /*
+    void Map::remove(CellI& key)
+    {
+        if (!m_index.has(key)) {
+            return;
+        }
+        List::Item* item = &static_cast<List::Item&>(m_index[key]);
+        m_list.removeItem(item);
+        m_index.erase(key);
+        --m_size;
+    }
+    */
+    Ast::Function& map2Remove = *new Ast::Function(*this, type.Map, id.remove, "Map::remove");
+    map2Remove.addInputs(list(
+        param(id.key, type.Cell)));
+    map2Remove.addBlock(ast.block(
+        ast.if_(ast.not_(ast.call(m_(id.type), _(id.hasSlot), param(_(id.slotRole), in_(id.key)))),
+                ast.return_()),
+        var_(id.item) = m_(id.index) / _(in_(id.key)),
+        ast.call(*var_(id.item), _(id.remove), param(_(id.item), *var_(id.item))),
+        ast.call(m_(id.index), _(id.remove), param(_(id.key), in_(id.key))),
+        m_(id.size) = ast.subtract(m_(id.size), _(_1_))));
+
+    Ast::Function& map2Size = *new Ast::Function(*this, type.Map, id.size, "Map::size");
+    map2Size.addOutputs(list(
+        param(id.value, type.Number)));
+    map2Size.addBlock(ast.block(
+        ast.return_(m_(id.size))));
+
+    Ast::Function& map2Empty = *new Ast::Function(*this, type.Map, id.empty, "Map::empty");
+    map2Empty.addOutputs(list(
+        param(id.value, type.Boolean)));
+    map2Empty.addBlock(ast.block(
+        ast.if_(ast.equal(m_(id.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_)))));
+
+    registerMethods(type.Map2,
+                    id.constructor, map2Ctor,
+                    id.constructorWithIndexType, map2CtorWithIndexType,
+                    id.template_, map2Template,
+                    id.hasKey, map2HasKey,
+                    id.getValue, map2GetValue,
+                    id.add, map2Add,
+                    id.remove, map2Remove,
+                    id.size, map2Size,
+                    id.empty, map2Empty);
+ #pragma endregion
 #pragma region Set
     mapPtr = &slots(type.slot(id.objectType, type.Cell),
                     type.slot(id.list, type.ListOf(type.Cell)),
@@ -2775,12 +2940,12 @@ public:
     */
     Ast::Function& shaperProcessInputPixels = *new Ast::Function(*this, type.arc.Shaper, id.processInputPixels, "Shaper::processInputPixels");
     shaperProcessInputPixels.addBlock(ast.block(
-        ast.var(id.pixels) = m_(id.picture) / _(id.pixels),
-        ast.var(id.pixel) = *var_(id.pixels)/ _(id.first),
-        ast.while_(ast.equal(*ast.var(id.pixel), *var_(id.pixels) / _(id.last)),
+        var_(id.pixels) = m_(id.picture) / _(id.pixels),
+        var_(id.pixel) = *var_(id.pixels)/ _(id.first),
+        ast.while_(ast.equal(*var_(id.pixel), *var_(id.pixels) / _(id.last)),
                    ast.block(
                           ast.call(m_(id.inputPixels), _(id.add), ast.slot(_(id.value), *var_(id.pixel))),
-                          ast.var(id.pixel) = *var_(id.pixels)/ _(id.first)))));
+                          var_(id.pixel) = *var_(id.pixels)/ _(id.first)))));
 
     /*
     void Shaper::process()
@@ -2808,13 +2973,13 @@ public:
     */
     Ast::Function& shaperProcess = *new Ast::Function(*this, type.arc.Shaper, id.process, "Shaper::process");
     shaperProcess.addBlock(ast.block(
-        ast.var(id.shapeId) = _(_1_),
+        var_(id.shapeId) = _(_1_),
         ast.while_(ast.not_(ast.call(m_(id.inputPixels), _(id.empty))),
                    ast.block(
-                       ast.var(id.firstPixel) = ast.call(m_(id.inputPixels), _(id.first), ast.slot(_(id.pixel), in_(id.checkPixel))),
+                       var_(id.firstPixel) = ast.call(m_(id.inputPixels), _(id.first), ast.slot(_(id.pixel), in_(id.checkPixel))),
                        ast.call(m_(id.shapes), _(id.add), ast.slot(_(id.value), ast.new_(_(type.arc.Shape), _(id.constructor), ast.slot(_(id.id), *var_(id.id)), ast.slot(_(id.color), *var_(id.firstPixel) / _(id.color)), ast.slot(_(id.width), m_(id.width)), ast.slot(_(id.height), m_(id.height))))),
-                       ast.var(id.shape)       = ast.call(m_(id.shapes), _(id.last)),
-                       ast.var(id.checkPixels) = ast.new_(_(type.List)),
+                       var_(id.shape)       = ast.call(m_(id.shapes), _(id.last)),
+                       var_(id.checkPixels) = ast.new_(_(type.List)),
                        ast.call(*var_(id.checkPixels), _(id.add), ast.slot(_(id.value), *var_(id.firstPixel))),
                        ast.while_(ast.not_(ast.call(*var_(id.checkPixels), _(id.empty))),
                                   ast.block(
@@ -2854,11 +3019,11 @@ public:
     shaperProcessPixel.addBlock(ast.block(
         ast.call(in_(id.shape), _(id.addPixel), ast.slot(_(id.pixel), in_(id.checkPixel))),
         ast.call(m_(id.inputPixels), _(id.erase), ast.slot(_(id.pixel), in_(id.checkPixel))),
-        ast.if_(ast.var(id.pixel) = ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.up)), ast.slot(_(id.shape), in_(id.shape)), ast.slot(_(id.checkPixels), in_(id.checkPixels)), ast.slot(_(id.checkPixel), in_(id.checkPixel))),
+        ast.if_(var_(id.pixel) = ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.up)), ast.slot(_(id.shape), in_(id.shape)), ast.slot(_(id.checkPixels), in_(id.checkPixels)), ast.slot(_(id.checkPixel), in_(id.checkPixel))),
                 ast.block(
                     ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.left)), ast.slot(_(id.shape), in_(id.shape)), ast.slot(_(id.checkPixels), in_(id.checkPixels)), ast.slot(_(id.checkPixel), *var_(id.pixel))),
                     ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.right)), ast.slot(_(id.shape), in_(id.shape)), ast.slot(_(id.checkPixels), in_(id.checkPixels)), ast.slot(_(id.checkPixel), *var_(id.pixel))))),
-        ast.if_(ast.var(id.pixel) = ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.down)), ast.slot(_(id.shape), in_(id.shape)), ast.slot(_(id.checkPixels), in_(id.checkPixels)), ast.slot(_(id.checkPixel), in_(id.checkPixel))),
+        ast.if_(var_(id.pixel) = ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.down)), ast.slot(_(id.shape), in_(id.shape)), ast.slot(_(id.checkPixels), in_(id.checkPixels)), ast.slot(_(id.checkPixel), in_(id.checkPixel))),
                 ast.block(
                     ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.left)), ast.slot(_(id.shape), in_(id.shape)), ast.slot(_(id.checkPixels), in_(id.checkPixels)), ast.slot(_(id.checkPixel), *var_(id.pixel))),
                     ast.call(ast.self(), _(id.processAdjacentPixel), ast.slot(_(id.direction), _(directions.right)), ast.slot(_(id.shape), in_(id.shape)), ast.slot(_(id.checkPixels), in_(id.checkPixels)), ast.slot(_(id.checkPixel), *var_(id.pixel))))),
@@ -2890,7 +3055,7 @@ public:
     shaperProcessAdjacentPixel.addBlock(ast.block(
         ast.if_(ast.call(*var_(id.checkPixel), _(id.has), ast.slot(_(id.direction), in_(id.direction))),
                 ast.block(
-                    ast.var(id.pixel) = _(id.checkPixel) / _(id.direction),
+                    var_(id.pixel) = _(id.checkPixel) / _(id.direction),
                     ast.if_(ast.and_(ast.equal(*var_(id.pixel) / _(id.color), *var_(id.shape) / _(id.color)), ast.not_(ast.call(*var_(id.shape), _(id.hasPixel), ast.slot(_(id.pixel), *var_(id.pixel))))),
                         ast.call(*var_(id.checkPixels), _(id.insert), ast.slot(_(id.pixel), *var_(id.pixel)))),
                     ast.return_(_(id.pixel))),

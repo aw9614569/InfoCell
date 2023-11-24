@@ -1195,10 +1195,11 @@ void Index::set(CellI& key, CellI& value)
 
 void Index::erase(CellI& role)
 {
-    if (m_type->hasSlot(role)) {
-        m_slots.erase(&role);
-        m_type->removeSlot(role);
+    if (!m_type->hasSlot(role)) {
+        return;
     }
+    m_slots.erase(&role);
+    m_type->removeSlot(role);
 }
 
 void Index::operator()()
