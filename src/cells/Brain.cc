@@ -539,6 +539,7 @@ Arc::Arc(brain::Brain& kb) :
 Types::Types(brain::Brain& kb) :
     kb(kb),
     Type_(kb, kb.type.Type_, "Type"),
+    Type2_(kb, kb.type.Type_, "Type"),
     Struct(kb, kb.type.Type_, "Struct"),
     Enum(kb, kb.type.Type_, "Enum"),
     Cell(kb, kb.type.Type_, "Cell"),
@@ -2097,17 +2098,17 @@ Brain::Brain() :
     Ast::Function& listItemTemplate = *new Ast::Function(*this, type.ListItem, id.template_, "static ListItem::template");
     listItemTemplate.set(id.static_, boolean.true_);
     listItemTemplate.addInputs(list(
-        ast.slot(id.objectType, type.Type_)));
+        param(id.objectType, type.Type_)));
     listItemTemplate.addOutputs(list(
-        ast.slot(id.value, type.ListItem)));
+        param(id.value, type.ListItem)));
     listItemTemplate.addBlock(ast.block(
         var_(id.result) = ast.new_(_(type.Type_)),
 
-        ast.call(*var_(id.result), _(id.addMembership), ast.slot(_(id.cell), _(type.ListItem))),
+        ast.call(*var_(id.result), _(id.addMembership), param(_(id.cell), _(type.ListItem))),
 
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.previous)), ast.slot(_(id.slotType), *var_(id.result))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.next)), ast.slot(_(id.slotType), *var_(id.result))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.value)), ast.slot(_(id.slotType), in_(id.objectType))),
+        ast.call(*var_(id.result), _(id.addSlot), param(_(id.slotRole), _(id.previous)), param(_(id.slotType), *var_(id.result))),
+        ast.call(*var_(id.result), _(id.addSlot), param(_(id.slotRole), _(id.next)), param(_(id.slotType), *var_(id.result))),
+        ast.call(*var_(id.result), _(id.addSlot), param(_(id.slotRole), _(id.value)), param(_(id.slotType), in_(id.objectType))),
 
         ast.set(*var_(id.result), _(id.methods), m_(id.methods)),
 
@@ -2115,7 +2116,7 @@ Brain::Brain() :
 
     Ast::Function& listItemCtor = *new Ast::Function(*this, type.ListItem, id.constructor, "ListItem::constructor");
     listItemCtor.addInputs(list(
-        ast.slot(id.value, type.Cell)));
+        param(id.value, type.Cell)));
     listItemCtor.addBlock(ast.block(
         m_(id.value) = in_(id.value)));
 
@@ -2143,22 +2144,22 @@ Brain::Brain() :
     Ast::Function& listTemplate = *new Ast::Function(*this, type.List, id.template_, "static List::template");
     listTemplate.set(id.static_, boolean.true_);
     listTemplate.addInputs(list(
-        ast.slot(id.objectType, type.Type_)));
+        param(id.objectType, type.Type_)));
     listTemplate.addOutputs(list(
-        ast.slot(id.value, type.List)));
+        param(id.value, type.List)));
     listTemplate.addBlock(ast.block(
-        var_(type.ListItem) = ast.scall(_(type.ListItem), _(id.template_), ast.slot(_(id.objectType), in_(id.objectType))),
+        var_(type.ListItem) = ast.scall(_(type.ListItem), _(id.template_), param(_(id.objectType), in_(id.objectType))),
         var_(id.result)     = ast.new_(_(type.Type_)),
 
-        ast.call(*var_(id.result), _(id.addSubType), ast.slot(_(id.slotRole), _(id.itemType)), ast.slot(_(id.slotType), *var_(type.ListItem))),
-        ast.call(*var_(id.result), _(id.addSubType), ast.slot(_(id.slotRole), _(id.objectType)), ast.slot(_(id.slotType), in_(id.objectType))),
-        ast.call(*var_(id.result), _(id.addMembership), ast.slot(_(id.cell), _(type.List))),
+        ast.call(*var_(id.result), _(id.addSubType), param(_(id.slotRole), _(id.itemType)), param(_(id.slotType), *var_(type.ListItem))),
+        ast.call(*var_(id.result), _(id.addSubType), param(_(id.slotRole), _(id.objectType)), param(_(id.slotType), in_(id.objectType))),
+        ast.call(*var_(id.result), _(id.addMembership), param(_(id.cell), _(type.List))),
 
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.first)), ast.slot(_(id.slotType), *var_(type.ListItem))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.last)), ast.slot(_(id.slotType), *var_(type.ListItem))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.size)), ast.slot(_(id.slotType), _(type.Number))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.itemType)), ast.slot(_(id.slotType), *var_(type.ListItem))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.objectType)), ast.slot(_(id.slotType), in_(id.objectType))),
+        ast.call(*var_(id.result), _(id.addSlot), param(_(id.slotRole), _(id.first)), param(_(id.slotType), *var_(type.ListItem))),
+        ast.call(*var_(id.result), _(id.addSlot), param(_(id.slotRole), _(id.last)), param(_(id.slotType), *var_(type.ListItem))),
+        ast.call(*var_(id.result), _(id.addSlot), param(_(id.slotRole), _(id.size)), param(_(id.slotType), _(type.Number))),
+        ast.call(*var_(id.result), _(id.addSlot), param(_(id.slotRole), _(id.itemType)), param(_(id.slotType), *var_(type.ListItem))),
+        ast.call(*var_(id.result), _(id.addSlot), param(_(id.slotRole), _(id.objectType)), param(_(id.slotType), in_(id.objectType))),
 
         ast.set(*var_(id.result), _(id.methods), m_(id.methods)),
 
@@ -2172,11 +2173,11 @@ Brain::Brain() :
 
     Ast::Function& listAdd = *new Ast::Function(*this, type.List, id.add, "List::add");
     listAdd.addInputs(list(
-        ast.slot(id.value, type.Cell)));
+        param(id.value, type.Cell)));
     listAdd.addOutputs(list(
-        ast.slot(id.value, type.ListItem)));
+        param(id.value, type.ListItem)));
     listAdd.addBlock(ast.block(
-        var_(id.item) = ast.new_(m_(id.itemType), _(id.constructor), ast.slot(_(id.value), in_(id.value))),
+        var_(id.item) = ast.new_(m_(id.itemType), _(id.constructor), param(_(id.value), in_(id.value))),
         ast.if_(ast.not_(m_(id.first).exist()),
                 m_(id.first) = *var_(id.item),                              // then
                 ast.block(ast.set(m_(id.last), _(id.next), *var_(id.item)), // else
@@ -2184,16 +2185,51 @@ Brain::Brain() :
         m_(id.last) = *var_(id.item),
         m_(id.size) = ast.add(m_(id.size), _(_1_)),
         ast.return_(*var_(id.item))));
+    /*
+    void List::removeItem(Item* item)
+    {
+        if (item->m_previous) {
+            item->m_previous->m_next = item->m_next;
+        } else {
+            m_firstItem = item->m_next;
+        }
+        if (item->m_next) {
+            item->m_next->m_previous = item->m_previous;
+        } else {
+            m_lastItem = item->m_previous;
+        }
+        --m_size;
+    }
+    */
+    Ast::Function& listRemove = *new Ast::Function(*this, type.List, id.remove, "List::remove");
+    listRemove.addInputs(list(
+        param(id.item, type.Cell)));
+    listRemove.addBlock(ast.block(
+        ast.if_(ast.has(in_(id.item), _(id.previous)),
+                ast.if_(ast.has(in_(id.item), _(id.next)),
+                        ast.set(in_(id.item) / _(id.previous), _(id.next), in_(id.item) / _(id.next)),
+                        ast.erase(in_(id.item) / _(id.previous), _(id.next))),
+                ast.if_(ast.has(in_(id.item), _(id.next)),
+                        m_(id.first) = in_(id.item) / _(id.next),
+                        ast.erase(ast.self(), _(id.first)))),
+        ast.if_(ast.has(in_(id.item), _(id.next)),
+                ast.if_(ast.has(in_(id.item), _(id.previous)),
+                        ast.set(in_(id.item) / _(id.next), _(id.previous), in_(id.item) / _(id.previous)),
+                        ast.erase(in_(id.item) / _(id.next), _(id.previous))),
+                ast.if_(ast.has(in_(id.item), _(id.previous)),
+                        m_(id.last) = in_(id.item) / _(id.previous),
+                        ast.erase(ast.self(), _(id.last)))),
+        m_(id.size) = ast.subtract(m_(id.size), _(_1_))));
 
     Ast::Function& listSize = *new Ast::Function(*this, type.List, id.size, "List::size");
     listSize.addOutputs(list(
-        ast.slot(id.value, type.Number)));
+        param(id.value, type.Number)));
     listSize.addBlock(ast.block(
         ast.return_(m_(id.size))));
 
     Ast::Function& listEmpty = *new Ast::Function(*this, type.List, id.empty, "List::empty");
     listEmpty.addOutputs(list(
-        ast.slot(id.value, type.Boolean)));
+        param(id.value, type.Boolean)));
     listEmpty.addBlock(ast.block(
         ast.if_(ast.equal(m_(id.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_)))));
 
@@ -2201,6 +2237,7 @@ Brain::Brain() :
                     id.template_, listTemplate,
                     id.constructor, listCtor,
                     id.add, listAdd,
+                    id.remove, listRemove,
                     id.size, listSize,
                     id.empty, listEmpty);
 
@@ -2268,6 +2305,81 @@ Brain::Brain() :
                     id.addSubType, typeAddSubType,
                     id.addMembership, typeAddMembership,
                     id.addSlots, typeAddSlots);
+#pragma endregion
+#pragma region Type2
+    Ast::Function& type2Ctor = *new Ast::Function(*this, type.Type_, id.constructor, "Type::constructor");
+    type2Ctor.addBlock(ast.block(
+        m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))));
+
+    Ast::Function& type2CtorWithRecursiveType = *new Ast::Function(*this, type.Type_, id.constructorWithRecursiveType, "Type::constructorWithRecursiveType");
+    type2CtorWithRecursiveType.addInputs(list(
+        param(id.indexType, type.Type_)));
+    type2CtorWithRecursiveType.addBlock(ast.block(
+        m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructorWithIndexType), param(_(id.indexType), in_(id.indexType)))));
+
+    Ast::Function& type2AddSubType = *new Ast::Function(*this, type.Type_, id.addSubType, "Type::addSubType");
+    type2AddSubType.addInputs(list(
+        param(id.slotRole, type.Cell),
+        param(id.slotType, type.Type_)));
+    type2AddSubType.addBlock(ast.block(
+        ast.if_(m_(id.subTypes).missing(), m_(id.subTypes) = ast.new_(_(type.MapCellToType), _(id.constructor))),
+        ast.call(m_(id.subTypes), _(id.add), param(_(id.key), in_(id.slotRole)), param(_(id.value), in_(id.slotType)))));
+
+    Ast::Function& type2AddMembership = *new Ast::Function(*this, type.Type_, id.addMembership, "Type::addMembership");
+    type2AddMembership.addInputs(list(
+        param(id.cell, type.Type_)));
+    type2AddMembership.addBlock(ast.block(
+        ast.if_(m_(id.memberOf).missing(), m_(id.memberOf) = ast.new_(_(type.MapTypeToType), _(id.constructor))),
+        ast.call(m_(id.memberOf), _(id.add), param(_(id.key), in_(id.cell)), param(_(id.value), in_(id.cell)))));
+
+    Ast::Function& type2AddSlot = *new Ast::Function(*this, type.Type_, id.addSlot, "Type::addSlot");
+    type2AddSlot.addInputs(list(
+        param(id.slotRole, type.Cell),
+        param(id.slotType, type.Slot)));
+    type2AddSlot.addBlock(ast.block(
+        ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))),
+        ast.call(m_(id.slots), _(id.add), param(_(id.key), in_(id.slotRole)), param(_(id.value), in_(id.slot)))));
+
+    Ast::Function& type2AddSlots = *new Ast::Function(*this, type.Type_, id.addSlots, "Type::addSlots");
+    type2AddSlots.addInputs(list(
+        ast.slot(id.list, type.ListOf(type.Slot))));
+    type2AddSlots.addBlock(ast.block(
+        ast.if_(ast.equal(in_(id.list) / _(id.size), _(_0_)), ast.return_()),
+        var_(id.item) = in_(id.list) / _(id.first),
+        ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))),
+        ast.do_(ast.block(
+                    var_(id.next) = _(boolean.true_),
+                    ast.call(m_(id.slots), _(id.add), param(_(id.key), *var_(id.item) / _(id.value) / _(id.slotRole)), param(_(id.value), *var_(id.item) / _(id.value))),
+                    ast.if_(ast.has(*var_(id.item), _(id.next)),
+                            var_(id.item) = *var_(id.item) / _(id.next),
+                            var_(id.next) = _(boolean.false_))),
+                ast.same(*var_(id.next), _(boolean.true_)))));
+
+    Ast::Function& type2HasSlot = *new Ast::Function(*this, type.Type_, id.addSlot, "Type::hasSlot");
+    type2HasSlot.addInputs(list(
+        param(id.slotRole, type.Cell)));
+    type2HasSlot.addOutputs(list(
+        param(id.value, type.Boolean)));
+    type2HasSlot.addBlock(ast.block(
+        ast.if_(m_(id.slots).missing(), ast.return_(_(boolean.false_))),
+        ast.return_(ast.call(m_(id.slots), _(id.hasKey), param(_(id.key), in_(id.slotRole))))));
+
+    Ast::Function& type2RemoveSlot = *new Ast::Function(*this, type.Type_, id.removeSlot, "Type::removeSlot");
+    type2RemoveSlot.addInputs(list(
+        param(id.slotRole, type.Cell)));
+    type2RemoveSlot.addBlock(ast.block(
+        ast.if_(m_(id.slots).missing(), ast.return_()),
+        ast.call(m_(id.slots), _(id.removeSlot), param(_(id.key), in_(id.slotRole)))));
+
+    registerMethods(type.Type2_,
+                    id.constructor, type2Ctor,
+                    id.constructorWithRecursiveType, type2CtorWithRecursiveType,
+                    id.addSubType, type2AddSubType,
+                    id.addMembership, type2AddMembership,
+                    id.addSlot, type2AddSlot,
+                    id.addSlots, type2AddSlots,
+                    id.hasSlot, type2HasSlot,
+                    id.removeSlot, type2RemoveSlot);
 #pragma endregion
 #pragma region Index
     type.Index.set(id.memberOf, map(type.Type_, type.Type_));
@@ -2647,8 +2759,7 @@ Brain::Brain() :
     map2Remove.addBlock(ast.block(
         ast.if_(ast.not_(ast.call(m_(id.type), _(id.hasSlot), param(_(id.slotRole), in_(id.key)))),
                 ast.return_()),
-        var_(id.item) = m_(id.index) / _(in_(id.key)),
-        ast.call(*var_(id.item), _(id.remove), param(_(id.item), *var_(id.item))),
+        ast.call(m_(id.list), _(id.remove), param(_(id.item), m_(id.index) / _(in_(id.key)))),
         ast.call(m_(id.index), _(id.remove), param(_(id.key), in_(id.key))),
         m_(id.size) = ast.subtract(m_(id.size), _(_1_))));
 

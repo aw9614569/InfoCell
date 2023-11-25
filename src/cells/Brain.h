@@ -256,6 +256,7 @@ protected:
 
 public:
     Object Type_;
+    Object Type2_;
     Object Struct;
     Object Enum;
     Object Cell;
