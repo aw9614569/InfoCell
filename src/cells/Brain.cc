@@ -2307,17 +2307,17 @@ Brain::Brain() :
                     id.addSlots, typeAddSlots);
 #pragma endregion
 #pragma region Type2
-    Ast::Function& type2Ctor = *new Ast::Function(*this, type.Type_, id.constructor, "Type::constructor");
+    Ast::Function& type2Ctor = *new Ast::Function(*this, type.Type2_, id.constructor, "Type::constructor");
     type2Ctor.addBlock(ast.block(
         m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))));
 
-    Ast::Function& type2CtorWithRecursiveType = *new Ast::Function(*this, type.Type_, id.constructorWithRecursiveType, "Type::constructorWithRecursiveType");
+    Ast::Function& type2CtorWithRecursiveType = *new Ast::Function(*this, type.Type2_, id.constructorWithRecursiveType, "Type::constructorWithRecursiveType");
     type2CtorWithRecursiveType.addInputs(list(
         param(id.indexType, type.Type_)));
     type2CtorWithRecursiveType.addBlock(ast.block(
         m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructorWithIndexType), param(_(id.indexType), in_(id.indexType)))));
 
-    Ast::Function& type2AddSubType = *new Ast::Function(*this, type.Type_, id.addSubType, "Type::addSubType");
+    Ast::Function& type2AddSubType = *new Ast::Function(*this, type.Type2_, id.addSubType, "Type::addSubType");
     type2AddSubType.addInputs(list(
         param(id.slotRole, type.Cell),
         param(id.slotType, type.Type_)));
@@ -2325,14 +2325,14 @@ Brain::Brain() :
         ast.if_(m_(id.subTypes).missing(), m_(id.subTypes) = ast.new_(_(type.MapCellToType), _(id.constructor))),
         ast.call(m_(id.subTypes), _(id.add), param(_(id.key), in_(id.slotRole)), param(_(id.value), in_(id.slotType)))));
 
-    Ast::Function& type2AddMembership = *new Ast::Function(*this, type.Type_, id.addMembership, "Type::addMembership");
+    Ast::Function& type2AddMembership = *new Ast::Function(*this, type.Type2_, id.addMembership, "Type::addMembership");
     type2AddMembership.addInputs(list(
         param(id.cell, type.Type_)));
     type2AddMembership.addBlock(ast.block(
         ast.if_(m_(id.memberOf).missing(), m_(id.memberOf) = ast.new_(_(type.MapTypeToType), _(id.constructor))),
         ast.call(m_(id.memberOf), _(id.add), param(_(id.key), in_(id.cell)), param(_(id.value), in_(id.cell)))));
 
-    Ast::Function& type2AddSlot = *new Ast::Function(*this, type.Type_, id.addSlot, "Type::addSlot");
+    Ast::Function& type2AddSlot = *new Ast::Function(*this, type.Type2_, id.addSlot, "Type::addSlot");
     type2AddSlot.addInputs(list(
         param(id.slotRole, type.Cell),
         param(id.slotType, type.Slot)));
@@ -2340,7 +2340,7 @@ Brain::Brain() :
         ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))),
         ast.call(m_(id.slots), _(id.add), param(_(id.key), in_(id.slotRole)), param(_(id.value), in_(id.slot)))));
 
-    Ast::Function& type2AddSlots = *new Ast::Function(*this, type.Type_, id.addSlots, "Type::addSlots");
+    Ast::Function& type2AddSlots = *new Ast::Function(*this, type.Type2_, id.addSlots, "Type::addSlots");
     type2AddSlots.addInputs(list(
         ast.slot(id.list, type.ListOf(type.Slot))));
     type2AddSlots.addBlock(ast.block(
@@ -2355,7 +2355,7 @@ Brain::Brain() :
                             var_(id.next) = _(boolean.false_))),
                 ast.same(*var_(id.next), _(boolean.true_)))));
 
-    Ast::Function& type2HasSlot = *new Ast::Function(*this, type.Type_, id.addSlot, "Type::hasSlot");
+    Ast::Function& type2HasSlot = *new Ast::Function(*this, type.Type2_, id.addSlot, "Type::hasSlot");
     type2HasSlot.addInputs(list(
         param(id.slotRole, type.Cell)));
     type2HasSlot.addOutputs(list(
@@ -2364,7 +2364,7 @@ Brain::Brain() :
         ast.if_(m_(id.slots).missing(), ast.return_(_(boolean.false_))),
         ast.return_(ast.call(m_(id.slots), _(id.hasKey), param(_(id.key), in_(id.slotRole))))));
 
-    Ast::Function& type2RemoveSlot = *new Ast::Function(*this, type.Type_, id.removeSlot, "Type::removeSlot");
+    Ast::Function& type2RemoveSlot = *new Ast::Function(*this, type.Type2_, id.removeSlot, "Type::removeSlot");
     type2RemoveSlot.addInputs(list(
         param(id.slotRole, type.Cell)));
     type2RemoveSlot.addBlock(ast.block(
@@ -2642,7 +2642,7 @@ Brain::Brain() :
     type.Map2.set(id.subTypes, *mapPtr);
     type.Map2.set(id.memberOf, map(type.Type_, type.Type_, type.Container, type.Container));
 
-    Ast::Function& map2Ctor = *new Ast::Function(*this, type.Map, id.constructor, "Map::constructor");
+    Ast::Function& map2Ctor = *new Ast::Function(*this, type.Map2, id.constructor, "Map::constructor");
     map2Ctor.addBlock(ast.block(
         m_(id.size)       = _(_0_),
         m_(id.keyType)    = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.keyType),
@@ -2650,7 +2650,7 @@ Brain::Brain() :
         m_(id.list)       = ast.new_(m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType), _(id.constructor)),
         m_(id.index)      = ast.new_(_(type.Index), _(id.constructor))));
 
-    Ast::Function& map2CtorWithIndexType = *new Ast::Function(*this, type.Map, id.constructorWithIndexType, "Map::constructorWithIndexType");
+    Ast::Function& map2CtorWithIndexType = *new Ast::Function(*this, type.Map2, id.constructorWithIndexType, "Map::constructorWithIndexType");
     map2CtorWithIndexType.addInputs(list(
         param(id.indexType, type.Type_)));
     map2CtorWithIndexType.addBlock(ast.block(
@@ -2660,7 +2660,7 @@ Brain::Brain() :
         m_(id.list)       = ast.new_(m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType), _(id.constructor)),
         m_(id.index)      = ast.new_(_(type.Index), _(id.constructorWithSelfType), param(_(id.type), in_(id.indexType)))));
 
-    Ast::Function& map2Template = *new Ast::Function(*this, type.Map, id.template_, "static Map::template");
+    Ast::Function& map2Template = *new Ast::Function(*this, type.Map2, id.template_, "static Map::template");
     map2Template.set(id.static_, boolean.true_);
     map2Template.addInputs(list(
         ast.slot(id.keyType, type.Type_),
@@ -2694,7 +2694,7 @@ Brain::Brain() :
         return m_index.has(key);
     }
     */
-    Ast::Function& map2HasKey = *new Ast::Function(*this, type.Map, id.hasKey, "Map::hasKey");
+    Ast::Function& map2HasKey = *new Ast::Function(*this, type.Map2, id.hasKey, "Map::hasKey");
     map2HasKey.addInputs(list(
         param(id.key, type.Cell)));
     map2HasKey.addBlock(ast.block(
@@ -2709,7 +2709,7 @@ Brain::Brain() :
         throw "No such role!";
     }
     */
-    Ast::Function& map2GetValue = *new Ast::Function(*this, type.Map, id.hasKey, "Map::getValue");
+    Ast::Function& map2GetValue = *new Ast::Function(*this, type.Map2, id.hasKey, "Map::getValue");
     map2GetValue.addInputs(list(
         param(id.key, type.Cell)));
     map2GetValue.addBlock(ast.block(
@@ -2730,7 +2730,7 @@ Brain::Brain() :
         ++m_size;
     }
     */
-    Ast::Function& map2Add = *new Ast::Function(*this, type.Map, id.add, "Map::add");
+    Ast::Function& map2Add = *new Ast::Function(*this, type.Map2, id.add, "Map::add");
     map2Add.addInputs(list(
         param(id.key, type.Cell),
         param(id.value, type.Cell)));
@@ -2753,7 +2753,7 @@ Brain::Brain() :
         --m_size;
     }
     */
-    Ast::Function& map2Remove = *new Ast::Function(*this, type.Map, id.remove, "Map::remove");
+    Ast::Function& map2Remove = *new Ast::Function(*this, type.Map2, id.remove, "Map::remove");
     map2Remove.addInputs(list(
         param(id.key, type.Cell)));
     map2Remove.addBlock(ast.block(
@@ -2763,13 +2763,13 @@ Brain::Brain() :
         ast.call(m_(id.index), _(id.remove), param(_(id.key), in_(id.key))),
         m_(id.size) = ast.subtract(m_(id.size), _(_1_))));
 
-    Ast::Function& map2Size = *new Ast::Function(*this, type.Map, id.size, "Map::size");
+    Ast::Function& map2Size = *new Ast::Function(*this, type.Map2, id.size, "Map::size");
     map2Size.addOutputs(list(
         param(id.value, type.Number)));
     map2Size.addBlock(ast.block(
         ast.return_(m_(id.size))));
 
-    Ast::Function& map2Empty = *new Ast::Function(*this, type.Map, id.empty, "Map::empty");
+    Ast::Function& map2Empty = *new Ast::Function(*this, type.Map2, id.empty, "Map::empty");
     map2Empty.addOutputs(list(
         param(id.value, type.Boolean)));
     map2Empty.addBlock(ast.block(
