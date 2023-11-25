@@ -149,16 +149,20 @@ TEST_F(CellTest, List)
     EXPECT_EQ(&list.method(id.size), &_0_);
     EXPECT_EQ(&list.method(id.empty), &true_);
     EXPECT_EQ(&list[id.objectType], &kb.type.Cell);
+    EXPECT_FALSE(list.has(id.first));
+    EXPECT_FALSE(list.has(id.last));
 
     list.method(id.add, { id.value, _1_ });
     EXPECT_EQ(&list[id.size], &_1_);
     EXPECT_EQ(&list.method(id.size), &_1_);
     EXPECT_EQ(&list.method(id.empty), &false_);
+    EXPECT_TRUE(list.has(id.first));
+    EXPECT_TRUE(list.has(id.last));
 
     CellI& firstItem = list[id.first];
     EXPECT_EQ(&firstItem, &list[id.last]);
-    EXPECT_EQ(firstItem.has(id.previous), false);
-    EXPECT_EQ(firstItem.has(id.next), false);
+    EXPECT_FALSE(firstItem.has(id.previous));
+    EXPECT_FALSE(firstItem.has(id.next));
     EXPECT_EQ(&firstItem[id.value], &_1_);
     printAs.value(list);
 
@@ -178,8 +182,8 @@ TEST_F(CellTest, List)
     EXPECT_EQ(&secondItem[id.previous], &firstItem);
     EXPECT_EQ(secondItem.has(id.next), false);
     EXPECT_EQ(&secondItem[id.value], &_2_);
-
     printAs.value(list);
+
     list.method(id.add, { id.value, _3_ });
     EXPECT_EQ(&list[id.size], &_3_);
     EXPECT_EQ(&list.method(id.size), &_3_);
@@ -200,8 +204,49 @@ TEST_F(CellTest, List)
     EXPECT_EQ(&thirdItem[id.previous], &secondItem);
     EXPECT_EQ(thirdItem.has(id.next), false);
     EXPECT_EQ(&thirdItem[id.value], &_3_);
-
     printAs.value(list);
+
+    list.method(id.remove, { id.item, thirdItem });
+    EXPECT_EQ(&list[id.size], &_2_);
+    EXPECT_EQ(&list.method(id.size), &_2_);
+    EXPECT_EQ(&list.method(id.empty), &false_);
+    {
+        CellI& secondItem = list[id.last];
+        EXPECT_EQ(&firstItem, &list[id.first]);
+        EXPECT_NE(&firstItem, &list[id.last]);
+
+        EXPECT_EQ(firstItem.has(id.previous), false);
+        EXPECT_EQ(&firstItem[id.next], &secondItem);
+        EXPECT_EQ(&firstItem[id.value], &_1_);
+
+        EXPECT_EQ(&secondItem[id.previous], &firstItem);
+        EXPECT_EQ(secondItem.has(id.next), false);
+        EXPECT_EQ(&secondItem[id.value], &_2_);
+    }
+    printAs.value(list);
+
+    list.method(id.remove, { id.item, secondItem });
+    EXPECT_EQ(&list[id.size], &_1_);
+    EXPECT_EQ(&list.method(id.size), &_1_);
+    EXPECT_EQ(&list.method(id.empty), &false_);
+    {
+        CellI& firstItem = list[id.first];
+        EXPECT_EQ(&firstItem, &list[id.last]);
+        EXPECT_EQ(firstItem.has(id.previous), false);
+        EXPECT_EQ(firstItem.has(id.next), false);
+        EXPECT_EQ(&firstItem[id.value], &_1_);
+    }
+    printAs.value(list);
+
+    list.method(id.remove, { id.item, firstItem });
+    EXPECT_EQ(&list[id.size], &_0_);
+    EXPECT_EQ(&list.method(id.size), &_0_);
+    EXPECT_EQ(&list.method(id.empty), &true_);
+    EXPECT_EQ(&list[id.objectType], &kb.type.Cell);
+    EXPECT_FALSE(list.has(id.first));
+    EXPECT_FALSE(list.has(id.last));
+    printAs.value(list);
+
     CellI& size = list.method(id.size);
     printAs.value(size);
 }
