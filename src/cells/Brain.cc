@@ -2439,8 +2439,8 @@ Brain::Brain() :
         m_(id.size)       = _(_0_),
         m_(id.keyType)    = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.keyType) / _(id.value),
         m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType) / _(id.value),
-        m_(id.list)       = ast.new_(m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType) / _(id.value), _(id.constructor)),
         m_(id.listType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType) / _(id.value),
+        m_(id.list)       = ast.new_(m_(id.listType), _(id.constructor)),
         m_(id.index)      = ast.new_(_(type.Index), _(id.constructor))));
 
     Ast::Function& mapCtorWithIndexType = *new Ast::Function(*this, type.Map, id.constructorWithIndexType, "Map::constructorWithIndexType");
@@ -2450,8 +2450,8 @@ Brain::Brain() :
         m_(id.size)       = _(_0_),
         m_(id.keyType)    = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.keyType) / _(id.value),
         m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType) / _(id.value),
-        m_(id.list)       = ast.new_(m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType) / _(id.value), _(id.constructor)),
         m_(id.listType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType) / _(id.value),
+        m_(id.list)       = ast.new_(m_(id.listType), _(id.constructor)),
         m_(id.index)      = ast.new_(_(type.Index), _(id.constructorWithSelfType), param(_(id.indexType), in_(id.indexType)))));
 
     Ast::Function& mapTemplate = *new Ast::Function(*this, type.Map, id.template_, "static Map::template");
@@ -2532,10 +2532,9 @@ Brain::Brain() :
     mapAdd.addBlock(ast.block(
         ast.if_(ast.same(in_(id.key), _(id.type)), ast.return_()),
         ast.if_(ast.has(m_(id.index), in_(id.key)), ast.return_()),
-        m_(id.size) = ast.add(m_(id.size), _(_1_)),
+        m_(id.size)   = ast.add(m_(id.size), _(_1_)),
         var_(id.item) = m_(id.list).call(_(id.add), param(_(id.value), in_(id.value))),
-        ast.call(m_(id.index), _(id.insert), param(_(id.key), in_(id.key)), param(_(id.value), *var_(id.item)))
-        ));
+        ast.call(m_(id.index), _(id.insert), param(_(id.key), in_(id.key)), param(_(id.value), *var_(id.item)))));
 
     /*
     void Map::remove(CellI& key)
@@ -2662,24 +2661,15 @@ Brain::Brain() :
                   id.listType, type.ListOf(type.Cell));
     type.Set.set(id.subTypes, *mapPtr);
     type.Set.set(id.memberOf, map(type.Type_, type.Type_, type.Container, type.Container));
+
     Ast::Function& setCtor = *new Ast::Function(*this, type.Set, id.constructor, "Set::constructor");
     setCtor.addBlock(ast.block(
-        m_(id.size) = _(_0_),
-        m_(id.objectType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType),
-        m_(id.listType)     = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType),
-        m_(id.list)         = ast.new_(m_(id.listType), _(id.constructor)),
-        m_(id.indexType)    = ast.new_(_(type.Type_)),
-        ast.set(m_(id.indexType), _(id.slots), ast.new_(_(type.MapCellToSlot), _(id.constructor))),
-        ast.set(m_(id.indexType), _(id.memberOf), _(map(type.Type_, type.Type_, type.Index, type.Index))),
-        m_(id.index) = ast.new_(m_(id.indexType))));
+        m_(id.size)       = _(_0_),
+        m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType) / _(id.value),
+        m_(id.listType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType) / _(id.value),
+        m_(id.list)       = ast.new_(m_(id.listType), _(id.constructor)),
+        m_(id.index)      = ast.new_(_(type.Index), _(id.constructor))));
 
-    // MapCellToSlot;
-    // MapCellToType;
-    // MapCellToAstFunction;
-    // MapCellToOpFunction;
-    // MapCellToOpVar;
-    // MapCellToOpBase;
-    // MapTypeToType;
     Ast::Function& setTemplate = *new Ast::Function(*this, type.Set, id.template_, "static Set::template");
     setTemplate.set(id.static_, boolean.true_);
     setTemplate.addInputs(list(
