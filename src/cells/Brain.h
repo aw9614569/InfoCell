@@ -187,6 +187,7 @@ public:
     Object Call;
     Object Cell;
     Object Delete;
+    Object DependentType;
     Object Divide;
     Object Do;
     Object Equal;
@@ -216,6 +217,8 @@ public:
     Object Set;
     Object Slot;
     Object StaticCall;
+    Object Struct;
+    Object StructT;
     Object Subtract;
     Object Var;
     Object While;
@@ -257,6 +260,7 @@ protected:
 
 public:
     Object Type_;
+    Object Template;
     Object Struct;
     Object Enum;
     Object Cell;
@@ -292,6 +296,18 @@ public:
     type::Op op;
     type::Ast ast;
     type::Arc arc;
+};
+
+class Templates
+{
+public:
+    Templates(brain::Brain& kb);
+    Object List;
+    Object ListItem;
+    Object Map;
+
+protected:
+    brain::Brain& kb;
 };
 
 class Ast
@@ -379,33 +395,119 @@ public:
     public:
         Block(brain::Brain& kb, List& list);
     };
+    class Function;
+    class StructBase
+    {
+    public:
+        StructBase(brain::Brain& kb, CellI& type);
+
+        Function& addMethod(CellI& id, const std::string& label);
+
+        void members(Slot& param);
+        template <typename... Args>
+        void members(Slot& param, Args&&... args)
+        {
+            members(param);
+            members(std::forward<Args>(args)...);
+        }
+
+        void subTypes(Slot& param);
+        template <typename... Args>
+        void subTypes(Slot& param, Args&&... args)
+        {
+            subTypes(param);
+            subTypes(std::forward<Args>(args)...);
+        }
+
+        void memberOf(CellI& type);
+        template <typename... Args>
+        void memberOf(CellI& type, Args&&... args)
+        {
+            memberOf(type);
+            memberOf(std::forward<Args>(args)...);
+        }
+
+        CellI& compile();
+
+        brain::Brain& kb;
+        CellI& m_cellType;
+        List* m_methods  = nullptr;
+        List* m_members  = nullptr;
+        List* m_subtypes = nullptr;
+        List* m_memberOf = nullptr;
+    };
+
+    class Struct : public BaseT<Struct>,
+                   public StructBase
+    {
+    public:
+        Struct(brain::Brain& kb, CellI& type, const std::string& label);
+    };
+    class StructT : public BaseT<StructT>,
+                    public StructBase
+    {
+    public:
+        using StructBase::kb;
+        StructT(brain::Brain& kb, CellI& type, const std::string& label);
+
+        void typeParams(Slot& param);
+
+        template <typename... Args>
+        void typeParams(Slot& param, Args&&... args)
+        {
+            typeParams(param);
+            typeParams(std::forward<Args>(args)...);
+        }
+        CellI& dependentType(CellI& type);
+        template <typename... Args>
+        void dependentType(CellI& type, Args&&... args)
+        {
+            dependentType(type);
+            dependentType(std::forward<Args>(args)...);
+        }
+
+        Struct& instantiate();
+
+        List* m_typeParams = nullptr;
+    };
     class Function : public BaseT<Function>
     {
     public:
         Function(brain::Brain& kb, CellI& objType, CellI& name, const std::string& label);
 
-        void addInputs(List& input);
-        void addOutputs(List& output);
-        void addBlock(Block& ast);
-        void toMethod(Object& type);
+        void parameters(Slot& param);
+
+        template <typename... Args>
+        void parameters(Slot& param, Args&&... args)
+        {
+            parameters(param);
+            parameters(std::forward<Args>(args)...);
+        }
+        void returnType(CellI& type);
+
+        template <typename... Args>
+        void code(Args&&... args);
+
         CellI& compile();
         CellI& compile(CellI& type);
 
     protected:
+        void addBlock(Block& ast);
         CellI& compileImpl(CellI* type);
         void compileParams(cells::Object& function, cells::Object& inputType, cells::Object& outputType, CellI* type);
         CellI& compileAst(CellI& ast, cells::Object& function, CellI* type);
         List& inputs();
-        List& outputs();
-        Block& asts();
+        Slot& output();
+        Base& asts();
 
-        List* m_inputs  = nullptr;
-        List* m_outputs = nullptr;
-        Block* m_asts   = nullptr;
+        List* m_parameters = nullptr;
+        Slot* m_output = nullptr;
+        Base* m_asts  = nullptr;
 
         std::unique_ptr<Object> m_inputType;
         std::unique_ptr<Object> m_outputType;
     };
+
     class Delete : public BaseT<Delete>
     {
     public:
@@ -460,6 +562,12 @@ public:
         Call& call(CellI& method, Slot& slot1, Slot& slot2);
         Call& call(CellI& method, Slot& slot1, Slot& slot2, Slot& slot3);
         Call& call(CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
+    };
+    class DependentType : public BaseT<DependentType>
+    {
+    public:
+        DependentType(const Member&) = delete;
+        DependentType(brain::Brain& kb, CellI& role, CellI& type);
     };
     class New : public BaseT<New>
     {
@@ -598,6 +706,8 @@ public:
     While& while_(Base& condition, Base& statement);
     Var& var(CellI& role);
     Member& member(CellI& role);
+    DependentType& dependentType(CellI& role, CellI& type);
+    DependentType& dependentType(CellI& role, CellI& type1, CellI& type2);
     New& new_(Base& objectType);
     New& new_(Base& objectType, Base& constructor);
     New& new_(Base& objectType, Base& constructor, Slot& slot1);
@@ -755,6 +865,7 @@ public:
     ~Brain();
     ID id;
     Types type;
+    Templates templates;
     Pools pools;
     Ast ast;
     Directions directions;
@@ -863,6 +974,12 @@ template <typename... Args>
 Ast::Block& Ast::block(Args&&... args)
 {
     return *new Block(kb, kb.list(std::forward<Args>(args)...));
+}
+
+template <typename... Args>
+void Ast::Function::code(Args&&... args)
+{
+    addBlock(*new Block(kb, kb.list(std::forward<Args>(args)...)));
 }
 
 } // namespace brain
