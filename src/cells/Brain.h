@@ -198,7 +198,6 @@ public:
     Object GreaterThanOrEqual;
     Object Has;
     Object If;
-    Object Input;
     Object LessThan;
     Object LessThanOrEqual;
     Object Member;
@@ -210,6 +209,7 @@ public:
     Object NotSame;
     Object Or;
     Object Output;
+    Object Parameter;
     Object Return;
     Object Same;
     Object Self;
@@ -220,6 +220,7 @@ public:
     Object Struct;
     Object StructT;
     Object Subtract;
+    Object TemplateParam;
     Object Var;
     Object While;
 };
@@ -354,10 +355,10 @@ public:
         Return(brain::Brain& kb);
         Return(brain::Brain& kb, CellI& value);
     };
-    class Input : public BaseT<Input>
+    class Parameter : public BaseT<Parameter>
     {
     public:
-        Input(brain::Brain& kb, CellI& role);
+        Parameter(brain::Brain& kb, CellI& role);
         Get& operator/(Base& role);
     };
     class Output : public BaseT<Output>
@@ -427,11 +428,9 @@ public:
             memberOf(std::forward<Args>(args)...);
         }
 
-        CellI& compile();
-
         brain::Brain& kb;
         CellI& m_cellType;
-        List* m_methods  = nullptr;
+        Map* m_methods  = nullptr;
         List* m_members  = nullptr;
         List* m_subtypes = nullptr;
         List* m_memberOf = nullptr;
@@ -450,13 +449,13 @@ public:
         using StructBase::kb;
         StructT(brain::Brain& kb, CellI& type, const std::string& label);
 
-        void typeParams(Slot& param);
+        void templateParams(Slot& param);
 
         template <typename... Args>
-        void typeParams(Slot& param, Args&&... args)
+        void templateParams(Slot& param, Args&&... args)
         {
-            typeParams(param);
-            typeParams(std::forward<Args>(args)...);
+            templateParams(param);
+            templateParams(std::forward<Args>(args)...);
         }
         CellI& dependentType(CellI& type);
         template <typename... Args>
@@ -466,9 +465,17 @@ public:
             dependentType(std::forward<Args>(args)...);
         }
 
-        Struct& instantiate();
+        template <typename... Args>
+        Struct& instantiate(Args&&... args);
 
-        List* m_typeParams = nullptr;
+        template <typename... Args>
+        void instantiateInto(CellI& type, Args&&... args);
+
+    protected:
+        Struct& instantiateWith(CellI* outType, List& slotList);
+        CellI& instantiateTemplateParam(CellI& param, CellI& selfType, Map& inputParameters);
+
+        Map* m_templateParams = nullptr;
     };
     class Function : public BaseT<Function>
     {
@@ -496,16 +503,13 @@ public:
         CellI& compileImpl(CellI* type);
         void compileParams(cells::Object& function, cells::Object& inputType, cells::Object& outputType, CellI* type);
         CellI& compileAst(CellI& ast, cells::Object& function, CellI* type);
-        List& inputs();
-        Slot& output();
+        List& parameters();
+        Slot& returnType();
         Base& asts();
 
         List* m_parameters = nullptr;
-        Slot* m_output = nullptr;
+        Slot* m_returnType = nullptr;
         Base* m_asts  = nullptr;
-
-        std::unique_ptr<Object> m_inputType;
-        std::unique_ptr<Object> m_outputType;
     };
 
     class Delete : public BaseT<Delete>
@@ -566,8 +570,14 @@ public:
     class DependentType : public BaseT<DependentType>
     {
     public:
-        DependentType(const Member&) = delete;
+        DependentType(const DependentType&) = delete;
         DependentType(brain::Brain& kb, CellI& role, CellI& type);
+    };
+    class TemplateParam : public BaseT<TemplateParam>
+    {
+    public:
+        TemplateParam(const TemplateParam&) = delete;
+        TemplateParam(brain::Brain& kb, CellI& role);
     };
     class New : public BaseT<New>
     {
@@ -678,7 +688,7 @@ public:
     SelfFn& selfFn();
     Return& return_();
     Return& return_(Base& value);
-    Input& input(CellI& role);
+    Parameter& parameter(CellI& role);
     Output& output(CellI& role);
     Slot& slot(CellI& role, CellI& type);
     Call& call(CellI& cell, CellI& method);
@@ -708,6 +718,7 @@ public:
     Member& member(CellI& role);
     DependentType& dependentType(CellI& role, CellI& type);
     DependentType& dependentType(CellI& role, CellI& type1, CellI& type2);
+    TemplateParam& templateParam(CellI& role);
     New& new_(Base& objectType);
     New& new_(Base& objectType, Base& constructor);
     New& new_(Base& objectType, Base& constructor, Slot& slot1);
@@ -980,6 +991,17 @@ template <typename... Args>
 void Ast::Function::code(Args&&... args)
 {
     addBlock(*new Block(kb, kb.list(std::forward<Args>(args)...)));
+}
+template <typename... Args>
+Ast::Struct& Ast::StructT::instantiate(Args&&... args)
+{
+    return instantiateWith(nullptr, kb.list(std::forward<Args>(args)...));
+}
+
+template <typename... Args>
+void Ast::StructT::instantiateInto(CellI& type, Args&&... args)
+{
+    return instantiateWith(&type, kb.list(std::forward<Args>(args)...));
 }
 
 } // namespace brain

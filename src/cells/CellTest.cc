@@ -106,7 +106,7 @@ TEST_F(CellTest, PrintMethod)
 {
     const auto printOp = [this](CellI& type, CellI& method) { printAs.value(type[id.methods][id.index][method][id.value]); };
 
-#if 0
+#if 1
     printOp(kb.type.Map, id.constructor);
     printOp(kb.type.Map, id.template_);
     printOp(kb.type.Map, id.size);

@@ -128,7 +128,7 @@ void CellValuePrinter::printOpFunction(CellI& cell)
     std::stringstream iss;
     std::stringstream oss;
     CellI& subTypesIndex = cell.type()[kb.id.subTypes][kb.id.index];
-    CellI& inType        = subTypesIndex[kb.id.input][kb.id.value];
+    CellI& inType        = subTypesIndex[kb.id.parameters][kb.id.value];
     CellI& outType       = subTypesIndex[kb.id.output][kb.id.value];
     bool hasOutput = false;
     if (inType.has(kb.id.slots)) {
@@ -137,7 +137,7 @@ void CellValuePrinter::printOpFunction(CellI& cell)
                 iss << ", ";
             }
             if (&slot[kb.id.slotRole] != &kb.id.self) {
-                iss << "in_";
+                iss << "p_";
             }
             iss << slot[kb.id.slotRole].label() << ": " << slot[kb.id.slotType].label();
         });
@@ -146,9 +146,9 @@ void CellValuePrinter::printOpFunction(CellI& cell)
         hasOutput = true;
         Visitor::visitList(outType[kb.id.slots][kb.id.list], [this, &oss, &kb](CellI& slot, int i, bool& stop) {
             if (i > 0) {
-                oss << ", ";
+                throw "More than one return type";
             }
-            oss << "out_" << slot[kb.id.slotRole].label() << ": " << slot[kb.id.slotType].label();
+            oss << slot[kb.id.slotType].label();
         });
     }
     const std::string& className = subTypesIndex.has(kb.id.objectType) ? subTypesIndex[kb.id.objectType].label() : "";
@@ -156,13 +156,13 @@ void CellValuePrinter::printOpFunction(CellI& cell)
     if (!className.empty()) {
         label += "::";
     }
-    label += subTypesIndex[kb.id.name].label();
+    label += subTypesIndex[kb.id.name][kb.id.value].label();
     bool isStatic = cell.has(kb.id.static_);
     std::string staticStr = isStatic ? "static " : "";
     std::string newLabel;
 
     if (hasOutput) {
-        newLabel = std::format("fn {}{}({}) -> ({})\n", staticStr, label, iss.str(), oss.str());
+        newLabel = std::format("fn {}{}({}) -> {}\n", staticStr, label, iss.str(), oss.str());
     } else {
         newLabel = std::format("fn {}{}({})\n", staticStr, label, iss.str());
     }
@@ -343,8 +343,8 @@ void CellValuePrinter::printOpGet(CellI& cell)
         m_ss << "self";
         return;
     }
-    if (&cell[kb.id.ast].type() == &kb.type.ast.Input) {
-        m_ss << "in_" << cell[kb.id.ast][kb.id.role].label();
+    if (&cell[kb.id.ast].type() == &kb.type.ast.Parameter) {
+        m_ss << "p_" << cell[kb.id.ast][kb.id.role].label();
         return;
     }
     if (&cell[kb.id.ast].type() == &kb.type.ast.Output) {
@@ -465,8 +465,8 @@ void CellValuePrinter::printAstGet(CellI& cell)
         m_ss << "self";
         return;
     }
-    if (&cell.type() == &kb.type.ast.Input) {
-        m_ss << "in_" << cell[kb.id.ast][kb.id.role].label();
+    if (&cell.type() == &kb.type.ast.Parameter) {
+        m_ss << "p_" << cell[kb.id.ast][kb.id.role].label();
         return;
     }
     if (&cell.type() == &kb.type.ast.Output) {
@@ -482,10 +482,10 @@ void CellValuePrinter::printAstGet(CellI& cell)
     printImpl(cell[kb.id.role]);
 }
 
-void CellValuePrinter::printAstInput(CellI& cell)
+void CellValuePrinter::printAstParameter(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    m_ss << "in_" << cell[kb.id.role].label();
+    m_ss << "p_" << cell[kb.id.role].label();
 }
 
 void CellValuePrinter::printAstOutput(CellI& cell)
@@ -711,8 +711,8 @@ void CellValuePrinter::printImpl(CellI& cell)
     } else if (is(kb.type.ast.Get)) {
         printAstGet(cell);
         return;
-    } else if (is(kb.type.ast.Input)) {
-        printAstInput(cell);
+    } else if (is(kb.type.ast.Parameter)) {
+        printAstParameter(cell);
         return;
     } else if (is(kb.type.ast.Output)) {
         printAstOutput(cell);

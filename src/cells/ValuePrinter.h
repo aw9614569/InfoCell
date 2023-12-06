@@ -61,7 +61,7 @@ protected:
     void printOpReturn(CellI& cell);
     void printAstCell(CellI& cell);
     void printAstGet(CellI& cell);
-    void printAstInput(CellI& cell);
+    void printAstParameter(CellI& cell);
     void printAstOutput(CellI& cell);
     void printAstVar(CellI& cell);
     void printAstMember(CellI& cell);

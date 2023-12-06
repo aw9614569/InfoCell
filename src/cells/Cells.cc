@@ -752,8 +752,8 @@ void Object::setSelf(CellI& method)
 
 void Object::setFnParam(CellI& fn, Param param)
 {
-    if (fn.type()[kb.id.subTypes][kb.id.index][kb.id.input][kb.id.value].has(kb.id.slots)) {
-        CellI& inputsIndex = fn.type()[kb.id.subTypes][kb.id.index][kb.id.input][kb.id.value][kb.id.slots][kb.id.index];
+    if (fn.type()[kb.id.subTypes][kb.id.index][kb.id.parameters][kb.id.value].has(kb.id.slots)) {
+        CellI& inputsIndex = fn.type()[kb.id.subTypes][kb.id.index][kb.id.parameters][kb.id.value][kb.id.slots][kb.id.index];
         if (inputsIndex.has(param.role)) {
             fn[kb.id.stack][kb.id.value][kb.id.input].set(param.role, param.value);
         } else {
