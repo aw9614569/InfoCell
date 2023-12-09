@@ -121,17 +121,6 @@ public:
     Object width;
 };
 
-template <typename T>
-class NewT
-{
-public:
-    template <typename... Args>
-    static T& New(Args&&... args)
-    {
-        return *new T(std::forward<Args>(args)...);
-    }
-};
-
 namespace type {
 
 class Op
@@ -312,6 +301,18 @@ protected:
     brain::Brain& kb;
 };
 
+
+template <typename T>
+class NewT
+{
+public:
+    template <typename... Args>
+    static T& New(Args&&... args)
+    {
+        return *new T(std::forward<Args>(args)...);
+    }
+};
+
 class Ast
 {
 public:
@@ -470,6 +471,8 @@ public:
     protected:
         Struct& instantiateWith(CellI* outType, List& slotList);
         CellI& instantiateTemplateParam(CellI& param, CellI& selfType, Map& inputParameters);
+        Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters);
+
 
         Map* m_templateParams = nullptr;
     };
