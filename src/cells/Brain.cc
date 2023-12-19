@@ -23,6 +23,7 @@ ID::ID(brain::Brain& kb) :
     cell(kb, kb.type.Cell, "cell"),
     checkPixel(kb, kb.type.Struct, "checkPixel"),
     checkPixels(kb, kb.type.Struct, "checkPixels"),
+    code(kb, kb.type.Cell, "code"),
     color(kb, kb.type.Cell, "color"),
     condition(kb, kb.type.Cell, "condition"),
     constructor(kb, kb.type.Cell, "constructor"),
@@ -116,6 +117,7 @@ ID::ID(brain::Brain& kb) :
     stop(kb, kb.type.Cell, "stop"),
     subTypes(kb, kb.type.Cell, "subTypes"),
     template_(kb, kb.type.Cell, "template"),
+    templateParams(kb, kb.type.Cell, "templateParams"),
     then(kb, kb.type.Cell, "then"),
     type(kb, kb.type.Cell, "type"),
     value(kb, kb.type.Cell, "value"),
@@ -438,7 +440,7 @@ Ast::Ast(brain::Brain& kb) :
                     type.slot(id.name, type.Cell),
                     type.slot(id.parameters, type.ListOf(Slot)),
                     type.slot(id.returnType, type.Type_),
-                    type.slot(id.ast, type.ListOf(Base)),
+                    type.slot(id.code, Base),
                     type.slot(id.static_, type.Boolean));
     Function.set(id.slots, *map);
 
@@ -548,7 +550,8 @@ Ast::Ast(brain::Brain& kb) :
                     type.slot(id.methods, type.MapOf(type.Cell, type.ast.Function)),
                     type.slot(id.members, type.ListOf(type.ast.Slot)),
                     type.slot(id.subTypes, type.ListOf(type.ast.Slot)),
-                    type.slot(id.memberOf, type.ListOf(type.Type_)));
+                    type.slot(id.memberOf, type.ListOf(type.Type_)),
+                    type.slot(id.templateParams, type.MapOf(type.Cell, type.Type_)));
     StructT.set(id.slots, *map);
 
     map = &kb.slots(type.slot(id.lhs, Base),
@@ -1088,10 +1091,10 @@ Ast::StructT::StructT(brain::Brain& kb, CellI& type, const std::string& label) :
 
 void Ast::StructT::templateParams(Slot& param)
 {
-    if (!m_templateParams) {
-        m_templateParams = new Map(kb, kb.type.Cell, kb.type.Type_);
+    if (missing(kb.id.templateParams)) {
+        set(kb.id.templateParams, *new Map(kb, kb.type.Cell, kb.type.Type_));
     }
-    m_templateParams->add(param[kb.id.slotRole], param);
+    templateParams().add(param[kb.id.slotRole], param);
 }
 
 CellI& Ast::StructT::dependentType(CellI& type)
@@ -1102,7 +1105,7 @@ CellI& Ast::StructT::dependentType(CellI& type)
 Ast::Struct& Ast::StructT::instantiateWith(CellI* outType, List& inputParams)
 {
     // process input parameters
-    if (!inputParams.empty() && !m_templateParams) {
+    if (!inputParams.empty() && missing(kb.id.templateParams)) {
         throw "No template parameter was given!";
     }
     std::stringstream ss;
@@ -1115,7 +1118,7 @@ Ast::Struct& Ast::StructT::instantiateWith(CellI* outType, List& inputParams)
             ss << ", ";
         }
         ss << slotRole.label() << "=" << slotType.label();
-        if (!m_templateParams->hasKey(slotRole)) {
+        if (!templateParams().hasKey(slotRole)) {
             throw "Instantiating with unknown template parameter!";
         }
     });
@@ -1337,6 +1340,15 @@ Ast::Base& Ast::StructT::instantiateAst(CellI& ast, CellI& selfType, Map& inputP
     throw "Unknown AST to instantiate!";
 }
 
+Map& Ast::StructT::templateParams()
+{
+    if (missing(kb.id.templateParams)) {
+        throw "No templateParams!";
+    } else {
+        return static_cast<Map&>(get(kb.id.templateParams));
+    }
+}
+
 Ast::Function::Function(brain::Brain& kb, CellI& name, const std::string& label) :
     BaseT<Function>(kb, kb.type.ast.Function, "ast.function")
 {
@@ -1354,24 +1366,20 @@ Ast::Function::Function(brain::Brain& kb, CellI& objType, CellI& name, const std
 
 void Ast::Function::parameters(Slot& param)
 {
-    if (!m_parameters) {
-        m_parameters = new List(kb, kb.type.Slot);
-        set(kb.id.parameters, *m_parameters);
+    if (missing(kb.id.parameters)) {
+        set(kb.id.parameters, *new List(kb, kb.type.Slot));
     }
-
-    m_parameters->add(param);
+    parameters().add(param);
 }
 
 void Ast::Function::returnType(CellI& type)
 {
     set(kb.id.returnType, type);
-    m_returnType = &type;
 }
 
-void Ast::Function::addBlock(Block& ast)
+void Ast::Function::addBlock(Block& block)
 {
-    set(kb.id.ast, ast);
-    m_asts = &ast;
+    set(kb.id.code, block);
 }
 
 CellI& Ast::Function::compile()
@@ -1397,8 +1405,8 @@ CellI& Ast::Function::compileImpl(CellI* type)
     cells::Object& function = *new cells::Object(kb, functionType);
     compileParams(function, subTypesMap, type);
     functionType.label(std::format("Type for {}", function.label()));
-    function.set(kb.id.ast, asts());
-    function.set(kb.id.op, compileAst(asts(), function, type));
+    function.set(kb.id.ast, code());
+    function.set(kb.id.op, compileAst(code(), function, type));
     if (has(kb.id.static_)) {
         function.set(kb.id.static_, get(kb.id.static_));
     }
@@ -1410,7 +1418,7 @@ void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesM
 {
     std::stringstream iss;
     std::stringstream oss;
-    if (m_parameters || type) {
+    if (has(kb.id.parameters) || type) {
         cells::Object& parametersType = *new cells::Object(kb, kb.type.Type_);
         Map& slots                    = *new Map(kb, kb.type.Cell, kb.type.Slot);
         if (type) {
@@ -1419,7 +1427,7 @@ void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesM
             slots.add(kb.id.self, kb.type.slot(kb.id.self, *type));
             iss << kb.id.self.label() << ": " << (*type).label();
         }
-        if (m_parameters) {
+        if (has(kb.id.parameters)) {
             Visitor::visitList(parameters(), [this, &slots, &iss](CellI& slot, int i, bool& stop) {
                 if (!slots.empty()) {
                     iss << ", ";
@@ -1431,11 +1439,11 @@ void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesM
         parametersType.set(kb.id.slots, slots);
         subTypesMap.add(kb.id.parameters, parametersType);
     }
-    if (m_returnType) {
+    if (has(kb.id.returnType)) {
         oss << returnType().label();
         subTypesMap.add(kb.id.returnType, returnType());
     }
-    if (m_returnType) {
+    if (has(kb.id.returnType)) {
         function.label(std::format("fn {}({}) -> {}", label(), iss.str(), oss.str()));
     } else {
         function.label(std::format("fn {}({})", label(), iss.str()));
@@ -1841,17 +1849,29 @@ block {
 
 List& Ast::Function::parameters()
 {
-    return *m_parameters;
+    if (missing(kb.id.parameters)) {
+        throw "No parameters!";
+    } else {
+        return static_cast<List&>(get(kb.id.parameters));
+    }
 }
 
 CellI& Ast::Function::returnType()
 {
-    return *m_returnType;
+    if (missing(kb.id.returnType)) {
+        throw "No returnType!";
+    } else {
+        return get(kb.id.returnType);
+    }
 }
 
-Ast::Base& Ast::Function::asts()
+Ast::Base& Ast::Function::code()
 {
-    return *m_asts;
+    if (missing(kb.id.code)) {
+        throw "No code!";
+    } else {
+        return static_cast<Ast::Base&>(get(kb.id.code));
+    }
 }
 
 Ast::Delete::Delete(brain::Brain& kb, Base& cell) :

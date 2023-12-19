@@ -27,6 +27,7 @@ public:
     Object cell;
     Object checkPixel;
     Object checkPixels;
+    Object code;
     Object color;
     Object condition;
     Object constructor;
@@ -120,6 +121,7 @@ public:
     Object stop;
     Object subTypes;
     Object template_;
+    Object templateParams;
     Object then;
     Object type;
     Object value;
@@ -493,9 +495,7 @@ public:
         Struct& instantiateWith(CellI* outType, List& slotList);
         CellI& instantiateTemplateParam(CellI& param, CellI& selfType, Map& inputParameters);
         Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters);
-
-
-        Map* m_templateParams = nullptr;
+        Map& templateParams();
     };
     class Function : public BaseT<Function>
     {
@@ -520,17 +520,13 @@ public:
         CellI& compile(CellI& type);
 
     protected:
-        void addBlock(Block& ast);
+        void addBlock(Block& block);
         CellI& compileImpl(CellI* type);
         void compileParams(cells::Object& function, cells::Map& subTypesMap, CellI* type);
         CellI& compileAst(CellI& ast, cells::Object& function, CellI* type);
         List& parameters();
         CellI& returnType();
-        Base& asts();
-
-        List* m_parameters = nullptr;
-        CellI* m_returnType = nullptr;
-        Base* m_asts  = nullptr;
+        Base& code();
     };
 
     class Delete : public BaseT<Delete>
