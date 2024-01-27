@@ -21,10 +21,10 @@ target_include_directories(applib
 
 target_link_libraries(applib
 	PUBLIC
-		CONAN_PKG::nlohmann_json
-        CONAN_PKG::ftxui
+		nlohmann_json::nlohmann_json
+        ftxui::ftxui
 	PRIVATE
-		CONAN_PKG::utfcpp
+		utf8cpp
         cellslib
         tests
         util

@@ -9,6 +9,6 @@ add_library(util STATIC
 
 target_link_libraries(util
 	PUBLIC
-		CONAN_PKG::nlohmann_json
+		nlohmann_json::nlohmann_json
         cellslib
 )

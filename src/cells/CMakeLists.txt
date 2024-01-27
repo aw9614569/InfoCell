@@ -14,10 +14,10 @@ target_include_directories(cellslib
 )
 target_link_libraries(cellslib
     PUBLIC
-        CONAN_PKG::utfcpp
-        CONAN_PKG::boost
-        CONAN_PKG::freetype
-        CONAN_PKG::gtest
+        utf8cpp
+        boost::boost
+        Freetype::Freetype
+        gtest::gtest
 )
 
 add_executable(celltest

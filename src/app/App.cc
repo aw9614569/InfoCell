@@ -37,10 +37,10 @@ const std::array<ftxui::Color, 11> App::arcColors = {
 void App::init(int argc, char* argv[])
 {
     if (argc == 1) {
-        m_arcFilePath = "F:\\Devel\\ARC\\ARC\\data\\training\\";
-        // m_arcFilePath = "F:\\Devel\\ARC\\ARC\\data\\evaluation\\";
-        // m_arcFilePath = "F:\\Devel\\ARC\\pqa-dataset\\closure-filling\\";
-        // m_arcFilePath = "F:\\Devel\\ARC\\pqa-dataset\\proximity-identification\\";
+        m_arcFilePath = "E:\\Devel\\ARC\\ARC\\data\\training\\";
+        // m_arcFilePath = "E:\\Devel\\ARC\\ARC\\data\\evaluation\\";
+        // m_arcFilePath = "E:\\Devel\\ARC\\pqa-dataset\\closure-filling\\";
+        // m_arcFilePath = "E:\\Devel\\ARC\\pqa-dataset\\proximity-identification\\";
     } else {
         m_arcFilePath = argv[1];
     }

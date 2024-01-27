@@ -48,7 +48,7 @@ target_include_directories(fsvguilib
 
 target_link_libraries(fsvguilib
 	PRIVATE
-        CONAN_PKG::freetype
-        CONAN_PKG::boost
+        Freetype::Freetype
+        boost::boost
 
 )

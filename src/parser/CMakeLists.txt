@@ -23,5 +23,5 @@ target_include_directories(parserlib
 )
 target_link_libraries(parserlib
 	PUBLIC
-		CONAN_PKG::boost
+		boost::boost
 )
