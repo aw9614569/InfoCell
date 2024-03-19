@@ -47,6 +47,8 @@ public:
     Object eval;
     Object first;
     Object firstPixel;
+    Object functions;
+    Object functionTs;
     Object getValue;
     Object global;
     Object has;
@@ -55,6 +57,7 @@ public:
     Object hasSlot;
     Object height;
     Object id;
+    Object incompleteStructTypes;
     Object index;
     Object indexType;
     Object input;
@@ -121,6 +124,7 @@ public:
     Object stop;
     Object subTypes;
     Object template_;
+    Object templateIdType;
     Object templateParams;
     Object then;
     Object type;
@@ -191,6 +195,7 @@ public:
     Object Equal;
     Object Erase;
     Object Function;
+    Object FunctionT;
     Object Get;
     Object GreaterThan;
     Object GreaterThanOrEqual;
@@ -386,7 +391,9 @@ public:
     public:
         Block(brain::Brain& kb, List& list);
     };
+
     class Function;
+    class FunctionT;
     class Struct;
     class StructT;
     class Scope : public BaseT<Scope>
@@ -394,18 +401,29 @@ public:
     public:
         Scope(brain::Brain& kb, CellI& id, const std::string& label = "ast.scope");
         Scope& addScope(CellI& id, const std::string& label);
-        Function& addMethod(CellI& id, const std::string& label);
+        Function& addFunction(CellI& id, const std::string& label);
+        FunctionT& addFunctionT(CellI& id, const std::string& label);
         Struct& addStruct(CellI& id, const std::string& label);
+        Struct& addIncompleteStruct(CellI& id);
         StructT& addStructT(CellI& id, const std::string& label);
-        template <typename... Args>
-        void instantiate(CellI& id, Args&&... args);
 
-    protected:
+        void implicitInstantiation();
+        CellI& compile();
+
+        template <typename... Args>
+        Struct& instantiateStructT(CellI& id, Args&&... args);
+
+        Struct& instantiateIncompleteStructT(CellI& id, List& parameters);
+
         Map& scopes();
-        Map& methods();
+        Map& functions();
+        Map& functionTs();
         Map& structs();
         Map& structTs();
+        Map& structTInstances();
+        Map& incompleteStructTypes();
     };
+
     class StructBase : public Base
     {
     public:
@@ -442,21 +460,25 @@ public:
         List& members();
         List& subTypes();
         List& memberOf();
-        CellI& cell();
+        CellI& id();
     };
 
     class Struct : public StructBase,
                    public NewT<Struct>
     {
     public:
-        Struct(brain::Brain& kb, CellI& type, const std::string& label = "ast.struct");
+        Struct(brain::Brain& kb, CellI& id, const std::string& label = "ast.struct");
+        void implicitInstantiation();
     };
+
     class StructT : public StructBase,
                     public NewT<StructT>
     {
     public:
         using StructBase::kb;
-        StructT(brain::Brain& kb, CellI& type, const std::string& label = "ast.structT");
+        StructT(brain::Brain& kb, CellI& id, const std::string& label = "ast.structT");
+
+        Type& idType();
 
         void templateParams(Slot& param);
 
@@ -467,21 +489,19 @@ public:
             templateParams(std::forward<Args>(args)...);
         }
 
-        Struct& declareType(CellI& parameters);
+        Struct& declareType(List& parameters);
 
         template <typename... Args>
-        Struct& instantiate(Args&&... args);
-        Struct& instantiate(List& parameters);
-
-        template <typename... Args>
-        void instantiateInto(CellI& type, Args&&... args);
+        Struct& instantiate(Scope& scope, Args&&... args);
+        Struct& instantiate(Scope& scope, List& parameters);
 
     protected:
-        Struct& instantiateWith(CellI* outType, List& slotList);
+        Struct& instantiateWith(Scope& scope, List& slotList);
         CellI& instantiateTemplateParam(CellI& param, CellI& selfType, Map& inputParameters);
         Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters);
         Map& templateParams();
     };
+
     class Function : public BaseT<Function>
     {
     public:
@@ -501,6 +521,7 @@ public:
         template <typename... Args>
         void code(Args&&... args);
 
+        void implicitInstantiation();
         CellI& compile();
         CellI& compile(CellI& type);
 
@@ -508,7 +529,44 @@ public:
         void addBlock(Block& block);
         CellI& compileImpl(CellI* type);
         void compileParams(cells::Object& function, cells::Map& subTypesMap, CellI* type);
+        void implicitInstantiationInAst(CellI& ast);
         CellI& compileAst(CellI& ast, cells::Object& function, CellI* type);
+        List& parameters();
+        CellI& returnType();
+        Base& code();
+    };
+
+    class FunctionT : public BaseT<FunctionT>
+    {
+    public:
+        FunctionT(brain::Brain& kb, CellI& name, const std::string& label = "ast.functionT");
+
+        void templateParams(Slot& param);
+
+        template <typename... Args>
+        void templateParams(Slot& param, Args&&... args)
+        {
+            templateParams(param);
+            templateParams(std::forward<Args>(args)...);
+        }
+
+        void parameters(Slot& param);
+
+        template <typename... Args>
+        void parameters(Slot& param, Args&&... args)
+        {
+            parameters(param);
+            parameters(std::forward<Args>(args)...);
+        }
+        void returnType(CellI& type);
+
+        template <typename... Args>
+        void code(Args&&... args);
+
+        CellI& instantiate();
+
+    protected:
+        void addBlock(Block& block);
         List& parameters();
         CellI& returnType();
         Base& code();
@@ -994,25 +1052,20 @@ void Ast::Function::code(Args&&... args)
 }
 
 template <typename... Args>
-void Ast::Scope::instantiate(CellI& id, Args&&... args)
+Ast::Struct& Ast::Scope::instantiateStructT(CellI& id, Args&&... args)
 {
     if (!structTs().hasKey(id)) {
         throw "No such template!";
     }
     auto& structT = static_cast<Ast::StructT&>(structTs().getValue(id));
-    Ast::Struct& instance = structT.instantiate(std::forward<Args>(args)...);
+    Ast::Struct& instance = structT.instantiate(*this, std::forward<Args>(args)...);
+    return instance;
 }
 
 template <typename... Args>
-Ast::Struct& Ast::StructT::instantiate(Args&&... args)
+Ast::Struct& Ast::StructT::instantiate(Ast::Scope& scope, Args&&... args)
 {
-    return instantiateWith(nullptr, kb.list(std::forward<Args>(args)...));
-}
-
-template <typename... Args>
-void Ast::StructT::instantiateInto(CellI& type, Args&&... args)
-{
-    return instantiateWith(&type, kb.list(std::forward<Args>(args)...));
+    return instantiateWith(scope, kb.list(std::forward<Args>(args)...));
 }
 
 } // namespace brain
