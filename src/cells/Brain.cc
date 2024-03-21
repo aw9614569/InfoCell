@@ -3043,7 +3043,6 @@ Brain::Brain() :
     globalScope.instantiateStructT(id.list, param(id.objectType, type.Number));
 
     auto& compiledGlobalScope = globalScope.compile();
-
 #pragma endregion
 #endif
 
@@ -3694,8 +3693,8 @@ Brain::Brain() :
     type.Number.set(id.slots, *mapPtr);
 
     mapPtr = &slots(type.slot(id.method, type.op.Function),
-                    type.slot(id.input, type.ListOf(type.op.Var)),
-                    type.slot(id.output, type.ListOf(type.op.Var)),
+                    type.slot(id.input, type.Index),
+                    type.slot(id.output, type.op.Var),
                     type.slot(id.localVars, type.Index));
     type.StackFrame.set(id.slots, *mapPtr);
 
