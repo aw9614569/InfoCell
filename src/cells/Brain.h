@@ -127,6 +127,7 @@ public:
     Object structs;
     Object structTInstances;
     Object structTs;
+    Object structType;
     Object subTypes;
     Object template_;
     Object templateParams;
@@ -531,14 +532,12 @@ public:
 
         void implicitInstantiation();
         CellI& compile();
-        CellI& compile(CellI& type);
 
     protected:
         void addBlock(Block& block);
-        CellI& compileImpl(CellI* type);
-        void compileParams(cells::Object& function, cells::Map& subTypesMap, CellI* type);
+        void compileParams(cells::Object& function, cells::Map& subTypesMap);
         void implicitInstantiationInAst(CellI& ast);
-        CellI& compileAst(CellI& ast, cells::Object& function, CellI* type);
+        CellI& compileAst(CellI& ast, cells::Object& function);
         List& parameters();
         CellI& returnType();
         Base& code();
@@ -1027,21 +1026,22 @@ public:
     }
 
     template <typename... Args>
-    void addMethods(Object& class_, Map& asts, Map& methods, CellI& methodId, Ast::Function& method, Args&&... args)
+    void addMethods(Object& structType, Map& asts, Map& methods, CellI& methodId, Ast::Function& method, Args&&... args)
     {
         asts.add(methodId, method);
-        methods.add(methodId, method.compile(class_));
-        addMethods(class_, asts, methods, std::forward<Args>(args)...);
+        method.set(method.kb.id.structType, structType);
+        methods.add(methodId, method.compile());
+        addMethods(structType, asts, methods, std::forward<Args>(args)...);
     }
 
     template <typename... Args>
-    void registerMethods(Object& class_, CellI& methodId, Ast::Function& method, Args&&... args)
+    void registerMethods(Object& structType, CellI& methodId, Ast::Function& method, Args&&... args)
     {
         Map& asts = *new Map(*this, type.Cell, type.ast.Function, "Map<Cell, Type::Ast::Function>(...)");
         Map& methods = *new Map(*this, type.Cell, type.op.Function, "Map<Cell, Type::Op::Function>(...)");
-        addMethods(class_, asts, methods, methodId, method, std::forward<Args>(args)...);
-        class_.set(id.asts, asts);
-        class_.set(id.methods, methods);
+        addMethods(structType, asts, methods, methodId, method, std::forward<Args>(args)...);
+        structType.set(id.asts, asts);
+        structType.set(id.methods, methods);
     }
 
     InitPhase initPhase();

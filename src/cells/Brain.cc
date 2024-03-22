@@ -123,6 +123,7 @@ ID::ID(brain::Brain& kb) :
     structs(kb, kb.type.Cell, "structs"),
     structTInstances(kb, kb.type.Cell, "structTInstances"),
     structTs(kb, kb.type.Cell, "structTs"),
+    structType(kb, kb.type.Cell, "structType"),
     subTypes(kb, kb.type.Cell, "subTypes"),
     template_(kb, kb.type.Cell, "template"),
     templateParams(kb, kb.type.Cell, "templateParams"),
@@ -446,6 +447,7 @@ Ast::Ast(brain::Brain& kb) :
     Erase.set(id.slots, *map);
 
     map = &kb.slots(type.slot(id.name, type.Cell),
+                    type.slot(id.structType, type.Cell),
                     type.slot(id.parameters, type.ListOf(Slot)),
                     type.slot(id.returnType, type.Type_),
                     type.slot(id.code, Base),
@@ -1044,7 +1046,7 @@ void Ast::Scope::implicitInstantiation()
 CellI& Ast::Scope::compile()
 {
     implicitInstantiation();
-    auto& ret = *new Object(kb, kb.type.Program);
+    auto& program = *new Object(kb, kb.type.Program);
     auto& compiledFunctions = *new List(kb, kb.type.op.Function, "compiled functions");
 
     if (has(kb.id.functions)) {
@@ -1067,7 +1069,7 @@ CellI& Ast::Scope::compile()
         });
     }
 
-    return ret;
+    return program;
 }
 
 Ast::Struct& Ast::Scope::instantiateIncompleteStructT(CellI& id, List& parameters)
@@ -1643,16 +1645,6 @@ Ast::Function::Function(brain::Brain& kb, CellI& name, const std::string& label)
     this->label(label);
 }
 
-#if 0
-Ast::Function::Function(brain::Brain& kb, CellI& returnType, CellI& name, const std::string& label) :
-    BaseT<Function>(kb, kb.type.ast.Function, label)
-{
-    set(kb.id.returnType, returnType);
-    set(kb.id.name, name);
-    this->label(label);
-}
-#endif
-
 void Ast::Function::parameters(Slot& param)
 {
     if (missing(kb.id.parameters)) {
@@ -1678,16 +1670,6 @@ void Ast::Function::implicitInstantiation()
 
 CellI& Ast::Function::compile()
 {
-    return compileImpl(nullptr);
-}
-
-CellI& Ast::Function::compile(CellI& type)
-{
-    return compileImpl(&type);
-}
-
-CellI& Ast::Function::compileImpl(CellI* type)
-{
     cells::Object& functionType = *new cells::Object(kb, kb.type.Type_);
     functionType.set(kb.id.memberOf, kb.map(kb.type.Type_, kb.type.Type_, kb.type.op.Function, kb.type.op.Function));
     cells::Map& subTypesMap = kb.map(kb.type.Cell, kb.type.Type_,
@@ -1696,10 +1678,10 @@ CellI& Ast::Function::compileImpl(CellI* type)
     functionType.set(kb.id.slots, kb.type.op.Function[kb.id.slots]);
 
     cells::Object& function = *new cells::Object(kb, functionType);
-    compileParams(function, subTypesMap, type);
+    compileParams(function, subTypesMap);
     functionType.label(std::format("Type for {}", function.label()));
     function.set(kb.id.ast, code());
-    function.set(kb.id.op, compileAst(code(), function, type));
+    function.set(kb.id.op, compileAst(code(), function));
     if (has(kb.id.static_)) {
         function.set(kb.id.static_, get(kb.id.static_));
     }
@@ -1707,18 +1689,19 @@ CellI& Ast::Function::compileImpl(CellI* type)
     return function;
 }
 
-void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesMap, CellI* type)
+void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesMap)
 {
     std::stringstream iss;
     std::stringstream oss;
-    if (has(kb.id.parameters) || type) {
+    if (has(kb.id.parameters) || has(kb.id.structType)) {
         cells::Object& parametersType = *new cells::Object(kb, kb.type.Type_);
         Map& slots                    = *new Map(kb, kb.type.Cell, kb.type.Slot);
-        if (type) {
+        if (has(kb.id.structType)) {
+            CellI& type = get(kb.id.structType);
             Object& var = *new Object(kb, kb.type.op.Var, "self");
-            var.set(kb.id.objectType, *type);
-            slots.add(kb.id.self, kb.type.slot(kb.id.self, *type));
-            iss << kb.id.self.label() << ": " << (*type).label();
+            var.set(kb.id.objectType, type);
+            slots.add(kb.id.self, kb.type.slot(kb.id.self, type));
+            iss << kb.id.self.label() << ": " << type.label();
         }
         if (has(kb.id.parameters)) {
             Visitor::visitList(parameters(), [this, &slots, &iss](CellI& slot, int i, bool& stop) {
@@ -1849,17 +1832,17 @@ void Ast::Function::implicitInstantiationInAst(CellI& ast)
     }
 }
 
-CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* type)
+CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function)
 {
-    auto compile = [this, &function, type](CellI& ast) -> CellI& { return compileAst(ast, function, type); };
+    auto compile = [this, &function](CellI& ast) -> CellI& { return compileAst(ast, function); };
     const auto _ = [this](CellI& cell) -> Ast::Cell& { return kb.ast.cell(cell); };
     auto& id = kb.id;
 
     if (&ast.type() == &kb.type.ast.Block) {
         CellI& list        = ast[id.asts];
         auto& compiledAsts = *new cells::List(kb, kb.type.op.Base);
-        Visitor::visitList(list, [this, &compiledAsts, &ast, &function, type](CellI& ast, int, bool&) {
-            compiledAsts.add(compileAst(ast, function, type));
+        Visitor::visitList(list, [this, &compiledAsts, &ast, &function](CellI& ast, int, bool&) {
+            compiledAsts.add(compileAst(ast, function));
         });
         Object& opBlock = *new Object(kb, kb.type.op.Block);
         opBlock.set(id.ast, ast);
@@ -3806,12 +3789,8 @@ Brain::Brain() :
                 ast.return_(ast.multiply(p_(id.input), ast.call(ast.self(), _(test.factorial), ast.slot(_(id.input), ast.subtract(p_(id.input), _(_1_)))))),
                 ast.return_(_(_1_))));
 
-    mapPtr = &map(type.Cell, type.ast.Function,
-                  test.factorial, numberFactorial);
-    type.Number.set(id.asts, *mapPtr);
-    mapPtr = &map(type.Cell, type.op.Function,
-                  test.factorial, numberFactorial.compile(type.Number));
-    type.Number.set(id.methods, *mapPtr);
+    registerMethods(type.Number,
+                    test.factorial, numberFactorial);
 
     m_initPhase = InitPhase::FullyConstructed;
 
