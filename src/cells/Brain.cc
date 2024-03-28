@@ -1177,8 +1177,10 @@ CellI& Ast::Scope::compile()
     program.set(kb.id.data, programData);
     auto& compiledFunctions = *new List(kb, kb.type.op.Function, "Functions");
     auto& compiledStructs   = *new TrieMap(kb, kb.type.Cell, kb.type.Type_, "Types");
+    auto& compiledVariables = *new TrieMap(kb, kb.type.Cell, kb.type.op.Var, "Variables");
     programData.set(kb.id.functions, compiledFunctions);
     programData.set(kb.id.structs, compiledStructs);
+    programData.set(kb.id.variables, compiledVariables);
 
     if (has(kb.id.functions)) {
         Visitor::visitList(functions()[kb.id.list], [this, &program, &compiledFunctions](CellI& function, int i, bool& stop) {
@@ -1195,6 +1197,17 @@ CellI& Ast::Scope::compile()
             }
             auto& compiledStruct = astStruct.compile(program, *this);
             compiledStructs.add(astStruct.id(), compiledStruct);
+        });
+    }
+    if (has(kb.id.variables)) {
+        Visitor::visitList(variables()[kb.id.list], [this, &program, &compiledVariables](CellI& var, int i, bool& stop) {
+            Ast::Var& astVar = static_cast<Ast::Var&>(var);
+            auto& varName    = astVar[kb.id.role];
+            if (compiledVariables.hasKey(varName)) {
+                return;
+            }
+            auto& compiledVariable = *new Object(kb, kb.type.op.Var);
+            compiledVariables.add(varName, compiledVariable);
         });
     }
     if (has(kb.id.scopes)) {
@@ -1955,8 +1968,11 @@ void Ast::Function::implicitInstantiationInAst(CellI& ast)
             ast.set(id.objectType, instantiatedTemplate);
         }
         if (ast.has(id.parameters)) {
-            throw "TODO";
-            // TODO process parameters
+            Visitor::visitList(ast[kb.id.parameters], [this](CellI& slot, int i, bool& stop) {
+                CellI& slotRole = slot[kb.id.slotRole];
+                CellI& slotType = slot[kb.id.slotType];
+                implicitInstantiationInAst(slotType);
+            });
         }
     } else if (&ast.type() == &kb.type.ast.And) {
         implicitInstantiationInAst(ast[id.lhs]);
@@ -3333,6 +3349,73 @@ Brain::Brain() :
             member(id.first, dt_("ListItem", param(id.objectType, t_(id.objectType)))),
             member(id.last, dt_("ListItem", param(id.objectType, t_(id.objectType)))),
             member(id.size, _(type.Number)));
+
+        ////
+        Ast::Function& listCtor = listStructT.addMethod("constructor");
+        listCtor.code(
+            m_(id.size)       = _(_0_),
+            m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType) / _(id.value),
+            m_(id.itemType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.itemType) / _(id.value));
+
+        Ast::Function& listAdd = listStructT.addMethod("add");
+        listAdd.parameters(
+            param(id.value, t_(id.objectType)));
+        listAdd.returnType(dt_("ListItem", param(id.objectType, t_(id.objectType))));
+        listAdd.code(
+            var_(id.item) = ast.new_(m_(id.itemType), _(id.constructor), param(_(id.value), p_(id.value))),
+            ast.if_(ast.not_(m_(id.first).exist()),
+                    m_(id.first) = *var_(id.item),                              // then
+                    ast.block(ast.set(m_(id.last), _(id.next), *var_(id.item)), // else
+                              ast.set(*var_(id.item), _(id.previous), m_(id.last)))),
+            m_(id.last) = *var_(id.item),
+            m_(id.size) = ast.add(m_(id.size), _(_1_)),
+            ast.return_(*var_(id.item)));
+        /*
+        void List::removeItem(Item* item)
+        {
+            if (item->m_previous) {
+                item->m_previous->m_next = item->m_next;
+            } else {
+                m_firstItem = item->m_next;
+            }
+            if (item->m_next) {
+                item->m_next->m_previous = item->m_previous;
+            } else {
+                m_lastItem = item->m_previous;
+            }
+            --m_size;
+        }
+        */
+        Ast::Function& listRemove = listStructT.addMethod("remove");
+        listRemove.parameters(
+            param(id.item, _(type.Cell)));
+        listRemove.code(
+            ast.if_(ast.has(p_(id.item), _(id.previous)),
+                    ast.if_(ast.has(p_(id.item), _(id.next)),
+                            ast.set(p_(id.item) / _(id.previous), _(id.next), p_(id.item) / _(id.next)),
+                            ast.erase(p_(id.item) / _(id.previous), _(id.next))),
+                    ast.if_(ast.has(p_(id.item), _(id.next)),
+                            m_(id.first) = p_(id.item) / _(id.next),
+                            ast.erase(ast.self(), _(id.first)))),
+            ast.if_(ast.has(p_(id.item), _(id.next)),
+                    ast.if_(ast.has(p_(id.item), _(id.previous)),
+                            ast.set(p_(id.item) / _(id.next), _(id.previous), p_(id.item) / _(id.previous)),
+                            ast.erase(p_(id.item) / _(id.next), _(id.previous))),
+                    ast.if_(ast.has(p_(id.item), _(id.previous)),
+                            m_(id.last) = p_(id.item) / _(id.previous),
+                            ast.erase(ast.self(), _(id.last)))),
+            m_(id.size) = ast.subtract(m_(id.size), _(_1_)));
+
+        Ast::Function& listSize = listStructT.addMethod("size");
+        listSize.returnType(_(type.Number));
+        listSize.code(
+            ast.return_(m_(id.size)));
+
+        Ast::Function& listEmpty = listStructT.addMethod("empty");
+        listEmpty.returnType(_(type.Boolean));
+        listEmpty.code(
+            ast.if_(ast.equal(m_(id.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_))));
+        ////
 
         auto& listNumberStruct = globalScope.instantiateStructT("List", param(id.objectType, type.Number)); // explicit instantiation
 

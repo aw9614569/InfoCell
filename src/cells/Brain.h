@@ -502,6 +502,7 @@ public:
     public:
         Struct(brain::Brain& kb, CellI& id, const std::string& label = "ast.struct");
         Struct(brain::Brain& kb, const std::string& name);
+
         void implicitInstantiation();
         Object& compile(Object& program, Scope& scope);
     };
