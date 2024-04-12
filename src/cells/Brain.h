@@ -405,10 +405,6 @@ public:
     {
     public:
         Call(brain::Brain& kb, CellI& cell, CellI& method);
-        Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1);
-        Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2);
-        Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3);
-        Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
 
         void addParam(Slot& slot);
 
@@ -424,10 +420,15 @@ public:
     {
     public:
         StaticCall(brain::Brain& kb, CellI& cell, CellI& method);
-        StaticCall(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1);
-        StaticCall(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2);
-        StaticCall(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3);
-        StaticCall(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
+
+        void addParam(Slot& slot);
+
+        template <typename... Args>
+        void addParam(Slot& slot, Args&&... args)
+        {
+            addParam(slot);
+            addParam(std::forward<Args>(args)...);
+        }
     };
 
     class Block : public BaseT<Block>
@@ -685,12 +686,6 @@ public:
         Call& call(const std::string& method);
         template <typename... Args>
         Call& call(const std::string& method, Args&&... args);
-
-        Call& call(CellI& method);
-        Call& call(CellI& method, Slot& slot1);
-        Call& call(CellI& method, Slot& slot1, Slot& slot2);
-        Call& call(CellI& method, Slot& slot1, Slot& slot2, Slot& slot3);
-        Call& call(CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
     };
     class SubType : public BaseT<SubType>
     {
@@ -731,10 +726,15 @@ public:
     public:
         New(brain::Brain& kb, Base& objectType);
         New(brain::Brain& kb, Base& objectType, Base& constructor);
-        New(brain::Brain& kb, Base& objectType, Base& constructor, Slot& slot1);
-        New(brain::Brain& kb, Base& objectType, Base& constructor, Slot& slot1, Slot& slot2);
-        New(brain::Brain& kb, Base& objectType, Base& constructor, Slot& slot1, Slot& slot2, Slot& slot3);
-        New(brain::Brain& kb, Base& objectType, Base& constructor, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
+
+        void addParam(Slot& slot);
+
+        template <typename... Args>
+        void addParam(Slot& slot, Args&&... args)
+        {
+            addParam(slot);
+            addParam(std::forward<Args>(args)...);
+        }
     };
     class Same : public BaseT<Same>
     {
@@ -840,20 +840,15 @@ public:
     Slot& slot(CellI& role, CellI& type);
 
     Call& call(CellI& object, const std::string& method);
+    Call& call(CellI& object, CellI& method);
     template <typename... Args>
     Call& call(CellI& object, const std::string& method, Args&&... args);
 
-    Call& call(CellI& cell, CellI& method);
-    Call& call(CellI& cell, CellI& method, Slot& slot1);
-    Call& call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2);
-    Call& call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3);
-    Call& call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
+    StaticCall& scall(CellI& type, const std::string& method);
+    StaticCall& scall(CellI& type, CellI& method);
+    template <typename... Args>
+    StaticCall& scall(CellI& type, const std::string& method, Args&&... args);
 
-    StaticCall& scall(CellI& cell, CellI& method);
-    StaticCall& scall(CellI& cell, CellI& method, Slot& slot1);
-    StaticCall& scall(CellI& cell, CellI& method, Slot& slot1, Slot& slot2);
-    StaticCall& scall(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3);
-    StaticCall& scall(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
 
     template <typename... Args>
     Block& block(Args&&... args);
@@ -878,10 +873,6 @@ public:
     TemplateParam& templateParam(CellI& role);
     New& new_(Base& objectType);
     New& new_(Base& objectType, Base& constructor);
-    New& new_(Base& objectType, Base& constructor, Slot& slot1);
-    New& new_(Base& objectType, Base& constructor, Slot& slot1, Slot& slot2);
-    New& new_(Base& objectType, Base& constructor, Slot& slot1, Slot& slot2, Slot& slot3);
-    New& new_(Base& objectType, Base& constructor, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
 
     template<typename... Args>
     New& new_(Base& objectType, const std::string& constructor, Args&&... params);
@@ -1048,6 +1039,30 @@ protected:
     InitPhase m_initPhase = InitPhase::Init;
     friend class Types;
     void createStd();
+    void createTests();
+    void createArcSolver();
+
+protected:
+    Ast::Cell& _(CellI& cell);
+    Ast::Parameter& p_(CellI& role);
+    Ast::Member& m_(CellI&);
+    Ast::Var& var_(CellI&);
+    Ast::Slot& param(CellI&, CellI&);
+    Ast::Slot& member(CellI&, CellI&);
+    template <typename... Args>
+    Ast::Cell& st_(const std::string& name, Args&&... args)
+    {
+        return ast.subType(pools.strings.get(name)[id.value], std::forward<Args>(args)...);
+    }
+    Ast::TemplateParam& tp_(CellI&);
+
+    template <typename... Args>
+    Ast::TemplatedType& tt_(const std::string& name, Args&&... args)
+    {
+        return ast.templatedType(pools.strings.get(name)[id.value], std::forward<Args>(args)...);
+    }
+
+    Ast::StructRef& struct_(const std::string&);
 
 public:
     Brain();
@@ -1075,6 +1090,9 @@ public:
     CellI& _8_;
     CellI& _9_;
 
+    Ast::Scope globalScope;
+
+ public:
     CellI& toKbBool(bool value);
 
     template <typename... Args>
@@ -1132,30 +1150,6 @@ public:
         return ret;
     }
 
-    void addMethods(Object&, Ast::Scope&, Object&, Map&, Map&)
-    {
-        // Do nothing
-    }
-
-    template <typename... Args>
-    void addMethods(Object& program, Ast::Scope& scope, Object& structType, Map& asts, Map& methods, CellI& methodId, Ast::Function& method, Args&&... args)
-    {
-        asts.add(methodId, method);
-        method.set(method.kb.id.structType, structType);
-        // methods.add(methodId, method.compile(program, scope)); TODO
-        addMethods(program, scope, structType, asts, methods, std::forward<Args>(args)...);
-    }
-
-    template <typename... Args>
-    void registerMethods(Object& program, Ast::Scope& scope, Object& structType, CellI& methodId, Ast::Function& method, Args&&... args)
-    {
-        Map& asts = *new Map(*this, type.Cell, type.ast.Function, "Map<Cell, Type::Ast::Function>(...)");
-        Map& methods = *new Map(*this, type.Cell, type.op.Function, "Map<Cell, Type::Op::Function>(...)");
-        addMethods(program, scope, structType, asts, methods, methodId, method, std::forward<Args>(args)...);
-        structType.set(id.asts, asts);
-        structType.set(id.methods, methods);
-    }
-
     InitPhase initPhase();
 };
 
@@ -1167,15 +1161,23 @@ Ast::Block& Ast::block(Args&&... args)
 
 
 template <typename... Args>
-Ast::New& Ast::new_(Base& objectType, const std::string& constructor, Args&&... params)
+Ast::New& Ast::new_(Base& objectType, const std::string& constructor, Args&&... args)
 {
-    return new_(objectType, kb.ast.cell(kb.pools.strings.getCharList(constructor)), std::forward<Args>(params)...);
+    auto& ret = new_(objectType, kb.ast.cell(kb.pools.strings.getCharList(constructor)));
+    if constexpr (sizeof...(Args) > 0) {
+        ret.addParam(std::forward<Args>(args)...);
+    }
+    return ret;
 }
 
 template <typename... Args>
-Ast::New& Ast::new_(const std::string& objectType, const std::string& constructor, Args&&... params)
+Ast::New& Ast::new_(const std::string& objectType, const std::string& constructor, Args&&... args)
 {
-    return new_(kb.ast.structRef(kb.pools.strings.getCharList(objectType)), kb.ast.cell(kb.pools.strings.getCharList(constructor)), std::forward<Args>(params)...);
+    auto& ret = new_(kb.ast.structRef(kb.pools.strings.getCharList(objectType)), kb.ast.cell(kb.pools.strings.getCharList(constructor)));
+    if constexpr (sizeof...(Args) > 0) {
+        ret.addParam(std::forward<Args>(args)...);
+    }
+    return ret;
 }
 
 template <typename... Args>
@@ -1188,6 +1190,16 @@ template <typename... Args>
 Ast::Call& Ast::call(CellI& object, const std::string& method, Args&&... args)
 {
     auto& ret = call(object, method);
+    if constexpr (sizeof...(Args) > 0) {
+        ret.addParam(std::forward<Args>(args)...);
+    }
+    return ret;
+}
+
+template <typename... Args>
+Ast::StaticCall& Ast::scall(CellI& object, const std::string& method, Args&&... args)
+{
+    auto& ret = scall(object, method);
     if constexpr (sizeof...(Args) > 0) {
         ret.addParam(std::forward<Args>(args)...);
     }
