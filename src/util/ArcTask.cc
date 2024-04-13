@@ -48,13 +48,13 @@ ArcTask::ArcTask(cells::brain::Brain& kb, const nlohmann::json& jsonArcFile) :
         ArcDemonstration& arcDemonstration = m_demonstrations.back();
         m_exampleObjects.emplace_back(kb, kb.arc.Demonstration);
         cells::Object& exampleObject = m_exampleObjects.back();
-        exampleObject.set(kb.id.input, arcDemonstration.m_input);
-        exampleObject.set(kb.id.output, arcDemonstration.m_output);
+        exampleObject.set(kb.ids.input, arcDemonstration.m_input);
+        exampleObject.set(kb.ids.output, arcDemonstration.m_output);
         m_examples.add(exampleObject);
     }
     m_task.set(kb.arc.examples, m_examples);
-    m_task.set(kb.id.input, m_testInput);
-    m_task.set(kb.id.output, m_testSolution);
+    m_task.set(kb.ids.input, m_testInput);
+    m_task.set(kb.ids.output, m_testSolution);
 }
 
 } // namespace synth

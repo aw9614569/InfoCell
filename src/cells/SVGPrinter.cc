@@ -28,11 +28,11 @@ void Printer::visit(List::Item& cell)
     brain::Brain& kb = cell.kb;
 
     Element valueAsSvg;
-    if (tryVisitWith(cell[kb.id.value], *this)) {
+    if (tryVisitWith(cell[kb.ids.value], *this)) {
         valueAsSvg = m_stack.top();
         m_stack.pop();
     } else {
-        valueAsSvg = text(cell[kb.id.value].label())->fontSize(16)->fontColor({ 255, 0, 0 });
+        valueAsSvg = text(cell[kb.ids.value].label())->fontSize(16)->fontColor({ 255, 0, 0 });
     }
     m_stack.push(hbox(vbox(text("ListItem") | center | borderWidth(10), filler() | size(HEIGHT, EQUAL, 2), valueAsSvg | center | borderWidth(10)),
                       filler() | size(WIDTH, EQUAL, 2)));

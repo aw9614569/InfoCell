@@ -52,7 +52,7 @@ CellI& CellI::get(CellI& role)
 
 CellI& CellI::type()
 {
-    return (*this)[kb.id.type];
+    return (*this)[kb.ids.type];
 }
 
 void CellI::eval()
@@ -72,12 +72,12 @@ void CellI::label(const std::string& label)
 
 bool CellI::isA(CellI& ptype)
 {
-    return &type() == &ptype || (has(kb.id.memberOf) && (*this)[kb.id.memberOf][kb.id.index].has(ptype));
+    return &type() == &ptype || (has(kb.ids.memberOf) && (*this)[kb.ids.memberOf][kb.ids.index].has(ptype));
 }
 
 bool CellI::isA(CellI& cell, CellI& type) const
 {
-    return &cell == &type || (cell.has(kb.id.memberOf) && cell[kb.id.memberOf][kb.id.index].has(type));
+    return &cell == &type || (cell.has(kb.ids.memberOf) && cell[kb.ids.memberOf][kb.ids.index].has(type));
 }
 
 bool CellI::operator==(CellI& rhs)
@@ -85,12 +85,12 @@ bool CellI::operator==(CellI& rhs)
     if (&type() != &rhs.type()) {
         return false;
     }
-    CellI& slotList    = type()[kb.id.slots][kb.id.list];
-    CellI* slotItemPtr = slotList.has(kb.id.first) ? &slotList[kb.id.first] : nullptr;
+    CellI& slotList    = type()[kb.ids.slots][kb.ids.list];
+    CellI* slotItemPtr = slotList.has(kb.ids.first) ? &slotList[kb.ids.first] : nullptr;
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
-        CellI& slot     = slotItem[kb.id.value];
-        CellI& role     = slot[kb.id.slotRole];
+        CellI& slot     = slotItem[kb.ids.value];
+        CellI& role     = slot[kb.ids.slotRole];
 
         bool hasLeftSlot = has(role);
         if (hasLeftSlot != rhs.has(role)) {
@@ -100,7 +100,7 @@ bool CellI::operator==(CellI& rhs)
             return false;
         }
 
-        slotItemPtr = slotItem.has(kb.id.next) ? &slotItem[kb.id.next] : nullptr;
+        slotItemPtr = slotItem.has(kb.ids.next) ? &slotItem[kb.ids.next] : nullptr;
     }
 
     return true;
@@ -118,7 +118,7 @@ Object::Object(brain::Brain& kb, CellI& type, const std::string& label) :
     CellI(kb, label),
     m_type(type)
 {
-    m_slots[&kb.id.type] = &type;
+    m_slots[&kb.ids.type] = &type;
     if (kb.initPhase() == InitPhase::Init) {
         return;
     }
@@ -128,7 +128,7 @@ Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, const std::str
     CellI(kb, label),
     m_type(type)
 {
-    m_slots[&kb.id.type] = &type;
+    m_slots[&kb.ids.type] = &type;
     getMethod(constructor)();
 }
 
@@ -136,7 +136,7 @@ Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, 
     CellI(kb, label),
     m_type(type)
 {
-    m_slots[&kb.id.type] = &type;
+    m_slots[&kb.ids.type] = &type;
 
     CellI& method = getMethod(constructor);
     setFnParam(method, param1);
@@ -147,7 +147,7 @@ Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, 
     CellI(kb, label),
     m_type(type)
 {
-    m_slots[&kb.id.type] = &type;
+    m_slots[&kb.ids.type] = &type;
 
     CellI& method = getMethod(constructor);
     setFnParam(method, param1);
@@ -159,7 +159,7 @@ Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, 
     CellI(kb, label),
     m_type(type)
 {
-    m_slots[&kb.id.type] = &type;
+    m_slots[&kb.ids.type] = &type;
 
     CellI& method = getMethod(constructor);
     setFnParam(method, param1);
@@ -173,7 +173,7 @@ Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, 
     CellI(kb, label),
     m_type(type)
 {
-    m_slots[&kb.id.type] = &type;
+    m_slots[&kb.ids.type] = &type;
 
     CellI& method = getMethod(constructor);
     setFnParam(method, param1);
@@ -188,7 +188,7 @@ Object::~Object()
     if (kb.initPhase() == InitPhase::Init || kb.initPhase() == InitPhase::DestructBegin) {
         return;
     }
-    if (!hasMethod(kb.id.destructor)) {
+    if (!hasMethod(kb.ids.destructor)) {
         return;
     }
     destructor();
@@ -196,7 +196,7 @@ Object::~Object()
 
 bool Object::has(CellI& role)
 {
-    if (&role == &kb.id.type)
+    if (&role == &kb.ids.type)
         return true;
 
     return m_slots.find(&role) != m_slots.end();
@@ -204,10 +204,10 @@ bool Object::has(CellI& role)
 
 void Object::set(CellI& role, CellI& value)
 {
-    if ((&role == &kb.id.type) && !((&type() == &kb.type.Index) || (type().label() == "Index"))) {
+    if ((&role == &kb.ids.type) && !((&type() == &kb.type.Index) || (type().label() == "Index"))) {
         throw "Type change not allowed.";
     }
-    if ((&role == &kb.id.type) && (&type() == &kb.type.Index)) {
+    if ((&role == &kb.ids.type) && (&type() == &kb.type.Index)) {
         std::cout << "";
     }
 
@@ -215,8 +215,8 @@ void Object::set(CellI& role, CellI& value)
         m_slots[&role] = &value;
         return;
     }
-    auto is = [this](CellI& rhsType) -> bool { return &type() == &rhsType || (type().has(kb.id.memberOf) && type()[kb.id.memberOf][kb.id.index].has(rhsType)); };
-    if (is(kb.type.Index) || type().label() == "Index" || type()[kb.id.slots][kb.id.index].has(role)) {
+    auto is = [this](CellI& rhsType) -> bool { return &type() == &rhsType || (type().has(kb.ids.memberOf) && type()[kb.ids.memberOf][kb.ids.index].has(rhsType)); };
+    if (is(kb.type.Index) || type().label() == "Index" || type()[kb.ids.slots][kb.ids.index].has(role)) {
         m_slots[&role] = &value;
     } else {
         throw "The type doesn't contains this role.";
@@ -225,7 +225,7 @@ void Object::set(CellI& role, CellI& value)
 
 void Object::erase(CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         throw "Type change not allowed.";
     }
 
@@ -255,37 +255,37 @@ void Object::operator()()
     static bool s_debugFunctionCalls = false;
 
     if (&m_type == &kb.type.op.Block) {
-        Visitor::visitList(get(kb.id.ops), [this](CellI& op, int, bool& stop) {
+        Visitor::visitList(get(kb.ids.ops), [this](CellI& op, int, bool& stop) {
             if (&op.type() == &kb.type.op.Return) {
                 op();
-                set(kb.id.status, kb.id.stop);
+                set(kb.ids.status, kb.ids.stop);
                 stop = true;
                 return;
             }
-            set(kb.id.status, kb.id.continue_);
+            set(kb.ids.status, kb.ids.continue_);
             op();
-            if (op.has(kb.id.status) && &op[kb.id.status] == &kb.id.stop) {
-                set(kb.id.status, kb.id.stop);
+            if (op.has(kb.ids.status) && &op[kb.ids.status] == &kb.ids.stop) {
+                set(kb.ids.status, kb.ids.stop);
                 stop = true;
                 return;
             }
         });
     } else if (&m_type == &kb.type.op.Return) {
-        if (has(kb.id.result)) {
-            CellI& result = get(kb.id.result);
+        if (has(kb.ids.result)) {
+            CellI& result = get(kb.ids.result);
             result();
         }
     } else if (&m_type == &kb.type.op.EvalVar) {
-        CellI& value = get(kb.id.value)[kb.id.value];
+        CellI& value = get(kb.ids.value)[kb.ids.value];
         value();
-    } else if (&m_type == &kb.type.op.Function || (m_type.has(kb.id.memberOf) && m_type[kb.id.memberOf][kb.id.index].has(kb.type.op.Function))) {
-        if (has(kb.id.op)) {
-            CellI& op = get(kb.id.op);
+    } else if (&m_type == &kb.type.op.Function || (m_type.has(kb.ids.memberOf) && m_type[kb.ids.memberOf][kb.ids.index].has(kb.type.op.Function))) {
+        if (has(kb.ids.op)) {
+            CellI& op = get(kb.ids.op);
             const std::string& functionName = label();
 
-            CellI& stackBefore          = get(kb.id.stack);
-            CellI& stackFrameBefore     = get(kb.id.stack)[kb.id.value];
-            CellI& stackFrameBeforeSelf = get(kb.id.stack)[kb.id.value][kb.id.input][kb.id.self];
+            CellI& stackBefore          = get(kb.ids.stack);
+            CellI& stackFrameBefore     = get(kb.ids.stack)[kb.ids.value];
+            CellI& stackFrameBeforeSelf = get(kb.ids.stack)[kb.ids.value][kb.ids.input][kb.ids.self];
             if (s_debugFunctionCalls) {
                 printIndent();
                 s_indent++;
@@ -295,24 +295,24 @@ void Object::operator()()
             if (s_debugFunctionCalls) {
                 s_indent--;
             }
-            CellI& stackAfter      = get(kb.id.stack);
-            CellI& stackFrameAfter = get(kb.id.stack)[kb.id.value];
+            CellI& stackAfter      = get(kb.ids.stack);
+            CellI& stackFrameAfter = get(kb.ids.stack)[kb.ids.value];
         }
     } else if (&m_type == &kb.type.op.Delete) {
-        CellI& input = get(kb.id.input);
+        CellI& input = get(kb.ids.input);
         input();
-        CellI* cell = &input[kb.id.value];
+        CellI* cell = &input[kb.ids.value];
         delete cell;
     } else if (&m_type == &kb.type.op.Set) {
-        CellI& inputCell = get(kb.id.cell);
+        CellI& inputCell = get(kb.ids.cell);
         inputCell();
-        CellI& cell      = inputCell[kb.id.value];
-        CellI& inputRole = get(kb.id.role);
+        CellI& cell      = inputCell[kb.ids.value];
+        CellI& inputRole = get(kb.ids.role);
         inputRole();
-        CellI& role       = inputRole[kb.id.value];
-        CellI& inputValue = get(kb.id.value);
+        CellI& role       = inputRole[kb.ids.value];
+        CellI& inputValue = get(kb.ids.value);
         inputValue();
-        CellI& value = inputValue[kb.id.value];
+        CellI& value = inputValue[kb.ids.value];
         if (label() == "Call { storeMethod; }") {
 //            std::cout << "DDDD storeMethod " << value.label() << std::endl;
         }
@@ -327,230 +327,230 @@ void Object::operator()()
         }
         cell.set(role, value);
     } else if (&m_type == &kb.type.op.Erase) {
-        CellI& inputCell = get(kb.id.cell);
+        CellI& inputCell = get(kb.ids.cell);
         inputCell();
-        CellI& cell      = inputCell[kb.id.value];
-        CellI& inputRole = get(kb.id.role);
+        CellI& cell      = inputCell[kb.ids.value];
+        CellI& inputRole = get(kb.ids.role);
         inputRole();
-        CellI& role       = inputRole[kb.id.value];
+        CellI& role       = inputRole[kb.ids.value];
 
         cell.erase(role);
     } else if (&m_type == &kb.type.op.If) {
-        CellI& inputCondition = get(kb.id.condition);
+        CellI& inputCondition = get(kb.ids.condition);
         inputCondition();
-        set(kb.id.status, kb.id.continue_);
+        set(kb.ids.status, kb.ids.continue_);
         CellI* branchPtr = nullptr;
-        bool condition   = &inputCondition[kb.id.value] == &kb.boolean.true_;
+        bool condition   = &inputCondition[kb.ids.value] == &kb.boolean.true_;
         if (condition) {
-            branchPtr = &get(kb.id.then);
+            branchPtr = &get(kb.ids.then);
         } else {
-            if (missing(kb.id.else_)) {
+            if (missing(kb.ids.else_)) {
                 return;
             }
-            branchPtr = &get(kb.id.else_);
+            branchPtr = &get(kb.ids.else_);
         }
         CellI& branch = *branchPtr;
         branch();
-        if (&branch.type() == &kb.type.op.Return || (branch.has(kb.id.status) && &branch[kb.id.status] == &kb.id.stop)) {
-            set(kb.id.status, kb.id.stop);
+        if (&branch.type() == &kb.type.op.Return || (branch.has(kb.ids.status) && &branch[kb.ids.status] == &kb.ids.stop)) {
+            set(kb.ids.status, kb.ids.stop);
         }
     } else if (&m_type == &kb.type.op.Do) {
         bool condition = false;
-        set(kb.id.status, kb.id.continue_);
+        set(kb.ids.status, kb.ids.continue_);
         do {
-            CellI& statement      = get(kb.id.statement);
-            CellI& inputCondition = get(kb.id.condition);
+            CellI& statement      = get(kb.ids.statement);
+            CellI& inputCondition = get(kb.ids.condition);
             statement();
-            if (&statement.type() == &kb.type.op.Return || (statement.has(kb.id.status) && &statement[kb.id.status] == &kb.id.stop)) {
-                set(kb.id.status, kb.id.stop);
+            if (&statement.type() == &kb.type.op.Return || (statement.has(kb.ids.status) && &statement[kb.ids.status] == &kb.ids.stop)) {
+                set(kb.ids.status, kb.ids.stop);
                 return;
             }
             inputCondition();
-            condition = &inputCondition[kb.id.value] == &kb.boolean.true_;
+            condition = &inputCondition[kb.ids.value] == &kb.boolean.true_;
         } while (condition);
     } else if (&m_type == &kb.type.op.While) {
         bool condition = false;
-        set(kb.id.status, kb.id.continue_);
-        CellI& inputCondition = get(kb.id.condition);
-        CellI& statement      = get(kb.id.statement);
+        set(kb.ids.status, kb.ids.continue_);
+        CellI& inputCondition = get(kb.ids.condition);
+        CellI& statement      = get(kb.ids.statement);
         inputCondition();
-        condition = &inputCondition[kb.id.value] == &kb.boolean.true_;
+        condition = &inputCondition[kb.ids.value] == &kb.boolean.true_;
         while (condition) {
             statement();
-            if (&statement.type() == &kb.type.op.Return || (statement.has(kb.id.status) && &statement[kb.id.status] == &kb.id.stop)) {
-                set(kb.id.status, kb.id.stop);
+            if (&statement.type() == &kb.type.op.Return || (statement.has(kb.ids.status) && &statement[kb.ids.status] == &kb.ids.stop)) {
+                set(kb.ids.status, kb.ids.stop);
                 return;
             }
             inputCondition();
-            condition = &inputCondition[kb.id.value] == &kb.boolean.true_;
+            condition = &inputCondition[kb.ids.value] == &kb.boolean.true_;
         };
     } else if (&m_type == &kb.type.op.New) {
-        CellI& inputObjectType = get(kb.id.objectType);
+        CellI& inputObjectType = get(kb.ids.objectType);
         inputObjectType();
-        CellI& objectType = inputObjectType[kb.id.value];
+        CellI& objectType = inputObjectType[kb.ids.value];
 
         if (&objectType == &kb.type.Number) {
-            set(kb.id.value, *new Number(kb));
+            set(kb.ids.value, *new Number(kb));
         } else if (&objectType == &kb.type.String) {
-            set(kb.id.value, *new String(kb));
+            set(kb.ids.value, *new String(kb));
         } else {
-            set(kb.id.value, *new Object(kb, objectType));
+            set(kb.ids.value, *new Object(kb, objectType));
         }
     } else if (&m_type == &kb.type.op.Same) {
-        CellI& inputLhs = get(kb.id.lhs);
+        CellI& inputLhs = get(kb.ids.lhs);
         inputLhs();
-        CellI* lhs      = &inputLhs[kb.id.value];
-        CellI& inputRhs = get(kb.id.rhs);
+        CellI* lhs      = &inputLhs[kb.ids.value];
+        CellI& inputRhs = get(kb.ids.rhs);
         inputRhs();
-        CellI* rhs = &inputRhs[kb.id.value];
-        set(kb.id.value, kb.toKbBool(lhs == rhs));
+        CellI* rhs = &inputRhs[kb.ids.value];
+        set(kb.ids.value, kb.toKbBool(lhs == rhs));
     } else if (&m_type == &kb.type.op.NotSame) {
-        CellI& inputLhs = get(kb.id.lhs);
+        CellI& inputLhs = get(kb.ids.lhs);
         inputLhs();
-        CellI* lhs      = &inputLhs[kb.id.value];
-        CellI& inputRhs = get(kb.id.rhs);
+        CellI* lhs      = &inputLhs[kb.ids.value];
+        CellI& inputRhs = get(kb.ids.rhs);
         inputRhs();
-        CellI* rhs = &inputRhs[kb.id.value];
-        set(kb.id.value, kb.toKbBool(lhs != rhs));
+        CellI* rhs = &inputRhs[kb.ids.value];
+        set(kb.ids.value, kb.toKbBool(lhs != rhs));
     } else if (&m_type == &kb.type.op.Equal) {
-        CellI& inputLhs = get(kb.id.lhs);
+        CellI& inputLhs = get(kb.ids.lhs);
         inputLhs();
-        CellI& lhs      = inputLhs[kb.id.value];
-        CellI& inputRhs = get(kb.id.rhs);
+        CellI& lhs      = inputLhs[kb.ids.value];
+        CellI& inputRhs = get(kb.ids.rhs);
         inputRhs();
-        CellI& rhs = inputRhs[kb.id.value];
-        set(kb.id.value, kb.toKbBool(lhs == rhs));
+        CellI& rhs = inputRhs[kb.ids.value];
+        set(kb.ids.value, kb.toKbBool(lhs == rhs));
     } else if (&m_type == &kb.type.op.NotEqual) {
-        CellI& inputLhs = get(kb.id.lhs);
+        CellI& inputLhs = get(kb.ids.lhs);
         inputLhs();
-        CellI& lhs      = inputLhs[kb.id.value];
-        CellI& inputRhs = get(kb.id.rhs);
+        CellI& lhs      = inputLhs[kb.ids.value];
+        CellI& inputRhs = get(kb.ids.rhs);
         inputRhs();
-        CellI& rhs = inputRhs[kb.id.value];
-        set(kb.id.value, kb.toKbBool(lhs != rhs));
+        CellI& rhs = inputRhs[kb.ids.value];
+        set(kb.ids.value, kb.toKbBool(lhs != rhs));
     } else if (&m_type == &kb.type.op.Has) {
-        CellI& inputCell = get(kb.id.cell);
+        CellI& inputCell = get(kb.ids.cell);
         inputCell();
-        CellI& cell      = inputCell[kb.id.value];
-        CellI& inputRole = get(kb.id.role);
+        CellI& cell      = inputCell[kb.ids.value];
+        CellI& inputRole = get(kb.ids.role);
         inputRole();
-        CellI& role = inputRole[kb.id.value];
-        set(kb.id.value, kb.toKbBool(cell.has(role)));
+        CellI& role = inputRole[kb.ids.value];
+        set(kb.ids.value, kb.toKbBool(cell.has(role)));
     } else if (&m_type == &kb.type.op.Missing) {
-        CellI& inputCell = get(kb.id.cell);
+        CellI& inputCell = get(kb.ids.cell);
         inputCell();
-        CellI& cell      = inputCell[kb.id.value];
-        CellI& inputRole = get(kb.id.role);
+        CellI& cell      = inputCell[kb.ids.value];
+        CellI& inputRole = get(kb.ids.role);
         inputRole();
-        CellI& role = inputRole[kb.id.value];
-        set(kb.id.value, kb.toKbBool(cell.missing(role)));
+        CellI& role = inputRole[kb.ids.value];
+        set(kb.ids.value, kb.toKbBool(cell.missing(role)));
     } else if (&m_type == &kb.type.op.Get) {
         if (label() == "self") {
-            CellI& debugCell1Cell = get(kb.id.cell)[kb.id.cell];
-            CellI& debugCell1Role = get(kb.id.cell)[kb.id.role][kb.id.value];
-            CellI& debugCell2Cell = get(kb.id.cell)[kb.id.cell][kb.id.cell];
-            CellI& debugCell2Role = get(kb.id.cell)[kb.id.cell][kb.id.role][kb.id.value];
-            CellI& debugCell3Cell = get(kb.id.cell)[kb.id.cell][kb.id.cell][kb.id.cell][kb.id.value];
-            CellI& debugCell3Role = get(kb.id.cell)[kb.id.cell][kb.id.cell][kb.id.role][kb.id.value];
+            CellI& debugCell1Cell = get(kb.ids.cell)[kb.ids.cell];
+            CellI& debugCell1Role = get(kb.ids.cell)[kb.ids.role][kb.ids.value];
+            CellI& debugCell2Cell = get(kb.ids.cell)[kb.ids.cell][kb.ids.cell];
+            CellI& debugCell2Role = get(kb.ids.cell)[kb.ids.cell][kb.ids.role][kb.ids.value];
+            CellI& debugCell3Cell = get(kb.ids.cell)[kb.ids.cell][kb.ids.cell][kb.ids.cell][kb.ids.value];
+            CellI& debugCell3Role = get(kb.ids.cell)[kb.ids.cell][kb.ids.cell][kb.ids.role][kb.ids.value];
         }
-        CellI& inputCell = get(kb.id.cell);
+        CellI& inputCell = get(kb.ids.cell);
         inputCell();
-        CellI& cell      = inputCell[kb.id.value];
-        CellI& inputRole = get(kb.id.role);
+        CellI& cell      = inputCell[kb.ids.value];
+        CellI& inputRole = get(kb.ids.role);
         inputRole();
-        CellI& role = inputRole[kb.id.value];
-        set(kb.id.value, cell[role]);
+        CellI& role = inputRole[kb.ids.value];
+        set(kb.ids.value, cell[role]);
     } else if (&m_type == &kb.type.op.And) {
-        CellI& inputLhs = get(kb.id.lhs);
+        CellI& inputLhs = get(kb.ids.lhs);
         inputLhs();
-        bool lhs        = &inputLhs[kb.id.value] == &kb.boolean.true_;
+        bool lhs        = &inputLhs[kb.ids.value] == &kb.boolean.true_;
         // shortcut, if the left hand side already false we don't evaluate the right hand side
         if (lhs) {
-            CellI& inputRhs = get(kb.id.rhs);
+            CellI& inputRhs = get(kb.ids.rhs);
             inputRhs();
-            bool rhs = &inputRhs[kb.id.value] == &kb.boolean.true_;
-            set(kb.id.value, kb.toKbBool(lhs && rhs));
+            bool rhs = &inputRhs[kb.ids.value] == &kb.boolean.true_;
+            set(kb.ids.value, kb.toKbBool(lhs && rhs));
         } else {
-            set(kb.id.value, kb.toKbBool(false));
+            set(kb.ids.value, kb.toKbBool(false));
         }
     } else if (&m_type == &kb.type.op.Or) {
-        CellI& inputLhs = get(kb.id.lhs);
+        CellI& inputLhs = get(kb.ids.lhs);
         inputLhs();
-        bool lhs        = &inputLhs[kb.id.value] == &kb.boolean.true_;
-        CellI& inputRhs = get(kb.id.rhs);
+        bool lhs        = &inputLhs[kb.ids.value] == &kb.boolean.true_;
+        CellI& inputRhs = get(kb.ids.rhs);
         inputRhs();
-        bool rhs = &inputRhs[kb.id.value] == &kb.boolean.true_;
-        set(kb.id.value, kb.toKbBool(lhs || rhs));
+        bool rhs = &inputRhs[kb.ids.value] == &kb.boolean.true_;
+        set(kb.ids.value, kb.toKbBool(lhs || rhs));
 
     } else if (&m_type == &kb.type.op.Not) {
-        CellI& input = get(kb.id.input);
+        CellI& input = get(kb.ids.input);
         input();
-        bool res = &input[kb.id.value] == &kb.boolean.true_;
-        set(kb.id.value, kb.toKbBool(!res));
+        bool res = &input[kb.ids.value] == &kb.boolean.true_;
+        set(kb.ids.value, kb.toKbBool(!res));
     } else if (&m_type == &kb.type.op.Add) {
-        CellI& inputLhs = get(kb.id.lhs);
+        CellI& inputLhs = get(kb.ids.lhs);
         inputLhs();
-        int lhs         = static_cast<Number&>(inputLhs[kb.id.value]).value();
-        CellI& inputRhs = get(kb.id.rhs);
+        int lhs         = static_cast<Number&>(inputLhs[kb.ids.value]).value();
+        CellI& inputRhs = get(kb.ids.rhs);
         inputRhs();
-        int rhs = static_cast<Number&>(inputRhs[kb.id.value]).value();
-        set(kb.id.value, kb.pools.numbers.get(lhs + rhs));
+        int rhs = static_cast<Number&>(inputRhs[kb.ids.value]).value();
+        set(kb.ids.value, kb.pools.numbers.get(lhs + rhs));
     } else if (&m_type == &kb.type.op.Subtract) {
-        CellI& inputLhs = get(kb.id.lhs);
+        CellI& inputLhs = get(kb.ids.lhs);
         inputLhs();
-        int lhs         = static_cast<Number&>(inputLhs[kb.id.value]).value();
-        CellI& inputRhs = get(kb.id.rhs);
+        int lhs         = static_cast<Number&>(inputLhs[kb.ids.value]).value();
+        CellI& inputRhs = get(kb.ids.rhs);
         inputRhs();
-        int rhs = static_cast<Number&>(inputRhs[kb.id.value]).value();
-        set(kb.id.value, kb.pools.numbers.get(lhs - rhs));
+        int rhs = static_cast<Number&>(inputRhs[kb.ids.value]).value();
+        set(kb.ids.value, kb.pools.numbers.get(lhs - rhs));
     } else if (&m_type == &kb.type.op.Multiply) {
-        CellI& inputLhs = get(kb.id.lhs);
+        CellI& inputLhs = get(kb.ids.lhs);
         inputLhs();
-        int lhs         = static_cast<Number&>(inputLhs[kb.id.value]).value();
-        CellI& inputRhs = get(kb.id.rhs);
+        int lhs         = static_cast<Number&>(inputLhs[kb.ids.value]).value();
+        CellI& inputRhs = get(kb.ids.rhs);
         inputRhs();
-        int rhs = static_cast<Number&>(inputRhs[kb.id.value]).value();
-        set(kb.id.value, kb.pools.numbers.get(lhs * rhs));
+        int rhs = static_cast<Number&>(inputRhs[kb.ids.value]).value();
+        set(kb.ids.value, kb.pools.numbers.get(lhs * rhs));
     } else if (&m_type == &kb.type.op.Divide) {
-        CellI& inputLhs = get(kb.id.lhs);
+        CellI& inputLhs = get(kb.ids.lhs);
         inputLhs();
-        int lhs         = static_cast<Number&>(inputLhs[kb.id.value]).value();
-        CellI& inputRhs = get(kb.id.rhs);
+        int lhs         = static_cast<Number&>(inputLhs[kb.ids.value]).value();
+        CellI& inputRhs = get(kb.ids.rhs);
         inputRhs();
-        int rhs = static_cast<Number&>(inputRhs[kb.id.value]).value();
-        set(kb.id.value, kb.pools.numbers.get(lhs / rhs));
+        int rhs = static_cast<Number&>(inputRhs[kb.ids.value]).value();
+        set(kb.ids.value, kb.pools.numbers.get(lhs / rhs));
     } else if (&m_type == &kb.type.op.LessThan) {
-        CellI& inputLhs = get(kb.id.lhs);
+        CellI& inputLhs = get(kb.ids.lhs);
         inputLhs();
-        int lhs         = static_cast<Number&>(inputLhs[kb.id.value]).value();
-        CellI& inputRhs = get(kb.id.rhs);
+        int lhs         = static_cast<Number&>(inputLhs[kb.ids.value]).value();
+        CellI& inputRhs = get(kb.ids.rhs);
         inputRhs();
-        int rhs = static_cast<Number&>(inputRhs[kb.id.value]).value();
-        set(kb.id.value, lhs < rhs ? kb.boolean.true_ : kb.boolean.false_);
+        int rhs = static_cast<Number&>(inputRhs[kb.ids.value]).value();
+        set(kb.ids.value, lhs < rhs ? kb.boolean.true_ : kb.boolean.false_);
     } else if (&m_type == &kb.type.op.LessThanOrEqual) {
-        CellI& inputLhs = get(kb.id.lhs);
+        CellI& inputLhs = get(kb.ids.lhs);
         inputLhs();
-        int lhs         = static_cast<Number&>(inputLhs[kb.id.value]).value();
-        CellI& inputRhs = get(kb.id.rhs);
+        int lhs         = static_cast<Number&>(inputLhs[kb.ids.value]).value();
+        CellI& inputRhs = get(kb.ids.rhs);
         inputRhs();
-        int rhs = static_cast<Number&>(inputRhs[kb.id.value]).value();
-        set(kb.id.value, lhs <= rhs ? kb.boolean.true_ : kb.boolean.false_);
+        int rhs = static_cast<Number&>(inputRhs[kb.ids.value]).value();
+        set(kb.ids.value, lhs <= rhs ? kb.boolean.true_ : kb.boolean.false_);
     } else if (&m_type == &kb.type.op.GreaterThan) {
-        CellI& inputLhs = get(kb.id.lhs);
+        CellI& inputLhs = get(kb.ids.lhs);
         inputLhs();
-        int lhs         = static_cast<Number&>(inputLhs[kb.id.value]).value();
-        CellI& inputRhs = get(kb.id.rhs);
+        int lhs         = static_cast<Number&>(inputLhs[kb.ids.value]).value();
+        CellI& inputRhs = get(kb.ids.rhs);
         inputRhs();
-        int rhs = static_cast<Number&>(inputRhs[kb.id.value]).value();
-        set(kb.id.value, lhs > rhs ? kb.boolean.true_ : kb.boolean.false_);
+        int rhs = static_cast<Number&>(inputRhs[kb.ids.value]).value();
+        set(kb.ids.value, lhs > rhs ? kb.boolean.true_ : kb.boolean.false_);
     } else if (&m_type == &kb.type.op.GreaterThanOrEqual) {
-        CellI& inputLhs = get(kb.id.lhs);
+        CellI& inputLhs = get(kb.ids.lhs);
         inputLhs();
-        int lhs         = static_cast<Number&>(inputLhs[kb.id.value]).value();
-        CellI& inputRhs = get(kb.id.rhs);
+        int lhs         = static_cast<Number&>(inputLhs[kb.ids.value]).value();
+        CellI& inputRhs = get(kb.ids.rhs);
         inputRhs();
-        int rhs = static_cast<Number&>(inputRhs[kb.id.value]).value();
-        set(kb.id.value, lhs >= rhs ? kb.boolean.true_ : kb.boolean.false_);
+        int rhs = static_cast<Number&>(inputRhs[kb.ids.value]).value();
+        set(kb.ids.value, lhs >= rhs ? kb.boolean.true_ : kb.boolean.false_);
     }
 }
 
@@ -570,7 +570,7 @@ void Object::accept(Visitor& visitor)
 
 void Object::destructor()
 {
-    getMethod(kb.id.destructor)();
+    getMethod(kb.ids.destructor)();
 }
 
 CellI& Object::method(CellI& role)
@@ -675,16 +675,16 @@ CellI& Object::smethod(CellI& role, Param param1, Param param2, Param param3, Pa
 
 bool Object::hasMethod(CellI& role)
 {
-    return type().has(kb.id.methods) && type()[kb.id.methods].has(kb.id.index) && type()[kb.id.methods][kb.id.index].has(role);
+    return type().has(kb.ids.methods) && type()[kb.ids.methods].has(kb.ids.index) && type()[kb.ids.methods][kb.ids.index].has(role);
 }
 
 CellI& Object::getMethod(CellI& role)
 {
     resetIndent();
-    if (type().has(kb.id.methods)) {
-        CellI& methodsIndex = type()[kb.id.methods][kb.id.index];
+    if (type().has(kb.ids.methods)) {
+        CellI& methodsIndex = type()[kb.ids.methods][kb.ids.index];
         if (methodsIndex.has(role)) {
-            CellI& method = methodsIndex[role][kb.id.value];
+            CellI& method = methodsIndex[role][kb.ids.value];
             Object& inputIndex = *new Object(kb, kb.type.Index);
             createStack(method);
             initLocalVars(method);
@@ -698,10 +698,10 @@ CellI& Object::getMethod(CellI& role)
 
 CellI& Object::getStaticMethod(CellI& role)
 {
-    if (has(kb.id.methods)) {
-        CellI& methodsIndex = (*this)[kb.id.methods][kb.id.index];
+    if (has(kb.ids.methods)) {
+        CellI& methodsIndex = (*this)[kb.ids.methods][kb.ids.index];
         if (methodsIndex.has(role)) {
-            CellI& method = methodsIndex[role][kb.id.value];
+            CellI& method = methodsIndex[role][kb.ids.value];
             createStack(method);
             initLocalVars(method);
             setSelf(method);
@@ -717,55 +717,55 @@ void Object::createStack(CellI& method)
     Object& inputIndex    = *new Object(kb, kb.type.Index, "StackFrame1.InputIndex");
     Object& stackFrame    = *new Object(kb, kb.type.StackFrame, "StackFrame1");
     Object& stackListItem = *new Object(kb, kb.type.ListItem, "StackListItem1");
-    stackFrame.set(kb.id.method, method);
-    stackFrame.set(kb.id.input, inputIndex);
+    stackFrame.set(kb.ids.method, method);
+    stackFrame.set(kb.ids.input, inputIndex);
 
-    if (method.type()[kb.id.subTypes][kb.id.index].has(kb.id.returnType)) {
+    if (method.type()[kb.ids.subTypes][kb.ids.index].has(kb.ids.returnType)) {
         Object& varResult   = *new Object(kb, kb.type.op.Var, "varResult");
         Object& outputIndex = *new Object(kb, kb.type.Index, "ResultIndex");
-        outputIndex.set(kb.id.value, varResult);
-        stackFrame.set(kb.id.output, outputIndex);
+        outputIndex.set(kb.ids.value, varResult);
+        stackFrame.set(kb.ids.output, outputIndex);
     }
-    stackListItem.set(kb.id.value, stackFrame);
-    method.set(kb.id.stack, stackListItem);
+    stackListItem.set(kb.ids.value, stackFrame);
+    method.set(kb.ids.stack, stackListItem);
 }
 
 void Object::initLocalVars(CellI& method)
 {
-    if (method.type()[kb.id.subTypes][kb.id.index].missing(kb.id.localVars)) {
+    if (method.type()[kb.ids.subTypes][kb.ids.index].missing(kb.ids.localVars)) {
         return;
     }
-    CellI& localVarsType   = method.type()[kb.id.subTypes][kb.id.index][kb.id.localVars][kb.id.value];
+    CellI& localVarsType   = method.type()[kb.ids.subTypes][kb.ids.index][kb.ids.localVars][kb.ids.value];
     Object& localVarsIndex = *new Object(kb, localVarsType, "LocalVarsIndex");
-    CellI& stackFrame      = method[kb.id.stack][kb.id.value];
-    stackFrame.set(kb.id.localVars, localVarsIndex);
-    Visitor::visitList(localVarsType[kb.id.slots][kb.id.list], [this, &localVarsIndex](CellI& slot, int i, bool&) {
+    CellI& stackFrame      = method[kb.ids.stack][kb.ids.value];
+    stackFrame.set(kb.ids.localVars, localVarsIndex);
+    Visitor::visitList(localVarsType[kb.ids.slots][kb.ids.list], [this, &localVarsIndex](CellI& slot, int i, bool&) {
         Object& localVar = *new Object(kb, kb.type.op.Var, "localVar");
-        localVar.set(kb.id.objectType, slot[kb.id.slotType]);
-        localVarsIndex.set(slot[kb.id.slotRole], localVar);
+        localVar.set(kb.ids.objectType, slot[kb.ids.slotType]);
+        localVarsIndex.set(slot[kb.ids.slotRole], localVar);
     });
 }
 
 CellI& Object::getFnValue(CellI& method)
 {
-    if (method.type()[kb.id.subTypes][kb.id.index].has(kb.id.returnType)) {
-        return method[kb.id.stack][kb.id.value][kb.id.output][kb.id.value];
+    if (method.type()[kb.ids.subTypes][kb.ids.index].has(kb.ids.returnType)) {
+        return method[kb.ids.stack][kb.ids.value][kb.ids.output][kb.ids.value];
     }
 
-    return kb.id.emptyObject;
+    return kb.ids.emptyObject;
 }
 
 void Object::setSelf(CellI& method)
 {
-    setFnParam(method, { kb.id.self, *this });
+    setFnParam(method, { kb.ids.self, *this });
 }
 
 void Object::setFnParam(CellI& fn, Param param)
 {
-    if (fn.type()[kb.id.subTypes][kb.id.index][kb.id.parameters][kb.id.value].has(kb.id.slots)) {
-        CellI& inputsIndex = fn.type()[kb.id.subTypes][kb.id.index][kb.id.parameters][kb.id.value][kb.id.slots][kb.id.index];
+    if (fn.type()[kb.ids.subTypes][kb.ids.index][kb.ids.parameters][kb.ids.value].has(kb.ids.slots)) {
+        CellI& inputsIndex = fn.type()[kb.ids.subTypes][kb.ids.index][kb.ids.parameters][kb.ids.value][kb.ids.slots][kb.ids.index];
         if (inputsIndex.has(param.role)) {
-            fn[kb.id.stack][kb.id.value][kb.id.input].set(param.role, param.value);
+            fn[kb.ids.stack][kb.ids.value][kb.ids.input].set(param.role, param.value);
         } else {
             throw "No such param!";
         }
@@ -784,13 +784,13 @@ List::Item::Item(brain::Brain& kb, List& list, CellI& value) :
 
 bool List::Item::has(CellI& role)
 {
-    if (&role == &kb.id.type || &role == &kb.id.value) {
+    if (&role == &kb.ids.type || &role == &kb.ids.value) {
         return true;
     }
-    if (&role == &kb.id.previous && m_previous) {
+    if (&role == &kb.ids.previous && m_previous) {
         return true;
     }
-    if (&role == &kb.id.next && m_next) {
+    if (&role == &kb.ids.next && m_next) {
         return true;
     }
 
@@ -804,10 +804,10 @@ void List::Item::set(CellI& role, CellI& value)
 
 void List::Item::erase(CellI& role)
 {
-    if (&role == &kb.id.next) {
+    if (&role == &kb.ids.next) {
         m_next = nullptr;
     }
-    if (&role == &kb.id.previous) {
+    if (&role == &kb.ids.previous) {
         m_previous = nullptr;
     }
     throw "No such role!";
@@ -820,22 +820,22 @@ void List::Item::operator()()
 
 CellI& List::Item::operator[](CellI& role)
 {
-    if (&role == &kb.id.type) {
-        return kb.type.ListOf(m_list.m_valueType)[kb.id.subTypes][kb.id.index][kb.id.itemType];
+    if (&role == &kb.ids.type) {
+        return kb.type.ListOf(m_list.m_valueType)[kb.ids.subTypes][kb.ids.index][kb.ids.itemType];
     }
-    if (&role == &kb.id.previous) {
+    if (&role == &kb.ids.previous) {
         if (m_previous)
             return *m_previous;
         else
             throw "No such role!";
     }
-    if (&role == &kb.id.next) {
+    if (&role == &kb.ids.next) {
         if (m_next)
             return *m_next;
         else
             throw "No such role!";
     }
-    if (&role == &kb.id.value) {
+    if (&role == &kb.ids.value) {
         return m_value;
     }
 
@@ -857,16 +857,16 @@ List::List(brain::Brain& kb, CellI& valueType, const std::string& label) :
 
 bool List::has(CellI& role)
 {
-    if (&role == &kb.id.type || &role == &kb.id.size) {
+    if (&role == &kb.ids.type || &role == &kb.ids.size) {
         return true;
     }
-    if (&role == &kb.id.first && m_firstItem) {
+    if (&role == &kb.ids.first && m_firstItem) {
         return true;
     }
-    if (&role == &kb.id.last && m_lastItem) {
+    if (&role == &kb.ids.last && m_lastItem) {
         return true;
     }
-    if (&role == &kb.id.objectType) {
+    if (&role == &kb.ids.objectType) {
         return true;
     }
 
@@ -890,21 +890,21 @@ void List::operator()()
 
 CellI& List::operator[](CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         return kb.type.ListOf(m_valueType);
     }
-    if (&role == &kb.id.first) {
+    if (&role == &kb.ids.first) {
         return *m_firstItem;
     }
-    if (&role == &kb.id.last) {
+    if (&role == &kb.ids.last) {
         return *m_lastItem;
     }
-    if (&role == &kb.id.size) {
+    if (&role == &kb.ids.size) {
         int size = (int)m_size;
 
         return kb.pools.numbers.get(size);
     }
-    if (&role == &kb.id.objectType) {
+    if (&role == &kb.ids.objectType) {
         return m_valueType;
     }
 
@@ -973,22 +973,22 @@ Type::Type(brain::Brain& kb, WithRecursiveType recursiveType, const std::string&
 
 bool Type::has(CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         return true;
     }
-    if (&role == &kb.id.slots) {
+    if (&role == &kb.ids.slots) {
         return true;
     }
-    if (&role == &kb.id.subTypes) {
+    if (&role == &kb.ids.subTypes) {
         return m_subTypes;
     }
-    if (&role == &kb.id.memberOf) {
+    if (&role == &kb.ids.memberOf) {
         return m_memberOf;
     }
-    if (&role == &kb.id.asts) {
+    if (&role == &kb.ids.asts) {
         return m_asts;
     }
-    if (&role == &kb.id.methods) {
+    if (&role == &kb.ids.methods) {
         return m_methods;
     }
 
@@ -1012,22 +1012,22 @@ void Type::operator()()
 
 CellI& Type::operator[](CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         return kb.type.Type_;
     }
-    if (&role == &kb.id.slots) {
+    if (&role == &kb.ids.slots) {
         return m_slots;
     }
-    if (&role == &kb.id.subTypes) {
+    if (&role == &kb.ids.subTypes) {
         return *m_subTypes;
     }
-    if (&role == &kb.id.memberOf) {
+    if (&role == &kb.ids.memberOf) {
         return *m_memberOf;
     }
-    if (&role == &kb.id.asts) {
+    if (&role == &kb.ids.asts) {
         return *m_asts;
     }
-    if (&role == &kb.id.methods) {
+    if (&role == &kb.ids.methods) {
         return *m_methods;
     }
 
@@ -1071,7 +1071,7 @@ Index::Index(brain::Brain& kb, Type& indexType, const std::string& label) :
 
 bool Index::has(CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         return true;
     }
     if (m_slots.find(&role) != m_slots.end()) {
@@ -1083,7 +1083,7 @@ bool Index::has(CellI& role)
 
 void Index::set(CellI& key, CellI& value)
 {
-    if (&key == &kb.id.type) {
+    if (&key == &kb.ids.type) {
         throw "The type key can not be changed!";
     }
     m_slots[&key] = &value;
@@ -1105,7 +1105,7 @@ void Index::operator()()
 
 CellI& Index::operator[](CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         return *m_type;
     }
     auto slotIt = m_slots.find(&role);
@@ -1118,7 +1118,7 @@ CellI& Index::operator[](CellI& role)
 
 void Index::insert(CellI& key, CellI& value)
 {
-    if (&key == &kb.id.type) {
+    if (&key == &kb.ids.type) {
         throw "The type key can not be changed!";
     }
     m_slots[&key] = &value;
@@ -1126,8 +1126,8 @@ void Index::insert(CellI& key, CellI& value)
         return;
     }
     Object& slot = *new Object(kb, kb.type.Slot);
-    slot.set(kb.id.slotRole, key);
-    slot.set(kb.id.slotType, kb.type.Slot);
+    slot.set(kb.ids.slotRole, key);
+    slot.set(kb.ids.slotType, kb.type.Slot);
     m_type->addSlot(key, slot);
 }
 
@@ -1168,25 +1168,25 @@ Map::Map(brain::Brain& kb, CellI& keyType, CellI& valueType, Type& indexType, co
 
 bool Map::has(CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         return true;
     }
-    if (&role == &kb.id.list) {
+    if (&role == &kb.ids.list) {
         return true;
     }
-    if (&role == &kb.id.listType) {
+    if (&role == &kb.ids.listType) {
         return true;
     }
-    if (&role == &kb.id.index) {
+    if (&role == &kb.ids.index) {
         return true;
     }
-    if (&role == &kb.id.keyType) {
+    if (&role == &kb.ids.keyType) {
         return true;
     }
-    if (&role == &kb.id.objectType) {
+    if (&role == &kb.ids.objectType) {
         return true;
     }
-    if (&role == &kb.id.size) {
+    if (&role == &kb.ids.size) {
         return true;
     }
 
@@ -1210,25 +1210,25 @@ void Map::operator()()
 
 CellI& Map::operator[](CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         return kb.type.MapOf(m_keyType, m_valueType);
     }
-    if (&role == &kb.id.list) {
+    if (&role == &kb.ids.list) {
         return m_list;
     }
-    if (&role == &kb.id.index) {
+    if (&role == &kb.ids.index) {
         return m_index;
     }
-    if (&role == &kb.id.listType) {
+    if (&role == &kb.ids.listType) {
         return kb.type.ListOf(kb.type.Slot);
     }
-    if (&role == &kb.id.keyType) {
+    if (&role == &kb.ids.keyType) {
         return m_keyType;
     }
-    if (&role == &kb.id.objectType) {
+    if (&role == &kb.ids.objectType) {
         return m_valueType;
     }
-    if (&role == &kb.id.size) {
+    if (&role == &kb.ids.size) {
         return kb.pools.numbers.get(m_size);
     }
 
@@ -1243,14 +1243,14 @@ bool Map::hasKey(CellI& key)
 CellI& Map::getValue(CellI& key)
 {
     if (m_index.has(key)) {
-        return m_index[key][kb.id.value];
+        return m_index[key][kb.ids.value];
     }
     throw "No such role!";
 }
 
 void Map::add(CellI& key, CellI& value)
 {
-    if (&key == &kb.id.type) {
+    if (&key == &kb.ids.type) {
         throw "id.type can not be stored in a map!";
     }
     if (m_index.has(key)) {
@@ -1300,25 +1300,25 @@ TrieMap::TrieMap(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::
 
 bool TrieMap::has(CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         return true;
     }
-    if (&role == &kb.id.list) {
+    if (&role == &kb.ids.list) {
         return true;
     }
-    if (&role == &kb.id.listType) {
+    if (&role == &kb.ids.listType) {
         return true;
     }
-    if (&role == &kb.id.index) {
+    if (&role == &kb.ids.index) {
         return true;
     }
-    if (&role == &kb.id.keyType) {
+    if (&role == &kb.ids.keyType) {
         return true;
     }
-    if (&role == &kb.id.objectType) {
+    if (&role == &kb.ids.objectType) {
         return true;
     }
-    if (&role == &kb.id.size) {
+    if (&role == &kb.ids.size) {
         return true;
     }
 
@@ -1342,25 +1342,25 @@ void TrieMap::operator()()
 
 CellI& TrieMap::operator[](CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         return kb.type.MapOf(m_keyType, m_valueType);
     }
-    if (&role == &kb.id.list) {
+    if (&role == &kb.ids.list) {
         return m_list;
     }
-    if (&role == &kb.id.rootNode) {
+    if (&role == &kb.ids.rootNode) {
         return m_rootNode;
     }
-    if (&role == &kb.id.listType) {
+    if (&role == &kb.ids.listType) {
         return kb.type.ListOf(kb.type.Slot);
     }
-    if (&role == &kb.id.keyType) {
+    if (&role == &kb.ids.keyType) {
         return m_keyType;
     }
-    if (&role == &kb.id.objectType) {
+    if (&role == &kb.ids.objectType) {
         return m_valueType;
     }
-    if (&role == &kb.id.size) {
+    if (&role == &kb.ids.size) {
         return kb.pools.numbers.get(m_size);
     }
 
@@ -1377,12 +1377,12 @@ bool TrieMap::hasKey(CellI& key)
 
     Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
         CellI* children = nullptr;
-        if (currentNode->missing(kb.id.children)) {
+        if (currentNode->missing(kb.ids.children)) {
             stop        = true;
             currentNode = nullptr;
             return;
         }
-        Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.id.children));
+        Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.ids.children));
         if (childrenIndex.has(keyItem)) {
             children = &childrenIndex.get(keyItem);
         } else {
@@ -1393,7 +1393,7 @@ bool TrieMap::hasKey(CellI& key)
         currentNode = children;
     });
 
-    if (!currentNode || currentNode->missing(kb.id.data)) {
+    if (!currentNode || currentNode->missing(kb.ids.data)) {
         return false;
     }
 
@@ -1410,12 +1410,12 @@ CellI& TrieMap::getValue(CellI& key)
 
     Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
         CellI* children = nullptr;
-        if (currentNode->missing(kb.id.children)) {
+        if (currentNode->missing(kb.ids.children)) {
             stop        = true;
             currentNode = nullptr;
             return;
         }
-        Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.id.children));
+        Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.ids.children));
         if (childrenIndex.has(keyItem)) {
             children = &childrenIndex.get(keyItem);
         } else {
@@ -1426,11 +1426,11 @@ CellI& TrieMap::getValue(CellI& key)
         currentNode = children;
     });
 
-    if (!currentNode || currentNode->missing(kb.id.data)) {
+    if (!currentNode || currentNode->missing(kb.ids.data)) {
         throw "No such key!";
     }
 
-    return (*currentNode)[kb.id.data][kb.id.value];
+    return (*currentNode)[kb.ids.data][kb.ids.value];
 }
 
 void TrieMap::add(CellI& key, CellI& value)
@@ -1443,22 +1443,22 @@ void TrieMap::add(CellI& key, CellI& value)
 
     Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
         CellI* child = nullptr;
-        if (currentNode->missing(kb.id.children)) {
-            currentNode->set(kb.id.children, *new Index(kb));
+        if (currentNode->missing(kb.ids.children)) {
+            currentNode->set(kb.ids.children, *new Index(kb));
         }
-        Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.id.children));
+        Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.ids.children));
         if (childrenIndex.has(keyItem)) {
             child = &childrenIndex.get(keyItem);
         } else {
             child = new Object(kb, kb.type.TrieMapNode);
-            child->set(kb.id.parent, *currentNode);
+            child->set(kb.ids.parent, *currentNode);
             childrenIndex.insert(keyItem, *child);
         }
         currentNode = child;
     });
 
     List::Item& item = *m_list.add(value);
-    currentNode->set(kb.id.data, item);
+    currentNode->set(kb.ids.data, item);
     ++m_size;
 }
 
@@ -1468,7 +1468,7 @@ void TrieMap::remove(CellI& key)
         throw "Key is not a list!";
     }
 
-    if (&key[kb.id.size] == &kb._0_) {
+    if (&key[kb.ids.size] == &kb._0_) {
         return;
     }
 
@@ -1476,12 +1476,12 @@ void TrieMap::remove(CellI& key)
 
     Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
         CellI* children = nullptr;
-        if (currentNode->missing(kb.id.children)) {
+        if (currentNode->missing(kb.ids.children)) {
             stop        = true;
             currentNode = nullptr;
             return;
         }
-        Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.id.children));
+        Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.ids.children));
         if (childrenIndex.has(keyItem)) {
             children = &childrenIndex.get(keyItem);
         } else {
@@ -1492,26 +1492,26 @@ void TrieMap::remove(CellI& key)
         currentNode = children;
     });
 
-    if (!currentNode || currentNode->missing(kb.id.data)) {
+    if (!currentNode || currentNode->missing(kb.ids.data)) {
         return;
     }
-    List::Item* valueItem = &static_cast<List::Item&>((*currentNode)[kb.id.data]);
-    currentNode->erase(kb.id.data);
+    List::Item* valueItem = &static_cast<List::Item&>((*currentNode)[kb.ids.data]);
+    currentNode->erase(kb.ids.data);
 
-    CellI* keyItemPtr = &key[kb.id.last];
-    while (currentNode->has(kb.id.parent)) {
+    CellI* keyItemPtr = &key[kb.ids.last];
+    while (currentNode->has(kb.ids.parent)) {
         CellI& keyItem = *keyItemPtr;
-        CellI& parent = currentNode->get(kb.id.parent);
+        CellI& parent = currentNode->get(kb.ids.parent);
         CellI& child = *currentNode;
-        if (child.missing(kb.id.data)) {
-            if (child.missing(kb.id.children) || ( child.has(kb.id.children) && static_cast<Index&>(child[kb.id.children]).empty())) {
+        if (child.missing(kb.ids.data)) {
+            if (child.missing(kb.ids.children) || ( child.has(kb.ids.children) && static_cast<Index&>(child[kb.ids.children]).empty())) {
                 delete currentNode;
-                parent[kb.id.children].erase(keyItem[kb.id.value]);
+                parent[kb.ids.children].erase(keyItem[kb.ids.value]);
             }
         }
         currentNode = &parent;
-        if (keyItem.has(kb.id.previous)) {
-            keyItemPtr = &keyItem[kb.id.previous];
+        if (keyItem.has(kb.ids.previous)) {
+            keyItemPtr = &keyItem[kb.ids.previous];
         } else {
             break;
         }
@@ -1549,10 +1549,10 @@ Set::Set(brain::Brain& kb, CellI& valueType, const std::string& label) :
 
 bool Set::has(CellI& role)
 {
-    if (&role == &kb.id.type || &role == &kb.id.size) {
+    if (&role == &kb.ids.type || &role == &kb.ids.size) {
         return true;
     }
-    if (&role == &kb.id.index) {
+    if (&role == &kb.ids.index) {
         return true;
     }
 
@@ -1576,13 +1576,13 @@ void Set::operator()()
 
 CellI& Set::operator[](CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         return kb.type.SetOf(m_valueType);
     }
-    if (&role == &kb.id.index) {
+    if (&role == &kb.ids.index) {
         return m_index;
     }
-    if (&role == &kb.id.size) {
+    if (&role == &kb.ids.size) {
         int size = (int)m_size;
 
         return kb.pools.numbers.get(size);
@@ -1639,7 +1639,7 @@ Number::Number(brain::Brain& kb, int value) :
 
 bool Number::has(CellI& role)
 {
-    if (&role == &kb.id.type || &role == &kb.id.value) {
+    if (&role == &kb.ids.type || &role == &kb.ids.value) {
         return true;
     }
     if (&role == &kb.numbers.sign) {
@@ -1666,7 +1666,7 @@ void Number::operator()()
 
 CellI& Number::operator[](CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         return kb.type.Number;
     }
 
@@ -1674,7 +1674,7 @@ CellI& Number::operator[](CellI& role)
         return m_value > 0 ? kb.numbers.positive : kb.numbers.negative;
     }
 
-    if (&role == &kb.id.value) {
+    if (&role == &kb.ids.value) {
         if (m_digits.empty()) {
             calculateDigits();
             m_digitsList.reset(new List(kb, m_digits));
@@ -1726,7 +1726,7 @@ String::String(brain::Brain& kb, const std::string& str) :
 
 bool String::has(CellI& role)
 {
-    if (&role == &kb.id.type || &role == &kb.id.value) {
+    if (&role == &kb.ids.type || &role == &kb.ids.value) {
         return true;
     }
     return false;
@@ -1749,9 +1749,9 @@ void String::operator()()
 
 CellI& String::operator[](CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         return kb.type.String;
-    } else if (&role == &kb.id.value) {
+    } else if (&role == &kb.ids.value) {
         if (m_characters.empty()) {
             calculateCharacters();
             m_charactersList.reset(new List(kb, m_characters, label()));
@@ -1795,7 +1795,7 @@ Color::Color(brain::Brain& kb, const input::Color& inputColor) :
 
 bool Color::has(CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         return true;
     }
     if (&role == &kb.colors.red || &role == &kb.colors.green || &role == &kb.colors.blue) {
@@ -1822,7 +1822,7 @@ void Color::operator()()
 
 CellI& Color::operator[](CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         return kb.type.Color;
     }
     if (&role == &kb.colors.red) {
@@ -1861,7 +1861,7 @@ Pixel::Pixel(brain::Brain& kb, int x, int y, const input::Color& inputColor) :
 
 bool Pixel::has(CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         return true;
     }
     if (&role == &kb.directions.up && m_up) {
@@ -1876,7 +1876,7 @@ bool Pixel::has(CellI& role)
     if (&role == &kb.directions.right && m_right) {
         return true;
     }
-    if (&role == &kb.id.color) {
+    if (&role == &kb.ids.color) {
         return true;
     }
     if (&role == &kb.coordinates.x) {
@@ -1906,7 +1906,7 @@ void Pixel::operator()()
 
 CellI& Pixel::operator[](CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         return kb.type.Pixel;
     }
     if (&role == &kb.directions.up && m_up) {
@@ -1921,7 +1921,7 @@ CellI& Pixel::operator[](CellI& role)
     if (&role == &kb.directions.right && m_right) {
         return *m_right;
     }
-    if (&role == &kb.id.color) {
+    if (&role == &kb.ids.color) {
         return m_color;
     }
     if (&role == &kb.coordinates.x) {
@@ -1983,7 +1983,7 @@ Picture::Picture(brain::Brain& kb, input::Picture& picture) :
 
 bool Picture::has(CellI& role)
 {
-    if (&role == &kb.id.type || &role == &kb.id.width || &role == &kb.id.height || &role == &kb.id.pixels) {
+    if (&role == &kb.ids.type || &role == &kb.ids.width || &role == &kb.ids.height || &role == &kb.ids.pixels) {
         return true;
     }
 
@@ -2006,16 +2006,16 @@ void Picture::operator()()
 
 CellI& Picture::operator[](CellI& role)
 {
-    if (&role == &kb.id.type) {
+    if (&role == &kb.ids.type) {
         return kb.type.Picture;
     }
-    if (&role == &kb.id.width) {
+    if (&role == &kb.ids.width) {
         return m_widthCell;
     }
-    if (&role == &kb.id.height) {
+    if (&role == &kb.ids.height) {
         return m_heightCell;
     }
-    if (&role == &kb.id.pixels) {
+    if (&role == &kb.ids.pixels) {
         return *m_pixelsList;
     }
 
@@ -2127,10 +2127,10 @@ void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, boo
     brain::Brain& kb = list.kb;
     int i            = 0;
 
-    CellI* currentListItemPtr = list.has(kb.id.first) ? &list[kb.id.first] : nullptr;
+    CellI* currentListItemPtr = list.has(kb.ids.first) ? &list[kb.ids.first] : nullptr;
     while (currentListItemPtr) {
         CellI& currentListItem = *currentListItemPtr;
-        CellI& value           = currentListItem[kb.id.value];
+        CellI& value           = currentListItem[kb.ids.value];
         bool stop              = false;
 
         visitFn(value, i++, stop);
@@ -2138,7 +2138,7 @@ void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, boo
             return;
         }
 
-        currentListItemPtr = currentListItem.has(kb.id.next) ? &currentListItem[kb.id.next] : nullptr;
+        currentListItemPtr = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
     }
 }
 

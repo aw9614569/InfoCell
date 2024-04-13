@@ -1054,14 +1054,14 @@ protected:
     template <typename... Args>
     Ast::Cell& st_(const std::string& name, Args&&... args)
     {
-        return ast.subType(pools.strings.get(name)[id.value], std::forward<Args>(args)...);
+        return ast.subType(pools.strings.get(name)[ids.value], std::forward<Args>(args)...);
     }
     Ast::TemplateParam& tp_(CellI&);
 
     template <typename... Args>
     Ast::TemplatedType& tt_(const std::string& name, Args&&... args)
     {
-        return ast.templatedType(pools.strings.get(name)[id.value], std::forward<Args>(args)...);
+        return ast.templatedType(pools.strings.get(name)[ids.value], std::forward<Args>(args)...);
     }
 
     Ast::StructRef& struct_(const std::string&);
@@ -1069,7 +1069,7 @@ protected:
 public:
     Brain();
     ~Brain();
-    ID id;
+    ID ids;
     Types type;
     Pools pools;
     Ast ast;
@@ -1093,8 +1093,10 @@ public:
     CellI& _9_;
 
     Ast::Scope globalScope;
+    TrieMap* compiledStructsPtr = nullptr;
 
  public:
+    CellI& id(const std::string& str);
     CellI& toKbBool(bool value);
 
     template <typename... Args>
@@ -1139,7 +1141,7 @@ public:
     template <typename... Args>
     void addSlots(Map& map, CellI& value, Args&&... args)
     {
-        map.add(value[id.slotRole], value);
+        map.add(value[ids.slotRole], value);
         addSlots(map, std::forward<Args>(args)...);
     }
 
@@ -1165,7 +1167,7 @@ Ast::Block& Ast::block(Args&&... args)
 template <typename... Args>
 Ast::New& Ast::new_(Base& objectType, const std::string& constructor, Args&&... args)
 {
-    auto& ret = new_(objectType, kb.ast.cell(kb.pools.strings.getCharList(constructor)));
+    auto& ret = new_(objectType, kb.ast.cell(kb.id(constructor)));
     if constexpr (sizeof...(Args) > 0) {
         ret.addParam(std::forward<Args>(args)...);
     }
@@ -1175,7 +1177,7 @@ Ast::New& Ast::new_(Base& objectType, const std::string& constructor, Args&&... 
 template <typename... Args>
 Ast::New& Ast::new_(const std::string& objectType, const std::string& constructor, Args&&... args)
 {
-    auto& ret = new_(kb.ast.structRef(kb.pools.strings.getCharList(objectType)), kb.ast.cell(kb.pools.strings.getCharList(constructor)));
+    auto& ret = new_(kb.ast.structRef(kb.id(objectType)), kb.ast.cell(kb.id(constructor)));
     if constexpr (sizeof...(Args) > 0) {
         ret.addParam(std::forward<Args>(args)...);
     }
@@ -1221,7 +1223,7 @@ Ast::TemplatedType& Ast::templatedType(CellI& id, CellI& role, CellI& type, Args
 template <typename... Args>
 Ast::TemplatedType& Ast::templatedType(CellI& id, CellI& role, const std::string& type, Args&&... args)
 {
-    auto& ret  = templatedType(id, kb.ast.slot(role, kb.ast.structRef(kb.pools.strings.get(type)[kb.id.value])));
+    auto& ret  = templatedType(id, kb.ast.slot(role, kb.ast.structRef(kb.id(type))));
     if constexpr (sizeof...(Args) > 0) {
         ret.addParam(std::forward<Args>(args)...);
     }
