@@ -76,7 +76,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
                     if (i != 0) {
                         m_ss << ", ";
                     }
-                    m_ss << slot[kb.ids.slotRole][kb.ids.value].label();
+                    m_ss << slot[kb.ids.slotRole].label();
                     m_ss << ": ";
                     printImpl(slot[kb.ids.slotType]);
                 });
@@ -97,7 +97,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
                     if (i != 0) {
                         m_ss << ", ";
                     }
-                    m_ss << slot[kb.ids.slotRole][kb.ids.value].label();
+                    m_ss << slot[kb.ids.slotRole].label();
                     m_ss << ": ";
                     printImpl(slot[kb.ids.slotType]);
                 });

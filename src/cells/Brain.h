@@ -13,136 +13,66 @@ class ID
 public:
     ID(brain::Brain& kb);
 
-    Object add;
-    Object addMembership;
-    Object addMethod;
-    Object addPixel;
-    Object addSlot;
-    Object addSlots;
-    Object addSubType;
-    Object argument;
-    Object ast;
-    Object asts;
-    Object branch;
-    Object cell;
-    Object checkPixel;
-    Object checkPixels;
-    Object children;
-    Object code;
-    Object color;
-    Object condition;
-    Object constructor;
-    Object constructorWithIndexType;
-    Object constructorWithRecursiveType;
-    Object constructorWithSelfType;
-    Object container;
-    Object contains;
-    Object continue_;
-    Object current;
-    Object currentFn;
-    Object currentStruct;
-    Object data;
-    Object destructor;
-    Object direction;
-    Object else_;
-    Object empty;
-    Object emptyObject;
-    Object erase;
-    Object eval;
-    Object first;
-    Object firstPixel;
-    Object functions;
-    Object functionTs;
-    Object getValue;
-    Object global;
-    Object has;
-    Object hasKey;
-    Object hasPixel;
-    Object hasSlot;
-    Object height;
-    Object id;
-    Object incomplete;
-    Object index;
-    Object indexType;
-    Object input;
-    Object inputPixels;
-    Object insert;
-    Object instanceOf;
-    Object instances;
-    Object item;
-    Object itemType;
-    Object key;
-    Object keyType;
-    Object label;
-    Object last;
-    Object lhs;
-    Object list;
-    Object listItem;
-    Object listType;
-    Object localVars;
-    Object memberOf;
-    Object members;
-    Object method;
-    Object methods;
-    Object name;
-    Object next;
-    Object objectType;
-    Object op;
-    Object ops;
-    Object output;
-    Object parameter;
-    Object parameters;
-    Object parent;
-    Object picture;
-    Object pixel;
-    Object pixels;
-    Object previous;
-    Object process;
-    Object processAdjacentPixel;
-    Object processInputPixels;
-    Object processPixel;
-    Object recursiveType;
-    Object remove;
-    Object removeSlot;
-    Object resolvedScope;
-    Object result;
-    Object returnType;
-    Object returnValue;
-    Object rhs;
-    Object role;
-    Object rootNode;
-    Object scope;
-    Object scopes;
-    Object self;
-    Object shape;
-    Object shapeId;
-    Object shapes;
-    Object sharedObject;
-    Object size;
-    Object slot;
-    Object slotRole;
-    Object slots;
-    Object slotType;
-    Object sortPixels;
-    Object stack;
-    Object statement;
-    Object static_;
-    Object status;
-    Object stop;
-    Object structs;
-    Object structTs;
-    Object structType;
-    Object subTypes;
-    Object template_;
-    Object templateId;
-    Object templateParams;
-    Object then;
-    Object type;
-    Object unknownInstances;
-    Object unknownStructs;
-    Object value;
-    Object variables;
-    Object width;
+    List argument;
+    List ast;
+    List asts;
+    List cell;
+    List children;
+    List color;
+    List condition;
+    List constructor;
+    List continue_;
+    List data;
+    List destructor;
+    List else_;
+    List emptyObject;
+    List first;
+    List height;
+    List index;
+    List input;
+    List item;
+    List itemType;
+    List key;
+    List keyType;
+    List last;
+    List lhs;
+    List list;
+    List listType;
+    List localVars;
+    List memberOf;
+    List method;
+    List methods;
+    List name;
+    List next;
+    List objectType;
+    List op;
+    List ops;
+    List output;
+    List parameters;
+    List parent;
+    List pixels;
+    List previous;
+    List result;
+    List returnType;
+    List rhs;
+    List role;
+    List rootNode;
+    List self;
+    List size;
+    List slotRole;
+    List slots;
+    List slotType;
+    List stack;
+    List statement;
+    List static_;
+    List status;
+    List stop;
+    List structs;
+    List subTypes;
+    List then;
+    List type;
+    List value;
+    List width;
 };
 
 namespace type {
@@ -371,6 +301,7 @@ public:
     public:
         Cell(brain::Brain& kb, CellI& value);
         Get& operator/(Base& role);
+        Get& operator/(const std::string& role);
     };
     class StructRef : public BaseT<StructRef>
     {
@@ -398,6 +329,7 @@ public:
     public:
         Parameter(brain::Brain& kb, CellI& role);
         Get& operator/(Base& role);
+        Get& operator/(const std::string& role);
     };
     class Slot : public BaseT<Slot>
     {
@@ -688,6 +620,7 @@ public:
         Member(brain::Brain& kb, CellI& role);
         Set& operator=(Base& value);
         Get& operator/(Base& role);
+        Get& operator/(const std::string& role);
         Has& exist();
         Missing& missing();
         Call& call(const std::string& method);
@@ -706,17 +639,17 @@ public:
         TemplatedType(const TemplatedType&) = delete;
         TemplatedType(brain::Brain& kb, CellI& id, CellI& typeList);
 
-        void addParam(CellI& role, CellI& type);
-        void addParam(CellI& role, const std::string& type);
+        void addParam(const std::string& role, CellI& type);
+        void addParam(const std::string& role, const std::string& type);
 
         template <typename... Args>
-        void addParam(CellI& role, CellI& type, Args&&... args)
+        void addParam(const std::string& role, CellI& type, Args&&... args)
         {
             addParam(role, type);
             addParam(std::forward<Args>(args)...);
         }
         template <typename... Args>
-        void addParam(CellI& role, const std::string& type, Args&&... args)
+        void addParam(const std::string& role, const std::string& type, Args&&... args)
         {
             addParam(role, type);
             addParam(std::forward<Args>(args)...);
@@ -778,6 +711,7 @@ public:
     public:
         Get(brain::Brain& kb, Base& cell, Base& role);
         Get& operator/(Base& role);
+        Get& operator/(const std::string& role);
     };
     class And : public BaseT<And>
     {
@@ -844,6 +778,7 @@ public:
     Return& return_();
     Return& return_(Base& value);
     Parameter& parameter(CellI& role);
+    Slot& slot(const std::string& role, CellI& type);
     Slot& slot(CellI& role, CellI& type);
 
     Call& call(CellI& object, const std::string& method);
@@ -873,9 +808,9 @@ public:
     SubType& subType(CellI& role);
     TemplatedType& templatedType(const std::string& id, CellI& type);
     template <typename... Args>
-    TemplatedType& templatedType(const std::string& id, CellI& role, CellI& type, Args&&... args);
+    TemplatedType& templatedType(const std::string& id, const std::string& role, CellI& type, Args&&... args);
     template <typename... Args>
-    TemplatedType& templatedType(const std::string& id, CellI& role, const std::string& type, Args&&... args);
+    TemplatedType& templatedType(const std::string& id, const std::string& role, const std::string& type, Args&&... args);
 
     TemplateParam& templateParam(CellI& role);
     New& new_(Base& objectType);
@@ -964,7 +899,7 @@ public:
 
 protected:
     void registerUnicodeBlock(char32_t from, char32_t to);
-    std::map<char32_t, Object> s_characters;
+    std::map<char32_t, Object> m_characters;
     brain::Brain& kb;
 };
 
@@ -998,7 +933,7 @@ public:
 
 protected:
     std::map<std::string, String> m_strings;
-    brain::Brain& m_kb;
+    brain::Brain& kb;
 };
 
 } // namespace pools
@@ -1007,6 +942,7 @@ class Pools
 {
 public:
     Pools(brain::Brain& kb);
+
     pools::Chars chars;
     pools::Digits digits;
     pools::Numbers numbers;
@@ -1049,16 +985,17 @@ protected:
     void createTests();
     void createArcSolver();
 
-protected:
+public:
     Ast::Cell& _(CellI& cell);
-    Ast::Parameter& p_(CellI& role);
-    Ast::Member& m_(CellI& role);
+    Ast::Cell& _(const std::string& id);
+    Ast::Parameter& p_(const std::string& name);
+    Ast::Member& m_(const std::string& name);
     Ast::Var& var_(const std::string& name);
-    Ast::Slot& param(CellI& role, CellI& value);
-    Ast::Slot& member(CellI& role, CellI& type);
+    Ast::Slot& param(const std::string& name, CellI& value);
+    Ast::Slot& member(const std::string& name, CellI& type);
     template <typename... Args>
     Ast::Cell& st_(const std::string& name, Args&&... args);
-    Ast::TemplateParam& tp_(CellI&);
+    Ast::TemplateParam& tp_(const std::string& name);
     template <typename... Args>
     Ast::TemplatedType& tt_(const std::string& name, Args&&... args);
     Ast::StructRef& struct_(const std::string& name);
@@ -1066,8 +1003,9 @@ protected:
 public:
     Brain();
     ~Brain();
-    ID ids;
+
     Pools pools;
+    ID ids;
     Types type;
     Ast ast;
     Directions directions;
@@ -1184,7 +1122,7 @@ Set& Brain::set(CellI& value, Args&&... args)
 template <typename... Args>
 void Brain::addSlots(Map& map, CellI& value, Args&&... args)
 {
-    map.add(value[ids.slotRole], value);
+    map.add(value["slotRole"], value);
     addSlots(map, std::forward<Args>(args)...);
 }
 
@@ -1252,7 +1190,7 @@ Ast::StaticCall& Ast::scall(CellI& object, const std::string& method, Args&&... 
 }
 
 template <typename... Args>
-Ast::TemplatedType& Ast::templatedType(const std::string& id, CellI& role, CellI& type, Args&&... args)
+Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string& role, CellI& type, Args&&... args)
 {
     auto& ret = templatedType(id, kb.ast.slot(role, type));
     if constexpr (sizeof...(Args) > 0) {
@@ -1262,7 +1200,7 @@ Ast::TemplatedType& Ast::templatedType(const std::string& id, CellI& role, CellI
 }
 
 template <typename... Args>
-Ast::TemplatedType& Ast::templatedType(const std::string& id, CellI& role, const std::string& type, Args&&... args)
+Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string& role, const std::string& type, Args&&... args)
 {
     auto& ret  = templatedType(id, kb.ast.slot(role, kb.ast.structRef(kb.id(type))));
     if constexpr (sizeof...(Args) > 0) {

@@ -31,6 +31,14 @@ public:
     virtual void operator()()                   = 0;
     virtual CellI& operator[](CellI& role)      = 0;
     virtual void accept(Visitor& visitor)       = 0;
+
+    bool has(const std::string& role);
+    void set(const std::string& role, CellI& value);
+    void erase(const std::string& role);
+    CellI& operator[](const std::string& role);
+    bool missing(const std::string& role);
+    CellI& get(const std::string& role);
+
     CellI& call(CellI& method);
     CellI& call(CellI& method, CellI& param1Role, CellI& param1Value);
 
@@ -60,6 +68,8 @@ struct Param
     Param(CellI& role, CellI& value) :
         role(role), value(value) { }
 
+    Param(const std::string& role, CellI& value);
+
     CellI& role;
     CellI& value;
 };
@@ -75,6 +85,13 @@ public:
     Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, Param param2, Param param3, const std::string& label = "");
     Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, Param param2, Param param3, Param param4, const std::string& label = "");
     ~Object();
+
+    using CellI::has;
+    using CellI::set;
+    using CellI::erase;
+    using CellI::get;
+    using CellI::missing;
+    using CellI::operator[];
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -141,6 +158,13 @@ public:
     public:
         Item(brain::Brain& kb, List& list, CellI& value);
 
+        using CellI::get;
+        using CellI::has;
+        using CellI::missing;
+        using CellI::set;
+        using CellI::erase;
+        using CellI::operator[];
+
         bool has(CellI& role) override;
         void set(CellI& role, CellI& value) override;
         void erase(CellI& role) override;
@@ -155,6 +179,13 @@ public:
     };
 
     List(brain::Brain& kb, CellI& valueType, const std::string& label = "");
+
+    using CellI::get;
+    using CellI::has;
+    using CellI::missing;
+    using CellI::set;
+    using CellI::erase;
+    using CellI::operator[];
 
     template <typename T>
     List(brain::Brain& kb, std::vector<T>& values, const std::string& label = "") :
@@ -210,6 +241,13 @@ public:
     Type(brain::Brain& kb, const std::string& label = "");
     Type(brain::Brain& kb, WithRecursiveType m_recursiveType, const std::string& label = "");
 
+    using CellI::get;
+    using CellI::has;
+    using CellI::missing;
+    using CellI::set;
+    using CellI::erase;
+    using CellI::operator[];
+
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
     void erase(CellI& role) override;
@@ -234,6 +272,13 @@ public:
     Index(brain::Brain& kb, const std::string& label = "");
     Index(brain::Brain& kb, Type& indexType, const std::string& label = "");
 
+    using CellI::get;
+    using CellI::has;
+    using CellI::missing;
+    using CellI::set;
+    using CellI::erase;
+    using CellI::operator[];
+
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
     void erase(CellI& role) override;
@@ -256,6 +301,13 @@ class Map : public CellI
 public:
     Map(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& label = "");
     Map(brain::Brain& kb, CellI& keyType, CellI& valueType, Type& indexType, const std::string& label = "");
+
+    using CellI::get;
+    using CellI::has;
+    using CellI::missing;
+    using CellI::set;
+    using CellI::erase;
+    using CellI::operator[];
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -291,6 +343,13 @@ class TrieMap : public CellI
 {
 public:
     TrieMap(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& label = "");
+
+    using CellI::get;
+    using CellI::has;
+    using CellI::missing;
+    using CellI::set;
+    using CellI::erase;
+    using CellI::operator[];
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -383,6 +442,14 @@ class String : public CellI
 {
 public:
     explicit String(brain::Brain& kb, const std::string& str = "");
+    String(brain::Brain& kb, List& list, const std::string& str);
+
+    using CellI::get;
+    using CellI::has;
+    using CellI::missing;
+    using CellI::set;
+    using CellI::erase;
+    using CellI::operator[];
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -398,6 +465,7 @@ protected:
 
     std::string m_value;
     std::vector<Object*> m_characters;
+    List* m_charactersListPtr = nullptr;
     std::unique_ptr<List> m_charactersList;
 };
 

@@ -40,6 +40,36 @@ CellI::~CellI()
     s_destructed += 1;
 }
 
+bool CellI::has(const std::string& role)
+{
+    return has(kb.id(role));
+}
+
+void CellI::set(const std::string& role, CellI& value)
+{
+    set(kb.id(role), value);
+}
+
+void CellI::erase(const std::string& role)
+{
+    erase(kb.id(role));
+}
+
+CellI& CellI::operator[](const std::string& role)
+{
+    return (*this)[kb.id(role)];
+}
+
+bool CellI::missing(const std::string& role)
+{
+    return !has(kb.id(role));
+}
+
+CellI& CellI::get(const std::string& role)
+{
+    return (*this)[kb.id(role)];
+}
+
 bool CellI::missing(CellI& role)
 {
     return !has(role);
@@ -112,6 +142,9 @@ bool CellI::operator!=(CellI& rhs)
 }
 #pragma endregion
 #pragma region Object
+Param::Param(const std::string& role, CellI& value) :
+    role(value.kb.id(role)), value(value) { }
+
 int Object::s_indent = 0;
 // ============================================================================
 Object::Object(brain::Brain& kb, CellI& type, const std::string& label) :
@@ -119,9 +152,6 @@ Object::Object(brain::Brain& kb, CellI& type, const std::string& label) :
     m_type(type)
 {
     m_slots[&kb.ids.type] = &type;
-    if (kb.initPhase() == InitPhase::Init) {
-        return;
-    }
 }
 
 Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, const std::string& label) :
@@ -1728,6 +1758,13 @@ String::String(brain::Brain& kb, const std::string& str) :
 {
 }
 
+String::String(brain::Brain& kb, List& list, const std::string& str) :
+    CellI(kb),
+    m_value(str),
+    m_charactersListPtr(&list)
+{
+}
+
 bool String::has(CellI& role)
 {
     if (&role == &kb.ids.type || &role == &kb.ids.value) {
@@ -1758,10 +1795,16 @@ CellI& String::operator[](CellI& role)
     } else if (&role == &kb.ids.value) {
         if (m_characters.empty()) {
             calculateCharacters();
+            if (m_charactersListPtr) {
+                for (auto& character : m_characters) {
+                    m_charactersListPtr->add(*character);
+                }
+                return *m_charactersListPtr;
+            }
             m_charactersList.reset(new List(kb, m_characters, label()));
         }
 
-        return *m_charactersList;
+        return m_charactersListPtr ? *m_charactersListPtr  : *m_charactersList;
     } else {
         throw "No such role!";
     }
