@@ -212,9 +212,12 @@ void CellValuePrinter::printOpIf(CellI& cell)
         m_ss << "\n";
         m_indent++;
         printIndent();
-        m_indent--;
     }
     printImpl(cell[kb.ids.then]);
+    if (&cell[kb.ids.then].type() != &kb.type.op.Block) {
+        m_indent--;
+    }
+
     if (cell.has(kb.ids.else_)) {
         if (&cell[kb.ids.then].type() != &kb.type.op.Block) {
             m_ss << ";\n";
@@ -225,9 +228,11 @@ void CellValuePrinter::printOpIf(CellI& cell)
             m_ss << "\n";
             m_indent++;
             printIndent();
-            m_indent--;
         }
         printImpl(cell[kb.ids.else_]);
+        if (&cell[kb.ids.else_].type() != &kb.type.op.Block) {
+            m_indent--;
+        }
     }
 }
 
