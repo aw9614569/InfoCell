@@ -3271,6 +3271,11 @@ Ast::Set& Ast::set(Base& cell, Base& role, Base& value)
     return Set::New(kb, cell, role, value);
 }
 
+Ast::Set& Ast::set(Base& cell, const std::string& role, Base& value)
+{
+    return Set::New(kb, cell, kb._(role), value);
+}
+
 Ast::Erase& Ast::erase(Base& cell, Base& role)
 {
     return Erase::New(kb, cell, role);
@@ -3808,8 +3813,8 @@ void Brain::createStd()
         var_("item") = ast.new_(tt_("ListItem", "objectType", tp_("objectType")), "constructor", param("value", p_("value"))),
         ast.if_(ast.not_(m_("first").exist()),
                 m_("first") = *var_("item"),                               // then
-                ast.block(ast.set(m_("last"), _("next"), *var_("item")), // else
-                          ast.set(*var_("item"), _("previous"), m_("last")))),
+                ast.block(ast.set(m_("last"), "next", *var_("item")), // else
+                          ast.set(*var_("item"), "previous", m_("last")))),
         m_("last") = *var_("item"),
         m_("size") = ast.add(m_("size"), _(_1_)),
         ast.return_(*var_("item")));
@@ -3836,14 +3841,14 @@ void Brain::createStd()
     listRemove.code(
         ast.if_(ast.has(p_("item"), "previous"),
                 ast.if_(ast.has(p_("item"), "next"),
-                        ast.set(p_("item") / "previous", _("next"), p_("item") / "next"),
+                        ast.set(p_("item") / "previous", "next", p_("item") / "next"),
                         ast.erase(p_("item") / "previous", _("next"))),
                 ast.if_(ast.has(p_("item"), "next"),
                         m_("first") = p_("item") / "next",
                         ast.erase(ast.self(), _("first")))),
         ast.if_(ast.has(p_("item"), "next"),
                 ast.if_(ast.has(p_("item"), "previous"),
-                        ast.set(p_("item") / "next", _("previous"), p_("item") / "previous"),
+                        ast.set(p_("item") / "next", "previous", p_("item") / "previous"),
                         ast.erase(p_("item") / "next", _("previous"))),
                 ast.if_(ast.has(p_("item"), "previous"),
                         m_("last") = p_("item") / "previous",
@@ -3901,8 +3906,8 @@ void Brain::createStd()
     typeAddSlot.code(
         ast.if_(m_("slots").missing(), m_("slots") = ast.new_(tt_("Map", "keyType", _(type.Cell), "objectType", _(type.Slot)), "constructor")),
         var_("slot") = ast.new_(_(type.Slot)),
-        ast.set(*var_("slot"), _("slotRole"), p_("slotRole")),
-        ast.set(*var_("slot"), _("slotType"), p_("slotType")),
+        ast.set(*var_("slot"), "slotRole", p_("slotRole")),
+        ast.set(*var_("slot"), "slotType", p_("slotType")),
         m_("slots").call("add", param("key", p_("slotRole")), param("value", *var_("slot"))));
 
     Ast::Function& typeAddSlots = typeStruct.addMethod("addSlots");
@@ -3941,19 +3946,19 @@ void Brain::createStd()
 
     Ast::Function& indexCtor = indexStruct.addMethod("constructor");
     indexCtor.code(
-        ast.set(ast.self(), _("type"), ast.new_("Type", "constructorWithRecursiveType")),
-        ast.set(m_("type"), _("methods"), ast.get(struct_("Index"), _("methods"))),
-        ast.set(m_("type"), _("memberOf"), _(map(type.Type_, type.Type_, type.Index, type.Index))));
+        ast.set(ast.self(), "type", ast.new_("Type", "constructorWithRecursiveType")),
+        ast.set(m_("type"), "methods", ast.get(struct_("Index"), _("methods"))),
+        ast.set(m_("type"), "memberOf", _(map(type.Type_, type.Type_, type.Index, type.Index))));
 
     Ast::Function& indexCtorWithSelfType = indexStruct.addMethod("constructorWithSelfType");
     indexCtorWithSelfType.parameters(
         param("indexType", _(type.Type_)));
     indexCtorWithSelfType.code(
         ast.if_(ast.missing(p_("indexType"), _("sharedObject")),
-                ast.block(ast.set(p_("indexType"), _("sharedObject"), ast.new_(_(type.Slot))),
-                          ast.set(p_("indexType") / "sharedObject", _("slotRole"), ast.self()),
-                          ast.set(p_("indexType") / "sharedObject", _("slotType"), struct_("Index")))),
-        ast.set(ast.self(), _("type"), p_("indexType")));
+                ast.block(ast.set(p_("indexType"), "sharedObject", ast.new_(_(type.Slot))),
+                          ast.set(p_("indexType") / "sharedObject", "slotRole", ast.self()),
+                          ast.set(p_("indexType") / "sharedObject", "slotType", struct_("Index")))),
+        ast.set(ast.self(), "type", p_("indexType")));
 
     /*
     void Index::insert(CellI& key, CellI& value)

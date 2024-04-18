@@ -798,10 +798,9 @@ public:
 
     template <typename... Args>
     Block& block(Args&&... args);
-    Function& function(List& inputs, Block& asts);
-    Function& function(List& inputs, Block& asts, List& outputs);
     Delete& delete_(Base& cell);
     Set& set(Base& cell, Base& role, Base& value);
+    Set& set(Base& cell, const std::string& role, Base& value);
     Erase& erase(Base& cell, Base& role);
     If& if_(Base& condition, Base& thenBranch);
     If& if_(Base& condition, Base& thenBranch, Base& elseBranch);
