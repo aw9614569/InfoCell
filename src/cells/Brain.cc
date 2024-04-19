@@ -4504,11 +4504,13 @@ void Brain::createArcSolver()
     shaperProcessPixel.code(
         ast.call(p_("shape"), "addPixel", param("pixel", p_("checkPixel"))),
         m_("inputPixels").call("erase", param("value", p_("checkPixel"))),
-        ast.if_(var_("pixel") = ast.self().call("processAdjacentPixel", param("direction", _(directions.up)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
+        var_("pixel") = ast.self().call("processAdjacentPixel", param("direction", _(directions.up)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
+        ast.if_(ast.notSame(*var_("pixel"), _(ids.emptyObject)),
                 ast.block(
                     ast.self().call("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))),
                     ast.self().call("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))))),
-        ast.if_(var_("pixel") = ast.self().call("processAdjacentPixel", param("direction", _(directions.down)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
+        var_("pixel") = ast.self().call("processAdjacentPixel", param("direction", _(directions.down)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
+        ast.if_(ast.notSame(*var_("pixel"), _(ids.emptyObject)),
                 ast.block(
                     ast.self().call("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))),
                     ast.self().call("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))))),
@@ -4543,7 +4545,7 @@ void Brain::createArcSolver()
                     ast.if_(ast.and_(ast.equal(*var_("pixel") / "color", p_("shape") / "color"), ast.not_(ast.call(p_("shape"), "hasPixel", param("pixel", *var_("pixel"))))),
                             ast.call(p_("checkPixels"), "add", param("value", *var_("pixel")))),
                     ast.return_(*var_("pixel"))),
-                ast.return_(_("emptyObject"))));
+                ast.return_(_(ids.emptyObject))));
 }
 
 Brain::Brain() :

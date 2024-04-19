@@ -1111,12 +1111,35 @@ TEST_F(CellTest, ShaperTest)
 {
     auto& ShaperStruct = getStruct(kb.id("Shaper"));
 
-    input::Picture inputPicture("inputPicture", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
-    cells::hybrid::Picture picture(kb, inputPicture);
-    Object shaper(kb, ShaperStruct, kb.id("constructor"), { "picture", picture });
-    shaper.method("process");
-    printAs.value(shaper["shapes"]["size"], "shaper[shapes][size]");
-    EXPECT_EQ(&shaper["shapes"]["size"], &_3_);
+    // 0 7 7
+    // 7 7 7
+    // 0 7 7
+    input::Picture inputPicture1("inputPicture1", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
+    cells::hybrid::Picture picture1(kb, inputPicture1);
+    Object shaper1(kb, ShaperStruct, kb.id("constructor"), { "picture", picture1 });
+    shaper1.method("process");
+    printAs.value(shaper1["shapes"]["size"], "shaper[shapes][size]");
+    EXPECT_EQ(&shaper1["shapes"]["size"], &_3_);
+
+    // 7 0 0
+    // 0 7 0
+    // 0 0 7
+    input::Picture inputPicture2("inputPicture2", "[[7, 0, 0], [0, 7, 0], [0, 0, 7]]");
+    cells::hybrid::Picture picture2(kb, inputPicture2);
+    Object shaper2(kb, ShaperStruct, kb.id("constructor"), { "picture", picture2 });
+    shaper2.method("process");
+    printAs.value(shaper2["shapes"]["size"], "shaper[shapes][size]");
+    EXPECT_EQ(&shaper2["shapes"]["size"], &_2_);
+
+    // 7 0 7
+    // 7 0 7
+    // 7 7 7
+    input::Picture inputPicture3("inputPicture3", "[[7, 0, 7], [7, 0, 7], [7, 7, 7]]");
+    cells::hybrid::Picture picture3(kb, inputPicture3);
+    Object shaper3(kb, ShaperStruct, kb.id("constructor"), { "picture", picture3 });
+    shaper3.method("process");
+    printAs.value(shaper3["shapes"]["size"], "shaper[shapes][size]");
+    EXPECT_EQ(&shaper3["shapes"]["size"], &_2_);
 }
 
 int main(int argc, char** argv)

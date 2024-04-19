@@ -282,7 +282,7 @@ void Object::resetIndent()
 
 void Object::operator()()
 {
-    static bool s_debugFunctionCalls = true;
+    static bool s_debugFunctionCalls = false;
 
     if (&m_type == &kb.type.op.Block) {
         Visitor::visitList(get(kb.ids.ops), [this](CellI& op, int, bool& stop) {
