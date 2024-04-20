@@ -127,7 +127,6 @@ std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 // type checking
 // remove .label() from CellI
 
-#if 0
 TEST_F(CellTest, PrintStdCodes)
 {
 #if 1
@@ -186,7 +185,6 @@ TEST_F(CellTest, PrintTestCodes)
     printMethodInType(TestStruct, "factorial");
 #endif
 }
-#endif
 
 TEST_F(CellTest, PrintArcCodes)
 {
@@ -206,7 +204,6 @@ TEST_F(CellTest, PrintArcCodes)
     printMethodInType(ShaperStruct, "processAdjacentPixel");
 }
 
-#if 0
 TEST_F(CellTest, RecursiveCall)
 {
     auto& TestStruct = getStruct(kb.id("Test"));
@@ -1105,7 +1102,6 @@ TEST_F(CellTest, StringTest)
     printAs.value(testStr1[kb.ids.value]);
     printAs.cell(testStr1[kb.ids.value]);
 }
-#endif
 
 TEST_F(CellTest, ShaperTest)
 {

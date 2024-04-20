@@ -15,18 +15,25 @@ ID::ID(brain::Brain& kb) :
     asts(kb, kb.type.Char, "asts"),
     cell(kb, kb.type.Char, "cell"),
     children(kb, kb.type.Char, "children"),
+    code(kb, kb.type.Char, "code"),
     color(kb, kb.type.Char, "color"),
     condition(kb, kb.type.Char, "condition"),
     constructor(kb, kb.type.Char, "constructor"),
     continue_(kb, kb.type.Char, "continue_"),
+    currentFn(kb, kb.type.Char, "currentFn"),
+    currentStruct(kb, kb.type.Char, "currentStruct"),
     data(kb, kb.type.Char, "data"),
     destructor(kb, kb.type.Char, "destructor"),
     else_(kb, kb.type.Char, "else_"),
     emptyObject(kb, kb.type.Char, "emptyObject"),
     first(kb, kb.type.Char, "first"),
+    functions(kb, kb.type.Char, "functions"),
+    globalScope(kb, kb.type.Char, "globalScope"),
     height(kb, kb.type.Char, "height"),
+    id(kb, kb.type.Char, "id"),
     index(kb, kb.type.Char, "index"),
     input(kb, kb.type.Char, "input"),
+    instances(kb, kb.type.Char, "instances"),
     item(kb, kb.type.Char, "item"),
     itemType(kb, kb.type.Char, "itemType"),
     key(kb, kb.type.Char, "key"),
@@ -37,6 +44,7 @@ ID::ID(brain::Brain& kb) :
     listType(kb, kb.type.Char, "listType"),
     localVars(kb, kb.type.Char, "localVars"),
     memberOf(kb, kb.type.Char, "memberOf"),
+    members(kb, kb.type.Char, "members"),
     method(kb, kb.type.Char, "method"),
     methods(kb, kb.type.Char, "methods"),
     name(kb, kb.type.Char, "name"),
@@ -49,11 +57,14 @@ ID::ID(brain::Brain& kb) :
     parent(kb, kb.type.Char, "parent"),
     pixels(kb, kb.type.Char, "pixels"),
     previous(kb, kb.type.Char, "previous"),
+    resolvedScope(kb, kb.type.Char, "resolvedScope"),
     result(kb, kb.type.Char, "result"),
     returnType(kb, kb.type.Char, "returnType"),
     rhs(kb, kb.type.Char, "rhs"),
     role(kb, kb.type.Char, "role"),
     rootNode(kb, kb.type.Char, "rootNode"),
+    scope(kb, kb.type.Char, "scope"),
+    scopes(kb, kb.type.Char, "scopes"),
     self(kb, kb.type.Char, "self"),
     size(kb, kb.type.Char, "size"),
     slotRole(kb, kb.type.Char, "slotRole"),
@@ -65,10 +76,16 @@ ID::ID(brain::Brain& kb) :
     status(kb, kb.type.Char, "status"),
     stop(kb, kb.type.Char, "stop"),
     structs(kb, kb.type.Char, "structs"),
+    structType(kb, kb.type.Char, "structType"),
     subTypes(kb, kb.type.Char, "subTypes"),
+    templateId(kb, kb.type.Char, "templateId"),
+    templateParams(kb, kb.type.Char, "templateParams"),
     then(kb, kb.type.Char, "then"),
     type(kb, kb.type.Char, "type"),
+    unknownInstances(kb, kb.type.Char, "unknownInstances"),
+    unknownStructs(kb, kb.type.Char, "unknownStructs"),
     value(kb, kb.type.Char, "value"),
+    variables(kb, kb.type.Char, "variables"),
     width(kb, kb.type.Char, "width")
 {
 }
@@ -752,7 +769,7 @@ Object& Types::MapOf(CellI& keyType, CellI& valueType)
     CellI* map      = nullptr;
 
     if (kb.type.Map.has("methods")) {
-        mapType.set("methods", kb.type.Map["methods"]); // TODO
+        mapType.set("methods", kb.type.Map[kb.ids.methods]); // TODO
     }
     mapType.set("memberOf", kb.map(kb.type.Type_, kb.type.Type_, kb.type.Map, kb.type.Map));
     mapType.set("subTypes", kb.map(kb.type.Cell, kb.type.Type_, kb.ids.keyType, keyType, kb.ids.objectType, valueType));
@@ -778,7 +795,7 @@ Object& Types::SetOf(CellI& valueType)
     Object& setType = valueTypeIt->second;
     CellI* map      = nullptr;
 
-    setType.set("methods", kb.type.Set["methods"]);
+    setType.set("methods", kb.type.Set[kb.ids.methods]);
     setType.set("memberOf", kb.map(kb.type.Type_, kb.type.Type_, kb.type.Set, kb.type.Set));
     setType.set("subTypes", kb.map(kb.type.Cell, kb.type.Type_, kb.ids.objectType, valueType));
 
@@ -799,14 +816,14 @@ Ast::Base::Base(brain::Brain& kb, CellI& classCell, const std::string& label) :
 CellI& Ast::Base::resolveType(CellI& typeAst, CellI& resolveState)
 {
     if (&typeAst.type() == &kb.type.ast.Cell) {
-        auto& cellValue = typeAst["value"];
+        auto& cellValue = typeAst[kb.ids.value];
         if (!cellValue.isA(kb.type.Type_) && !cellValue.isA(kb.type.Enum)) {
             throw "Type AST referencing a non-type!";
         }
-        return typeAst["value"];
+        return typeAst[kb.ids.value];
     }
     if (&typeAst.type() == &kb.type.ast.StructRef) {
-        CellI& astStructId = typeAst["value"];
+        CellI& astStructId = typeAst[kb.ids.value];
         auto& resolveStruct = resolveStructId(astStructId, resolveState);
         // std::cout << std::format("DDDD {} resolved at {:p}\n", astStructId.label(), (void*)&resolveStruct) << std::endl;
         return resolveStruct;
@@ -821,15 +838,15 @@ CellI& Ast::Base::resolveType(CellI& typeAst, CellI& resolveState)
 CellI& Ast::Base::getResolvedTypeById(CellI& id, bool isInstance, CellI& resolveState)
 {
     if (isInstance) {
-        auto& instances = static_cast<TrieMap&>(resolveState["instances"]);
+        auto& instances = static_cast<TrieMap&>(resolveState[kb.ids.instances]);
         if (instances.hasKey(id)) {
             return instances.getValue(id);
         } else {
-            auto& unknownInstances = static_cast<TrieMap&>(resolveState["unknownInstances"]);
-            return unknownInstances.getValue(id)["value"];
+            auto& unknownInstances = static_cast<TrieMap&>(resolveState[kb.ids.unknownInstances]);
+            return unknownInstances.getValue(id)[kb.ids.value];
         }
     } else {
-        auto& structs = static_cast<TrieMap&>(resolveState["structs"]);
+        auto& structs = static_cast<TrieMap&>(resolveState[kb.ids.structs]);
         return structs.getValue(id);
     }
 }
@@ -843,7 +860,7 @@ CellI& Ast::Base::resolveId(CellI& structId, CellI& containerId, CellI& unknownC
     } else {
         auto& unresolvedContainer = static_cast<TrieMap&>(resolveState[unknownContainerId]);
         if (unresolvedContainer.hasKey(structId)) {
-            return unresolvedContainer.getValue(structId)["value"];
+            return unresolvedContainer.getValue(structId)[kb.ids.value];
         } else {
             auto& unresolvedStruct = *new Object(kb, kb.type.Type_, std::format("{}", structId.label()));
             unresolvedStruct.set("incomplete", kb.boolean.true_);
@@ -851,14 +868,14 @@ CellI& Ast::Base::resolveId(CellI& structId, CellI& containerId, CellI& unknownC
             auto& structReference = *new Object(kb, kb.type.StructReference);
             structReference.set("value", unresolvedStruct);
             structReference.set("id", structId);
-            structReference.set("scope", resolveState["scope"]);
-            structReference.set("resolvedScope", resolveState["resolvedScope"]);
+            structReference.set("scope", resolveState[kb.ids.scope]);
+            structReference.set("resolvedScope", resolveState[kb.ids.resolvedScope]);
 
             if (resolveState.has("currentFn")) {
-                structReference.set("currentFn", resolveState["currentFn"]);
+                structReference.set("currentFn", resolveState[kb.ids.currentFn]);
             }
             if (resolveState.has("currentStruct")) {
-                structReference.set("currentStruct", resolveState["currentStruct"]);
+                structReference.set("currentStruct", resolveState[kb.ids.currentStruct]);
             }
             unknownCb(structReference);
 
@@ -870,7 +887,7 @@ CellI& Ast::Base::resolveId(CellI& structId, CellI& containerId, CellI& unknownC
 
 CellI& Ast::Base::resolveTemplateInstanceId(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams)
 {
-    auto& templateId = ast["id"];
+    auto& templateId = ast[kb.ids.id];
     return resolveId(structId, kb.id("instances"), kb.id("unknownInstances"), resolveState, [this, &resolveState, &templateId, &templateParams, &ast, &idScope](CellI& structReference) {
         structReference.set("templateId", templateId);
         structReference.set("templateParams", templateParams);
@@ -889,12 +906,12 @@ CellI& Ast::Base::resolveStructId(CellI& structId, CellI& resolveState)
 
 CellI& Ast::Base::resolveTemplatedType(CellI& ast, CellI& resolveState)
 {
-    auto& templateId     = ast["id"];
-    auto& templateParams = ast["parameters"];
+    auto& templateId     = ast[kb.ids.id];
+    auto& templateParams = ast[kb.ids.parameters];
 
-    Scope* scopePtr = &static_cast<Scope&>(resolveState["scope"]);
+    Scope* scopePtr = &static_cast<Scope&>(resolveState[kb.ids.scope]);
     if (ast.has("scopes")) {
-        auto& scopeList = ast["scopes"];
+        auto& scopeList = ast[kb.ids.scopes];
         scopePtr        = scopePtr->resolveFullTemplateId(scopeList, templateId);
         if (!scopePtr) {
             throw "Unknow namespace!";
@@ -905,10 +922,10 @@ CellI& Ast::Base::resolveTemplatedType(CellI& ast, CellI& resolveState)
         std::cerr << std::format("Unknown template {}", templateId.label()) << std::endl;
         std::cerr << std::format("Current scope: {}", scope.label()) << std::endl;
         if (resolveState.has("currentStruct")) {
-            std::cerr << std::format("Current struct: {}", resolveState["currentStruct"].label()) << std::endl;
+            std::cerr << std::format("Current struct: {}", resolveState[kb.ids.currentStruct].label()) << std::endl;
         }
         if (resolveState.has("currentFn")) {
-            std::cerr << std::format("Current function: {}", resolveState["currentFn"].label()) << std::endl;
+            std::cerr << std::format("Current function: {}", resolveState[kb.ids.currentFn].label()) << std::endl;
         }
         throw std::format("Unknown template {}", templateId.label());
     }
@@ -936,8 +953,8 @@ List& Ast::Base::generateTemplateId(CellI& id, CellI& parameters, CellI& resolve
         if (i != 0) {
             ss << ", ";
         }
-        CellI& slotRole = slot["slotRole"];
-        CellI& slotType = slot["slotType"];
+        CellI& slotRole = slot[kb.ids.slotRole];
+        CellI& slotType = slot[kb.ids.slotType];
         CellI& resolvedSlotType = resolveType(slotType, resolveState);
 
         idCell.add(slotRole);
@@ -1105,7 +1122,7 @@ Ast::Scope& Ast::Scope::addScope(const std::string& name)
 
 void Ast::Scope::addScope(Scope& scope)
 {
-    CellI& id = scope["id"];
+    CellI& id = scope[kb.ids.id];
 
     if (missing("scopes")) {
         set("scopes", *new TrieMap(kb, kb.type.Cell, kb.type.ast.Scope, "TrieMap<Cell, Type::Ast::Scope>(...)"));
@@ -1133,7 +1150,7 @@ Ast::Function& Ast::Scope::addFunction(CellI& id, const std::string& label)
 
 void Ast::Scope::addFunction(Function& function)
 {
-    auto& name = function["name"];
+    auto& name = function[kb.ids.name];
 
     if (missing("functions")) {
         set("functions", *new TrieMap(kb, kb.type.Cell, kb.type.ast.Function, "TrieMap<Cell, Type::Ast::Function>(...)"));
@@ -1255,7 +1272,7 @@ Ast::Struct& Ast::Scope::getStruct(CellI& id)
 
 void Ast::Scope::addStruct(Struct& struct_)
 {
-    CellI& id = struct_["id"];
+    CellI& id = struct_[kb.ids.id];
 
     if (missing("structs")) {
         set("structs", *new TrieMap(kb, kb.type.Cell, kb.type.ast.Struct, "TrieMap<Cell, Type::Ast::Struct>(...)"));
@@ -1389,32 +1406,32 @@ CellI& Ast::Scope::compile()
 
     resolveTypes(compileState);
 
-    Visitor::visitList(unknownStructs["list"], [this](CellI& unknownStruct, int i, bool& stop) {
+    Visitor::visitList(unknownStructs[kb.ids.list], [this](CellI& unknownStruct, int i, bool& stop) {
         if (debugCompiledStructs) {
-            std::cout << "unknown struct: " << unknownStruct["value"].label() << std::endl;
+            std::cout << "unknown struct: " << unknownStruct[kb.ids.value].label() << std::endl;
         }
     });
     int instantiedNum = 0;
-    Visitor::visitList(unknownInstances["list"], [this, &compileState, &instantiedNum](CellI& unknownInstance, int i, bool& stop) {
-        auto& unknownInstanceId = unknownInstance["id"];
+    Visitor::visitList(unknownInstances[kb.ids.list], [this, &compileState, &instantiedNum](CellI& unknownInstance, int i, bool& stop) {
+        auto& unknownInstanceId = unknownInstance[kb.ids.id];
         if (debugCompiledStructs) {
             std::cout << "unknown instance: " << unknownInstanceId.label() << std::endl;
             if (unknownInstance.has("currentStruct")) {
-                std::cout << "     from struct: " << unknownInstance["currentStruct"].label() << std::endl;
+                std::cout << "     from struct: " << unknownInstance[kb.ids.currentStruct].label() << std::endl;
             }
             if (unknownInstance.has("currentFn")) {
-                std::cout << "   from function: " << unknownInstance["currentFn"].label() << std::endl;
+                std::cout << "   from function: " << unknownInstance[kb.ids.currentFn].label() << std::endl;
             }
         }
         std::stringstream ss;
 
-        CellI& templateId     = unknownInstance["templateId"];
-        CellI& templateParams = unknownInstance["templateParams"];
+        CellI& templateId     = unknownInstance[kb.ids.templateId];
+        CellI& templateParams = unknownInstance[kb.ids.templateParams];
 
         ss << std::format("  instantiate id: {} <", templateId.label());
         Visitor::visitList(templateParams, [this, &ss, &compileState](CellI& param, int i, bool& stop) {
-            CellI& paramId   = param["slotRole"];
-            CellI& paramType = param["slotType"];
+            CellI& paramId   = param[kb.ids.slotRole];
+            CellI& paramType = param[kb.ids.slotType];
             if (i > 0) {
                 ss << ", ";
             }
@@ -1426,10 +1443,10 @@ CellI& Ast::Scope::compile()
                       << std::endl;
         }
 
-        auto& scope = static_cast<Scope&>(unknownInstance["scope"]);
-        auto& resolvedScope    = static_cast<Scope&>(unknownInstance["resolvedScope"]);
+        auto& scope = static_cast<Scope&>(unknownInstance[kb.ids.scope]);
+        auto& resolvedScope    = static_cast<Scope&>(unknownInstance[kb.ids.resolvedScope]);
         auto& idScope          = unknownInstance.has(kb.id("idScope")) ? static_cast<Scope&>(unknownInstance[kb.id("idScope")]) : scope;
-        auto& resolvedIdScope  = static_cast<Scope&>(idScope["resolvedScope"]);
+        auto& resolvedIdScope  = static_cast<Scope&>(idScope[kb.ids.resolvedScope]);
         compileState.set("scope", idScope);
         auto& structT          = idScope.getStructT(templateId);
         auto& instantiedStruct = structT.instantiateWith(resolvedIdScope, static_cast<List&>(templateParams), compileState);
@@ -1450,39 +1467,39 @@ CellI& Ast::Scope::compile()
 
 void Ast::Scope::compileTheResolvedAsts(CellI& programData, CellI& state)
 {
-    auto& scope             = static_cast<Scope&>(state["scope"]);
-    auto& resolvedScope     = static_cast<Scope&>(state["resolvedScope"]);
-    auto& compiledFunctions = static_cast<TrieMap&>(programData["functions"]);
-    auto& compiledStructs   = static_cast<TrieMap&>(programData["structs"]);
-    auto& compiledVariables = static_cast<TrieMap&>(programData["variables"]);
+    auto& scope             = static_cast<Scope&>(state[kb.ids.scope]);
+    auto& resolvedScope     = static_cast<Scope&>(state[kb.ids.resolvedScope]);
+    auto& compiledFunctions = static_cast<TrieMap&>(programData[kb.ids.functions]);
+    auto& compiledStructs   = static_cast<TrieMap&>(programData[kb.ids.structs]);
+    auto& compiledVariables = static_cast<TrieMap&>(programData[kb.ids.variables]);
 
     if (scope.has("functions")) {
-        Visitor::visitList(resolvedScope.functions()["list"], [this, &state, &compiledFunctions](CellI& function, int i, bool& stop) {
+        Visitor::visitList(resolvedScope.functions()[kb.ids.list], [this, &state, &compiledFunctions](CellI& function, int i, bool& stop) {
             Ast::Function& astFunction = static_cast<Ast::Function&>(function);
             auto& compiledFunction     = astFunction.compile(state);
-            compiledFunctions.add(astFunction["name"], compiledFunction);
+            compiledFunctions.add(astFunction[kb.ids.name], compiledFunction);
         });
     }
     if (scope.has("structs")) {
-        Visitor::visitList(resolvedScope.structs()["list"], [this, &state, &compiledStructs](CellI& struct_, int i, bool& stop) {
+        Visitor::visitList(resolvedScope.structs()[kb.ids.list], [this, &state, &compiledStructs](CellI& struct_, int i, bool& stop) {
             Ast::Struct& astStruct = static_cast<Ast::Struct&>(struct_);
             auto& compiledStruct = astStruct.compile(state);
             compiledStructs.add(astStruct.id(), compiledStruct);
         });
     }
     if (scope.has("variables")) {
-        Visitor::visitList(resolvedScope.variables()["list"], [this, &compiledVariables](CellI& var, int i, bool& stop) {
+        Visitor::visitList(resolvedScope.variables()[kb.ids.list], [this, &compiledVariables](CellI& var, int i, bool& stop) {
             Ast::Var& astVar = static_cast<Ast::Var&>(var);
-            auto& varName    = astVar["role"];
+            auto& varName    = astVar[kb.ids.role];
             auto& compiledVariable = *new Object(kb, kb.type.op.Var);
             compiledVariables.add(varName, compiledVariable);
         });
     }
     if (scope.has("scopes")) {
-        Visitor::visitList(scopes()["list"], [this, &programData, &state, &resolvedScope](CellI& scope, int i, bool& stop) {
+        Visitor::visitList(scopes()[kb.ids.list], [this, &programData, &state, &resolvedScope](CellI& scope, int i, bool& stop) {
             Ast::Scope& astScope = static_cast<Ast::Scope&>(scope);
             state.set("scope", astScope);
-            state.set("resolvedScope", resolvedScope.getScope(astScope["id"]));
+            state.set("resolvedScope", resolvedScope.getScope(astScope[kb.ids.id]));
             astScope.compileTheResolvedAsts(programData, state);
             state.set("scope", *this);
             state.set("resolvedScope", resolvedScope);
@@ -1493,11 +1510,11 @@ void Ast::Scope::compileTheResolvedAsts(CellI& programData, CellI& state)
 void Ast::Scope::resolveTypes(CellI& state)
 {
     state.set("scope", *this);
-    Ast::Scope& resolvedScope = static_cast<Ast::Scope&>(state["resolvedScope"]);
+    Ast::Scope& resolvedScope = static_cast<Ast::Scope&>(state[kb.ids.resolvedScope]);
 
     if (has("functions")) {
         state.erase("currentStruct");
-        Visitor::visitList(functions()["list"], [this, &state, &resolvedScope](CellI& origAstFunctionCell, int i, bool& stop) {
+        Visitor::visitList(functions()[kb.ids.list], [this, &state, &resolvedScope](CellI& origAstFunctionCell, int i, bool& stop) {
             Ast::Function& origAstFunction = static_cast<Ast::Function&>(origAstFunctionCell);
             Ast::Function& resolvedAstFunction = origAstFunction.resolveTypes(state);
             resolvedScope.addFunction(resolvedAstFunction);
@@ -1505,20 +1522,20 @@ void Ast::Scope::resolveTypes(CellI& state)
         });
     }
     if (has("structs")) {
-        Visitor::visitList(structs()["list"], [this, &state, &resolvedScope](CellI& origAstStructCell, int i, bool& stop) {
+        Visitor::visitList(structs()[kb.ids.list], [this, &state, &resolvedScope](CellI& origAstStructCell, int i, bool& stop) {
             Ast::Struct& origAstStruct = static_cast<Ast::Struct&>(origAstStructCell);
             Ast::Struct& resolvedAstStruct = origAstStruct.resolveTypes(state);
             resolvedScope.addStruct(resolvedAstStruct);
         });
     }
     if (has("variables")) {
-        Visitor::visitList(variables()["list"], [this, &state, &resolvedScope](CellI& origAstVarCell, int i, bool& stop) {
+        Visitor::visitList(variables()[kb.ids.list], [this, &state, &resolvedScope](CellI& origAstVarCell, int i, bool& stop) {
             Ast::Var& origAstVar = static_cast<Ast::Var&>(origAstVarCell);
             resolvedScope.addVariable(origAstVar);
         });
     }
     if (has("scopes")) {
-        Visitor::visitList(scopes()["list"], [this, &state, &resolvedScope](CellI& origAstScopeCell, int i, bool& stop) {
+        Visitor::visitList(scopes()[kb.ids.list], [this, &state, &resolvedScope](CellI& origAstScopeCell, int i, bool& stop) {
             Ast::Scope& origAstScope = static_cast<Ast::Scope&>(origAstScopeCell);
             auto& newResolvedScope   = *new Ast::Scope(kb, origAstScope.label());
             origAstScope.set("resolvedScope", newResolvedScope);
@@ -1608,7 +1625,7 @@ Ast::Function& Ast::StructBase::addMethod(const std::string& name)
 
 void Ast::StructBase::addMethod(Function& method)
 {
-    auto& name = method["name"];
+    auto& name = method[kb.ids.name];
 
     if (missing("methods")) {
         set("methods", *new Map(kb, kb.type.Cell, kb.type.ast.Function, "Map<Cell, Type::Ast::Function>(...)"));
@@ -1698,8 +1715,8 @@ Ast::Struct::Struct(brain::Brain& kb, const std::string& name) :
 Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
 {
     auto& structId       = get("id");
-    auto& structs        = static_cast<TrieMap&>(state["structs"]);
-    auto& unknownStructs = static_cast<TrieMap&>(state["unknownStructs"]);
+    auto& structs        = static_cast<TrieMap&>(state[kb.ids.structs]);
+    auto& unknownStructs = static_cast<TrieMap&>(state[kb.ids.unknownStructs]);
     Ast::Struct& ret     = *new Ast::Struct(kb, structId, std::format("{}", label()));
 
     if (has("instanceOf")) {
@@ -1738,8 +1755,8 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
     // resolve sub types
     if (has("subTypes")) {
         Visitor::visitList(subTypes(), [this, &ret, &state](CellI& subTypeCell, int i, bool& stop) {
-            CellI& subTypeId           = subTypeCell["slotRole"];
-            CellI& subTypeType         = subTypeCell["slotType"];
+            CellI& subTypeId           = subTypeCell[kb.ids.slotRole];
+            CellI& subTypeType         = subTypeCell[kb.ids.slotType];
             CellI& resolvedSubTypeType = resolveType(subTypeType, state);
             ret.subTypes(kb.ast.slot(subTypeId, resolvedSubTypeType));
             if (debugCompiledStructs) {
@@ -1755,7 +1772,7 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
 
     // resolve methods
     if (has("methods")) {
-        Visitor::visitList(methods()["list"], [this, &ret, &state](CellI& origAstFunctionCell, int i, bool& stop) {
+        Visitor::visitList(methods()[kb.ids.list], [this, &ret, &state](CellI& origAstFunctionCell, int i, bool& stop) {
             auto& origAstFunction = static_cast<Ast::Function&>(origAstFunctionCell);
             auto& resolvedAstFunction = origAstFunction.resolveTypes(state);
             ret.addMethod(resolvedAstFunction);
@@ -1773,8 +1790,8 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
     if (has("members")) {
         CellI& membersList = members()[kb.ids.list];
         Visitor::visitList(membersList, [this, &ret, &state](CellI& memberCell, int i, bool& stop) {
-            CellI& memberId   = memberCell["slotRole"];
-            CellI& memberType = memberCell["slotType"];
+            CellI& memberId   = memberCell[kb.ids.slotRole];
+            CellI& memberType = memberCell[kb.ids.slotType];
             CellI& resolvedMemberType = resolveType(memberType, state);
             ret.members(kb.ast.slot(memberId, resolvedMemberType));
             if (debugCompiledStructs) {
@@ -1800,9 +1817,9 @@ CellI& Ast::Struct::compile(CellI& state)
     // compile methods
     if (has("methods")) {
         Map& compiledMethods = *new Map(kb, kb.type.Cell, kb.type.ast.Function);
-        Visitor::visitList(methods()["list"], [this, &compiledMethods, &state](CellI& astFunction, int i, bool& stop) {
+        Visitor::visitList(methods()[kb.ids.list], [this, &compiledMethods, &state](CellI& astFunction, int i, bool& stop) {
             auto& compiledFunction = static_cast<Ast::Function&>(astFunction).compile(state);
-            compiledMethods.add(astFunction["name"], compiledFunction);
+            compiledMethods.add(astFunction[kb.ids.name], compiledFunction);
         });
         compiledStruct.set("methods", compiledMethods);
     }
@@ -1811,8 +1828,8 @@ CellI& Ast::Struct::compile(CellI& state)
     if (has("members")) {
         Map& compiledMembers = *new Map(kb, kb.type.Cell, kb.type.Slot, "members Map<Cell, Slot>(...)");
         Visitor::visitList(members()[kb.ids.list], [this, &compiledMembers, &compiledStruct, &state](CellI& slot, int i, bool& stop) {
-            CellI& slotRole          = slot["slotRole"];
-            CellI& slotType          = slot["slotType"];
+            CellI& slotRole          = slot[kb.ids.slotRole];
+            CellI& slotType          = slot[kb.ids.slotType];
             compiledMembers.add(slotRole, kb.type.slot(slotRole, slotType));
         });
         compiledStruct.set("slots", compiledMembers);
@@ -1822,8 +1839,8 @@ CellI& Ast::Struct::compile(CellI& state)
     if (has("subTypes")) {
         Map& compiledSubTypes = *new Map(kb, kb.type.Cell, kb.type.Type_, "subTypes Map<Cell, Type>(...)");
         Visitor::visitList(subTypes(), [this, &compiledSubTypes](CellI& slot, int i, bool& stop) {
-            CellI& slotRole          = slot["slotRole"];
-            CellI& slotType          = slot["slotType"];
+            CellI& slotRole          = slot[kb.ids.slotRole];
+            CellI& slotType          = slot[kb.ids.slotType];
             compiledSubTypes.add(slotRole, slotType);
         });
         compiledStruct.set("subTypes", compiledSubTypes);
@@ -1856,14 +1873,14 @@ void Ast::StructT::templateParams(Slot& slot)
     if (missing("templateParams")) {
         set("templateParams", *new Map(kb, kb.type.Cell, kb.type.Type_));
     }
-    CellI& slotRole = slot["slotRole"];
-    CellI& slotType = slot["slotType"];
+    CellI& slotRole = slot[kb.ids.slotRole];
+    CellI& slotType = slot[kb.ids.slotType];
     if (!(&slotType.type() == &kb.type.ast.Cell || &slotType.type() == &kb.type.ast.TemplatedType)) {
         throw "Invalid template param type!";
     }
     CellI* paramType = nullptr;
     if (&slotType.type() == &kb.type.ast.Cell) {
-        paramType = &slotType["value"];
+        paramType = &slotType[kb.ids.value];
     } else {
         throw "TODO";
     }
@@ -1884,8 +1901,8 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams, Cell
     });
 
     Visitor::visitList(inputParams, [this, &inputParameters, &ss, &idCell](CellI& slot, int i, bool& stop) {
-        CellI& slotRole = slot["slotRole"];
-        CellI& slotType = slot["slotType"];
+        CellI& slotRole = slot[kb.ids.slotRole];
+        CellI& slotType = slot[kb.ids.slotType];
         inputParameters.add(slotRole, slotType);
         if (i != 0) {
             ss << ", ";
@@ -1903,16 +1920,16 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams, Cell
 
     // instantiate methods
     if (has("methods")) {
-        Visitor::visitList(methods()["list"], [this, &inputParameters, &ret, &state](CellI& astFunction, int i, bool& stop) {
-            Ast::Function& instantiedFunction = *new Function(kb, astFunction["name"], astFunction["name"].label());
+        Visitor::visitList(methods()[kb.ids.list], [this, &inputParameters, &ret, &state](CellI& astFunction, int i, bool& stop) {
+            Ast::Function& instantiedFunction = *new Function(kb, astFunction[kb.ids.name], astFunction[kb.ids.name].label());
             ret.addMethod(instantiedFunction);
 
             // parameters
             if (astFunction.has("parameters")) {
                 List& instantiatedParameters = *new List(kb, kb.type.Slot);
-                Visitor::visitList(astFunction["parameters"], [this, &inputParameters, &instantiatedParameters, &ret, &state](CellI& slot, int i, bool& stop) {
-                    CellI& slotRole          = slot["slotRole"];
-                    CellI& slotType          = slot["slotType"];
+                Visitor::visitList(astFunction[kb.ids.parameters], [this, &inputParameters, &instantiatedParameters, &ret, &state](CellI& slot, int i, bool& stop) {
+                    CellI& slotRole          = slot[kb.ids.slotRole];
+                    CellI& slotType          = slot[kb.ids.slotType];
                     CellI& instantiatedParam = instantiateTemplateParamType(slotType, ret, inputParameters, state);
                     instantiatedParameters.add(kb.ast.slot(slotRole, instantiatedParam));
                 });
@@ -1920,13 +1937,13 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams, Cell
             }
             // return type
             if (astFunction.has("returnType")) {
-                CellI& returnType             = astFunction["returnType"];
+                CellI& returnType             = astFunction[kb.ids.returnType];
                 CellI& instantiatedReturnType = instantiateTemplateParamType(returnType, ret, inputParameters, state);
                 instantiedFunction.set("returnType", instantiatedReturnType);
             }
             // code
             if (astFunction.has("code")) {
-                instantiedFunction.set("code", instantiateAst(astFunction["code"], ret, inputParameters, state));
+                instantiedFunction.set("code", instantiateAst(astFunction[kb.ids.code], ret, inputParameters, state));
             }
         });
     }
@@ -1935,8 +1952,8 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams, Cell
     if (has("members")) {
         Map& instantiatedMembers = *new Map(kb, kb.type.Cell, kb.type.Slot);
         Visitor::visitList(members()[kb.ids.list], [this, &inputParameters, &instantiatedMembers, &ret, &state](CellI& slot, int i, bool& stop) {
-            CellI& slotRole = slot["slotRole"];
-            CellI& slotType = slot["slotType"];
+            CellI& slotRole = slot[kb.ids.slotRole];
+            CellI& slotType = slot[kb.ids.slotType];
             CellI& instantiatedParam = instantiateTemplateParamType(slotType, ret, inputParameters, state);
             instantiatedMembers.add(slotRole, kb.ast.slot(slotRole, instantiatedParam));
         });
@@ -1947,8 +1964,8 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams, Cell
     if (has("subTypes")) {
         List& instantiatedSubTypes = *new List(kb, kb.type.Type_);
         Visitor::visitList(subTypes(), [this, &inputParameters, &instantiatedSubTypes, &ret, &state](CellI& slot, int i, bool& stop) {
-            CellI& slotRole = slot["slotRole"];
-            CellI& slotType = slot["slotType"];
+            CellI& slotRole = slot[kb.ids.slotRole];
+            CellI& slotType = slot[kb.ids.slotType];
             CellI& instantiatedParam = instantiateTemplateParamType(slotType, ret, inputParameters, state);
             instantiatedSubTypes.add(kb.ast.slot(slotRole, instantiatedParam));
         });
@@ -1971,7 +1988,7 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams, Cell
 CellI& Ast::StructT::instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters, CellI& state)
 {
     if (&param.type() == &kb.type.ast.TemplateParam) {
-        CellI& paramValue = param["role"];
+        CellI& paramValue = param[kb.ids.role];
         if (!inputParameters.hasKey(paramValue)) {
             throw "Instantiating with unknown template parameter!";
         }
@@ -1979,12 +1996,12 @@ CellI& Ast::StructT::instantiateTemplateParamType(CellI& param, CellI& selfType,
     }
     if (&param.type() == &kb.type.ast.TemplatedType) {
         List& resolvedParameterList = *new List(kb, kb.type.Slot);
-        auto& ret                   = *new TemplatedType(kb, param["id"], resolvedParameterList);
-        auto& parametersList        = param["parameters"];
+        auto& ret                   = *new TemplatedType(kb, param[kb.ids.id], resolvedParameterList);
+        auto& parametersList        = param[kb.ids.parameters];
 
         Visitor::visitList(parametersList, [this, &resolvedParameterList, &selfType, &inputParameters, &state](CellI& slot, int, bool&) {
-            CellI& slotRole         = slot["slotRole"];
-            CellI& slotType         = slot["slotType"];
+            CellI& slotRole         = slot[kb.ids.slotRole];
+            CellI& slotType         = slot[kb.ids.slotType];
             CellI& resolvedSlotType = instantiateTemplateParamType(slotType, selfType, inputParameters, state);
             resolvedParameterList.add(kb.ast.slot(slotRole, resolvedSlotType));
         });
@@ -2003,19 +2020,19 @@ Ast::Base& Ast::StructT::instantiateAst(CellI& ast, CellI& selfType, Map& inputP
     auto instantiate = [this, &selfType, &inputParameters, &state](CellI& ast) -> Ast::Base& { return instantiateAst(ast, selfType, inputParameters, state); };
 
     if (&ast.type() == &kb.type.ast.New) {
-        auto* objectTypePtr = &ast["objectType"];
+        auto* objectTypePtr = &ast[kb.ids.objectType];
         if (&(*objectTypePtr).type() == &kb.type.ast.TemplatedType) {
             CellI& resolvedObjectType = instantiateTemplateParamType(*objectTypePtr, selfType, inputParameters, state);
             objectTypePtr             = &resolvedObjectType;
         }
         auto& objectType = *static_cast<Base*>(objectTypePtr);
         if (ast.has("constructor")) {
-            auto& constructor = ast["constructor"];
+            auto& constructor = ast[kb.ids.constructor];
             Ast::Base& ret    = kb.ast.new_(objectType, static_cast<Base&>(constructor));
             if (ast.has("parameters")) {
                 auto& newParameters = *new cells::List(kb, kb.type.ast.Slot);
-                Visitor::visitList(ast["parameters"], [this, &newParameters, &instantiate](CellI& slot, int, bool&) {
-                    newParameters.add(kb.ast.slot(slot["slotRole"], instantiate(slot["slotType"])));
+                Visitor::visitList(ast[kb.ids.parameters], [this, &newParameters, &instantiate](CellI& slot, int, bool&) {
+                    newParameters.add(kb.ast.slot(slot[kb.ids.slotRole], instantiate(slot[kb.ids.slotType])));
                 });
                 ret.set("parameters", newParameters);
             }
@@ -2024,17 +2041,17 @@ Ast::Base& Ast::StructT::instantiateAst(CellI& ast, CellI& selfType, Map& inputP
             return kb.ast.new_(objectType);
         }
     } else if (&ast.type() == &kb.type.ast.Call) {
-        Ast::Base& ret = kb.ast.call(instantiate(ast["cell"]), ast["method"]);
+        Ast::Base& ret = kb.ast.call(instantiate(ast[kb.ids.cell]), ast[kb.ids.method]);
         if (ast.has("parameters")) {
             // TODO process parameters
-            ret.set("parameters", ast["parameters"]);
+            ret.set("parameters", ast[kb.ids.parameters]);
         }
         return ret;
     } else if (&ast.type() == &kb.type.ast.StaticCall) {
-        Ast::Base& ret = kb.ast.scall(instantiate(ast["cell"]), ast["method"]);
+        Ast::Base& ret = kb.ast.scall(instantiate(ast[kb.ids.cell]), ast[kb.ids.method]);
         if (ast.has("parameters")) {
             // TODO process parameters
-            ret.set("parameters", ast["parameters"]);
+            ret.set("parameters", ast[kb.ids.parameters]);
         }
         return ret;
     } 
@@ -2042,79 +2059,79 @@ Ast::Base& Ast::StructT::instantiateAst(CellI& ast, CellI& selfType, Map& inputP
     // do nothing just traverse and copy the AST nodes
     if (&ast.type() == &kb.type.ast.Block) {
         auto& instantiedAsts = *new cells::List(kb, kb.type.ast.Base);
-        Visitor::visitList(ast["asts"], [this, &instantiedAsts, &instantiate](CellI& ast, int, bool&) {
+        Visitor::visitList(ast[kb.ids.asts], [this, &instantiedAsts, &instantiate](CellI& ast, int, bool&) {
             instantiedAsts.add(instantiate(ast));
         });
         return *new Block(kb, instantiedAsts);
     } else if (&ast.type() == &kb.type.ast.Cell) {
-        return kb.ast.cell(ast["value"]);
+        return kb.ast.cell(ast[kb.ids.value]);
     } else if (&ast.type() == &kb.type.ast.StructRef) {
-        return kb.ast.structRef(ast["value"]);
+        return kb.ast.structRef(ast[kb.ids.value]);
     } else if (&ast.type() == &kb.type.ast.SelfFn) {
         return kb.ast.selfFn();
     } else if (&ast.type() == &kb.type.ast.Self) {
         return kb.ast.self();
     } else if (&ast.type() == &kb.type.ast.Parameter) {
-        return kb.ast.parameter(ast["role"]);
+        return kb.ast.parameter(ast[kb.ids.role]);
     } else if (&ast.type() == &kb.type.ast.Var) {
-        return kb.ast.var(ast["role"]);
+        return kb.ast.var(ast[kb.ids.role]);
     } else if (&ast.type() == &kb.type.ast.Delete) {
-        return kb.ast.delete_(instantiate(ast["cell"]));
+        return kb.ast.delete_(instantiate(ast[kb.ids.cell]));
     } else if (&ast.type() == &kb.type.ast.Set) {
-        return kb.ast.set(instantiate(ast["cell"]), instantiate(ast["role"]), instantiate(ast["value"]));
+        return kb.ast.set(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.role]), instantiate(ast[kb.ids.value]));
     } else if (&ast.type() == &kb.type.ast.Erase) {
-        return kb.ast.erase(instantiate(ast["cell"]), instantiate(ast["role"]));
+        return kb.ast.erase(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.role]));
     } else if (&ast.type() == &kb.type.ast.If) {
         if (ast.has("else_")) {
-            return kb.ast.if_(instantiate(ast["condition"]), instantiate(ast["then"]), instantiate(ast["else_"]));
+            return kb.ast.if_(instantiate(ast[kb.ids.condition]), instantiate(ast[kb.ids.then]), instantiate(ast[kb.ids.else_]));
         } else {
-            return kb.ast.if_(instantiate(ast["condition"]), instantiate(ast["then"]));
+            return kb.ast.if_(instantiate(ast[kb.ids.condition]), instantiate(ast[kb.ids.then]));
         }
     } else if (&ast.type() == &kb.type.ast.Do) {
-        return kb.ast.do_(instantiate(ast["statement"]), instantiate(ast["condition"]));
+        return kb.ast.do_(instantiate(ast[kb.ids.statement]), instantiate(ast[kb.ids.condition]));
     } else if (&ast.type() == &kb.type.ast.While) {
-        return kb.ast.while_(instantiate(ast["condition"]), instantiate(ast["statement"]));
+        return kb.ast.while_(instantiate(ast[kb.ids.condition]), instantiate(ast[kb.ids.statement]));
     } else if (&ast.type() == &kb.type.ast.And) {
-        return kb.ast.and_(instantiate(ast["lhs"]), instantiate(ast["rhs"]));
+        return kb.ast.and_(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.Or) {
-        return kb.ast.or_(instantiate(ast["lhs"]), instantiate(ast["rhs"]));
+        return kb.ast.or_(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.Not) {
-        return kb.ast.not_(instantiate(ast["input"]));
+        return kb.ast.not_(instantiate(ast[kb.ids.input]));
     } else if (&ast.type() == &kb.type.ast.Add) {
-        return kb.ast.add(instantiate(ast["lhs"]), instantiate(ast["rhs"]));
+        return kb.ast.add(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.Subtract) {
-        return kb.ast.subtract(instantiate(ast["lhs"]), instantiate(ast["rhs"]));
+        return kb.ast.subtract(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.Multiply) {
-        return kb.ast.multiply(instantiate(ast["lhs"]), instantiate(ast["rhs"]));
+        return kb.ast.multiply(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.Divide) {
-        return kb.ast.divide(instantiate(ast["lhs"]), instantiate(ast["rhs"]));
+        return kb.ast.divide(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.LessThan) {
-        return kb.ast.lessThan(instantiate(ast["lhs"]), instantiate(ast["rhs"]));
+        return kb.ast.lessThan(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.LessThanOrEqual) {
-        return kb.ast.lessThanOrEqual(instantiate(ast["lhs"]), instantiate(ast["rhs"]));
+        return kb.ast.lessThanOrEqual(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.GreaterThan) {
-        return kb.ast.greaterThan(instantiate(ast["lhs"]), instantiate(ast["rhs"]));
+        return kb.ast.greaterThan(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.GreaterThanOrEqual) {
-        return kb.ast.greaterThanOrEqual(instantiate(ast["lhs"]), instantiate(ast["rhs"]));
+        return kb.ast.greaterThanOrEqual(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.Same) {
-        return kb.ast.same(instantiate(ast["lhs"]), instantiate(ast["rhs"]));
+        return kb.ast.same(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.NotSame) {
-        return kb.ast.notSame(instantiate(ast["lhs"]), instantiate(ast["rhs"]));
+        return kb.ast.notSame(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.Equal) {
-        return kb.ast.equal(instantiate(ast["lhs"]), instantiate(ast["rhs"]));
+        return kb.ast.equal(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.NotEqual) {
-        return kb.ast.notEqual(instantiate(ast["lhs"]), instantiate(ast["rhs"]));
+        return kb.ast.notEqual(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.Has) {
-        return kb.ast.has(instantiate(ast["cell"]), instantiate(ast["role"]));
+        return kb.ast.has(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.role]));
     } else if (&ast.type() == &kb.type.ast.Missing) {
-        return kb.ast.missing(instantiate(ast["cell"]), instantiate(ast["role"]));
+        return kb.ast.missing(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.role]));
     } else if (&ast.type() == &kb.type.ast.Get) {
-        return kb.ast.get(instantiate(ast["cell"]), instantiate(ast["role"]));
+        return kb.ast.get(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.role]));
     } else if (&ast.type() == &kb.type.ast.Member) {
-        return kb.ast.member(ast["role"]);
+        return kb.ast.member(ast[kb.ids.role]);
     } else if (&ast.type() == &kb.type.ast.Return) {
         if (ast.has("value")) {
-            return kb.ast.return_(static_cast<Base&>(instantiate(ast["value"])));
+            return kb.ast.return_(static_cast<Base&>(instantiate(ast[kb.ids.value])));
         }
         return kb.ast.return_();
     }
@@ -2141,7 +2158,7 @@ Ast::Function::Function(brain::Brain& kb, CellI& name, const std::string& label)
 Ast::Function::Function(brain::Brain& kb, const std::string& name) :
     BaseT<Function>(kb, kb.type.ast.Function, name)
 {
-    set("id", kb.pools.strings.get(name)["value"]);
+    set("id", kb.pools.strings.get(name)[kb.ids.value]);
     label(name);
 }
 
@@ -2184,8 +2201,8 @@ Ast::Function& Ast::Function::resolveTypes(CellI& state)
 
     if (has("parameters")) {
         Visitor::visitList(parameters(), [this, &state, &ret, &ss](CellI& param, int i, bool& stop) {
-            CellI& paramId           = param["slotRole"];
-            CellI& paramType         = param["slotType"];
+            CellI& paramId           = param[kb.ids.slotRole];
+            CellI& paramType         = param[kb.ids.slotType];
             CellI& resolvedParamType = resolveType(paramType, state);
             if (i > 0) {
                 ss << ", ";
@@ -2215,7 +2232,7 @@ Ast::Base& Ast::Function::resolveTypesInCode(CellI& resolveState, CellI& ast)
     auto resolveNode = [this, &resolveState](CellI& ast) -> Ast::Base& { return resolveTypesInCode(resolveState, ast); };
 
     if (&ast.type() == &kb.type.ast.New) {
-        CellI& objectType             = ast["objectType"];
+        CellI& objectType             = ast[kb.ids.objectType];
         Ast::Base* resolvedObjectTypePtr = nullptr;
         if (&objectType.type() == &kb.type.ast.Member) {
             resolvedObjectTypePtr = &static_cast<Ast::Base&>(objectType);
@@ -2225,13 +2242,13 @@ Ast::Base& Ast::Function::resolveTypesInCode(CellI& resolveState, CellI& ast)
         Ast::Base& resolvedObjectType = *resolvedObjectTypePtr;
 
         if (ast.has("constructor")) {
-            auto& constructor = ast["constructor"];
-            Ast::Base& ret = kb.ast.new_(resolvedObjectType, static_cast<Base&>(ast["constructor"]));
+            auto& constructor = ast[kb.ids.constructor];
+            Ast::Base& ret = kb.ast.new_(resolvedObjectType, static_cast<Base&>(ast[kb.ids.constructor]));
 
             if (ast.has("parameters")) {
                 auto& newParameters = *new cells::List(kb, kb.type.ast.Slot);
-                Visitor::visitList(ast["parameters"], [this, &newParameters, &resolveNode, &resolveState](CellI& slot, int, bool&) {
-                    newParameters.add(kb.ast.slot(slot["slotRole"], resolveNode(slot["slotType"])));
+                Visitor::visitList(ast[kb.ids.parameters], [this, &newParameters, &resolveNode, &resolveState](CellI& slot, int, bool&) {
+                    newParameters.add(kb.ast.slot(slot[kb.ids.slotRole], resolveNode(slot[kb.ids.slotType])));
                 });
                 ret.set("parameters", newParameters);
             }
@@ -2245,15 +2262,15 @@ Ast::Base& Ast::Function::resolveTypesInCode(CellI& resolveState, CellI& ast)
 
         Ast::Base* retPtr = nullptr;
         if (&ast.type() == &kb.type.ast.Call) {
-            retPtr = &kb.ast.call(resolveNode(ast["cell"]), ast["method"]);
+            retPtr = &kb.ast.call(resolveNode(ast[kb.ids.cell]), ast[kb.ids.method]);
         } else {
-            retPtr = &kb.ast.scall(kb.ast.cell(resolveType(ast["cell"], resolveState)), ast["method"]);
+            retPtr = &kb.ast.scall(kb.ast.cell(resolveType(ast[kb.ids.cell], resolveState)), ast[kb.ids.method]);
         }
         Ast::Base& ret = *retPtr;
         if (ast.has("parameters")) {
             auto& newParameters = *new cells::List(kb, kb.type.ast.Slot);
-            Visitor::visitList(ast["parameters"], [this, &newParameters, &resolveNode, &resolveState](CellI& slot, int, bool&) {
-                newParameters.add(kb.ast.slot(slot["slotRole"], resolveNode(slot["slotType"])));
+            Visitor::visitList(ast[kb.ids.parameters], [this, &newParameters, &resolveNode, &resolveState](CellI& slot, int, bool&) {
+                newParameters.add(kb.ast.slot(slot[kb.ids.slotRole], resolveNode(slot[kb.ids.slotType])));
             });
             ret.set("parameters", newParameters);
         }
@@ -2263,79 +2280,79 @@ Ast::Base& Ast::Function::resolveTypesInCode(CellI& resolveState, CellI& ast)
     // do nothing just traverse and copy the AST nodes
     if (&ast.type() == &kb.type.ast.Block) {
         auto& instantiedAsts = *new cells::List(kb, kb.type.ast.Base);
-        Visitor::visitList(ast["asts"], [this, &instantiedAsts, &resolveNode](CellI& ast, int, bool&) {
+        Visitor::visitList(ast[kb.ids.asts], [this, &instantiedAsts, &resolveNode](CellI& ast, int, bool&) {
             instantiedAsts.add(resolveNode(ast));
         });
         return *new Block(kb, instantiedAsts);
     } else if (&ast.type() == &kb.type.ast.Cell) {
-        return kb.ast.cell(ast["value"]);
+        return kb.ast.cell(ast[kb.ids.value]);
     } else if (&ast.type() == &kb.type.ast.StructRef) {
-        return kb.ast.structRef(ast["value"]);
+        return kb.ast.structRef(ast[kb.ids.value]);
     } else if (&ast.type() == &kb.type.ast.SelfFn) {
         return kb.ast.selfFn();
     } else if (&ast.type() == &kb.type.ast.Self) {
         return kb.ast.self();
     } else if (&ast.type() == &kb.type.ast.Parameter) {
-        return kb.ast.parameter(ast["role"]);
+        return kb.ast.parameter(ast[kb.ids.role]);
     } else if (&ast.type() == &kb.type.ast.Var) {
-        return kb.ast.var(ast["role"]);
+        return kb.ast.var(ast[kb.ids.role]);
     } else if (&ast.type() == &kb.type.ast.Delete) {
-        return kb.ast.delete_(resolveNode(ast["cell"]));
+        return kb.ast.delete_(resolveNode(ast[kb.ids.cell]));
     } else if (&ast.type() == &kb.type.ast.Set) {
-        return kb.ast.set(resolveNode(ast["cell"]), resolveNode(ast["role"]), resolveNode(ast["value"]));
+        return kb.ast.set(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.role]), resolveNode(ast[kb.ids.value]));
     } else if (&ast.type() == &kb.type.ast.Erase) {
-        return kb.ast.erase(resolveNode(ast["cell"]), resolveNode(ast["role"]));
+        return kb.ast.erase(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.role]));
     } else if (&ast.type() == &kb.type.ast.If) {
         if (ast.has("else_")) {
-            return kb.ast.if_(resolveNode(ast["condition"]), resolveNode(ast["then"]), resolveNode(ast["else_"]));
+            return kb.ast.if_(resolveNode(ast[kb.ids.condition]), resolveNode(ast[kb.ids.then]), resolveNode(ast[kb.ids.else_]));
         } else {
-            return kb.ast.if_(resolveNode(ast["condition"]), resolveNode(ast["then"]));
+            return kb.ast.if_(resolveNode(ast[kb.ids.condition]), resolveNode(ast[kb.ids.then]));
         }
     } else if (&ast.type() == &kb.type.ast.Do) {
-        return kb.ast.do_(resolveNode(ast["statement"]), resolveNode(ast["condition"]));
+        return kb.ast.do_(resolveNode(ast[kb.ids.statement]), resolveNode(ast[kb.ids.condition]));
     } else if (&ast.type() == &kb.type.ast.While) {
-        return kb.ast.while_(resolveNode(ast["condition"]), resolveNode(ast["statement"]));
+        return kb.ast.while_(resolveNode(ast[kb.ids.condition]), resolveNode(ast[kb.ids.statement]));
     } else if (&ast.type() == &kb.type.ast.And) {
-        return kb.ast.and_(resolveNode(ast["lhs"]), resolveNode(ast["rhs"]));
+        return kb.ast.and_(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.Or) {
-        return kb.ast.or_(resolveNode(ast["lhs"]), resolveNode(ast["rhs"]));
+        return kb.ast.or_(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.Not) {
-        return kb.ast.not_(resolveNode(ast["input"]));
+        return kb.ast.not_(resolveNode(ast[kb.ids.input]));
     } else if (&ast.type() == &kb.type.ast.Add) {
-        return kb.ast.add(resolveNode(ast["lhs"]), resolveNode(ast["rhs"]));
+        return kb.ast.add(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.Subtract) {
-        return kb.ast.subtract(resolveNode(ast["lhs"]), resolveNode(ast["rhs"]));
+        return kb.ast.subtract(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.Multiply) {
-        return kb.ast.multiply(resolveNode(ast["lhs"]), resolveNode(ast["rhs"]));
+        return kb.ast.multiply(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.Divide) {
-        return kb.ast.divide(resolveNode(ast["lhs"]), resolveNode(ast["rhs"]));
+        return kb.ast.divide(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.LessThan) {
-        return kb.ast.lessThan(resolveNode(ast["lhs"]), resolveNode(ast["rhs"]));
+        return kb.ast.lessThan(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.LessThanOrEqual) {
-        return kb.ast.lessThanOrEqual(resolveNode(ast["lhs"]), resolveNode(ast["rhs"]));
+        return kb.ast.lessThanOrEqual(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.GreaterThan) {
-        return kb.ast.greaterThan(resolveNode(ast["lhs"]), resolveNode(ast["rhs"]));
+        return kb.ast.greaterThan(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.GreaterThanOrEqual) {
-        return kb.ast.greaterThanOrEqual(resolveNode(ast["lhs"]), resolveNode(ast["rhs"]));
+        return kb.ast.greaterThanOrEqual(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.Same) {
-        return kb.ast.same(resolveNode(ast["lhs"]), resolveNode(ast["rhs"]));
+        return kb.ast.same(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.NotSame) {
-        return kb.ast.notSame(resolveNode(ast["lhs"]), resolveNode(ast["rhs"]));
+        return kb.ast.notSame(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.Equal) {
-        return kb.ast.equal(resolveNode(ast["lhs"]), resolveNode(ast["rhs"]));
+        return kb.ast.equal(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.NotEqual) {
-        return kb.ast.notEqual(resolveNode(ast["lhs"]), resolveNode(ast["rhs"]));
+        return kb.ast.notEqual(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
     } else if (&ast.type() == &kb.type.ast.Has) {
-        return kb.ast.has(resolveNode(ast["cell"]), resolveNode(ast["role"]));
+        return kb.ast.has(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.role]));
     } else if (&ast.type() == &kb.type.ast.Missing) {
-        return kb.ast.missing(resolveNode(ast["cell"]), resolveNode(ast["role"]));
+        return kb.ast.missing(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.role]));
     } else if (&ast.type() == &kb.type.ast.Get) {
-        return kb.ast.get(resolveNode(ast["cell"]), resolveNode(ast["role"]));
+        return kb.ast.get(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.role]));
     } else if (&ast.type() == &kb.type.ast.Member) {
-        return kb.ast.member(ast["role"]);
+        return kb.ast.member(ast[kb.ids.role]);
     } else if (&ast.type() == &kb.type.ast.Return) {
         if (ast.has("value")) {
-            return kb.ast.return_(static_cast<Base&>(resolveNode(ast["value"])));
+            return kb.ast.return_(static_cast<Base&>(resolveNode(ast[kb.ids.value])));
         }
         return kb.ast.return_();
     }
@@ -2350,7 +2367,7 @@ CellI& Ast::Function::compile(CellI& state)
     cells::Map& subTypesMap = kb.map(kb.type.Cell, kb.type.Type_,
                                      kb.ids.name, get("name"));
     functionType.set("subTypes", subTypesMap);
-    functionType.set("slots", kb.type.op.Function["slots"]);
+    functionType.set("slots", kb.type.op.Function[kb.ids.slots]);
 
     cells::Object& function = *new cells::Object(kb, functionType);
     compileParams(function, subTypesMap, state);
@@ -2374,7 +2391,7 @@ std::string Ast::Function::shortName()
                 if (i > 0) {
                     iss << ", ";
                 }
-                iss << "p_" << slot["slotRole"].label() << ": " << slot["slotType"].label();
+                iss << "p_" << slot[kb.ids.slotRole].label() << ": " << slot[kb.ids.slotType].label();
             });
         }
     }
@@ -2408,8 +2425,8 @@ void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesM
                 if (i > 0) {
                     iss << ", ";
                 }
-                iss << "p_" << slot["slotRole"].label() << ": " << slot["slotType"].label();
-                slots.add(slot["slotRole"], kb.type.slot(slot["slotRole"], slot["slotType"]));
+                iss << "p_" << slot[kb.ids.slotRole].label() << ": " << slot[kb.ids.slotType].label();
+                slots.add(slot[kb.ids.slotRole], kb.type.slot(slot[kb.ids.slotRole], slot[kb.ids.slotType]));
             });
         }
         parametersType.set("slots", slots);
@@ -2432,7 +2449,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
     const auto _ = [this](auto& cell) -> Ast::Cell& { return kb._(cell); };
 
     if (&ast.type() == &kb.type.ast.Block) {
-        CellI& list        = ast["asts"];
+        CellI& list        = ast[kb.ids.asts];
         auto& compiledAsts = *new cells::List(kb, kb.type.op.Base);
         Visitor::visitList(list, [this, &compile, &compiledAsts, &ast, &function](CellI& ast, int, bool&) {
             compiledAsts.add(compile(ast));
@@ -2444,7 +2461,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
     } else if (&ast.type() == &kb.type.ast.Cell) {
         Object& constVar = *new Object(kb, kb.type.op.ConstVar);
         constVar.set("ast", ast);
-        constVar.set("value", ast["value"]);
+        constVar.set("value", ast[kb.ids.value]);
         return constVar;
     } else if (&ast.type() == &kb.type.ast.StructRef) {
         Object& constVar = *new Object(kb, kb.type.op.ConstVar);
@@ -2462,62 +2479,62 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         retOp.label("self");
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Parameter) {
-        CellI& retOp = compile(kb.ast.get(_(function), _("stack")) / "value" / "input" / _(ast["role"]));
+        CellI& retOp = compile(kb.ast.get(_(function), _("stack")) / "value" / "input" / _(ast[kb.ids.role]));
         retOp.set("ast", ast);
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Member) {
-        CellI& member = compile(kb.ast.get(kb.ast.self(), kb.ast.cell(ast["role"])));
+        CellI& member = compile(kb.ast.get(kb.ast.self(), kb.ast.cell(ast[kb.ids.role])));
         member.set("ast", ast);
         return member;
     } else if (&ast.type() == &kb.type.ast.Return) {
         Object& retOp = *new Object(kb, kb.type.op.Return, "op.return");
         retOp.set("ast", ast);
         if (ast.has("value")) {
-            retOp.set("result", compile(kb.ast.set(kb.ast.get(_(function), _("stack")) / "value" / "output", _("value"), static_cast<Ast::Base&>(ast["value"]))));
+            retOp.set("result", compile(kb.ast.set(kb.ast.get(_(function), _("stack")) / "value" / "output", _("value"), static_cast<Ast::Base&>(ast[kb.ids.value]))));
         }
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Var) {
-        if (function.type()["subTypes"]["index"].missing("localVars")) {
+        if (function.type()[kb.ids.subTypes][kb.ids.index].missing("localVars")) {
             cells::Object& functionLocalVarsType = *new cells::Object(kb, kb.type.Type_, std::format("LocalVarsType of {}", function.label()));
             functionLocalVarsType.set("memberOf", kb.map(kb.type.Type_, kb.type.Type_, kb.type.Index, kb.type.Index));
-            static_cast<Map&>(function.type()["subTypes"]).add(kb.id("localVars"), functionLocalVarsType);
+            static_cast<Map&>(function.type()[kb.ids.subTypes]).add(kb.id("localVars"), functionLocalVarsType);
         }
-        CellI& localVarsType = function.type()["subTypes"]["index"]["localVars"]["value"];
+        CellI& localVarsType = function.type()[kb.ids.subTypes][kb.ids.index][kb.ids.localVars][kb.ids.value];
         if (localVarsType.missing("slots")) {
             localVarsType.set("slots", *new Map(kb, kb.type.Cell, kb.type.Slot));
         }
-        auto& slotsMap = static_cast<Map&>(localVarsType["slots"]);
-        if (!slotsMap.hasKey(ast["role"])) {
-            slotsMap.add(ast["role"], kb.type.slot(ast["role"], kb.type.op.Var));
+        auto& slotsMap = static_cast<Map&>(localVarsType[kb.ids.slots]);
+        if (!slotsMap.hasKey(ast[kb.ids.role])) {
+            slotsMap.add(ast[kb.ids.role], kb.type.slot(ast[kb.ids.role], kb.type.op.Var));
         }
-        CellI& retOp = compile(kb.ast.get(_(function), _("stack")) / "value" / "localVars" / _(ast["role"]));
+        CellI& retOp = compile(kb.ast.get(_(function), _("stack")) / "value" / "localVars" / _(ast[kb.ids.role]));
         retOp.set("ast", ast);
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Delete) {
         Object& retOp = *new Object(kb, kb.type.op.Delete);
         retOp.set("ast", ast);
-        retOp.set("input", compile(ast["cell"]));
+        retOp.set("input", compile(ast[kb.ids.cell]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Set) {
         Object& retOp = *new Object(kb, kb.type.op.Set);
         retOp.set("ast", ast);
-        retOp.set("cell", compile(ast["cell"]));
-        retOp.set("role", compile(ast["role"]));
-        retOp.set("value", compile(ast["value"]));
+        retOp.set("cell", compile(ast[kb.ids.cell]));
+        retOp.set("role", compile(ast[kb.ids.role]));
+        retOp.set("value", compile(ast[kb.ids.value]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Erase) {
         Object& retOp = *new Object(kb, kb.type.op.Erase);
         retOp.set("ast", ast);
-        retOp.set("cell", compile(ast["cell"]));
-        retOp.set("role", compile(ast["role"]));
+        retOp.set("cell", compile(ast[kb.ids.cell]));
+        retOp.set("role", compile(ast[kb.ids.role]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.If) {
         Object& retOp = *new Object(kb, kb.type.op.If);
         retOp.set("ast", ast);
-        retOp.set("condition", compile(ast["condition"]));
-        retOp.set("then", compile(ast["then"]));
+        retOp.set("condition", compile(ast[kb.ids.condition]));
+        retOp.set("then", compile(ast[kb.ids.then]));
         if (ast.has("else_")) {
-            retOp.set("else_", compile(ast["else_"]));
+            retOp.set("else_", compile(ast[kb.ids.else_]));
             return retOp;
         } else {
             return retOp;
@@ -2525,18 +2542,18 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
     } else if (&ast.type() == &kb.type.ast.Do) {
         Object& retOp = *new Object(kb, kb.type.op.Do);
         retOp.set("ast", ast);
-        retOp.set("condition", compile(ast["condition"]));
-        retOp.set("statement", compile(ast["statement"]));
+        retOp.set("condition", compile(ast[kb.ids.condition]));
+        retOp.set("statement", compile(ast[kb.ids.statement]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.While) {
         Object& retOp = *new Object(kb, kb.type.op.While);
         retOp.set("ast", ast);
-        retOp.set("condition", compile(ast["condition"]));
-        retOp.set("statement", compile(ast["statement"]));
+        retOp.set("condition", compile(ast[kb.ids.condition]));
+        retOp.set("statement", compile(ast[kb.ids.statement]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.New) {
         auto& compiledAsts = *new cells::List(kb, kb.type.op.Base);
-        auto& astObjectType = ast["objectType"];
+        auto& astObjectType = ast[kb.ids.objectType];
 
         Object& block = *new Object(kb, kb.type.op.Block);
         block.set("ast", ast);
@@ -2556,9 +2573,9 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         if (ast.has("constructor")) {
             Object& callAst = *new Object(kb, kb.type.ast.Call);
             callAst.set("cell", kb.ast.get(kb.ast.cell(block), kb.ast.cell(kb.id("value"))));
-            callAst.set("method", ast["constructor"]);
+            callAst.set("method", ast[kb.ids.constructor]);
             if (ast.has("parameters")) {
-                callAst.set("parameters", ast["parameters"]);
+                callAst.set("parameters", ast[kb.ids.parameters]);
             }
             CellI& callConstructor = compile(callAst);
             callConstructor.label("New { call constructor; }");
@@ -2605,8 +2622,8 @@ block {
  }
 */
         const char* blockName  = &ast.type() == &kb.type.ast.Call ? "Call { ... }" : "SCall { ... }";
-        Ast::Base& astCell     = static_cast<Ast::Base&>(ast["cell"]);
-        Ast::Base& astMethod   = static_cast<Ast::Base&>(ast["method"]);
+        Ast::Base& astCell     = static_cast<Ast::Base&>(ast[kb.ids.cell]);
+        Ast::Base& astMethod   = static_cast<Ast::Base&>(ast[kb.ids.method]);
         auto& astMethodId      = astMethod[kb.ids.value];
 #if 1
         bool checked = false;
@@ -2622,15 +2639,15 @@ block {
         // m_xxx.method(...)
         } else if (&astCell.type() == &kb.type.ast.Member) {
             auto& astMemberId = astCell[kb.ids.role];
-            auto& astMembersType = function[kb.ids.ast]["structType"];
+            auto& astMembersType = function[kb.ids.ast][kb.ids.structType];
             if (&astMemberId == &kb.ids.type) {
                 // std::cout << "DDDD " << astMembersType.label();
-                auto& stdScope = static_cast<Scope&>(state["globalScope"]).getScope("std");
+                auto& stdScope = static_cast<Scope&>(state[kb.ids.globalScope]).getScope("std");
                 auto& type     = stdScope.getStruct("Type");
                 checkMethodCall(type, astMethodId, state);
                 checked        = true;
             } else {
-                auto& astMembers = static_cast<Map&>(function[kb.ids.ast]["structType"]["members"]);
+                auto& astMembers = static_cast<Map&>(function[kb.ids.ast][kb.ids.structType][kb.ids.members]);
                 if (astMembers.hasKey(astMemberId)) {
                     Slot& slot = static_cast<Slot&>(astMembers.getValue(astMemberId));
                     auto& slotType = slot[kb.ids.slotType];
@@ -2638,7 +2655,7 @@ block {
                 }
             }
         } else if (&astCell.type() == &kb.type.ast.Self) {
-            auto& astSelfType = function[kb.ids.ast]["structType"];
+            auto& astSelfType = function[kb.ids.ast][kb.ids.structType];
 //            checkMethodCall(astSelfType, astMethodId, state);
             std::cout << "";
         }
@@ -2725,9 +2742,9 @@ block {
 
 
         if (ast.has("parameters")) {
-            Visitor::visitList(ast["parameters"], [this, &compiledAsts, &compile, &varInputIndex, &_](CellI& param, int, bool&) {
-                Ast::Base& paramRole  = static_cast<Ast::Base&>(param["slotRole"]);
-                Ast::Base& paramValue = static_cast<Ast::Base&>(param["slotType"]);
+            Visitor::visitList(ast[kb.ids.parameters], [this, &compiledAsts, &compile, &varInputIndex, &_](CellI& param, int, bool&) {
+                Ast::Base& paramRole  = static_cast<Ast::Base&>(param[kb.ids.slotRole]);
+                Ast::Base& paramValue = static_cast<Ast::Base&>(param[kb.ids.slotType]);
                 CellI& setParam       = compile(kb.ast.set(_(varInputIndex) / "value", _(paramRole), paramValue));
                 setParam.label("Call { setParam; }");
                 compiledAsts.add(setParam);
@@ -2762,109 +2779,109 @@ block {
     } else if (&ast.type() == &kb.type.ast.And) {
         Object& retOp = *new Object(kb, kb.type.op.And);
         retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast["lhs"]));
-        retOp.set("rhs", compile(ast["rhs"]));
+        retOp.set("lhs", compile(ast[kb.ids.lhs]));
+        retOp.set("rhs", compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Or) {
         Object& retOp = *new Object(kb, kb.type.op.Or);
         retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast["lhs"]));
-        retOp.set("rhs", compile(ast["rhs"]));
+        retOp.set("lhs", compile(ast[kb.ids.lhs]));
+        retOp.set("rhs", compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Not) {
         Object& retOp = *new Object(kb, kb.type.op.Not);
         retOp.set("ast", ast);
-        retOp.set("input", compile(ast["input"]));
+        retOp.set("input", compile(ast[kb.ids.input]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Add) {
         Object& retOp = *new Object(kb, kb.type.op.Add);
         retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast["lhs"]));
-        retOp.set("rhs", compile(ast["rhs"]));
+        retOp.set("lhs", compile(ast[kb.ids.lhs]));
+        retOp.set("rhs", compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Subtract) {
         Object& retOp = *new Object(kb, kb.type.op.Subtract);
         retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast["lhs"]));
-        retOp.set("rhs", compile(ast["rhs"]));
+        retOp.set("lhs", compile(ast[kb.ids.lhs]));
+        retOp.set("rhs", compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Multiply) {
         Object& retOp = *new Object(kb, kb.type.op.Multiply);
         retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast["lhs"]));
-        retOp.set("rhs", compile(ast["rhs"]));
+        retOp.set("lhs", compile(ast[kb.ids.lhs]));
+        retOp.set("rhs", compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Divide) {
         Object& retOp = *new Object(kb, kb.type.op.Divide);
         retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast["lhs"]));
-        retOp.set("rhs", compile(ast["rhs"]));
+        retOp.set("lhs", compile(ast[kb.ids.lhs]));
+        retOp.set("rhs", compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.LessThan) {
         Object& retOp = *new Object(kb, kb.type.op.LessThan);
         retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast["lhs"]));
-        retOp.set("rhs", compile(ast["rhs"]));
+        retOp.set("lhs", compile(ast[kb.ids.lhs]));
+        retOp.set("rhs", compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.LessThanOrEqual) {
         Object& retOp = *new Object(kb, kb.type.op.LessThanOrEqual);
         retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast["lhs"]));
-        retOp.set("rhs", compile(ast["rhs"]));
+        retOp.set("lhs", compile(ast[kb.ids.lhs]));
+        retOp.set("rhs", compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.GreaterThan) {
         Object& retOp = *new Object(kb, kb.type.op.GreaterThan);
         retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast["lhs"]));
-        retOp.set("rhs", compile(ast["rhs"]));
+        retOp.set("lhs", compile(ast[kb.ids.lhs]));
+        retOp.set("rhs", compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.GreaterThanOrEqual) {
         Object& retOp = *new Object(kb, kb.type.op.GreaterThanOrEqual);
         retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast["lhs"]));
-        retOp.set("rhs", compile(ast["rhs"]));
+        retOp.set("lhs", compile(ast[kb.ids.lhs]));
+        retOp.set("rhs", compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Same) {
         Object& retOp = *new Object(kb, kb.type.op.Same);
         retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast["lhs"]));
-        retOp.set("rhs", compile(ast["rhs"]));
+        retOp.set("lhs", compile(ast[kb.ids.lhs]));
+        retOp.set("rhs", compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.NotSame) {
         Object& retOp = *new Object(kb, kb.type.op.NotSame);
         retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast["lhs"]));
-        retOp.set("rhs", compile(ast["rhs"]));
+        retOp.set("lhs", compile(ast[kb.ids.lhs]));
+        retOp.set("rhs", compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Equal) {
         Object& retOp = *new Object(kb, kb.type.op.Equal);
         retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast["lhs"]));
-        retOp.set("rhs", compile(ast["rhs"]));
+        retOp.set("lhs", compile(ast[kb.ids.lhs]));
+        retOp.set("rhs", compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.NotEqual) {
         Object& retOp = *new Object(kb, kb.type.op.NotEqual);
         retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast["lhs"]));
-        retOp.set("rhs", compile(ast["rhs"]));
+        retOp.set("lhs", compile(ast[kb.ids.lhs]));
+        retOp.set("rhs", compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Has) {
         Object& retOp = *new Object(kb, kb.type.op.Has);
         retOp.set("ast", ast);
-        retOp.set("cell", compile(ast["cell"]));
-        retOp.set("role", compile(ast["role"]));
+        retOp.set("cell", compile(ast[kb.ids.cell]));
+        retOp.set("role", compile(ast[kb.ids.role]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Missing) {
         Object& retOp = *new Object(kb, kb.type.op.Missing);
         retOp.set("ast", ast);
-        retOp.set("cell", compile(ast["cell"]));
-        retOp.set("role", compile(ast["role"]));
+        retOp.set("cell", compile(ast[kb.ids.cell]));
+        retOp.set("role", compile(ast[kb.ids.role]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Get) {
         Object& retOp = *new Object(kb, kb.type.op.Get);
         retOp.set("ast", ast);
-        retOp.set("cell", compile(ast["cell"]));
-        retOp.set("role", compile(ast["role"]));
+        retOp.set("cell", compile(ast[kb.ids.cell]));
+        retOp.set("role", compile(ast[kb.ids.role]));
         return retOp;
     }
 
@@ -2924,7 +2941,7 @@ Ast::FunctionT::FunctionT(brain::Brain& kb, CellI& name, const std::string& labe
 Ast::FunctionT::FunctionT(brain::Brain& kb, const std::string& name) :
     BaseT<FunctionT>(kb, kb.type.ast.FunctionT, name)
 {
-    set("id", kb.pools.strings.get(name)["value"]);
+    set("id", kb.pools.strings.get(name)[kb.ids.value]);
     label(name);
 }
 
@@ -3655,18 +3672,25 @@ Strings::Strings(brain::Brain& kb) :
         { "asts", kb.ids.asts },
         { "cell", kb.ids.cell },
         { "children", kb.ids.children },
+        { "code", kb.ids.code },
         { "color", kb.ids.color },
         { "condition", kb.ids.condition },
         { "constructor", kb.ids.constructor },
         { "continue_", kb.ids.continue_ },
+        { "currentFn", kb.ids.currentFn },
+        { "currentStruct", kb.ids.currentStruct },
         { "data", kb.ids.data },
         { "destructor", kb.ids.destructor },
         { "else_", kb.ids.else_ },
         { "emptyObject", kb.ids.emptyObject },
         { "first", kb.ids.first },
+        { "functions", kb.ids.functions },
+        { "globalScope", kb.ids.globalScope },
         { "height", kb.ids.height },
+        { "id", kb.ids.id },
         { "index", kb.ids.index },
         { "input", kb.ids.input },
+        { "instances", kb.ids.instances },
         { "item", kb.ids.item },
         { "itemType", kb.ids.itemType },
         { "key", kb.ids.key },
@@ -3677,6 +3701,7 @@ Strings::Strings(brain::Brain& kb) :
         { "listType", kb.ids.listType },
         { "localVars", kb.ids.localVars },
         { "memberOf", kb.ids.memberOf },
+        { "members", kb.ids.members },
         { "method", kb.ids.method },
         { "methods", kb.ids.methods },
         { "name", kb.ids.name },
@@ -3689,11 +3714,14 @@ Strings::Strings(brain::Brain& kb) :
         { "parent", kb.ids.parent },
         { "pixels", kb.ids.pixels },
         { "previous", kb.ids.previous },
+        { "resolvedScope", kb.ids.resolvedScope },
         { "result", kb.ids.result },
         { "returnType", kb.ids.returnType },
         { "rhs", kb.ids.rhs },
         { "role", kb.ids.role },
         { "rootNode", kb.ids.rootNode },
+        { "scope", kb.ids.scope },
+        { "scopes", kb.ids.scopes },
         { "self", kb.ids.self },
         { "size", kb.ids.size },
         { "slotRole", kb.ids.slotRole },
@@ -3705,10 +3733,16 @@ Strings::Strings(brain::Brain& kb) :
         { "status", kb.ids.status },
         { "stop", kb.ids.stop },
         { "structs", kb.ids.structs },
+        { "structType", kb.ids.structType },
         { "subTypes", kb.ids.subTypes },
+        { "templateId", kb.ids.templateId },
+        { "templateParams", kb.ids.templateParams },
         { "then", kb.ids.then },
         { "type", kb.ids.type },
+        { "unknownInstances", kb.ids.unknownInstances },
+        { "unknownStructs", kb.ids.unknownStructs },
         { "value", kb.ids.value },
+        { "variables", kb.ids.variables },
         { "width", kb.ids.width }
     };
     for (auto& reservedString : reservedStrings) {
@@ -4154,7 +4188,7 @@ void Brain::createStd()
     CellI& Map::getValue(CellI& key)
     {
         if (m_index.has(key)) {
-            return m_index[key]["value"];
+            return m_index[key][kb.ids.value];
         }
         throw "No such role!";
     }
@@ -4645,18 +4679,18 @@ Brain::Brain() :
     createArcSolver();
 
     auto& compiledGlobalScope = globalScope.compile();
-    compiledGlobalScopePtr    = &compiledGlobalScope["data"];
+    compiledGlobalScopePtr    = &compiledGlobalScope[ids.data];
     m_initPhase               = InitPhase::FullyConstructed;
 
     // Test should be removed from here
-    auto& compiledStructs        = static_cast<TrieMap&>(compiledGlobalScope["data"]["structs"]);
-    auto& compiledListItemStruct = static_cast<TrieMap&>(compiledGlobalScope["data"]["structs"]).getValue(templateId("ListItem", id("objectType"), type.Cell));
-    auto& compiledListStruct     = static_cast<TrieMap&>(compiledGlobalScope["data"]["structs"]).getValue(templateId("List", id("objectType"), type.Cell));
-    auto& compiledTypeStruct     = static_cast<TrieMap&>(compiledGlobalScope["data"]["structs"]).getValue(id("Type"));
-    auto& compiledIndexStruct    = static_cast<TrieMap&>(compiledGlobalScope["data"]["structs"]).getValue(id("Index"));
-    type.ListItem.set("methods", compiledListItemStruct["methods"]);
-    type.List.set("methods", compiledListStruct["methods"]);
-    type.Type_.set("methods", compiledTypeStruct["methods"]);
+    auto& compiledStructs        = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]);
+    auto& compiledListItemStruct = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(templateId("ListItem", id("objectType"), type.Cell));
+    auto& compiledListStruct     = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(templateId("List", id("objectType"), type.Cell));
+    auto& compiledTypeStruct     = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(id("Type"));
+    auto& compiledIndexStruct    = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(id("Index"));
+    type.ListItem.set("methods", compiledListItemStruct[ids.methods]);
+    type.List.set("methods", compiledListStruct[ids.methods]);
+    type.Type_.set("methods", compiledTypeStruct[ids.methods]);
 
     Object testType(*this, compiledTypeStruct, id("constructor"), "testType");
     Object testRecursiveType(*this, compiledTypeStruct, id("constructorWithRecursiveType"), "testRecursiveType");
