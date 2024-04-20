@@ -387,6 +387,7 @@ public:
         Scope(brain::Brain& kb, const std::string& name);
 
         bool hasScope(CellI& id);
+        Scope& getScope(const std::string& name);
         Scope& getScope(CellI& id);
         Scope& addScope(const std::string& name);
         void addScope(Scope& scope);
@@ -403,6 +404,7 @@ public:
         Var& addVariable(CellI& id);
 
         bool hasStruct(CellI& id);
+        Struct& getStruct(const std::string& name);
         Struct& getStruct(CellI& id);
         void addStruct(Struct& struct_);
         Struct& addStruct(const std::string& name);
@@ -438,11 +440,11 @@ public:
         void addMethod(Function& method);
 
     public:
-        void members(Slot& param);
+        void members(Slot& slot);
         template <typename... Args>
-        void members(Slot& param, Args&&... args)
+        void members(Slot& slot, Args&&... args)
         {
-            members(param);
+            members(slot);
             members(std::forward<Args>(args)...);
         }
 
@@ -466,7 +468,7 @@ public:
 
     protected:
         Map& methods();
-        List& members();
+        Map& members();
         List& subTypes();
         List& memberOf();
     };
@@ -535,6 +537,7 @@ public:
         void addBlock(Block& block);
         void compileParams(cells::Object& function, cells::Map& subTypesMap, CellI& state);
         CellI& compileAst(CellI& ast, cells::Object& function, CellI& state);
+        void checkMethodCall(CellI& type, CellI& astMethodId, CellI& state);
         List& parameters();
         CellI& returnType();
         Base& code();
