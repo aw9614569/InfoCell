@@ -1033,7 +1033,7 @@ List& Ast::Base::generateTemplateId(CellI& id, CellI& parameters, CellI& resolve
         idCell.add(compiledSlotType);
         resolvedParams.add(kb.ast.slot(slotRole, compiledSlotType));
 
-        ss << std::format("{}={}", slotRole.label(), resolvedSlotType.label());
+        ss << std::format("{}={}", slotRole.label(), compiledSlotType.label());
     });
     ss << ">";
     idCell.label(ss.str());

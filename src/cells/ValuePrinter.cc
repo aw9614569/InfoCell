@@ -96,7 +96,17 @@ void CellValuePrinter::printOpBlock(CellI& cell)
     }
     if (&ast.type() == &kb.type.ast.New) {
         m_ss << "new ";
-        printImpl(ast[kb.ids.objectType]);
+        CellI* objectTypePtr = nullptr;
+        if (ast[kb.ids.objectType].isA(kb.type.ast.Cell)) {
+            objectTypePtr = &ast[kb.ids.objectType][kb.ids.value];
+            m_ss << objectTypePtr->label();
+        } else if (ast[kb.ids.objectType].isA(kb.type.ast.ResolvedType)) {
+            objectTypePtr = &ast[kb.ids.objectType][kb.ids.compiled];
+            m_ss << objectTypePtr->label();
+        } else {
+            throw "Unexpected AST type!";
+        }
+        CellI& objectType = *objectTypePtr;
         if (ast.has(kb.ids.constructor)) {
             CellI& constructorOps = cell[kb.ids.ops][kb.ids.first][kb.ids.next][kb.ids.value];
             printOpBlock(constructorOps);
