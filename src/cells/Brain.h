@@ -451,6 +451,8 @@ public:
         Scope* resolveFullTemplateId(CellI& scopeList, CellI& id);
         Scope& getRootScope();
 
+        CellI& getFullId();
+
         CellI& compile();
 
     protected:
@@ -567,6 +569,7 @@ public:
         Ast::Function& resolveTypes(CellI& resolveState);
         CellI& compile(CellI& state);
         std::string shortName();
+        CellI& getFullId();
 
     protected:
         Ast::Base& resolveTypesInCode(CellI& resolveState, CellI& ast);

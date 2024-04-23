@@ -401,6 +401,7 @@ Ast::Ast(brain::Brain& kb) :
     Erase.set("slots", *map);
 
     map = &kb.slots(type.slot("name", type.Cell),
+                    type.slot("fullId", type.Cell),
                     type.slot("structType", type.Cell),
                     type.slot("parameters", type.ListOf(Slot)),
                     type.slot("returnType", type.Type_),
@@ -492,6 +493,7 @@ Ast::Ast(brain::Brain& kb) :
     Same.set("slots", *map);
 
     map = &kb.slots(type.slot("id", type.Cell),
+                    type.slot("fullId", type.Cell),
                     type.slot("scopes", type.TrieMap),
                     type.slot("resolvedScope", type.ast.Scope),
                     type.slot("parent", Scope),
@@ -520,7 +522,7 @@ Ast::Ast(brain::Brain& kb) :
                     type.slot("incomplete", type.Boolean),
                     type.slot("instanceOf", Base),
                     type.slot("templateParams", type.List),
-                    type.slot("scope", Base),
+                    type.slot("scope", Scope),
                     type.slot("methods", type.MapOf(type.Cell, type.ast.Function)),
                     type.slot("members", type.MapOf(type.Cell, type.ast.Slot)),
                     type.slot("subTypes", type.ListOf(type.ast.Slot)),
@@ -555,7 +557,8 @@ Ast::Ast(brain::Brain& kb) :
     map = &kb.slots(type.slot("role", type.Cell));
     TemplateParam.set("slots", *map);
 
-    map = &kb.slots(type.slot("role", Base));
+    map = &kb.slots(type.slot("role", Base),
+                    type.slot("scope", Scope));
     Var.set("slots", *map);
 
     map = &kb.slots(type.slot("condition", Base),
@@ -1503,6 +1506,34 @@ Ast::Scope& Ast::Scope::getRootScope()
     return *currentScope;
 }
 
+CellI& Ast::Scope::getFullId()
+{
+    if (has("fullId")) {
+        return get("fullId");
+    }
+    Scope& rootScope   = getRootScope();
+    auto* currentScope = this;
+    List& fullId = *new List(kb, kb.type.Char);
+    while (currentScope && currentScope != &rootScope) {
+        auto& currentScopeId = (*currentScope)[kb.ids.id];
+        if (!fullId.empty()) {
+            fullId.addFront(kb.pools.chars.get(':'));
+            fullId.addFront(kb.pools.chars.get(':'));
+        }
+        Visitor::visitListInReverse(currentScopeId, [this, &fullId](CellI& character, int i, bool& stop) {
+            fullId.addFront(character);
+        });
+        currentScope = currentScope->has("parent") ? &static_cast<Scope&>(currentScope->get("parent")) : nullptr;
+    };
+    std::stringstream ss;
+    Visitor::visitList(fullId, [this, &fullId, &ss](CellI& character, int i, bool& stop) {
+        ss << character.label();
+    });
+    fullId.label(ss.str());
+
+    return fullId;
+}
+
 static bool debugCompiledStructs = false;
 
 CellI& Ast::Scope::compile()
@@ -1616,7 +1647,7 @@ void Ast::Scope::compileTheResolvedAsts(CellI& programData, CellI& state)
         Visitor::visitList(resolvedScope.functions()[kb.ids.list], [this, &state, &compiledFunctions](CellI& function, int i, bool& stop) {
             Ast::Function& astFunction = static_cast<Ast::Function&>(function[kb.ids.value]);
             auto& compiledFunction     = astFunction.compile(state);
-            compiledFunctions.add(astFunction[kb.ids.name], compiledFunction);
+            compiledFunctions.add(astFunction.getFullId(), compiledFunction);
         });
     }
     if (scope.has("structs")) {
@@ -1630,7 +1661,7 @@ void Ast::Scope::compileTheResolvedAsts(CellI& programData, CellI& state)
         Visitor::visitList(resolvedScope.variables()[kb.ids.list], [this, &compiledVariables](CellI& var, int i, bool& stop) {
             Ast::Var& astVar       = static_cast<Ast::Var&>(var[kb.ids.value]);
             auto& varName    = astVar[kb.ids.role];
-            auto& compiledVariable = *new Object(kb, kb.type.op.Var);
+            auto& compiledVariable = *new Object(kb, kb.type.op.Var, std::format("var {}", astVar.label()));
             compiledVariables.add(varName, compiledVariable);
         });
     }
@@ -1858,21 +1889,12 @@ CellI& Ast::Struct::getFullId()
         return get("fullId");
     }
     Scope& scope = static_cast<Scope&>(get("scope"));
-    Scope& rootScope = scope.getRootScope();
-    auto* currentScope = &scope;
+    CellI& scopeFullId = scope.getFullId();
 
     List& fullId = *new List(kb, kb.type.Char);
-    while (currentScope && currentScope != &rootScope) {
-        auto& currentScopeId = (*currentScope)[kb.ids.id];
-        if (!fullId.empty()) {
-            fullId.addFront(kb.pools.chars.get(':'));
-            fullId.addFront(kb.pools.chars.get(':'));
-        }
-        Visitor::visitListInReverse(currentScopeId, [this, &fullId](CellI& character, int i, bool& stop) {
-            fullId.addFront(character);
-        });
-        currentScope = currentScope->has("parent") ? &static_cast<Scope&>(currentScope->get("parent")) : nullptr;
-    };
+    Visitor::visitList(scopeFullId, [this, &fullId](CellI& character, int i, bool& stop) {
+        fullId.add(character);
+    });
     if (!fullId.empty()) {
         fullId.add(kb.pools.chars.get(':'));
         fullId.add(kb.pools.chars.get(':'));
@@ -2625,6 +2647,42 @@ std::string Ast::Function::shortName()
     }
 }
 
+CellI& Ast::Function::getFullId()
+{
+    if (has("fullId")) {
+        return get("fullId");
+    }
+
+    List& fullId = *new List(kb, kb.type.Cell);
+    if (has("structType")) {
+        Struct& structType = static_cast<Struct&>(get("structType"));
+        Visitor::visitList(structType.getFullId(), [this, &fullId](CellI& character, int i, bool& stop) {
+            fullId.add(character);
+        });
+    } else {
+        Scope& scope       = static_cast<Scope&>(get("scope"));
+        CellI& scopeFullId = scope.getFullId();
+
+        Visitor::visitList(scopeFullId, [this, &fullId](CellI& character, int i, bool& stop) {
+            fullId.add(character);
+        });
+    }
+    if (!fullId.empty()) {
+        fullId.add(kb.pools.chars.get(':'));
+        fullId.add(kb.pools.chars.get(':'));
+    }
+    Visitor::visitList(get(kb.ids.name), [this, &fullId](CellI& character, int i, bool& stop) {
+        fullId.add(character);
+    });
+    std::stringstream ss;
+    Visitor::visitList(fullId, [this, &fullId, &ss](CellI& character, int i, bool& stop) {
+        ss << character.label();
+    });
+    fullId.label(ss.str());
+
+    return fullId;
+}
+
 void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesMap, CellI& state)
 {
     std::stringstream iss;
@@ -3306,7 +3364,7 @@ Ast::While::While(brain::Brain& kb, Base& condition, Base& statement) :
 }
 
 Ast::Var::Var(brain::Brain& kb, CellI& role) :
-    BaseT<Var>(kb, kb.type.ast.Var, std::format("var {}", role.label()))
+    BaseT<Var>(kb, kb.type.ast.Var, role.label())
 {
     set("role", role);
 }
@@ -4649,6 +4707,12 @@ void Brain::createTests()
     methodData.set(ids.const_, boolean.false_);
 #endif
 
+    auto& testFunction = testScope.addFunction("testFunction");
+    testFunction.code(
+        var_("result") = ast.new_(struct_("std::Index")));
+
+    auto& testVariable = testScope.addVariable(id("testVariable"));
+
     auto& testStruct                 = testScope.addStruct("Test");
     CellI& fullId = testStruct.getFullId();
     auto& testCreateNewListOfNumbers = testStruct.addMethod("testCreateNewListOfNumbers");
@@ -4969,10 +5033,17 @@ Brain::Brain() :
 
     // Test should be removed from here
     auto& compiledStructs        = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]);
-    Visitor::visitList(compiledStructs[ids.list], [this](CellI& slot, int, bool&) {
-        std::cout << slot[ids.key].label() << std::endl;
+    Visitor::visitList(compiledStructs[ids.list], [this](CellI& kv, int, bool&) {
+        std::cout << kv[ids.key].label() << std::endl;
     });
-
+    auto& compiledFunctions = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.functions]);
+    Visitor::visitList(compiledFunctions[ids.list], [this](CellI& kv, int, bool&) {
+        std::cout << kv[ids.key].label() << " : " << kv[ids.value].label() << std::endl;
+    });
+    auto& compiledVariables = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.variables]);
+    Visitor::visitList(compiledVariables[ids.list], [this](CellI& kv, int, bool&) {
+        std::cout << kv[ids.key].label() << " : " << kv[ids.value].label() << std::endl;
+    });
     auto& compiledListItemStruct = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(templateId("std::ListItem", id("objectType"), type.Cell));
     auto& compiledListStruct     = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(templateId("std::List", id("objectType"), type.Cell));
     auto& compiledTypeStruct     = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(id("std::Type"));
