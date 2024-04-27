@@ -13,6 +13,7 @@ ID::ID(brain::Brain& kb) :
     argument(kb, kb.type.Char, "argument"),
     ast(kb, kb.type.Char, "ast"),
     asts(kb, kb.type.Char, "asts"),
+    break_(kb, kb.type.Char, "break_"),
     cell(kb, kb.type.Char, "cell"),
     children(kb, kb.type.Char, "children"),
     code(kb, kb.type.Char, "code"),
@@ -58,8 +59,10 @@ ID::ID(brain::Brain& kb) :
     parent(kb, kb.type.Char, "parent"),
     pixels(kb, kb.type.Char, "pixels"),
     previous(kb, kb.type.Char, "previous"),
+    process(kb, kb.type.Char, "process"),
     resolvedScope(kb, kb.type.Char, "resolvedScope"),
     result(kb, kb.type.Char, "result"),
+    return_(kb, kb.type.Char, "return_"),
     returnType(kb, kb.type.Char, "returnType"),
     rhs(kb, kb.type.Char, "rhs"),
     role(kb, kb.type.Char, "role"),
@@ -75,7 +78,6 @@ ID::ID(brain::Brain& kb) :
     statement(kb, kb.type.Char, "statement"),
     static_(kb, kb.type.Char, "static_"),
     status(kb, kb.type.Char, "status"),
-    stop(kb, kb.type.Char, "stop"),
     structs(kb, kb.type.Char, "structs"),
     structType(kb, kb.type.Char, "structType"),
     subTypes(kb, kb.type.Char, "subTypes"),
@@ -316,8 +318,10 @@ Ast::Ast(brain::Brain& kb) :
     And(kb, kb.type.Type_, "ast::And"),
     Base(kb, kb.type.Type_, "ast::Base"),
     Block(kb, kb.type.Type_, "ast::Block"),
+    Break(kb, kb.type.Type_, "ast::Break"),
     Call(kb, kb.type.Type_, "ast::Call"),
     Cell(kb, kb.type.Type_, "ast::Cell"),
+    Continue(kb, kb.type.Type_, "ast::Continue"),
     Delete(kb, kb.type.Type_, "ast::Delete"),
     Divide(kb, kb.type.Type_, "ast::Divide"),
     Do(kb, kb.type.Type_, "ast::Do"),
@@ -682,6 +686,7 @@ Types::Types(brain::Brain& kb) :
     mapPtr = &kb.slots(type.slot("id", type.Cell),
                        type.slot("currentFn", type.ast.Function),
                        type.slot("currentStruct", type.ast.Struct),
+                       type.slot("lastBlock", type.ast.Block),
                        type.slot("scope", type.ast.Scope),
                        type.slot("resolvedScope", type.ast.Scope),
                        type.slot("globalScope", type.ast.Scope),
@@ -1172,6 +1177,16 @@ Ast::Call& Ast::Self::call(const std::string& method)
 
 Ast::SelfFn::SelfFn(brain::Brain& kb) :
     BaseT<SelfFn>(kb, kb.type.ast.SelfFn, "ast.selfFn")
+{
+}
+
+Ast::Continue::Continue(brain::Brain& kb) :
+    BaseT<Continue>(kb, kb.type.ast.Continue, "ast.continue")
+{
+}
+
+Ast::Break::Break(brain::Brain& kb) :
+    BaseT<Break>(kb, kb.type.ast.Break, "ast.break")
 {
 }
 
@@ -2350,6 +2365,10 @@ Ast::Base& Ast::StructT::instantiateAst(CellI& ast, CellI& selfType, Map& inputP
         return kb.ast.selfFn();
     } else if (&ast.type() == &kb.type.ast.Self) {
         return kb.ast.self();
+    } else if (&ast.type() == &kb.type.ast.Continue) {
+        return kb.ast.continue_();
+    } else if (&ast.type() == &kb.type.ast.Break) {
+        return kb.ast.break_();
     } else if (&ast.type() == &kb.type.ast.Parameter) {
         return kb.ast.parameter(ast[kb.ids.role]);
     } else if (&ast.type() == &kb.type.ast.Var) {
@@ -2577,6 +2596,10 @@ Ast::Base& Ast::Function::resolveTypesInCode(CellI& resolveState, CellI& ast)
         return kb.ast.selfFn();
     } else if (&ast.type() == &kb.type.ast.Self) {
         return kb.ast.self();
+    } else if (&ast.type() == &kb.type.ast.Continue) {
+        return kb.ast.continue_();
+    } else if (&ast.type() == &kb.type.ast.Break) {
+        return kb.ast.break_();
     } else if (&ast.type() == &kb.type.ast.Parameter) {
         return kb.ast.parameter(ast[kb.ids.role]);
     } else if (&ast.type() == &kb.type.ast.Var) {
@@ -2776,13 +2799,25 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
 
     if (&ast.type() == &kb.type.ast.Block) {
         CellI& list        = ast[kb.ids.asts];
+        CellI* prevBlock = nullptr;
+        if (state.has("lastBlock")) {
+            prevBlock = &state["lastBlock"];
+        }
         auto& compiledAsts = *new cells::List(kb, kb.type.op.Base);
+        Object& opBlock    = *new Object(kb, kb.type.op.Block);
+        state.set("lastBlock", opBlock);
         Visitor::visitList(list, [this, &compile, &compiledAsts, &ast, &function](CellI& ast, int, bool&) {
             compiledAsts.add(compile(ast));
         });
-        Object& opBlock = *new Object(kb, kb.type.op.Block);
         opBlock.set("ast", ast);
         opBlock.set("ops", compiledAsts);
+
+        if (prevBlock) {
+            state.set("lastBlock", *prevBlock);
+        } else {
+            state.erase("lastBlock");
+        }
+
         return opBlock;
     } else if (&ast.type() == &kb.type.ast.Cell) {
         Object& constVar = *new Object(kb, kb.type.op.ConstVar);
@@ -2803,6 +2838,20 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         CellI& retOp = compile(kb.ast.get(_(function), _("stack")) / "value" / "input" / "self");
         retOp.set("ast", ast);
         retOp.label("self");
+        return retOp;
+    } else if (&ast.type() == &kb.type.ast.Continue) {
+        if (state.missing("lastBlock")) {
+            throw "No statement to break!";
+        }
+        CellI& lastBlock = state["lastBlock"];
+        CellI& retOp     = compile(kb.ast.set(_(lastBlock), "status", _(kb.ids.continue_)));
+        return retOp;
+    } else if (&ast.type() == &kb.type.ast.Break) {
+        if (state.missing("lastBlock")) {
+            throw "No statement to break!";
+        }
+        CellI& lastBlock = state["lastBlock"];
+        CellI& retOp     = compile(kb.ast.set(_(lastBlock), "status", _(kb.ids.break_)));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Parameter) {
         CellI& retOp = compile(kb.ast.get(_(function), _("stack")) / "value" / "input" / _(ast[kb.ids.role]));
@@ -2947,6 +2996,12 @@ block {
     var_method.value.stack = var_method.value.stack.previous;
  }
 */
+        CellI* prevBlock = nullptr;
+        if (state.has("lastBlock")) {
+
+            prevBlock = &state["lastBlock"];
+            state.erase("lastBlock");
+        }
         const char* blockName  = &ast.type() == &kb.type.ast.Call ? "Call { ... }" : "SCall { ... }";
         Ast::Base& astCell     = static_cast<Ast::Base&>(ast[kb.ids.cell]);
         Ast::Base& astMethod   = static_cast<Ast::Base&>(ast[kb.ids.method]);
@@ -3128,6 +3183,10 @@ block {
         setStackToNew.label("Call { setStackToNew; }");
         getResult.label("Call { getResult; }");
         setStackToOld.label("Call { setStackToOld; }");
+
+        if (prevBlock) {
+            state.set("lastBlock", *prevBlock);
+        }
 
         return block;
     } else if (&ast.type() == &kb.type.ast.And) {
@@ -3674,6 +3733,16 @@ Ast::Self& Ast::self()
     return Self::New(kb);
 }
 
+Ast::Continue& Ast::continue_()
+{
+    return Continue::New(kb);
+}
+
+Ast::Break& Ast::break_()
+{
+    return Break::New(kb);
+}
+
 Ast::SelfFn& Ast::selfFn()
 {
     return SelfFn::New(kb);
@@ -4125,7 +4194,6 @@ Strings::Strings(brain::Brain& kb) :
         { "statement", kb.ids.statement },
         { "static_", kb.ids.static_ },
         { "status", kb.ids.status },
-        { "stop", kb.ids.stop },
         { "structs", kb.ids.structs },
         { "structType", kb.ids.structType },
         { "subTypes", kb.ids.subTypes },
@@ -5002,7 +5070,7 @@ void Brain::createStd()
                            var_("currentNode") = *var_("parent"),
                            ast.if_(ast.has(*var_("keyItem"), "previous"),
                                    var_("keyItem") = *var_("keyItem") / "previous",
-                                   ast.return_()) // TODO ast.break() here!
+                                   ast.break_())
                            )),
             m_("list").call("remove", param("item", *var_("valueItem"))),
             m_("size") = ast.subtract(m_("size"), _(_1_)));

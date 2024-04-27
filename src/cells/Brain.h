@@ -16,6 +16,7 @@ public:
     List argument;
     List ast;
     List asts;
+    List break_;
     List cell;
     List children;
     List code;
@@ -61,8 +62,10 @@ public:
     List parent;
     List pixels;
     List previous;
+    List process;
     List resolvedScope;
     List result;
+    List return_;
     List returnType;
     List rhs;
     List role;
@@ -78,7 +81,6 @@ public:
     List statement;
     List static_;
     List status;
-    List stop;
     List structs;
     List structType;
     List subTypes;
@@ -148,8 +150,10 @@ public:
     Object And;
     Object Base;
     Object Block;
+    Object Break;
     Object Call;
     Object Cell;
+    Object Continue;
     Object Delete;
     Object Divide;
     Object Do;
@@ -350,6 +354,16 @@ public:
     {
     public:
         SelfFn(brain::Brain& kb);
+    };
+    class Continue : public BaseT<Continue>
+    {
+    public:
+        Continue(brain::Brain& kb);
+    };
+    class Break : public BaseT<Break>
+    {
+    public:
+        Break(brain::Brain& kb);
     };
     class Return : public BaseT<Return>
     {
@@ -834,6 +848,8 @@ public:
     StructName& structName(const std::string& idStr);
     Self& self();
     SelfFn& selfFn();
+    Continue& continue_();
+    Break& break_();
     Return& return_();
     Return& return_(Base& value);
     Parameter& parameter(CellI& role);

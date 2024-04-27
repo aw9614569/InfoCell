@@ -288,16 +288,18 @@ void Object::operator()()
         Visitor::visitList(get(kb.ids.ops), [this](CellI& op, int, bool& stop) {
             if (&op.type() == &kb.type.op.Return) {
                 op();
-                set(kb.ids.status, kb.ids.stop);
+                set(kb.ids.status, kb.ids.return_);
                 stop = true;
                 return;
             }
-            set(kb.ids.status, kb.ids.continue_);
+            set(kb.ids.status, kb.ids.process);
             op();
-            if (op.has(kb.ids.status) && &op[kb.ids.status] == &kb.ids.stop) {
-                set(kb.ids.status, kb.ids.stop);
-                stop = true;
-                return;
+            if (op.has(kb.ids.status)) {
+                if (&op[kb.ids.status] == &kb.ids.return_ || &op[kb.ids.status] == &kb.ids.continue_ || &op[kb.ids.status] == &kb.ids.break_) {
+                    set(kb.ids.status, op[kb.ids.status]);
+                    stop = true;
+                    return;
+                }
             }
         });
     } else if (&m_type == &kb.type.op.Return) {
@@ -392,7 +394,7 @@ void Object::operator()()
     } else if (&m_type == &kb.type.op.If) {
         CellI& inputCondition = get(kb.ids.condition);
         inputCondition();
-        set(kb.ids.status, kb.ids.continue_);
+        set(kb.ids.status, kb.ids.process);
         CellI* branchPtr = nullptr;
         bool condition   = &inputCondition[kb.ids.value] == &kb.boolean.true_;
         if (condition) {
@@ -405,35 +407,45 @@ void Object::operator()()
         }
         CellI& branch = *branchPtr;
         branch();
-        if (&branch.type() == &kb.type.op.Return || (branch.has(kb.ids.status) && &branch[kb.ids.status] == &kb.ids.stop)) {
-            set(kb.ids.status, kb.ids.stop);
+        if (&branch.type() == &kb.type.op.Return || (branch.has(kb.ids.status) && &branch[kb.ids.status] == &kb.ids.return_)) {
+            set(kb.ids.status, kb.ids.return_);
         }
     } else if (&m_type == &kb.type.op.Do) {
         bool condition = false;
-        set(kb.ids.status, kb.ids.continue_);
+        set(kb.ids.status, kb.ids.process);
         do {
             CellI& statement      = get(kb.ids.statement);
             CellI& inputCondition = get(kb.ids.condition);
             statement();
-            if (&statement.type() == &kb.type.op.Return || (statement.has(kb.ids.status) && &statement[kb.ids.status] == &kb.ids.stop)) {
-                set(kb.ids.status, kb.ids.stop);
+            if (&statement.type() == &kb.type.op.Return || (statement.has(kb.ids.status) && &statement[kb.ids.status] == &kb.ids.return_)) {
+                set(kb.ids.status, kb.ids.return_);
                 return;
+            } else if (statement.has(kb.ids.status) && &statement[kb.ids.status] == &kb.ids.break_) {
+                set(kb.ids.status, kb.ids.process);
+                return;
+            } else if (statement.has(kb.ids.status) && &statement[kb.ids.status] == &kb.ids.continue_) {
+                set(kb.ids.status, kb.ids.process);
             }
             inputCondition();
             condition = &inputCondition[kb.ids.value] == &kb.boolean.true_;
         } while (condition);
     } else if (&m_type == &kb.type.op.While) {
         bool condition = false;
-        set(kb.ids.status, kb.ids.continue_);
+        set(kb.ids.status, kb.ids.process);
         CellI& inputCondition = get(kb.ids.condition);
         CellI& statement      = get(kb.ids.statement);
         inputCondition();
         condition = &inputCondition[kb.ids.value] == &kb.boolean.true_;
         while (condition) {
             statement();
-            if (&statement.type() == &kb.type.op.Return || (statement.has(kb.ids.status) && &statement[kb.ids.status] == &kb.ids.stop)) {
-                set(kb.ids.status, kb.ids.stop);
+            if (&statement.type() == &kb.type.op.Return || (statement.has(kb.ids.status) && &statement[kb.ids.status] == &kb.ids.return_)) {
+                set(kb.ids.status, kb.ids.return_);
                 return;
+            } else if (statement.has(kb.ids.status) && &statement[kb.ids.status] == &kb.ids.break_) {
+                set(kb.ids.status, kb.ids.process);
+                return;
+            } else if (statement.has(kb.ids.status) && &statement[kb.ids.status] == &kb.ids.continue_) {
+                set(kb.ids.status, kb.ids.process);
             }
             inputCondition();
             condition = &inputCondition[kb.ids.value] == &kb.boolean.true_;
