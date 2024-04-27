@@ -929,6 +929,57 @@ TEST_F(CellTest, NextgenBrainType)
 }
 
 
+TEST_F(CellTest, TrieMap)
+{
+    auto& MapNumberToColor = getStruct(kb.templateId("std::TrieMap", ids.keyType, kb.type.Number, ids.valueType, kb.type.Color));
+    Object trieMap(kb, MapNumberToColor, kb.id("constructor"));
+
+    EXPECT_EQ(&trieMap[ids.size], &_0_);
+    EXPECT_EQ(&trieMap.method(kb.id("size")), &_0_);
+    EXPECT_EQ(&trieMap.method(kb.id("empty")), &true_);
+    printAs.value(trieMap.type());
+    printAs.value(trieMap[ids.list].type());
+
+    EXPECT_EQ(&trieMap.method(kb.id("hasKey"), { ids.key, kb.list(_1_, _1_, _1_, _1_) }), &false_);
+    trieMap.method(kb.id("add"), { ids.key, kb.list(_1_, _1_, _1_, _1_) }, { ids.value, kb.colors.red });
+    EXPECT_EQ(&trieMap[ids.size], &_1_);
+    EXPECT_EQ(&trieMap.method(kb.id("size")), &_1_);
+    EXPECT_EQ(&trieMap[ids.list][ids.size], &_1_);
+    EXPECT_EQ(&trieMap.method(kb.id("empty")), &false_);
+    EXPECT_EQ(&trieMap.method(kb.id("hasKey"), { ids.key, kb.list(_1_, _1_, _1_, _1_) }), &true_);
+    EXPECT_EQ(&trieMap.method(kb.id("getValue"), { ids.key, kb.list(_1_, _1_, _1_, _1_) }), &kb.colors.red);
+
+    EXPECT_EQ(&trieMap.method(kb.id("hasKey"), { ids.key, kb.list(_2_, _2_, _2_, _2_) }), &false_);
+    trieMap.method(kb.id("add"), { ids.key, kb.list(_2_, _2_, _2_, _2_) }, { ids.value, kb.colors.green });
+    EXPECT_EQ(&trieMap.method(kb.id("hasKey"), { ids.key, kb.list(_2_, _2_, _2_, _2_) }), &true_);
+
+    trieMap.method(kb.id("add"), { ids.key, kb.list(_3_, _3_, _3_, _3_) }, { ids.value, kb.colors.blue });
+    EXPECT_EQ(&trieMap.method(kb.id("hasKey"), { ids.key, kb.list(_3_, _3_, _3_, _3_) }), &true_);
+    printAs.value(trieMap);
+    printAs.cell(trieMap);
+
+    trieMap.method(kb.id("remove"), { ids.key, kb.list(_3_, _3_, _3_, _3_) });
+    EXPECT_EQ(&trieMap.method(kb.id("hasKey"), { ids.key, kb.list(_1_, _1_, _1_, _1_) }), &true_);
+    EXPECT_EQ(&trieMap.method(kb.id("hasKey"), { ids.key, kb.list(_2_, _2_, _2_, _2_) }), &true_);
+    EXPECT_EQ(&trieMap.method(kb.id("hasKey"), { ids.key, kb.list(_3_, _3_, _3_, _3_) }), &false_);
+    trieMap.method(kb.id("remove"), { ids.key, kb.list(_2_, _2_, _2_, _2_) });
+    EXPECT_EQ(&trieMap.method(kb.id("hasKey"), { ids.key, kb.list(_1_, _1_, _1_, _1_) }), &true_);
+    EXPECT_EQ(&trieMap.method(kb.id("hasKey"), { ids.key, kb.list(_2_, _2_, _2_, _2_) }), &false_);
+    EXPECT_EQ(&trieMap.method(kb.id("hasKey"), { ids.key, kb.list(_3_, _3_, _3_, _3_) }), &false_);
+
+    EXPECT_EQ(&trieMap[ids.size], &_1_);
+    EXPECT_EQ(&trieMap.method(kb.id("size")), &_1_);
+    EXPECT_EQ(&trieMap[ids.list][ids.size], &_1_);
+    EXPECT_EQ(&trieMap.method(kb.id("empty")), &false_);
+
+    trieMap.method(kb.id("remove"), { ids.key, kb.list(_1_, _1_, _1_, _1_) });
+
+    EXPECT_EQ(&trieMap[ids.size], &_0_);
+    EXPECT_EQ(&trieMap.method(kb.id("size")), &_0_);
+    EXPECT_EQ(&trieMap[ids.list][ids.size], &_0_);
+    EXPECT_EQ(&trieMap.method(kb.id("empty")), &true_);
+}
+
 TEST_F(CellTest, Set)
 {
     auto& SetOfNumbers = getStruct(kb.templateId("std::Set", ids.valueType, kb.type.Number));
@@ -1137,7 +1188,7 @@ TEST_F(CellTest, TrieMapTest)
 {
     TrieMap trieMap(kb, kb.type.Number, kb.type.Number, "testTrieMap");
     EXPECT_EQ(&trieMap[ids.size], &_0_);
-    auto& key1   = kb.list(kb._0_, kb._1_, kb._2_, kb._3_, kb._4_);
+    auto& key1   = kb.list(_0_, _1_, _2_, _3_, _4_);
     auto& value1 = kb.directions.down;
     trieMap.add(key1, value1);
     EXPECT_EQ(&trieMap[ids.size], &_1_);
