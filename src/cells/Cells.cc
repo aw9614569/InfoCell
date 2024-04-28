@@ -234,7 +234,7 @@ bool Object::has(CellI& role)
 
 void Object::set(CellI& role, CellI& value)
 {
-    if ((&role == &kb.ids.type) && !((&type() == &kb.type.Index) || (type().label() == "Index"))) {
+    if ((&role == &kb.ids.type) && !((&type() == &kb.type.Index) || (type().label() == "std::Index"))) {
         throw "Type change not allowed.";
     }
     if ((&role == &kb.ids.type) && (&type() == &kb.type.Index)) {
@@ -246,7 +246,7 @@ void Object::set(CellI& role, CellI& value)
         return;
     }
     auto is = [this](CellI& rhsType) -> bool { return &type() == &rhsType || (type().has(kb.ids.memberOf) && type()[kb.ids.memberOf][kb.ids.index].has(rhsType)); };
-    if (is(kb.type.Index) || type().label() == "Index" || type()[kb.ids.slots][kb.ids.index].has(role)) {
+    if (is(kb.type.Index) || type().label() == "std::Index" || type()[kb.ids.slots][kb.ids.index].has(role)) {
         m_slots[&role] = &value;
     } else {
         throw "The type doesn't contains this role.";

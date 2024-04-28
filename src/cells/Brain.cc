@@ -1060,17 +1060,7 @@ List& Ast::Base::generateTemplateId(CellI& id, CellI& parameters, CellI& resolve
         idCell.add(slotRole);
         idCell.add(compiledSlotType);
         resolvedParams.add(kb.ast.slot(slotRole, resolvedSlotType));
-        std::string paramNamespace;
-        if (&resolvedSlotType.type() == &kb.type.ast.ResolvedType) {
-            auto& paramTypeAst = static_cast<Struct&>(resolvedSlotType[kb.ids.ast]);
-            Scope& scope       = static_cast<Scope&>(paramTypeAst[kb.ids.scope]);
-            CellI& typeScopeId = scope.getFullId();
-            paramNamespace     = typeScopeId.label();
-            if (!paramNamespace.empty()) {
-                paramNamespace += "::";
-            }
-        }
-        ss << std::format("{}={}{}", slotRole.label(), paramNamespace, compiledSlotType.label());
+        ss << std::format("{}={}", slotRole.label(), compiledSlotType.label());
     });
     ss << ">";
     idCell.label(ss.str());
@@ -1978,17 +1968,7 @@ CellI& Ast::Struct::getFullId()
             if (i != 0) {
                 ss << ", ";
             }
-            std::string paramNamespace;
-            if (&slotType.type() == &kb.type.ast.ResolvedType) {
-                auto& paramTypeAst = static_cast<Struct&>(slotType[kb.ids.ast]);
-                Scope& scope       = static_cast<Scope&>(paramTypeAst[kb.ids.scope]);
-                CellI& typeScopeId = scope.getFullId();
-                paramNamespace     = typeScopeId.label();
-                if (!paramNamespace.empty()) {
-                    paramNamespace += "::";
-                }
-            }
-            ss << std::format("{}={}{}", slotRole.label(), paramNamespace, getCompiledTypeFromResolvedType(slotType).label());
+            ss << std::format("{}={}", slotRole.label(), getCompiledTypeFromResolvedType(slotType).label());
         });
         ss << ">";
     }
@@ -2011,10 +1991,11 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
         ret.set("scope", get("scope"));
     }
 
-    if (unknownStructs.hasKey(structId)) {
-        unknownStructs.remove(structId);
+    auto& fullId = getFullId();
+    if (unknownStructs.hasKey(fullId)) {
+        unknownStructs.remove(fullId);
     }
-    auto& resolvedStruct = *new Object(kb, kb.type.Type_, std::format("{}", structId.label()));
+    auto& resolvedStruct = *new Object(kb, kb.type.Type_, std::format("{}", fullId.label()));
     structs.add(getFullId(), resolvedStruct);
 
     state.set("currentStruct", ret);
@@ -5228,6 +5209,24 @@ void Brain::createArcSolver()
             m_("x") = p_("x"),
             m_("y") = p_("y"));
 
+    // struct ShapePixel
+    auto& shapePixelStruct
+        = arcScope.addStruct("ShapePixel")
+              .members(
+                  member("shape", struct_("Shape")),
+                  member("x", _(type.Number)),
+                  member("y", _(type.Number)));
+
+    shapePixelStruct.addMethod("constructor")
+        .parameters(
+            param("shape", struct_("Shape")),
+            param("x", _(type.Number)),
+            param("y", _(type.Number)))
+        .code(
+            m_("shape") = p_("shape"),
+            m_("x")     = p_("x"),
+            m_("y")     = p_("y"));
+
     // struct Shape
     auto& shapeStruct
         = arcScope.addStruct("Shape")
@@ -5237,6 +5236,7 @@ void Brain::createArcSolver()
                   member("width", _(type.Number)),
                   member("height", _(type.Number)),
                   member("hybridPixels", tt_("std::Set", "valueType", _(type.Pixel))),
+                  member("pixelTable", tt_("std::Map", "keyType", _(type.Number), "valueType", tt_("std::Map", "keyType", _(type.Number), "valueType", _(type.Pixel)))),
                   member("pixels", tt_("std::List", "valueType", struct_("Pixel"))));
 
     /*
@@ -5255,6 +5255,7 @@ void Brain::createArcSolver()
             m_("width")        = p_("width"),
             m_("height")       = p_("height"),
             m_("hybridPixels") = ast.new_(tt_("std::Set", "valueType", _(type.Pixel)), "constructor"),
+            m_("pixelTable")   = ast.new_(tt_("std::Map", "keyType", _(type.Number), "valueType", tt_("std::Map", "keyType", _(type.Number), "valueType", _(type.Pixel))), "constructor"),
             m_("pixels")       = ast.new_(tt_("std::List", "valueType", struct_("Pixel")), "constructor"));
 
     /*
