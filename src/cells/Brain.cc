@@ -5209,24 +5209,6 @@ void Brain::createArcSolver()
             m_("x") = p_("x"),
             m_("y") = p_("y"));
 
-    // struct ShapePixel
-    auto& shapePixelStruct
-        = arcScope.addStruct("ShapePixel")
-              .members(
-                  member("shape", struct_("Shape")),
-                  member("x", _(type.Number)),
-                  member("y", _(type.Number)));
-
-    shapePixelStruct.addMethod("constructor")
-        .parameters(
-            param("shape", struct_("Shape")),
-            param("x", _(type.Number)),
-            param("y", _(type.Number)))
-        .code(
-            m_("shape") = p_("shape"),
-            m_("x")     = p_("x"),
-            m_("y")     = p_("y"));
-
     // struct Shape
     auto& shapeStruct
         = arcScope.addStruct("Shape")
