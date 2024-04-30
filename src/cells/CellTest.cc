@@ -202,7 +202,6 @@ TEST_F(CellTest, PrintArcCodes)
     printMethodInType(ShapeStruct, "constructor");
     printMethodInType(ShapeStruct, "addPixel");
     printMethodInType(ShapeStruct, "hasPixel");
-    printMethodInType(ShapeStruct, "sortPixels");
 
     printAs.value(ShaperStruct);
     printMethodInType(ShaperStruct, "constructor");
@@ -1008,6 +1007,7 @@ TEST_F(CellTest, Set)
     EXPECT_TRUE(set[ids.index].has(_1_));
     EXPECT_EQ(&set[ids.index][_1_], &_1_);
     EXPECT_EQ(&set.method(kb.id("empty")), &false_);
+    EXPECT_EQ(&set.method(kb.id("contains"), { "value", _1_ }), &true_);
     EXPECT_TRUE(set[ids.index][ids.type][ids.memberOf][ids.index].has(kb.type.Index));
 
     set.method(kb.id("add"), { ids.value, _2_ });
@@ -1222,8 +1222,8 @@ TEST_F(CellTest, ShaperTest)
     auto& ShaperStruct = getStruct(kb.id("arc::Shaper"));
     const auto& printPixels = [this](CellI& pixelList) -> std::string {
         std::stringstream ss;
-        Visitor::visitList(pixelList, [this, &ss](CellI& shape, int, bool&) {
-            ss << std::format("[{}, {}]", shape[kb.coordinates.x].label(), shape[kb.coordinates.y].label());
+        Visitor::visitList(pixelList, [this, &ss](CellI& arcPixel, int, bool&) {
+            ss << std::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
         });
 
         return ss.str();

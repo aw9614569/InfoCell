@@ -3914,6 +3914,11 @@ Ast::Missing& Ast::missing(Base& cell, const std::string& role)
     return Missing::New(kb, cell, kb._(role));
 }
 
+Ast::Get& Ast::get(Base& cell, const std::string& role)
+{
+    return Get::New(kb, cell, kb._(role));
+}
+
 Ast::Get& Ast::get(Base& cell, Base& role)
 {
     return Get::New(kb, cell, role);
@@ -5209,19 +5214,31 @@ void Brain::createArcSolver()
             m_("x") = p_("x"),
             m_("y") = p_("y"));
 
+    // struct ShapePixel
+    auto& shapePixelStruct
+        = arcScope.addStruct("ShapePixel")
+              .members(
+                  member("shape", struct_("Shape")),
+                  member("pixel", _(type.Pixel)));
+
+    shapePixelStruct.addMethod("constructor")
+        .parameters(
+            param("shape", struct_("Shape")),
+            param("pixel", _(type.Pixel)))
+        .code(
+            m_("shape") = p_("shape"),
+            m_("pixel") = p_("pixel"));
+
     // struct Shape
     auto& shapeStruct
         = arcScope.addStruct("Shape")
-              .subTypes(
-                  param("tableType", tt_("std::Map", "keyType", _(type.Number), "valueType", tt_("std::Map", "keyType", _(type.Number), "valueType", _(type.Pixel)))))
               .members(
                   member("id", _(type.Number)),
                   member("color", struct_("Color")),
                   member("width", _(type.Number)),
                   member("height", _(type.Number)),
                   member("hybridPixels", tt_("std::Set", "valueType", _(type.Pixel))),
-                  member("pixelTable", st_("tableType")),
-                  member("pixels", tt_("std::List", "valueType", struct_("Pixel"))));
+                  member("pixels", tt_("std::List", "valueType", "Pixel")));
 
     /*
     Shape(int id, input::Color color, int width, int height) :
@@ -5239,8 +5256,7 @@ void Brain::createArcSolver()
             m_("width")        = p_("width"),
             m_("height")       = p_("height"),
             m_("hybridPixels") = ast.new_(tt_("std::Set", "valueType", _(type.Pixel)), "constructor"),
-            m_("pixelTable")   = ast.new_(st_("tableType"), "constructor"),
-            m_("pixels")       = ast.new_(tt_("std::List", "valueType", struct_("Pixel")), "constructor"));
+            m_("pixels")       = ast.new_(tt_("std::List", "valueType", "Pixel"), "constructor"));
 
     /*
     void Shape::addPixel(cells::hybrid::Pixel& pixel)
@@ -5253,10 +5269,7 @@ void Brain::createArcSolver()
         .parameters(
             param("pixel", struct_("Pixel")))
         .code(
-            ast.if_(ast.not_(m_("pixelTable").call("hasKey", param("key", p_("pixel") / _(coordinates.y)))),
-                    m_("pixelTable").call("add", param("key", p_("pixel") / _(coordinates.y)), param("value", ast.new_(st_("tableType"), "constructor")))),
-            var_("colX") = m_("pixelTable").call("getValue", param("key", p_("pixel") / _(coordinates.y))),
-            ast.call(*var_("colX"), "add", param("key", p_("pixel") / _(coordinates.x)), param("value", p_("pixel"))),
+            m_("pixels").call("add", param("value", ast.new_("Pixel", "constructor", param("x", p_("pixel") / _(coordinates.x)), param("y", p_("pixel") / _(coordinates.y))))),
             m_("hybridPixels").call("add", param("value", p_("pixel"))));
 
     /*
@@ -5272,41 +5285,18 @@ void Brain::createArcSolver()
         .code(
             ast.return_(m_("hybridPixels").call("contains", param("value", p_("pixel")))));
 
-    /*
-    void Shape::sortPixels()
-    {
-        int width = m_width;
-        std::sort(m_pixels.begin(), m_pixels.end(), [width](const Pixel& p1, const Pixel& p2) {
-            return p1.y * width + p1.x < p2.y * width + p2.x;
-        });
-    }
-    */
-    shapeStruct.addMethod("sortPixels")
-        .code(var_("y") = _(_0_),
-              ast.while_(ast.lessThan(*var_("y"), m_("height")),
-                         ast.block(
-                             ast.if_(m_("pixelTable").call("hasKey", param("key", *var_("y"))),
-                                     ast.block(
-                                         var_("colX") = m_("pixelTable").call("getValue", param("key", *var_("y"))),
-                                         var_("x")    = _(_0_),
-                                         ast.while_(ast.lessThan(*var_("x"), m_("width")),
-                                                    ast.block(
-                                                        ast.if_(ast.call(*var_("colX"), "hasKey", param("key", *var_("x"))),
-                                                                ast.block(
-                                                                    var_("pixel") = ast.call(*var_("colX"), "getValue", param("key", *var_("x"))),
-                                                                    m_("pixels").call("add", param("value", *var_("pixel"))))),
-                                                        var_("x") = ast.add(*var_("x"), _(_1_)))))),
-                             var_("y") = ast.add(*var_("y"), _(_1_)))));
-
-
     // struct Shaper
     auto& shaperStruct
         = arcScope.addStruct("Shaper")
+              .subTypes(
+                  param("tableType", tt_("std::Map", "keyType", _(type.Number), "valueType", tt_("std::Map", "keyType", _(type.Number), "valueType", "Shape"))))
               .members(
                   member("width", _(type.Number)),
                   member("height", _(type.Number)),
                   member("picture", _(type.Picture)),
+                  member("shapePixels", st_("tableType")),
                   member("shapes", tt_("std::List", "valueType", "Shape")),
+                  member("shapeSet", tt_("std::Set", "valueType", "Shape")),
                   member("inputPixels", tt_("std::Set", "valueType", _(type.Pixel))));
 
     /*
@@ -5327,6 +5317,8 @@ void Brain::createArcSolver()
             m_("width")       = p_("picture") / "width",
             m_("height")      = p_("picture") / "height",
             m_("shapes")      = ast.new_(tt_("std::List", "valueType", "Shape"), "constructor"),
+            m_("shapePixels") = ast.new_(st_("tableType"), "constructor"),
+            m_("shapeSet")    = ast.new_(tt_("std::Set", "valueType", "Shape"), "constructor"),
             m_("inputPixels") = ast.new_(tt_("std::Set", "valueType", _(type.Pixel)), "constructor"),
             ast.self().call("processInputPixels"));
     /*
@@ -5380,18 +5372,33 @@ void Brain::createArcSolver()
             var_("shapeId") = _(_1_),
             ast.while_(ast.not_(m_("inputPixels").call("empty")),
                        ast.block(
-                           var_("firstPixel") = m_("inputPixels").call("first"),
-                           m_("shapes").call("add", param("value", ast.new_("Shape", "constructor", param("id", *var_("shapeId")), param("color", *var_("firstPixel") / "color"), param("width", m_("width")), param("height", m_("height"))))),
+                           var_("firstPixel")  = m_("inputPixels").call("first"),
+                           var_("shape")       = ast.new_("Shape", "constructor", param("id", *var_("shapeId")), param("color", *var_("firstPixel") / "color"), param("width", m_("width")), param("height", m_("height"))),
                            var_("shapeId")     = ast.add(*var_("shapeId"), _(_1_)),
-                           var_("shape")       = m_("shapes").call("last"),
                            var_("checkPixels") = ast.new_(tt_("std::Set", "valueType", _(type.Pixel)), "constructor"),
                            ast.call(*var_("checkPixels"), "add", param("value", *var_("firstPixel"))),
                            ast.while_(ast.not_(ast.call(*var_("checkPixels"), _("empty"))),
                                       ast.block(
                                           var_("checkPixel") = ast.call(*var_("checkPixels"), "first"),
                                           ast.self().call("processPixel", param("shape", *var_("shape")), param("checkPixels", *var_("checkPixels")), param("checkPixel", *var_("checkPixel"))),
-                                          ast.call(*var_("checkPixels"), "remove", param("value", *var_("checkPixel"))))),
-                           ast.call(*var_("shape"), _("sortPixels")))));
+                                          ast.call(*var_("checkPixels"), "remove", param("value", *var_("checkPixel"))))))),
+            var_("y") = _(_0_),
+            ast.while_(ast.lessThan(*var_("y"), m_("height")),
+                       ast.block(
+                           var_("colX") = m_("shapePixels").call("getValue", param("key", *var_("y"))),
+                           var_("x")    = _(_0_),
+                           ast.while_(ast.lessThan(*var_("x"), m_("width")),
+                                      ast.block(
+                                          var_("shapePixel") = ast.call(*var_("colX"), "getValue", param("key", *var_("x"))),
+                                          var_("shape")      = *var_("shapePixel") / "shape",
+                                          var_("pixel")      = *var_("shapePixel") / "pixel",
+                                          ast.call(*var_("shape"), "addPixel", param("pixel", *var_("pixel"))),
+                                          ast.if_(ast.not_(m_("shapeSet").call("contains", param("value", *var_("shape")))),
+                                                  ast.block(
+                                                      m_("shapeSet").call("add", param("value", *var_("shape"))),
+                                                      m_("shapes").call("add", param("value", *var_("shape"))))),
+                                          var_("x") = ast.add(*var_("x"), _(_1_)))),
+                           var_("y") = ast.add(*var_("y"), _(_1_)))));
 
     /*
     void Shaper::processPixel(Shape& shape, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
@@ -5417,7 +5424,10 @@ void Brain::createArcSolver()
             param("checkPixels", tt_("std::Set", "valueType", "Pixel")),
             param("checkPixel", struct_("Pixel")))
         .code(
-            ast.call(p_("shape"), "addPixel", param("pixel", p_("checkPixel"))),
+            ast.if_(ast.not_(m_("shapePixels").call("hasKey", param("key", p_("checkPixel") / _(coordinates.y)))),
+                    m_("shapePixels").call("add", param("key", p_("checkPixel") / _(coordinates.y)), param("value", ast.new_(st_("tableType"), "constructor")))),
+            var_("colX") = m_("shapePixels").call("getValue", param("key", p_("checkPixel") / _(coordinates.y))),
+            ast.call(*var_("colX"), "add", param("key", p_("checkPixel") / _(coordinates.x)), param("value", ast.new_("ShapePixel", "constructor", param("shape", p_("shape")), param("pixel", p_("checkPixel"))))),
             m_("inputPixels").call("remove", param("value", p_("checkPixel"))),
             var_("pixel") = ast.self().call("processAdjacentPixel", param("direction", _(directions.up)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
             ast.if_(ast.notSame(*var_("pixel"), _(ids.emptyObject)),
@@ -5457,7 +5467,15 @@ void Brain::createArcSolver()
             ast.if_(ast.has(p_("checkPixel"), p_("direction")),
                     ast.block(
                         var_("pixel") = p_("checkPixel") / p_("direction"),
-                        ast.if_(ast.and_(ast.equal(*var_("pixel") / "color", p_("shape") / "color"), ast.not_(ast.call(p_("shape"), "hasPixel", param("pixel", *var_("pixel"))))),
+                        ast.if_(m_("shapePixels").call("hasKey", param("key", *var_("pixel") / _(coordinates.y))),
+                                ast.block(
+                                    var_("colX") = m_("shapePixels").call("getValue", param("key", *var_("pixel") / _(coordinates.y))),
+                                    ast.if_(ast.call(*var_("colX"), "hasKey", param("key", *var_("pixel") / _(coordinates.x))),
+                                            ast.block(
+                                                var_("shape") = ast.get(ast.call(*var_("colX"), "getValue", param("key", *var_("pixel") / _(coordinates.x))), "shape"),
+                                                ast.if_(ast.same(p_("shape"), *var_("shape")),
+                                                        ast.return_(*var_("pixel"))))))),
+                        ast.if_(ast.equal(*var_("pixel") / "color", p_("shape") / "color"),
                                 ast.call(p_("checkPixels"), "add", param("value", *var_("pixel")))),
                         ast.return_(*var_("pixel"))),
                     ast.return_(_(ids.emptyObject))));
@@ -5502,6 +5520,12 @@ void Brain::createTests()
 
     // TODO
     //    type.String.method(ids.addSlots, { ids.list, list(type.slot(ids.value, type.ListOf(type.Char))) });
+    // try/catch: almost the same as break/continue/return it can go through function calls. We need an op::Catch node
+    // output: we need some kind of output, maybe a console thing first. Maybe just a new hybrid cell is needed
+    // sorting shapes through a sorting table which contains shape pixels
+    // type.Type and std::Struct should be the same thing
+    // SlotType should hold an std::Type which can be a std::Struct, std::Enum or similar
+    //
 }
 
 Brain::Brain() :

@@ -905,6 +905,7 @@ public:
     Has& has(Base& cell, const std::string& role);
     Missing& missing(Base& cell, Base& role);
     Missing& missing(Base& cell, const std::string& id);
+    Get& get(Base& cell, const std::string& role);
     Get& get(Base& cell, Base& role);
     And& and_(Base& lhs, Base& rhs);
     Or& or_(Base& lhs, Base& rhs);
