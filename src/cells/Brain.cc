@@ -5214,6 +5214,81 @@ void Brain::createArcSolver()
             m_("x") = p_("x"),
             m_("y") = p_("y"));
 
+    // struct Vector
+    auto& vectorStruct
+        = arcScope.addStruct("Vector")
+              .members(
+                  member("x", _(type.Number)),
+                  member("y", _(type.Number)));
+
+    vectorStruct.addMethod("constructor")
+        .parameters(
+            param("x", _(type.Number)),
+            param("y", _(type.Number)))
+        .code(
+            m_("x") = p_("x"),
+            m_("y") = p_("y"));
+
+    // struct VectorShape
+    auto& vectorShapeStruct
+        = arcScope.addStruct("VectorShape")
+              .members(
+                  member("color", _(type.Color)),
+                  member("vectors", tt_("std::List", "valueType", "Vector")),
+                  member("firstPixel", struct_("Pixel")));
+
+    vectorShapeStruct.addMethod("constructor")
+        .parameters(
+            param("color", _(type.Color)))
+        .code(
+            m_("color") = p_("color"),
+            m_("vectors") = ast.new_(tt_("std::List", "valueType", "Vector"), "constructor"));
+
+    /*
+     void VectorShape::fromPixels(const std::vector<Pixel>& pixels)
+     {
+         m_vectors.clear();
+         firstPixel(pixels.front());
+         const Pixel* prevPixel = &pixels.front();
+         bool isFirstPixel      = true;
+
+         for (const auto& pixel : pixels) {
+             if (isFirstPixel) {
+                 isFirstPixel = false;
+                 continue;
+             }
+             const Pixel* currPixel = &pixel;
+             m_vectors.push_back({ currPixel->x - prevPixel->x, currPixel->y - prevPixel->y });
+             prevPixel = currPixel;
+         }
+     }
+    */
+    vectorShapeStruct.addMethod("fromPixels")
+        .parameters(
+            param("pixels", tt_("std::List", "valueType", "Pixel")))
+        .code(
+            m_("firstPixel") = p_("pixels") / "first" / "value",
+            var_("prevPixel") = m_("firstPixel"),
+            var_("isFirstPixel") = _(boolean.true_),
+            var_("pixel") = _(ids.emptyObject),
+            ast.if_(ast.has(p_("pixels"), "first"),
+                    var_("pixel") = p_("pixels") / "first"),
+            ast.while_(ast.notSame(*var_("pixel"), _(ids.emptyObject)),
+                       ast.block(
+                           ast.if_(ast.same(*var_("isFirstPixel"), _(boolean.true_)),
+                                   ast.block(
+                                       var_("isFirstPixel") = _(boolean.false_),
+                                       ast.if_(ast.has(*var_("pixel"), "next"),
+                                               var_("pixel") = *var_("pixel") / "next",
+                                               var_("pixel") = _(ids.emptyObject)),
+                                       ast.continue_())),
+                           var_("vector") = ast.new_("Vector", "constructor", param("x", ast.subtract(*var_("pixel") / "value" / "x", *var_("prevPixel") / "x")), param("y", ast.subtract(*var_("pixel") / "value" / "y", *var_("prevPixel") / "y"))),
+                           m_("vectors").call("add", param("value", *var_("vector"))),
+                           var_("prevPixel") = *var_("pixel") / "value",
+                           ast.if_(ast.has(*var_("pixel"), "next"),
+                                   var_("pixel") = *var_("pixel") / "next",
+                                   var_("pixel") = _(ids.emptyObject)))));
+
     // struct ShapePixel
     auto& shapePixelStruct
         = arcScope.addStruct("ShapePixel")
@@ -5284,6 +5359,13 @@ void Brain::createArcSolver()
         .returnType(_(type.Boolean))
         .code(
             ast.return_(m_("hybridPixels").call("contains", param("value", p_("pixel")))));
+
+    shapeStruct.addMethod("toVectorShape")
+        .returnType(struct_("VectorShape"))
+        .code(
+            var_("ret") = ast.new_("VectorShape", "constructor", param("color", m_("color"))),
+            ast.call(*var_("ret"), "fromPixels", param("pixels", m_("pixels"))),
+            ast.return_(*var_("ret")));
 
     // struct Shaper
     auto& shaperStruct
@@ -5522,9 +5604,10 @@ void Brain::createTests()
     //    type.String.method(ids.addSlots, { ids.list, list(type.slot(ids.value, type.ListOf(type.Char))) });
     // try/catch: almost the same as break/continue/return it can go through function calls. We need an op::Catch node
     // output: we need some kind of output, maybe a console thing first. Maybe just a new hybrid cell is needed
-    // sorting shapes through a sorting table which contains shape pixels
     // type.Type and std::Struct should be the same thing
     // SlotType should hold an std::Type which can be a std::Struct, std::Enum or similar
+    // Iterators, range-based-for
+    // Variable scopes
     //
 }
 

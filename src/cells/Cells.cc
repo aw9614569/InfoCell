@@ -294,6 +294,10 @@ void Object::operator()()
             }
             set(kb.ids.status, kb.ids.process);
             op();
+            if (&(*this)[kb.ids.status] == &kb.ids.continue_) {
+                stop = true;
+                return;
+            }
             if (&(*this)[kb.ids.status] == &kb.ids.continue_ || &(*this)[kb.ids.status] == &kb.ids.break_) {
                 stop = true;
                 return;
@@ -408,8 +412,10 @@ void Object::operator()()
         }
         CellI& branch = *branchPtr;
         branch();
-        if (&branch.type() == &kb.type.op.Return || (branch.has(kb.ids.status) && &branch[kb.ids.status] == &kb.ids.return_)) {
+        if (&branch.type() == &kb.type.op.Return) {
             set(kb.ids.status, kb.ids.return_);
+        } else if (branch.has(kb.ids.status)) {
+            set(kb.ids.status, branch[kb.ids.status]);
         }
     } else if (&m_type == &kb.type.op.Do) {
         bool condition = false;

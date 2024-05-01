@@ -1238,12 +1238,20 @@ TEST_F(CellTest, ShaperTest)
     shaper1.method("process");
     printAs.value(shaper1["shapes"]["size"], "shaper[shapes][size]");
     EXPECT_EQ(&shaper1["shapes"]["size"], &_3_);
-    auto& shape1_2pixels = shaper1["shapes"]["first"]["next"]["value"]["pixels"];
+    Object& shape1_2     = static_cast<Object&>(shaper1["shapes"]["first"]["next"]["value"]);
+    auto& shape1_2pixels = shape1_2["pixels"];
     //                                      |x  y |x  y |x  y
     EXPECT_EQ(printPixels(shape1_2pixels),       "[1, 0][2, 0]" \
                                            "[0, 1][1, 1][2, 1]" \
                                                  "[1, 2][2, 2]");
 
+    CellI& vectorShape1_2 = shape1_2.method("toVectorShape");
+    CellI& vectorShape1_2_1v = vectorShape1_2["vectors"]["first"]["value"];
+    EXPECT_EQ(&vectorShape1_2_1v["x"], &_1_);
+    EXPECT_EQ(&vectorShape1_2_1v["y"], &_0_);
+    CellI& vectorShape1_2_2v = vectorShape1_2["vectors"]["first"]["next"]["value"];
+    EXPECT_EQ(&vectorShape1_2_2v["x"], &kb.pools.numbers.get(-2));
+    EXPECT_EQ(&vectorShape1_2_2v["y"], &_1_);
     // 7 0 0
     // 0 7 0
     // 0 0 7
