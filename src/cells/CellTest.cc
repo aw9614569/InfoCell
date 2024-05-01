@@ -1,7 +1,10 @@
-#include <fstream>
+﻿#include <fstream>
 #include <gtest/gtest.h>
+#include <ftxui/dom/elements.hpp>
+#include <ftxui/screen/screen.hpp>
 #include <nlohmann/json.hpp>
 
+#include "app/App.h"
 #include "Cells.h"
 #include "SVGPrinter.h"
 #include "SVGStructPrinter.h"
@@ -1217,6 +1220,120 @@ TEST_F(CellTest, StringTest)
     printAs.cell(testStr1[kb.ids.value]);
 }
 
+static ftxui::Color ftxAlphaColor(255, 255, 255);
+static ftxui::Element colorTile(const ftxui::Color& p_color)
+{
+    if (&p_color == &ftxAlphaColor)
+        return ftxui::text(L"╳╳") | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 2) | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1) | ftxui::color(ftxui::Color::GrayDark) | ftxui::bgcolor(ftxui::Color::GrayLight);
+    return ftxui::text("") | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 2) | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1) | bgcolor(p_color);
+}
+
+static ftxui::Element colorTile(arc::Colors arcColor)
+{
+    if (arcColor == arc::Colors::alpha)
+        return ftxui::text(L"╳╳") | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 2) | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1) | ftxui::color(ftxui::Color::GrayDark) | ftxui::bgcolor(ftxui::Color::GrayLight);
+    return colorTile(App::arcColors[(int)arcColor]);
+}
+
+static ftxui::Element renderJsonBoard(const nlohmann::json& inputRow)
+{
+    ftxui::Elements boardLines;
+    for (auto inputRowIt = inputRow.begin(); inputRowIt != inputRow.end(); ++inputRowIt) {
+        ftxui::Elements arcSetInputLine;
+        for (const int val : *inputRowIt) {
+            arcSetInputLine.push_back(colorTile((arc::Colors)val));
+        }
+        boardLines.push_back(hbox(arcSetInputLine));
+    }
+
+    return vbox(boardLines);
+}
+
+static ftxui::Element renderJsonBoard(cells::hybrid::Picture& picture)
+{
+    ftxui::Elements boardLines;
+    for (int y = 0; y < picture.height(); ++y) {
+        ftxui::Elements arcSetInputLine;
+        for (int x = 0; x < picture.width(); ++x) {
+            auto& pixel = picture.getPixel(x, y);
+            arcSetInputLine.push_back(colorTile(ftxui::Color(pixel.color().red(), pixel.color().green(), pixel.color().blue())));
+        }
+        boardLines.push_back(hbox(arcSetInputLine));
+    }
+
+    return vbox(boardLines);
+}
+
+static void printInputPicture(cells::hybrid::Picture& picture)
+{
+    auto document = renderJsonBoard(picture);
+    auto screen   = ftxui::Screen::Create(
+        ftxui::Dimension::Full(),       // Width
+        ftxui::Dimension::Fit(document) // Height
+    );
+    ftxui::Render(screen, document);
+    screen.Print();
+}
+
+static ftxui::Element renderShape(CellI& shape)
+{
+    int width               = static_cast<Number&>(shape["width"]).value();
+    int height              = static_cast<Number&>(shape["height"]).value();
+    CellI& pixelList        = shape["pixels"];
+    CellI* currentPixelItem = &pixelList["first"];
+    int shapePixelX         = static_cast<Number&>((*currentPixelItem)["value"]["x"]).value();
+    int shapePixelY         = static_cast<Number&>((*currentPixelItem)["value"]["y"]).value();
+    int ShapeColorRed       = static_cast<Number&>(shape["color"][shape.kb.colors.red]).value();
+    int ShapeColorGreen     = static_cast<Number&>(shape["color"][shape.kb.colors.green]).value();
+    int ShapeColorBlue      = static_cast<Number&>(shape["color"][shape.kb.colors.blue]).value();
+    ftxui::Color shapeColor(ShapeColorRed, ShapeColorGreen, ShapeColorBlue);
+    ftxui::Elements boardLines;
+    for (int y = 0; y < height; ++y) {
+        ftxui::Elements arcSetInputLine;
+        for (int x = 0; x < width; ++x) {
+            ftxui::Color* currentColor = &ftxAlphaColor;
+            if (currentPixelItem && shapePixelX == x && shapePixelY == y) {
+                currentColor = &shapeColor;
+                if (currentPixelItem->has("next")) {
+                    currentPixelItem = &currentPixelItem->get("next");
+                    shapePixelX  = static_cast<Number&>((*currentPixelItem)["value"]["x"]).value();
+                    shapePixelY  = static_cast<Number&>((*currentPixelItem)["value"]["y"]).value();
+                } else {
+                    currentPixelItem = nullptr;
+                }
+            }
+            arcSetInputLine.push_back(colorTile(*currentColor));
+        }
+        boardLines.push_back(hbox(arcSetInputLine));
+    }
+
+    return vbox(boardLines);
+}
+
+static void printShapeList(CellI& shapeList)
+{
+    ftxui::Elements shapesInLine;
+    const int listSize = static_cast<Number&>(shapeList["size"]).value();
+    const int lastListIndex = listSize - 1;
+    Visitor::visitList(shapeList, [&shapesInLine, lastListIndex](CellI& shape, int i, bool&) {
+        auto renderedShape = renderShape(shape);
+        if (i != lastListIndex) {
+            shapesInLine.push_back(ftxui::hbox(renderedShape, ftxui::separator()));
+        } else {
+            shapesInLine.push_back(ftxui::hbox(renderedShape));
+        }
+    });
+
+    auto document = ftxui::hbox(shapesInLine) | ftxui::border;
+    auto screen   = ftxui::Screen::Create(
+        ftxui::Dimension::Fit(document), // Width
+        ftxui::Dimension::Fit(document) // Height
+    );
+    ftxui::Render(screen, document);
+    screen.Print();
+    std::cout << "\n";
+}
+
 TEST_F(CellTest, ShaperTest)
 {
     auto& ShaperStruct = getStruct(kb.id("arc::Shaper"));
@@ -1234,17 +1351,18 @@ TEST_F(CellTest, ShaperTest)
     // 0 7 7
     input::Picture inputPicture1("inputPicture1", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
     cells::hybrid::Picture picture1(kb, inputPicture1);
+    printInputPicture(picture1);
     Object shaper1(kb, ShaperStruct, kb.id("constructor"), { "picture", picture1 });
     shaper1.method("process");
     printAs.value(shaper1["shapes"]["size"], "shaper[shapes][size]");
     EXPECT_EQ(&shaper1["shapes"]["size"], &_3_);
+    printShapeList(shaper1["shapes"]);
     Object& shape1_2     = static_cast<Object&>(shaper1["shapes"]["first"]["next"]["value"]);
     auto& shape1_2pixels = shape1_2["pixels"];
     //                                      |x  y |x  y |x  y
     EXPECT_EQ(printPixels(shape1_2pixels),       "[1, 0][2, 0]" \
                                            "[0, 1][1, 1][2, 1]" \
                                                  "[1, 2][2, 2]");
-
     CellI& vectorShape1_2 = shape1_2.method("toVectorShape");
     CellI& vectorShape1_2_1v = vectorShape1_2["vectors"]["first"]["value"];
     EXPECT_EQ(&vectorShape1_2_1v["x"], &_1_);
@@ -1252,15 +1370,18 @@ TEST_F(CellTest, ShaperTest)
     CellI& vectorShape1_2_2v = vectorShape1_2["vectors"]["first"]["next"]["value"];
     EXPECT_EQ(&vectorShape1_2_2v["x"], &kb.pools.numbers.get(-2));
     EXPECT_EQ(&vectorShape1_2_2v["y"], &_1_);
+
     // 7 0 0
     // 0 7 0
     // 0 0 7
     input::Picture inputPicture2("inputPicture2", "[[7, 0, 0], [0, 7, 0], [0, 0, 7]]");
     cells::hybrid::Picture picture2(kb, inputPicture2);
+    printInputPicture(picture2);
     Object shaper2(kb, ShaperStruct, kb.id("constructor"), { "picture", picture2 });
     shaper2.method("process");
     printAs.value(shaper2["shapes"]["size"], "shaper[shapes][size]");
     EXPECT_EQ(&shaper2["shapes"]["size"], &_2_);
+    printShapeList(shaper2["shapes"]);
     auto& shape2_1pixels = shaper2["shapes"]["first"]["value"]["pixels"];
     //                                      |x  y |x  y |x  y
     EXPECT_EQ(printPixels(shape2_1pixels), "[0, 0]" \
@@ -1275,10 +1396,12 @@ TEST_F(CellTest, ShaperTest)
                                                      "[7, 0, 7]," \
                                                      "[7, 7, 7]]");
     cells::hybrid::Picture picture3(kb, inputPicture3);
+    printInputPicture(picture3);
     Object shaper3(kb, ShaperStruct, kb.id("constructor"), { "picture", picture3 });
     shaper3.method("process");
     printAs.value(shaper3["shapes"]["size"], "shaper[shapes][size]");
     EXPECT_EQ(&shaper3["shapes"]["size"], &_2_);
+    printShapeList(shaper3["shapes"]);
     auto& shape3_1pixels = shaper3["shapes"]["first"]["value"]["pixels"];
     //                                      |x  y |x  y |x  y
     EXPECT_EQ(printPixels(shape3_1pixels), "[0, 0]"    "[2, 0]" \
@@ -1288,15 +1411,24 @@ TEST_F(CellTest, ShaperTest)
 
 TEST_F(CellTest, ArcTaskTest)
 {
-    auto& shaperStruct = getStruct(kb.id("arc::Shaper"));
+    auto& shaperStruct                   = getStruct(kb.id("arc::Shaper"));
     static const std::string arcFilePath = "E:\\Devel\\ARC\\ARC\\data\\training\\007bbfb7.json";
+    auto jsonTask                        = json::parse(std::ifstream(arcFilePath));
+    auto document                        = renderJsonBoard(jsonTask["/test/0/input"_json_pointer]);
+    auto screen                          = ftxui::Screen::Create(
+        ftxui::Dimension::Full(),       // Width
+        ftxui::Dimension::Fit(document) // Height
+    );
+    ftxui::Render(screen, document);
+    screen.Print();
 
-    ArcTask arcTaskLoader(kb, json::parse(std::ifstream(arcFilePath)));
+    ArcTask arcTaskLoader(kb, jsonTask);
     CellI& arcTask = arcTaskLoader.m_task;
 
     Object shaper(kb, shaperStruct, kb.id("constructor"), { "picture", arcTask["challenge"]});
     shaper.method("process");
     printAs.value(shaper["shapes"]["size"], "shaper[shapes][size]");
+    printShapeList(shaper["shapes"]);
 }
 
 int main(int argc, char** argv)
