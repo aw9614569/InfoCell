@@ -571,15 +571,6 @@ Ast::Ast(brain::Brain& kb) :
     While.set("slots", *map);
 }
 
-Arc::Arc(brain::Brain& kb) :
-    kb(kb),
-    Demonstration(kb, kb.type.Type_, "Demonstration"),
-    Task(kb, kb.type.Type_, "Task"),
-    Shape(kb, kb.type.Type_, "Shape"),
-    Shaper(kb, kb.type.Type_, "Shaper")
-{
-}
-
 } // namespace type
 
 Types::Types(brain::Brain& kb) :
@@ -625,8 +616,7 @@ Types::Types(brain::Brain& kb) :
     Directions(kb, kb.type.Enum, "Directions"),
     Shape(kb, kb.type.Struct, "Shape"),
     op(kb),
-    ast(kb),
-    arc(kb)
+    ast(kb)
 {
     CellI* mapPtr = nullptr;
     auto& type = kb.type;

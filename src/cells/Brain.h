@@ -197,21 +197,6 @@ public:
     Object While;
 };
 
-class Arc
-{
-public:
-    Arc(brain::Brain& kb);
-
-protected:
-    brain::Brain& kb;
-
-public:
-    Object Demonstration;
-    Object Task;
-    Object Shape;
-    Object Shaper;
-};
-
 } // namespace type
 
 class Types
@@ -277,7 +262,6 @@ public:
 
     type::Op op;
     type::Ast ast;
-    type::Arc arc;
 };
 
 template <typename T>
