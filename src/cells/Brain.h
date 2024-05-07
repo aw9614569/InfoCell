@@ -1036,6 +1036,7 @@ public:
     Ast::Member& m_(const std::string& name);
     Ast::Var& var_(const std::string& name);
     Ast::Slot& param(const std::string& name, CellI& value);
+    Ast::Slot& member(const std::string& name, const std::string& type);
     Ast::Slot& member(const std::string& name, CellI& type);
     template <typename... Args>
     Ast::SubType& st_(const std::string& name, Args&&... args);

@@ -3821,6 +3821,11 @@ Ast::Slot& Brain::param(const std::string& name, CellI& value)
     return ast.slot(id(name), value);
 }
 
+Ast::Slot& Brain::member(const std::string& name, const std::string& type)
+{
+    return ast.slot(id(name), struct_(type));
+}
+
 Ast::Slot& Brain::member(const std::string& name, CellI& type)
 {
     return ast.slot(id(name), type);
@@ -3842,210 +3847,210 @@ void Brain::createOp(Ast::Scope& stdScope)
     opScope.addStruct("Base");
     opScope.addStruct("Add")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")),
-            member("value", _(std.Number)));
+            member("ast", "ast::Base"),
+            member("lhs", "Base"),
+            member("rhs", "Base"),
+            member("value", "std::Number"));
 
     opScope.addStruct("And")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")),
-            member("value", _(std.Boolean)));
+            member("ast", "ast::Base"),
+            member("lhs", "Base"),
+            member("rhs", "Base"),
+            member("value", "std::Boolean"));
 
     opScope.addStruct("Block")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("status", _(std.Cell)),
-            member("ops", _(std.Cell)),
-            member("value", _(std.Cell)));
+            member("ast", "ast::Base"),
+            member("status", "std::Cell"),
+            member("ops", "std::Cell"),
+            member("value", "std::Cell"));
 
     opScope.addStruct("ConstVar")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("value", _(std.Cell)));
+            member("ast", "ast::Base"),
+            member("value", "std::Cell"));
 
     opScope.addStruct("Delete")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("input", struct_("Base")));
+            member("ast", "ast::Base"),
+            member("input", "Base"));
 
     opScope.addStruct("Divide")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")),
-            member("value", _(std.Number)));
+            member("ast", "ast::Base"),
+            member("lhs", "Base"),
+            member("rhs", "Base"),
+            member("value", "std::Number"));
 
     opScope.addStruct("Do")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("status", _(std.Cell)),
-            member("condition", struct_("Base")),
-            member("statement", struct_("Base")));
+            member("ast", "ast::Base"),
+            member("status", "std::Cell"),
+            member("condition", "Base"),
+            member("statement", "Base"));
 
     opScope.addStruct("Equal")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")),
-            member("value", _(std.Boolean)));
+            member("ast", "ast::Base"),
+            member("lhs", "Base"),
+            member("rhs", "Base"),
+            member("value", "std::Boolean"));
 
     opScope.addStruct("Erase")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("cell", struct_("Base")),
-            member("role", struct_("Base")),
-            member("value", struct_("Base")));
+            member("ast", "ast::Base"),
+            member("cell", "Base"),
+            member("role", "Base"),
+            member("value", "Base"));
 
     opScope.addStruct("EvalVar")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("value", struct_("Var")));
+            member("ast", "ast::Base"),
+            member("value", "Var"));
 
     opScope.addStruct("Function")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("stack", _(std.Stack)),
+            member("ast", "ast::Base"),
+            member("stack", "Stack"),
             member("op", tt_("std::List", "valueType", "Base")),
-            member("static_", _(std.Boolean)));
+            member("static_", "std::Boolean"));
 
     opScope.addStruct("Get")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("cell", struct_("Base")),
-            member("role", struct_("Base")),
-            member("value", _(std.Cell)));
+            member("ast", "ast::Base"),
+            member("cell", "Base"),
+            member("role", "Base"),
+            member("value", "std::Cell"));
 
     opScope.addStruct("GreaterThan")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")),
-            member("value", _(std.Boolean)));
+            member("ast", "ast::Base"),
+            member("lhs", "Base"),
+            member("rhs", "Base"),
+            member("value", "std::Boolean"));
 
     opScope.addStruct("GreaterThanOrEqual")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")),
-            member("value", _(std.Boolean)));
+            member("ast", "ast::Base"),
+            member("lhs", "Base"),
+            member("rhs", "Base"),
+            member("value", "std::Boolean"));
 
     opScope.addStruct("Has")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("cell", struct_("Base")),
-            member("role", struct_("Base")),
-            member("value", _(std.Boolean)));
+            member("ast", "ast::Base"),
+            member("cell", "Base"),
+            member("role", "Base"),
+            member("value", "std::Boolean"));
 
     opScope.addStruct("If")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("status", _(std.Cell)),
-            member("condition", struct_("Base")),
-            member("then", struct_("Base")),
-            member("else_", struct_("Base")));
+            member("ast", "ast::Base"),
+            member("status", "std::Cell"),
+            member("condition", "Base"),
+            member("then", "Base"),
+            member("else_", "Base"));
 
     opScope.addStruct("LessThan")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")),
-            member("value", _(std.Boolean)));
+            member("ast", "ast::Base"),
+            member("lhs", "Base"),
+            member("rhs", "Base"),
+            member("value", "std::Boolean"));
 
     opScope.addStruct("LessThanOrEqual")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")),
-            member("value", _(std.Boolean)));
+            member("ast", "ast::Base"),
+            member("lhs", "Base"),
+            member("rhs", "Base"),
+            member("value", "std::Boolean"));
 
     opScope.addStruct("Missing")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("cell", struct_("Base")),
-            member("role", struct_("Base")),
-            member("value", _(std.Boolean)));
+            member("ast", "ast::Base"),
+            member("cell", "Base"),
+            member("role", "Base"),
+            member("value", "std::Boolean"));
 
     opScope.addStruct("Multiply")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")),
-            member("value", _(std.Number)));
+            member("ast", "ast::Base"),
+            member("lhs", "Base"),
+            member("rhs", "Base"),
+            member("value", "std::Number"));
 
     opScope.addStruct("New")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("value", _(std.Cell)),
-            member("objectType", struct_("Base")));
+            member("ast", "ast::Base"),
+            member("value", "std::Cell"),
+            member("objectType", "Base"));
 
     opScope.addStruct("Not")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("input", struct_("Base")),
-            member("value", _(std.Boolean)));
+            member("ast", "ast::Base"),
+            member("input", "Base"),
+            member("value", "std::Boolean"));
 
     opScope.addStruct("NotEqual")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")),
-            member("value", _(std.Boolean)));
+            member("ast", "ast::Base"),
+            member("lhs", "Base"),
+            member("rhs", "Base"),
+            member("value", "std::Boolean"));
 
     opScope.addStruct("NotSame")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")),
-            member("value", _(std.Boolean)));
+            member("ast", "ast::Base"),
+            member("lhs", "Base"),
+            member("rhs", "Base"),
+            member("value", "std::Boolean"));
 
     opScope.addStruct("Or")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")),
-            member("value", _(std.Boolean)));
+            member("ast", "ast::Base"),
+            member("lhs", "Base"),
+            member("rhs", "Base"),
+            member("value", "std::Boolean"));
 
     opScope.addStruct("Return")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("result", struct_("ast::Base")));
+            member("ast", "ast::Base"),
+            member("result", "ast::Base"));
 
     opScope.addStruct("Same")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")),
-            member("value", _(std.Boolean)));
+            member("ast", "ast::Base"),
+            member("lhs", "Base"),
+            member("rhs", "Base"),
+            member("value", "std::Boolean"));
 
     opScope.addStruct("Set")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("cell", struct_("Base")),
-            member("role", struct_("Base")),
-            member("value", struct_("Base")));
+            member("ast", "ast::Base"),
+            member("cell", "Base"),
+            member("role", "Base"),
+            member("value", "Base"));
 
     opScope.addStruct("Subtract")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")),
-            member("value", _(std.Number)));
+            member("ast", "ast::Base"),
+            member("lhs", "Base"),
+            member("rhs", "Base"),
+            member("value", "std::Number"));
 
     opScope.addStruct("Var")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("valueType", _(std.Type_)),
-            member("value", _(std.Cell)));
+            member("ast", "ast::Base"),
+            member("valueType", "std::Type"),
+            member("value", "std::Cell"));
 
     opScope.addStruct("While")
         .members(
-            member("ast", struct_("ast::Base")),
-            member("status", _(std.Cell)),
-            member("condition", struct_("Base")),
-            member("statement", struct_("Base")));
+            member("ast", "ast::Base"),
+            member("status", "std::Cell"),
+            member("condition", "Base"),
+            member("statement", "Base"));
 }
 
 void Brain::createAst(Ast::Scope& stdScope)
@@ -4054,179 +4059,179 @@ void Brain::createAst(Ast::Scope& stdScope)
     astScope.addStruct("Base");
     astScope.addStruct("Add")
         .members(
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")));
+            member("lhs", "Base"),
+            member("rhs", "Base"));
 
     astScope.addStruct("And")
         .members(
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")));
+            member("lhs", "Base"),
+            member("rhs", "Base"));
 
     astScope.addStruct("Block")
         .members(
-            member("asts", _(std.Cell)));
+            member("asts", "std::Cell"));
 
     astScope.addStruct("Break");
 
     astScope.addStruct("Call")
         .members(
-            member("cell", struct_("Base")),
-            member("method", struct_("Base")),
+            member("cell", "Base"),
+            member("method", "Base"),
             member("parameters", ListOf(std.Slot)));
 
     astScope.addStruct("Cell")
         .members(
-            member("value", _(std.Cell)));
+            member("value", "std::Cell"));
 
     astScope.addStruct("Continue");
 
     astScope.addStruct("Delete")
         .members(
-            member("cell", struct_("Base")));
+            member("cell", "Base"));
 
     astScope.addStruct("Divide")
         .members(
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")));
+            member("lhs", "Base"),
+            member("rhs", "Base"));
 
     astScope.addStruct("Do")
         .members(
-            member("condition", struct_("Base")),
-            member("statement", struct_("Base")));
+            member("condition", "Base"),
+            member("statement", "Base"));
 
     astScope.addStruct("Equal")
         .members(
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")));
+            member("lhs", "Base"),
+            member("rhs", "Base"));
 
     astScope.addStruct("Erase")
         .members(
-            member("cell", struct_("Base")),
-            member("role", struct_("Base")));
+            member("cell", "Base"),
+            member("role", "Base"));
 
     astScope.addStruct("Function")
         .members(
-            member("name", _(std.Cell)),
-            member("fullId", _(std.Cell)),
-            member("structType", _(std.Cell)),
+            member("name", "std::Cell"),
+            member("fullId", "std::Cell"),
+            member("structType", "std::Cell"),
             member("parameters", ListOf(std.Slot)),
-            member("returnType", _(std.Type_)),
-            member("code", struct_("Base")),
-            member("scope", struct_("Base")),
-            member("static_", _(std.Boolean)));
+            member("returnType", "std::Type"),
+            member("code", "Base"),
+            member("scope", "Base"),
+            member("static_", "std::Boolean"));
 
     astScope.addStruct("FunctionT")
         .members(
-            member("name", _(std.Cell)),
+            member("name", "std::Cell"),
             member("parameters", ListOf(std.Slot)),
-            member("returnType", _(std.Type_)),
-            member("code", struct_("Base")),
-            member("scope", struct_("Base")),
-            member("static_", _(std.Boolean)));
+            member("returnType", "std::Type"),
+            member("code", "Base"),
+            member("scope", "Base"),
+            member("static_", "std::Boolean"));
 
     astScope.addStruct("Get")
         .members(
-            member("cell", struct_("Base")),
-            member("role", struct_("Base")));
+            member("cell", "Base"),
+            member("role", "Base"));
 
     astScope.addStruct("GreaterThan")
         .members(
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")));
+            member("lhs", "Base"),
+            member("rhs", "Base"));
 
     astScope.addStruct("GreaterThanOrEqual")
         .members(
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")));
+            member("lhs", "Base"),
+            member("rhs", "Base"));
 
     astScope.addStruct("Has")
         .members(
-            member("cell", struct_("Base")),
-            member("role", struct_("Base")));
+            member("cell", "Base"),
+            member("role", "Base"));
 
     astScope.addStruct("If")
         .members(
-            member("condition", struct_("Base")),
-            member("then", struct_("Base")),
-            member("else_", struct_("Base")));
+            member("condition", "Base"),
+            member("then", "Base"),
+            member("else_", "Base"));
 
     astScope.addStruct("LessThan")
         .members(
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")));
+            member("lhs", "Base"),
+            member("rhs", "Base"));
 
     astScope.addStruct("LessThanOrEqual")
         .members(
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")));
+            member("lhs", "Base"),
+            member("rhs", "Base"));
 
     astScope.addStruct("Member")
         .members(
-            member("role", struct_("Base")));
+            member("role", "Base"));
 
     astScope.addStruct("Missing")
         .members(
-            member("cell", struct_("Base")),
-            member("role", struct_("Base")));
+            member("cell", "Base"),
+            member("role", "Base"));
 
     astScope.addStruct("Multiply")
         .members(
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")));
+            member("lhs", "Base"),
+            member("rhs", "Base"));
 
     astScope.addStruct("New")
         .members(
-            member("objectType", struct_("Base")),
-            member("constructor", struct_("Base")),
+            member("objectType", "Base"),
+            member("constructor", "Base"),
             member("parameters", ListOf(std.ast.Slot)));
 
     astScope.addStruct("Not")
         .members(
-            member("input", struct_("Base")));
+            member("input", "Base"));
 
     astScope.addStruct("NotEqual")
         .members(
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")));
+            member("lhs", "Base"),
+            member("rhs", "Base"));
 
     astScope.addStruct("NotSame")
         .members(
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")));
+            member("lhs", "Base"),
+            member("rhs", "Base"));
 
     astScope.addStruct("Or")
         .members(
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")));
+            member("lhs", "Base"),
+            member("rhs", "Base"));
 
     astScope.addStruct("Parameter")
         .members(
-            member("role", _(std.Cell)));
+            member("role", "std::Cell"));
 
     astScope.addStruct("ResolvedType")
         .members(
-            member("ast", struct_("std::Type")),
-            member("compiled", _(std.Type_)));
+            member("ast", "std::Type"),
+            member("compiled", "std::Type"));
 
     astScope.addStruct("Return")
         .members(
-            member("value", _(std.Cell)));
+            member("value", "std::Cell"));
 
     astScope.addStruct("Same")
         .members(
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")));
+            member("lhs", "Base"),
+            member("rhs", "Base"));
 
     astScope.addStruct("Scope")
         .members(
-            member("id", _(std.Cell)),
-            member("fullId", _(std.Cell)),
-            member("scopes", _(std.TrieMap)),
-            member("resolvedScope", struct_("Scope")),
-            member("parent", struct_("Scope")),
-            member("functions", _(std.TrieMap)),
-            member("structs", _(std.TrieMap)),
-            member("structTs", _(std.TrieMap)),
+            member("id", "std::Cell"),
+            member("fullId", "std::Cell"),
+            member("scopes", "std::TrieMap"),
+            member("resolvedScope", "Scope"),
+            member("parent", "Scope"),
+            member("functions", "std::TrieMap"),
+            member("structs", "std::TrieMap"),
+            member("structTs", "std::TrieMap"),
             member("variables", ListOf(std.ast.Slot)));
 
     astScope.addStruct("Self");
@@ -4235,29 +4240,29 @@ void Brain::createAst(Ast::Scope& stdScope)
 
     astScope.addStruct("Set")
         .members(
-            member("cell", struct_("Base")),
-            member("role", struct_("Base")),
-            member("value", struct_("Base")));
+            member("cell", "Base"),
+            member("role", "Base"),
+            member("value", "Base"));
 
     astScope.addStruct("Slot")
         .members(
-            member("slotRole", struct_("Base")),
-            member("slotType", struct_("Base")));
+            member("slotRole", "Base"),
+            member("slotType", "Base"));
 
     astScope.addStruct("StaticCall")
         .members(
-            member("cell", struct_("Base")),
-            member("method", struct_("Base")),
+            member("cell", "Base"),
+            member("method", "Base"),
             member("parameters", ListOf(std.Slot)));
 
     astScope.addStruct("Struct")
         .members(
-            member("id", _(std.Cell)),
-            member("fullId", _(std.Cell)),
-            member("incomplete", _(std.Boolean)),
-            member("instanceOf", struct_("Base")),
-            member("templateParams", _(std.List)),
-            member("scope", struct_("Scope")),
+            member("id", "std::Cell"),
+            member("fullId", "std::Cell"),
+            member("incomplete", "std::Boolean"),
+            member("instanceOf", "Base"),
+            member("templateParams", "std::List"),
+            member("scope", "Scope"),
             member("methods", MapOf(std.Cell, std.ast.Function)),
             member("members", MapOf(std.Cell, std.ast.Slot)),
             member("subTypes", ListOf(std.ast.Slot)),
@@ -4265,13 +4270,13 @@ void Brain::createAst(Ast::Scope& stdScope)
 
     astScope.addStruct("StructName")
         .members(
-            member("name", _(std.Cell)),
-            member("scopes", _(std.List)));
+            member("name", "std::Cell"),
+            member("scopes", "std::List"));
 
     astScope.addStruct("StructT")
         .members(
-            member("id", _(std.Cell)),
-            member("scope", struct_("Base")),
+            member("id", "std::Cell"),
+            member("scope", "Base"),
             member("methods", MapOf(std.Cell, std.ast.Function)),
             member("members", ListOf(std.ast.Slot)),
             member("subTypes", ListOf(std.ast.Slot)),
@@ -4280,41 +4285,41 @@ void Brain::createAst(Ast::Scope& stdScope)
 
     astScope.addStruct("SubTypeName")
         .members(
-            member("name", _(std.Cell)));
+            member("name", "std::Cell"));
 
     astScope.addStruct("Subtract")
         .members(
-            member("lhs", struct_("Base")),
-            member("rhs", struct_("Base")));
+            member("lhs", "Base"),
+            member("rhs", "Base"));
 
     astScope.addStruct("TemplatedType")
         .members(
-            member("id", struct_("Base")),
-            member("scopes", _(std.List)),
+            member("id", "Base"),
+            member("scopes", "std::List"),
             member("parameters", ListOf(std.Slot)));
 
     astScope.addStruct("TemplateParam")
         .members(
-            member("role", _(std.Cell)));
+            member("role", "std::Cell"));
 
     astScope.addStruct("Throw")
         .members(
-            member("value", struct_("Base")));
+            member("value", "Base"));
 
     astScope.addStruct("Try")
         .members(
-            member("tryBranch", struct_("Base")),
-            member("catchBranch", struct_("Base")));
+            member("tryBranch", "Base"),
+            member("catchBranch", "Base"));
 
     astScope.addStruct("Var")
         .members(
-            member("role", struct_("Base")),
-            member("scope", struct_("Scope")));
+            member("role", "Base"),
+            member("scope", "Scope"));
 
     astScope.addStruct("While")
         .members(
-            member("condition", struct_("Base")),
-            member("statement", struct_("Base")));
+            member("condition", "Base"),
+            member("statement", "Base"));
 }
 
 void Brain::createStd()
@@ -4326,8 +4331,8 @@ void Brain::createStd()
     stdScope.addStruct("Cell");
     stdScope.addStruct("Slot")
         .members(
-            member("slotRole", struct_("Cell")),
-            member("slotType", struct_("Type")));
+            member("slotRole", "Cell"),
+            member("slotType", "Type"));
 
     stdScope.addStruct("Enum")
         .members(
@@ -4342,9 +4347,9 @@ void Brain::createStd()
 
     stdScope.addStruct("Color")
         .members(
-            member("red", struct_("Number")),
-            member("green", struct_("Number")),
-            member("blue", struct_("Number")));
+            member("red", "Number"),
+            member("green", "Number"),
+            member("blue", "Number"));
 
     stdScope.addStruct("Pixel");
     stdScope.addStruct("Picture");
@@ -4352,16 +4357,16 @@ void Brain::createStd()
 
     stdScope.addStruct("StackFrame")
         .members(
-            member("method", struct_("op::Function")),
-            member("input", struct_("Index")),
-            member("output", struct_("op::Var")),
-            member("localVars", struct_("Index")));
+            member("method", "op::Function"),
+            member("input", "Index"),
+            member("output", "op::Var"),
+            member("localVars", "Index"));
 
     stdScope.addStruct("Program")
         .members(
-            member("data", struct_("ProgramData")),
-            member("code", struct_("op::Base")),
-            member("stack", struct_("ListItem")));
+            member("data", "ProgramData"),
+            member("code", "op::Base"),
+            member("stack", "ListItem"));
 
     stdScope.addStruct("ProgramData")
         .members(
@@ -4372,24 +4377,24 @@ void Brain::createStd()
     stdScope.addStruct("StructReference")
         .members(
             member("id", tt_("List", "valueType", "Char")),
-            member("idScope", struct_("ast::Scope")),
-            member("scope", struct_("ast::Scope")),
-            member("resolvedScope", struct_("ast::Scope")),
-            member("currentFn", struct_("ast::Function")),
-            member("currentStruct", struct_("ast::Struct")),
+            member("idScope", "ast::Scope"),
+            member("scope", "ast::Scope"),
+            member("resolvedScope", "ast::Scope"),
+            member("currentFn", "ast::Function"),
+            member("currentStruct", "ast::Struct"),
             member("templateId", tt_("List", "valueType", "Cell")),
             member("templateParams", tt_("List", "valueType", "ast::Base")),
-            member("value", struct_("Type")));
+            member("value", "Type"));
 
     stdScope.addStruct("CompileState")
         .members(
-            member("currentFn", struct_("ast::Function")),
-            member("currentStruct", struct_("ast::Struct")),
-            member("lastBlock", struct_("ast::Block")),
-            member("scope", struct_("ast::Scope")),
-            member("resolvedScope", struct_("ast::Scope")),
-            member("globalScope", struct_("ast::Scope")),
-            member("globalResolvedScope", struct_("ast::Scope")),
+            member("currentFn", "ast::Function"),
+            member("currentStruct", "ast::Struct"),
+            member("lastBlock", "ast::Block"),
+            member("scope", "ast::Scope"),
+            member("resolvedScope", "ast::Scope"),
+            member("globalScope", "ast::Scope"),
+            member("globalResolvedScope", "ast::Scope"),
             member("functions", tt_("List", "valueType", "op::Function")),
             member("structs", tt_("TrieMap", "keyType", "Cell", "valueType", "Type")),
             member("unknownStructs", tt_("TrieMap", "keyType", "Cell", "valueType", "Type")),
@@ -4406,9 +4411,9 @@ void Brain::createStd()
         .subTypes(
             param("valueType", struct_("Cell")))
         .members(
-            member("previous", struct_("ListItem")),
-            member("next", struct_("ListItem")),
-            member("value", struct_("Cell")));
+            member("previous", "ListItem"),
+            member("next", "ListItem"),
+            member("value", "Cell"));
 
     auto& listItemStructT
         = stdScope.addStructT("ListItem")
@@ -4435,8 +4440,8 @@ void Brain::createStd()
             param("itemType", struct_("ListItem")),
             param("valueType", struct_("Cell")))
         .members(
-            member("first", struct_("ListItem")),
-            member("last", struct_("ListItem")),
+            member("first", "ListItem"),
+            member("last", "ListItem"),
             member("size", _(std.Number)));
     auto& listStructT
         = stdScope.addStructT("List")
@@ -4707,7 +4712,7 @@ void Brain::createStd()
         .memberOf(struct_("Container"))
         .members(
             member("list", st_("listType")),
-            member("index", struct_("Index")),
+            member("index", "Index"),
             member("size", _(std.Number)));
 
     auto& mapStructT
@@ -4722,7 +4727,7 @@ void Brain::createStd()
               .memberOf(struct_("Map"))
               .members(
                   member("list", st_("listType")),
-                  member("index", struct_("Index")),
+                  member("index", "Index"),
                   member("size", _(std.Number)));
 
     mapStructT.addMethod("constructor")
@@ -4852,8 +4857,8 @@ void Brain::createStd()
 #pragma region TrieMap
     stdScope.addStruct("KVPair")
         .members(
-            member("key", struct_("Cell")),
-            member("value", struct_("Cell")));
+            member("key", "Cell"),
+            member("value", "Cell"));
 
     auto& kvPairT
         = stdScope.addStructT("KVPair")
@@ -4879,9 +4884,9 @@ void Brain::createStd()
     // TODO This can be a template but nevermind ...
     stdScope.addStruct("TrieMapNode")
         .members(
-            member("children", struct_("Index")),
-            member("data", struct_("ListItem")),
-            member("parent", struct_("TrieMapNode")));
+            member("children", "Index"),
+            member("data", "ListItem"),
+            member("parent", "TrieMapNode"));
 
 
     stdScope.addStruct("TrieMap")
@@ -5373,7 +5378,7 @@ void Brain::createArcSolver()
               .members(
                   member("color", _(std.Color)),
                   member("vectors", tt_("std::List", "valueType", "Vector")),
-                  member("firstPixel", struct_("Pixel")));
+                  member("firstPixel", "Pixel"));
 
     vectorShapeStruct.addMethod("constructor")
         .parameters(
@@ -5431,7 +5436,7 @@ void Brain::createArcSolver()
     auto& shapePixelStruct
         = arcScope.addStruct("ShapePixel")
               .members(
-                  member("shape", struct_("Shape")),
+                  member("shape", "Shape"),
                   member("pixel", _(std.Pixel)));
 
     shapePixelStruct.addMethod("constructor")
@@ -5447,7 +5452,7 @@ void Brain::createArcSolver()
         = arcScope.addStruct("Shape")
               .members(
                   member("id", _(std.Number)),
-                  member("color", struct_("Color")),
+                  member("color", "Color"),
                   member("width", _(std.Number)),
                   member("height", _(std.Number)),
                   member("hybridPixels", tt_("std::Set", "valueType", _(std.Pixel))),
