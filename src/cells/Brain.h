@@ -90,6 +90,7 @@ public:
     List templateId;
     List templateParams;
     List then;
+    List throw_;
     List type;
     List unknownInstances;
     List unknownStructs;
@@ -200,6 +201,8 @@ public:
     Object SubTypeName;
     Object TemplatedType;
     Object TemplateParam;
+    Object Throw;
+    Object Try;
     Object Var;
     Object While;
 };
@@ -335,6 +338,17 @@ public:
     {
     public:
         Break(brain::Brain& kb);
+    };
+    class Try : public BaseT<Try>
+    {
+    public:
+        Try(brain::Brain& kb, Base& tryBranch, Base& catchBranch);
+    };
+    class Throw : public BaseT<Throw>
+    {
+    public:
+        Throw(brain::Brain& kb);
+        Throw(brain::Brain& kb, Base& value);
     };
     class Return : public BaseT<Return>
     {
@@ -823,6 +837,9 @@ public:
     SelfFn& selfFn();
     Continue& continue_();
     Break& break_();
+    Throw& throw_();
+    Throw& throw_(Base& value);
+    Try& try_(Base& tryBranch, Base& catchBranch);
     Return& return_();
     Return& return_(Base& value);
     Parameter& parameter(CellI& role);

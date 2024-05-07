@@ -87,6 +87,7 @@ ID::ID(brain::Brain& kb) :
     templateId(kb, kb.std.Char, "templateId"),
     templateParams(kb, kb.std.Char, "templateParams"),
     then(kb, kb.std.Char, "then"),
+    throw_(kb, kb.std.Char, "throw"),
     type(kb, kb.std.Char, "type"),
     unknownInstances(kb, kb.std.Char, "unknownInstances"),
     unknownStructs(kb, kb.std.Char, "unknownStructs"),
@@ -185,6 +186,8 @@ Ast::Ast(brain::Brain& kb) :
     Subtract(kb, kb.std.Type_, "ast::Subtract"),
     TemplatedType(kb, kb.std.Type_, "ast::TemplatedType"),
     TemplateParam(kb, kb.std.Type_, "ast::TemplateParam"),
+    Throw(kb, kb.std.Type_, "ast::Throw"),
+    Try(kb, kb.std.Type_, "ast::Try"),
     Var(kb, kb.std.Type_, "ast::Var"),
     While(kb, kb.std.Type_, "ast::While")
 {
@@ -590,6 +593,24 @@ Ast::Continue::Continue(brain::Brain& kb) :
 Ast::Break::Break(brain::Brain& kb) :
     BaseT<Break>(kb, kb.std.ast.Break, "ast.break")
 {
+}
+
+Ast::Try::Try(brain::Brain& kb, Base& tryBranch, Base& catchBranch) :
+    BaseT<Try>(kb, kb.std.ast.Try, "ast.try")
+{
+    set("tryBranch", tryBranch);
+    set("catchBranch", catchBranch);
+}
+
+Ast::Throw::Throw(brain::Brain& kb) :
+    BaseT<Throw>(kb, kb.std.ast.Throw, "ast.throw")
+{
+}
+
+Ast::Throw::Throw(brain::Brain& kb, Base& value) :
+    BaseT<Throw>(kb, kb.std.ast.Throw, "ast.throw")
+{
+    set("value", value);
 }
 
 Ast::Return::Return(brain::Brain& kb) :
@@ -1835,6 +1856,14 @@ Ast::Base& Ast::StructT::instantiateAst(CellI& ast, CellI& selfType, Map& inputP
         return kb.ast.continue_();
     } else if (&ast.type() == &kb.std.ast.Break) {
         return kb.ast.break_();
+    } else if (&ast.type() == &kb.std.ast.Try) {
+        return kb.ast.try_(instantiate(ast["tryBranch"]), instantiate(ast["catchBranch"]));
+    } else if (&ast.type() == &kb.std.ast.Throw) {
+        if (ast.has(kb.ids.value)) {
+            return kb.ast.throw_(instantiate(ast[kb.ids.value]));
+        } else {
+            return kb.ast.throw_();
+        }
     } else if (&ast.type() == &kb.std.ast.Parameter) {
         return kb.ast.parameter(ast[kb.ids.role]);
     } else if (&ast.type() == &kb.std.ast.Var) {
@@ -2066,6 +2095,14 @@ Ast::Base& Ast::Function::resolveTypesInCode(CellI& resolveState, CellI& ast)
         return kb.ast.continue_();
     } else if (&ast.type() == &kb.std.ast.Break) {
         return kb.ast.break_();
+    } else if (&ast.type() == &kb.std.ast.Try) {
+        return kb.ast.try_(resolveNode(ast["tryBranch"]), resolveNode(ast["catchBranch"]));
+    } else if (&ast.type() == &kb.std.ast.Throw) {
+        if (ast.has(kb.ids.value)) {
+            return kb.ast.throw_(resolveNode(ast[kb.ids.value]));
+        } else {
+            return kb.ast.throw_();
+        }
     } else if (&ast.type() == &kb.std.ast.Parameter) {
         return kb.ast.parameter(ast[kb.ids.role]);
     } else if (&ast.type() == &kb.std.ast.Var) {
@@ -2327,8 +2364,18 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         CellI& lastBlock = state["lastBlock"];
         CellI& retOp     = compile(kb.ast.set(_(lastBlock), "status", _(kb.ids.break_)));
         return retOp;
+    } else if (&ast.type() == &kb.std.ast.Throw) {
+        if (state.missing("lastBlock")) {
+            throw "No statement to break!";
+        }
+        CellI& lastBlock = state["lastBlock"];
+        CellI& retOp     = compile(kb.ast.set(_(lastBlock), "status", _(kb.ids.throw_)));
+        if (ast.has("value")) {
+            retOp.set("result", compile(kb.ast.set(_(lastBlock), "value", static_cast<Ast::Base&>(ast[kb.ids.value]))));
+        }
+        return retOp;
     } else if (&ast.type() == &kb.std.ast.Parameter) {
-        CellI& retOp = compile(kb.ast.get(_(function), _("stack")) / "value" / "input" / _(ast[kb.ids.role]));
+        CellI& retOp = compile(kb.ast.get(_(function), "stack") / "value" / "input" / _(ast[kb.ids.role]));
         retOp.set("ast", ast);
         return retOp;
     } else if (&ast.type() == &kb.std.ast.Member) {
@@ -2339,7 +2386,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         Object& retOp = *new Object(kb, kb.std.op.Return, "op.return");
         retOp.set("ast", ast);
         if (ast.has("value")) {
-            retOp.set("result", compile(kb.ast.set(kb.ast.get(_(function), _("stack")) / "value" / "output", _("value"), static_cast<Ast::Base&>(ast[kb.ids.value]))));
+            retOp.set("result", compile(kb.ast.set(kb.ast.get(_(function), "stack") / "value" / "output", "value", static_cast<Ast::Base&>(ast[kb.ids.value]))));
         }
         return retOp;
     } else if (&ast.type() == &kb.std.ast.Var) {
@@ -2601,7 +2648,8 @@ block {
 
         CellI& setInput      = compile(kb.ast.set(_(varNewStackFrame) / "value", _("input"), _(varInputIndex) / "value"));
         CellI& setSelf       = compile(kb.ast.set(_(varInputIndex) / "value", _("self"), astCell));
-        CellI& setStackToNew = compile(kb.ast.set(_(varMethod) / "value", _("stack"), _(varNewStackItem) / "value"));
+        CellI& setStackNext  = compile(kb.ast.set(_(varMethod) / "value" / "stack" / "previous", "next", _(varNewStackItem) / "value"));
+        CellI& setStackToNew = compile(kb.ast.set(_(varMethod) / "value", "stack", _(varNewStackItem) / "value"));
         CellI& setRetValue   = compile(kb.ast.if_(kb.ast.has(_(varMethod) / "value" / "type" / "subTypes" / "index", _("returnType")),
                                                   kb.ast.block(kb.ast.set(_(varNewStackFrame) / "value", _("output"), kb.ast.new_(_(kb.std.op.Var))),
                                                                kb.ast.set(_(varNewStackFrame) / "value" / "output", _("valueType"), _(varMethod) / "value" / "type" / "subTypes" / "index" / "returnType" / "value"))));
@@ -2635,6 +2683,7 @@ block {
         }
         CellI& evalMethod = *new Object(kb, kb.std.op.EvalVar, std::format("{}::Call {{ evalVar; }}", function.label()));
         evalMethod.set("value", varMethod);
+        compiledAsts.add(setStackNext);
         compiledAsts.add(setStackToNew);
         compiledAsts.add(evalMethod);
         compiledAsts.add(getResult);
@@ -2654,6 +2703,7 @@ block {
         setInput.label("Call { setInput; }");
         setRetValue.label("Call { setRetValue; }");
         setSelf.label("Call { setSelf; }");
+        setStackNext.label("Call { setStackNext; }");
         setStackToNew.label("Call { setStackToNew; }");
         getResult.label("Call { getResult; }");
         setStackToOld.label("Call { setStackToOld; }");
@@ -3217,6 +3267,21 @@ Ast::Break& Ast::break_()
     return Break::New(kb);
 }
 
+Ast::Throw& Ast::throw_()
+{
+    return Throw::New(kb);
+}
+
+Ast::Throw& Ast::throw_(Base& value)
+{
+    return Throw::New(kb, value);
+}
+
+Ast::Try& Ast::try_(Base& tryBranch, Base& catchBranch)
+{
+    return Try::New(kb, tryBranch, catchBranch);
+}
+
 Ast::SelfFn& Ast::selfFn()
 {
     return SelfFn::New(kb);
@@ -3675,6 +3740,7 @@ Strings::Strings(brain::Brain& kb) :
         { "templateId", kb.ids.templateId },
         { "templateParams", kb.ids.templateParams },
         { "then", kb.ids.then },
+        { "throw", kb.ids.throw_ },
         { "type", kb.ids.type },
         { "unknownInstances", kb.ids.unknownInstances },
         { "unknownStructs", kb.ids.unknownStructs },
@@ -4231,6 +4297,15 @@ void Brain::createAst(Ast::Scope& stdScope)
         .members(
             member("role", _(std.Cell)));
 
+    astScope.addStruct("Throw")
+        .members(
+            member("value", struct_("Base")));
+
+    astScope.addStruct("Try")
+        .members(
+            member("tryBranch", struct_("Base")),
+            member("catchBranch", struct_("Base")));
+
     astScope.addStruct("Var")
         .members(
             member("role", struct_("Base")),
@@ -4251,8 +4326,8 @@ void Brain::createStd()
     stdScope.addStruct("Cell");
     stdScope.addStruct("Slot")
         .members(
-            member("slotType", struct_("Type")),
-            member("slotRole", struct_("Cell")));
+            member("slotRole", struct_("Cell")),
+            member("slotType", struct_("Type")));
 
     stdScope.addStruct("Enum")
         .members(

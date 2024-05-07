@@ -232,18 +232,6 @@ bool Object::has(CellI& role)
     return m_slots.find(&role) != m_slots.end();
 }
 
-bool Object::hasRoleRecursive(CellI& role)
-{
-    CellI& typeCell = type();
-    if (typeCell.has(kb.ids.slots)) {
-        if (typeCell[kb.ids.slots][kb.ids.index].has(role)) {
-            return true;
-        }
-    }
-    if (typeCell.has(kb.ids.memberOf)) {
-    }
-}
-
 void Object::set(CellI& role, CellI& value)
 {
     if ((&role == &kb.ids.type) && !((&type() == &kb.std.Index))) {
@@ -827,7 +815,8 @@ void Object::createStack(CellI& method)
 {
     Object& inputIndex    = *new Object(kb, kb.std.Index, "StackFrame1.InputIndex");
     Object& stackFrame    = *new Object(kb, kb.std.StackFrame, "StackFrame1");
-    Object& stackListItem = *new Object(kb, kb.std.ListItem, "StackListItem1");
+    Object& stackListItem0 = *new Object(kb, kb.std.ListItem, "StackListItem0");
+    Object& stackListItem1 = *new Object(kb, kb.std.ListItem, "StackListItem1");
     stackFrame.set(kb.ids.method, method);
     stackFrame.set(kb.ids.input, inputIndex);
 
@@ -837,8 +826,10 @@ void Object::createStack(CellI& method)
         outputIndex.set(kb.ids.value, varResult);
         stackFrame.set(kb.ids.output, outputIndex);
     }
-    stackListItem.set(kb.ids.value, stackFrame);
-    method.set(kb.ids.stack, stackListItem);
+    stackListItem0.set(kb.ids.next, stackListItem1);
+    stackListItem1.set(kb.ids.value, stackFrame);
+    stackListItem1.set(kb.ids.previous, stackListItem0);
+    method.set(kb.ids.stack, stackListItem1);
 }
 
 void Object::initLocalVars(CellI& method)

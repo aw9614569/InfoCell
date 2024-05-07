@@ -16,6 +16,27 @@ struct Add
 };
 }
 } // namespace std2
+namespace ns_level1 {
+namespace ns_level2 {
+namespace ast {
+namespace ast_2 {
+namespace ast_3 {
+struct Base;
+} // namespace ast_3
+} // namespace ast_2
+} // namespace ast
+namespace ns_level3 {
+namespace ns_level4 {
+namespace op {
+struct Add
+{
+    ast::ast_2::ast_3::Base* ast;
+};
+} // namespace op
+} // namespace ns_level4
+} // namespace ns_level3
+} // namespace ns_level2
+} // namespace ns_level1
 
 #include <fstream>
 #include <gtest/gtest.h>

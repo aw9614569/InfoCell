@@ -118,7 +118,6 @@ public:
 protected:
     void destructor();
 
-    bool hasRoleRecursive(CellI& role);
     bool hasMethod(CellI& role);
     CellI& getMethod(CellI& role);
     CellI& getStaticMethod(CellI& role);
