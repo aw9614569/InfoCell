@@ -206,10 +206,10 @@ public:
 
 } // namespace type
 
-class Types
+class Std
 {
 public:
-    Types(brain::Brain& kb);
+    Std(brain::Brain& kb);
 
     cells::CellI& slot(const std::string& role, cells::CellI& type);
     cells::CellI& slot(cells::CellI& role, cells::CellI& type);
@@ -435,7 +435,7 @@ public:
         StructT& addStructT(const std::string& name);
 
         Struct& resolveFullStructId(CellI& scopeList, CellI& id);
-        Scope* resolveFullTemplateId(CellI& scopeList, CellI& id);
+        StructT& resolveFullTemplateId(CellI& scopeList, CellI& id);
         Scope& getRootScope();
 
         CellI& getFullId();
@@ -443,6 +443,8 @@ public:
         CellI& compile(TrieMap& earlyStructs);
 
     protected:
+        Base& resolveFullIdInAllScope(CellI& scopeList, CellI& id, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb);
+        Base* resolveFullIdInOneScope(Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb);
         void resolveTypes(CellI& state);
         void compileTheResolvedAsts(CellI& programData, CellI& state);
 
@@ -1003,9 +1005,9 @@ public:
 
 protected:
     InitPhase m_initPhase = InitPhase::Init;
-    friend class Types;
-    void createOp();
-    void createAst();
+    friend class Std;
+    void createOp(Ast::Scope& stdScope);
+    void createAst(Ast::Scope& stdScope);
     void createStd();
     void createArcSolver();
     void createTests();
@@ -1031,7 +1033,7 @@ public:
 
     Pools pools;
     ID ids;
-    Types type;
+    Std std;
     Ast ast;
     Directions directions;
     Coordinates coordinates;
@@ -1105,7 +1107,7 @@ Ast::TemplatedType& Brain::tt_(const std::string& name, Args&&... args)
 template <typename... Args>
 CellI& Brain::templateId(const std::string& str, Args&&... args)
 {
-    List& idCell = *new List(*this, type.Cell);
+    List& idCell = *new List(*this, std.Cell);
     for (const auto& character : str) {
         idCell.add(pools.chars.get(character));
     }
@@ -1158,7 +1160,7 @@ void Brain::addSlots(Map& map, CellI& value, Args&&... args)
 template <typename... Args>
 Map& Brain::slots(CellI& value, Args&&... args)
 {
-    Map& ret = *new Map(*this, type.Cell, type.Slot, "Map<Cell, Slot>(...)");
+    Map& ret = *new Map(*this, std.Cell, std.Slot, "Map<Cell, Slot>(...)");
     addSlots(ret, value, std::forward<Args>(args)...);
 
     return ret;

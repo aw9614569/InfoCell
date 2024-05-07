@@ -50,24 +50,24 @@ void CellValuePrinter::printOpBlock(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
     CellI& ast       = cell[kb.ids.ast];
-    if (&ast.type() == &kb.type.ast.Call || &ast.type() == &kb.type.ast.StaticCall) {
-        if (&ast[kb.ids.cell].type() == &kb.type.ast.Get && cell.label() != "New { call constructor; }") {
+    if (&ast.type() == &kb.std.ast.Call || &ast.type() == &kb.std.ast.StaticCall) {
+        if (&ast[kb.ids.cell].type() == &kb.std.ast.Get && cell.label() != "New { call constructor; }") {
             printImpl(ast[kb.ids.cell]);
         }
-        if (&ast[kb.ids.cell].type() == &kb.type.ast.Self) {
+        if (&ast[kb.ids.cell].type() == &kb.std.ast.Self) {
             m_ss << "self";
         }
-        if (&ast[kb.ids.cell].type() == &kb.type.ast.Cell) {
+        if (&ast[kb.ids.cell].type() == &kb.std.ast.Cell) {
             m_ss << ast[kb.ids.cell][kb.ids.value].label();
         }
-        if (&ast[kb.ids.cell].type() == &kb.type.ast.Member) {
+        if (&ast[kb.ids.cell].type() == &kb.std.ast.Member) {
             m_ss << "m_" << ast[kb.ids.cell][kb.ids.role].label();
         }
-        if (&ast[kb.ids.cell].type() == &kb.type.ast.Parameter) {
+        if (&ast[kb.ids.cell].type() == &kb.std.ast.Parameter) {
             m_ss << "p_" << ast[kb.ids.cell][kb.ids.role].label();
         }
         if (ast.has(kb.ids.method)) {
-            if (&ast.type() == &kb.type.ast.Call) {
+            if (&ast.type() == &kb.std.ast.Call) {
                 m_ss << ".";
             } else {
                 m_ss << "::";
@@ -94,13 +94,13 @@ void CellValuePrinter::printOpBlock(CellI& cell)
         }
         return;
     }
-    if (&ast.type() == &kb.type.ast.New) {
+    if (&ast.type() == &kb.std.ast.New) {
         m_ss << "new ";
         CellI* objectTypePtr = nullptr;
-        if (ast[kb.ids.objectType].isA(kb.type.ast.Cell)) {
+        if (ast[kb.ids.objectType].isA(kb.std.ast.Cell)) {
             objectTypePtr = &ast[kb.ids.objectType][kb.ids.value];
             m_ss << objectTypePtr->label();
-        } else if (ast[kb.ids.objectType].isA(kb.type.ast.ResolvedType)) {
+        } else if (ast[kb.ids.objectType].isA(kb.std.ast.ResolvedType)) {
             objectTypePtr = &ast[kb.ids.objectType][kb.ids.compiled];
             m_ss << objectTypePtr->label();
         } else {
@@ -188,7 +188,7 @@ void CellValuePrinter::printOpDelete(CellI& cell)
 void CellValuePrinter::printOpSet(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    if ((&cell[kb.ids.ast][kb.ids.cell].type() == &kb.type.ast.Self) && (&cell[kb.ids.ast][kb.ids.role].type() == &kb.type.ast.Cell)) {
+    if ((&cell[kb.ids.ast][kb.ids.cell].type() == &kb.std.ast.Self) && (&cell[kb.ids.ast][kb.ids.role].type() == &kb.std.ast.Cell)) {
         m_ss << "m_";
     } else {
         printImpl(cell[kb.ids.cell]);
@@ -213,9 +213,9 @@ void CellValuePrinter::printOpIf(CellI& cell)
     brain::Brain& kb = cell.kb;
 
     auto isBlock = [this, &kb, &cell](CellI& ast) -> bool {
-        if (&ast.type() == &kb.type.op.Block) {
+        if (&ast.type() == &kb.std.op.Block) {
             auto& astType = ast[kb.ids.ast].type();
-            if (&astType == &kb.type.ast.Call || &astType == &kb.type.ast.StaticCall || &astType == &kb.type.ast.New) {
+            if (&astType == &kb.std.ast.Call || &astType == &kb.std.ast.StaticCall || &astType == &kb.std.ast.New) {
                 return false;
             }
             return true;
@@ -277,11 +277,11 @@ void CellValuePrinter::printOpConstVar(CellI& cell)
     brain::Brain& kb = cell.kb;
     if (cell.has(kb.ids.ast)) {
         CellI& ast = cell[kb.ids.ast];
-        if (&ast.type() == &kb.type.ast.Cell) {
+        if (&ast.type() == &kb.std.ast.Cell) {
             m_ss << ast[kb.ids.value].label();
             return;
         }
-        if (&ast.type() == &kb.type.ast.Var) {
+        if (&ast.type() == &kb.std.ast.Var) {
             m_ss << "var_" << ast[kb.ids.role].label();
             return;
         }
@@ -357,19 +357,19 @@ void CellValuePrinter::printOpMissing(CellI& cell)
 void CellValuePrinter::printOpGet(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    if (&cell[kb.ids.ast].type() == &kb.type.ast.Member) {
+    if (&cell[kb.ids.ast].type() == &kb.std.ast.Member) {
         m_ss << "m_" << cell[kb.ids.ast][kb.ids.role].label();
         return;
     }
-    if (&cell[kb.ids.ast].type() == &kb.type.ast.Self) {
+    if (&cell[kb.ids.ast].type() == &kb.std.ast.Self) {
         m_ss << "self";
         return;
     }
-    if (&cell[kb.ids.ast].type() == &kb.type.ast.Parameter) {
+    if (&cell[kb.ids.ast].type() == &kb.std.ast.Parameter) {
         m_ss << "p_" << cell[kb.ids.ast][kb.ids.role].label();
         return;
     }
-    if (&cell[kb.ids.ast].type() == &kb.type.ast.Var) {
+    if (&cell[kb.ids.ast].type() == &kb.std.ast.Var) {
         m_ss << "var_" << cell[kb.ids.ast][kb.ids.role].label();
         return;
     }
@@ -475,19 +475,19 @@ void CellValuePrinter::printAstCell(CellI& cell)
 void CellValuePrinter::printAstGet(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    if (&cell.type() == &kb.type.ast.Member) {
+    if (&cell.type() == &kb.std.ast.Member) {
         m_ss << "m_" << cell[kb.ids.ast][kb.ids.role].label();
         return;
     }
-    if (&cell.type() == &kb.type.ast.Self) {
+    if (&cell.type() == &kb.std.ast.Self) {
         m_ss << "self";
         return;
     }
-    if (&cell.type() == &kb.type.ast.Parameter) {
+    if (&cell.type() == &kb.std.ast.Parameter) {
         m_ss << "p_" << cell[kb.ids.ast][kb.ids.role].label();
         return;
     }
-    if (&cell.type() == &kb.type.ast.Var) {
+    if (&cell.type() == &kb.std.ast.Var) {
         m_ss << "var_" << cell[kb.ids.ast][kb.ids.role].label();
         return;
     }
@@ -536,18 +536,18 @@ void CellValuePrinter::printTypeName(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
     auto isA          = [this, &cell, &kb](CellI& type) -> bool { return &cell == &type || (cell.has(kb.ids.memberOf) && cell[kb.ids.memberOf][kb.ids.index].has(type)); };
-    if (isA(kb.type.Map)) {
+    if (isA(kb.std.Map)) {
         m_ss << std::format("Map<{}, {}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.keyType][kb.ids.value].label(), cell[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label());
         return;
-    } else if (isA(kb.type.ListItem)) {
-        if (&cell == &kb.type.ListItem) {
+    } else if (isA(kb.std.ListItem)) {
+        if (&cell == &kb.std.ListItem) {
             m_ss << "ListItem";
             return;
         }
         m_ss << std::format("ListItem<{}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label());
         return;
-    } else if (isA(kb.type.List)) {
-        if (&cell == &kb.type.List) {
+    } else if (isA(kb.std.List)) {
+        if (&cell == &kb.std.List) {
             m_ss << "List";
             return;
         }
@@ -562,17 +562,17 @@ void CellValuePrinter::printImpl(CellI& cell)
     brain::Brain& kb = cell.kb;
     auto is          = [this, &cell, &kb](CellI& type) -> bool { return &cell.type() == &type || (cell.type().has(kb.ids.memberOf) && cell.type()[kb.ids.memberOf][kb.ids.index].has(type)); };
 
-    if (is(kb.type.Slot)) {
+    if (is(kb.std.Slot)) {
         CellI& cellType = cell[kb.ids.slotType];
         m_ss << cell[kb.ids.slotRole].label() << ": ";
-        if (cellType.type().has(kb.ids.memberOf) && cellType.type()[kb.ids.memberOf][kb.ids.index].has(kb.type.ListItem)) {
+        if (cellType.type().has(kb.ids.memberOf) && cellType.type()[kb.ids.memberOf][kb.ids.index].has(kb.std.ListItem)) {
             m_ss << "ListItem<" << cellType.type()[kb.ids.slots][kb.ids.index][kb.ids.value][kb.ids.value][kb.ids.slotType].label() << ">";
         } else {
             m_ss << cellType.label();
         }
         return;
-    } else if (is(kb.type.List)) {
-        if (&cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value] == &kb.type.Char) {
+    } else if (is(kb.std.List)) {
+        if (&cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value] == &kb.std.Char) {
             m_ss << cell.label();
             return;
         }
@@ -586,7 +586,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         });
         m_ss << "]";
         return;
-    } else if (is(kb.type.Map)) {
+    } else if (is(kb.std.Map)) {
         if (!cell.has(kb.ids.list)) {
             m_ss << "{}";
             return;
@@ -604,7 +604,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         });
         m_ss << "}";
         return;
-    } else if (is(kb.type.Type_)) {
+    } else if (is(kb.std.Type_)) {
         CellI& type = cell;
         m_ss << "Type ";
         printTypeName(cell);
@@ -633,115 +633,115 @@ void CellValuePrinter::printImpl(CellI& cell)
     } else if (&cell == &kb.ids.red || &cell == &kb.ids.green || &cell == &kb.ids.blue) {
         m_ss << cell.label();
         return;
-    } else if (is(kb.type.op.Block)) {
+    } else if (is(kb.std.op.Block)) {
         printOpBlock(cell);
         return;
-    } else if (is(kb.type.op.EvalVar)) {
+    } else if (is(kb.std.op.EvalVar)) {
         printOpEvalVar(cell);
         return;
-    } else if (is(kb.type.op.Function)) {
+    } else if (is(kb.std.op.Function)) {
         printOpFunction(cell);
         return;
-    } else if (is(kb.type.op.Delete)) {
+    } else if (is(kb.std.op.Delete)) {
         printOpDelete(cell);
         return;
-    } else if (is(kb.type.op.Set)) {
+    } else if (is(kb.std.op.Set)) {
         printOpSet(cell);
         return;
-    } else if (is(kb.type.op.Erase)) {
+    } else if (is(kb.std.op.Erase)) {
         printOpErase(cell);
         return;
-    } else if (is(kb.type.op.If)) {
+    } else if (is(kb.std.op.If)) {
         printOpIf(cell);
         return;
-    } else if (is(kb.type.op.Do)) {
+    } else if (is(kb.std.op.Do)) {
         printOpDo(cell);
         return;
-    } else if (is(kb.type.op.While)) {
+    } else if (is(kb.std.op.While)) {
         printOpWhile(cell);
         return;
-    } else if (is(kb.type.op.ConstVar)) {
+    } else if (is(kb.std.op.ConstVar)) {
         printOpConstVar(cell);
         return;
-    } else if (is(kb.type.op.Var)) {
+    } else if (is(kb.std.op.Var)) {
         printOpVar(cell);
         return;
-    } else if (is(kb.type.op.New)) {
+    } else if (is(kb.std.op.New)) {
         printOpNew(cell);
         return;
-    } else if (is(kb.type.op.Same)) {
+    } else if (is(kb.std.op.Same)) {
         printOpSame(cell);
         return;
-    } else if (is(kb.type.op.NotSame)) {
+    } else if (is(kb.std.op.NotSame)) {
         printOpNotSame(cell);
         return;
-    } else if (is(kb.type.op.Equal)) {
+    } else if (is(kb.std.op.Equal)) {
         printOpEqual(cell);
         return;
-    } else if (is(kb.type.op.NotEqual)) {
+    } else if (is(kb.std.op.NotEqual)) {
         printOpNotEqual(cell);
         return;
-    } else if (is(kb.type.op.Has)) {
+    } else if (is(kb.std.op.Has)) {
         printOpHas(cell);
         return;
-    } else if (is(kb.type.op.Missing)) {
+    } else if (is(kb.std.op.Missing)) {
         printOpMissing(cell);
         return;
-    } else if (is(kb.type.op.Get)) {
+    } else if (is(kb.std.op.Get)) {
         printOpGet(cell);
         return;
-    } else if (is(kb.type.op.And)) {
+    } else if (is(kb.std.op.And)) {
         printOpAnd(cell);
         return;
-    } else if (is(kb.type.op.Or)) {
+    } else if (is(kb.std.op.Or)) {
         printOpOr(cell);
         return;
-    } else if (is(kb.type.op.Not)) {
+    } else if (is(kb.std.op.Not)) {
         printOpNot(cell);
         return;
-    } else if (is(kb.type.op.Add)) {
+    } else if (is(kb.std.op.Add)) {
         printOpAdd(cell);
         return;
-    } else if (is(kb.type.op.Subtract)) {
+    } else if (is(kb.std.op.Subtract)) {
         printOpSubtract(cell);
         return;
-    } else if (is(kb.type.op.Multiply)) {
+    } else if (is(kb.std.op.Multiply)) {
         printOpMultiply(cell);
         return;
-    } else if (is(kb.type.op.Divide)) {
+    } else if (is(kb.std.op.Divide)) {
         printOpDivide(cell);
         return;
-    } else if (is(kb.type.op.LessThan)) {
+    } else if (is(kb.std.op.LessThan)) {
         printOpLessThan(cell);
         return;
-    } else if (is(kb.type.op.LessThanOrEqual)) {
+    } else if (is(kb.std.op.LessThanOrEqual)) {
         printOpLessThanOrEqual(cell);
         return;
-    } else if (is(kb.type.op.GreaterThan)) {
+    } else if (is(kb.std.op.GreaterThan)) {
         printOpGreaterThan(cell);
         return;
-    } else if (is(kb.type.op.GreaterThanOrEqual)) {
+    } else if (is(kb.std.op.GreaterThanOrEqual)) {
         printOpGreaterThanOrEqual(cell);
         return;
-    } else if (is(kb.type.op.Return)) {
+    } else if (is(kb.std.op.Return)) {
         printOpReturn(cell);
         return;
-    } else if (is(kb.type.ast.Cell)) {
+    } else if (is(kb.std.ast.Cell)) {
         printAstCell(cell);
         return;
-    } else if (is(kb.type.ast.Get)) {
+    } else if (is(kb.std.ast.Get)) {
         printAstGet(cell);
         return;
-    } else if (is(kb.type.ast.Parameter)) {
+    } else if (is(kb.std.ast.Parameter)) {
         printAstParameter(cell);
         return;
-    } else if (is(kb.type.ast.Var)) {
+    } else if (is(kb.std.ast.Var)) {
         printAstVar(cell);
         return;
-    } else if (is(kb.type.ast.Member)) {
+    } else if (is(kb.std.ast.Member)) {
         printAstMember(cell);
         return;
-    } else if (is(kb.type.ast.Subtract)) {
+    } else if (is(kb.std.ast.Subtract)) {
         printAstSubtract(cell);
         return;
     }

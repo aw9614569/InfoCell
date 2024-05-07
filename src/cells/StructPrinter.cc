@@ -80,12 +80,12 @@ void CellStructPrinter::printImpl(CellI& cell)
     auto is           = [this, &cell, &kb](CellI& type) -> bool { return &cell.type() == &type || (cell.type().has(kb.ids.memberOf) && cell.type()[kb.ids.memberOf][kb.ids.index].has(type)); };
 
     CellI& type   = cell.type();
-    if (&type == &kb.type.Type_) {
+    if (&type == &kb.std.Type_) {
         if (!cell.label().empty()) {
             m_ss << cell.label() << ": ";
         }
     }
-    if (&type == &kb.type.Slot) {
+    if (&type == &kb.std.Slot) {
         if (cell.label().empty()) {
             m_ss << cell[kb.ids.slotRole].label() << ": ";
         } else {
@@ -93,11 +93,11 @@ void CellStructPrinter::printImpl(CellI& cell)
         }
     }
 
-    if (is(kb.type.List)) {
+    if (is(kb.std.List)) {
         m_ss << "List<" << cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label() << ">";
-    } else if (is(kb.type.ListItem)) {
+    } else if (is(kb.std.ListItem)) {
         m_ss << "ListItem<" << cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label() << ">";
-    } else if (is(kb.type.Map)) {
+    } else if (is(kb.std.Map)) {
         m_ss << "Map<" << cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.keyType][kb.ids.value].label() << ", " << cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label() << ">";
     } else {
         m_ss << "(" << type.label() << ")";
