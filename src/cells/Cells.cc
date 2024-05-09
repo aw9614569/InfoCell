@@ -80,9 +80,9 @@ CellI& CellI::get(CellI& role)
     return (*this)[role];
 }
 
-CellI& CellI::type()
+CellI& CellI::struct_()
 {
-    return (*this)[kb.ids.type];
+    return (*this)[kb.ids.struct_];
 }
 
 void CellI::eval()
@@ -102,7 +102,7 @@ void CellI::label(const std::string& label)
 
 bool CellI::isA(CellI& ptype)
 {
-    return &type() == &ptype || (has(kb.ids.memberOf) && (*this)[kb.ids.memberOf][kb.ids.index].has(ptype));
+    return &struct_() == &ptype || (has(kb.ids.memberOf) && (*this)[kb.ids.memberOf][kb.ids.index].has(ptype));
 }
 
 bool CellI::isA(CellI& cell, CellI& type) const
@@ -112,10 +112,10 @@ bool CellI::isA(CellI& cell, CellI& type) const
 
 bool CellI::operator==(CellI& rhs)
 {
-    if (&type() != &rhs.type()) {
+    if (&struct_() != &rhs.struct_()) {
         return false;
     }
-    CellI& slotList    = type()[kb.ids.slots][kb.ids.list];
+    CellI& slotList    = struct_()[kb.ids.slots][kb.ids.list];
     CellI* slotItemPtr = slotList.has(kb.ids.first) ? &slotList[kb.ids.first] : nullptr;
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
@@ -151,14 +151,14 @@ Object::Object(brain::Brain& kb, CellI& type, const std::string& label) :
     CellI(kb, label),
     m_type(type)
 {
-    m_slots[&kb.ids.type] = &type;
+    m_slots[&kb.ids.struct_] = &type;
 }
 
 Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, const std::string& label) :
     CellI(kb, label),
     m_type(type)
 {
-    m_slots[&kb.ids.type] = &type;
+    m_slots[&kb.ids.struct_] = &type;
     getMethod(constructor)();
 }
 
@@ -166,7 +166,7 @@ Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, 
     CellI(kb, label),
     m_type(type)
 {
-    m_slots[&kb.ids.type] = &type;
+    m_slots[&kb.ids.struct_] = &type;
 
     CellI& method = getMethod(constructor);
     setFnParam(method, param1);
@@ -177,7 +177,7 @@ Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, 
     CellI(kb, label),
     m_type(type)
 {
-    m_slots[&kb.ids.type] = &type;
+    m_slots[&kb.ids.struct_] = &type;
 
     CellI& method = getMethod(constructor);
     setFnParam(method, param1);
@@ -189,7 +189,7 @@ Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, 
     CellI(kb, label),
     m_type(type)
 {
-    m_slots[&kb.ids.type] = &type;
+    m_slots[&kb.ids.struct_] = &type;
 
     CellI& method = getMethod(constructor);
     setFnParam(method, param1);
@@ -203,7 +203,7 @@ Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, 
     CellI(kb, label),
     m_type(type)
 {
-    m_slots[&kb.ids.type] = &type;
+    m_slots[&kb.ids.struct_] = &type;
 
     CellI& method = getMethod(constructor);
     setFnParam(method, param1);
@@ -226,7 +226,7 @@ Object::~Object()
 
 bool Object::has(CellI& role)
 {
-    if (&role == &kb.ids.type)
+    if (&role == &kb.ids.struct_)
         return true;
 
     return m_slots.find(&role) != m_slots.end();
@@ -234,10 +234,10 @@ bool Object::has(CellI& role)
 
 void Object::set(CellI& role, CellI& value)
 {
-    if ((&role == &kb.ids.type) && !((&type() == &kb.std.Index))) {
+    if ((&role == &kb.ids.struct_) && !((&struct_() == &kb.std.Index))) {
         throw "Type change not allowed.";
     }
-    if ((&role == &kb.ids.type) && (&type() == &kb.std.Index)) {
+    if ((&role == &kb.ids.struct_) && (&struct_() == &kb.std.Index)) {
         std::cout << "";
     }
 
@@ -245,8 +245,8 @@ void Object::set(CellI& role, CellI& value)
         m_slots[&role] = &value;
         return;
     }
-    auto is = [this](CellI& rhsType) -> bool { return &type() == &rhsType || (type().has(kb.ids.memberOf) && type()[kb.ids.memberOf][kb.ids.index].has(rhsType)); };
-    if (is(kb.std.Index) || type()[kb.ids.slots][kb.ids.index].has(role)) {
+    auto is = [this](CellI& rhsType) -> bool { return &struct_() == &rhsType || (struct_().has(kb.ids.memberOf) && struct_()[kb.ids.memberOf][kb.ids.index].has(rhsType)); };
+    if (is(kb.std.Index) || struct_()[kb.ids.slots][kb.ids.index].has(role)) {
         m_slots[&role] = &value;
     } else {
         throw "The type doesn't contains this role.";
@@ -255,7 +255,7 @@ void Object::set(CellI& role, CellI& value)
 
 void Object::erase(CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         throw "Type change not allowed.";
     }
 
@@ -286,7 +286,7 @@ void Object::operator()()
 
     if (&m_type == &kb.std.op.Block) {
         Visitor::visitList(get(kb.ids.ops), [this](CellI& op, int, bool& stop) {
-            if (&op.type() == &kb.std.op.Return) {
+            if (&op.struct_() == &kb.std.op.Return) {
                 op();
                 set(kb.ids.status, kb.ids.return_);
                 stop = true;
@@ -356,7 +356,7 @@ void Object::operator()()
         CellI& value = inputValue[kb.ids.value];
         if (inputCell.has(kb.ids.ast)) {
             CellI& ast = inputCell.get(kb.ids.ast);
-            if (&ast.type() == &kb.std.ast.Var) {
+            if (&ast.struct_() == &kb.std.ast.Var) {
                 if (ast[kb.ids.role].label() == "DDDDpixel1") {
 //                    std::cout << "DDDD1 dir = " << value.label() << std::endl;
                 }
@@ -412,7 +412,7 @@ void Object::operator()()
         }
         CellI& branch = *branchPtr;
         branch();
-        if (&branch.type() == &kb.std.op.Return) {
+        if (&branch.struct_() == &kb.std.op.Return) {
             set(kb.ids.status, kb.ids.return_);
         } else if (branch.has(kb.ids.status)) {
             set(kb.ids.status, branch[kb.ids.status]);
@@ -424,7 +424,7 @@ void Object::operator()()
             CellI& statement      = get(kb.ids.statement);
             CellI& inputCondition = get(kb.ids.condition);
             statement();
-            if (&statement.type() == &kb.std.op.Return || (statement.has(kb.ids.status) && &statement[kb.ids.status] == &kb.ids.return_)) {
+            if (&statement.struct_() == &kb.std.op.Return || (statement.has(kb.ids.status) && &statement[kb.ids.status] == &kb.ids.return_)) {
                 set(kb.ids.status, kb.ids.return_);
                 return;
             } else if (statement.has(kb.ids.status) && &statement[kb.ids.status] == &kb.ids.break_) {
@@ -445,7 +445,7 @@ void Object::operator()()
         condition = &inputCondition[kb.ids.value] == &kb.boolean.true_;
         while (condition) {
             statement();
-            if (&statement.type() == &kb.std.op.Return || (statement.has(kb.ids.status) && &statement[kb.ids.status] == &kb.ids.return_)) {
+            if (&statement.struct_() == &kb.std.op.Return || (statement.has(kb.ids.status) && &statement[kb.ids.status] == &kb.ids.return_)) {
                 set(kb.ids.status, kb.ids.return_);
                 return;
             } else if (statement.has(kb.ids.status) && &statement[kb.ids.status] == &kb.ids.break_) {
@@ -774,14 +774,14 @@ CellI& Object::smethod(CellI& role, Param param1, Param param2, Param param3, Pa
 
 bool Object::hasMethod(CellI& role)
 {
-    return type().has(kb.ids.methods) && type()[kb.ids.methods].has(kb.ids.index) && type()[kb.ids.methods][kb.ids.index].has(role);
+    return struct_().has(kb.ids.methods) && struct_()[kb.ids.methods].has(kb.ids.index) && struct_()[kb.ids.methods][kb.ids.index].has(role);
 }
 
 CellI& Object::getMethod(CellI& role)
 {
     resetIndent();
-    if (type().has(kb.ids.methods)) {
-        CellI& methodsIndex = type()[kb.ids.methods][kb.ids.index];
+    if (struct_().has(kb.ids.methods)) {
+        CellI& methodsIndex = struct_()[kb.ids.methods][kb.ids.index];
         if (methodsIndex.has(role)) {
             CellI& method = methodsIndex[role][kb.ids.value];
             Object& inputIndex = *new Object(kb, kb.std.Index);
@@ -820,7 +820,7 @@ void Object::createStack(CellI& method)
     stackFrame.set(kb.ids.method, method);
     stackFrame.set(kb.ids.input, inputIndex);
 
-    if (method.type()[kb.ids.subTypes][kb.ids.index].has(kb.ids.returnType)) {
+    if (method.struct_()[kb.ids.subTypes][kb.ids.index].has(kb.ids.returnType)) {
         Object& varResult   = *new Object(kb, kb.std.op.Var, "varResult");
         Object& outputIndex = *new Object(kb, kb.std.Index, "ResultIndex");
         outputIndex.set(kb.ids.value, varResult);
@@ -834,10 +834,10 @@ void Object::createStack(CellI& method)
 
 void Object::initLocalVars(CellI& method)
 {
-    if (method.type()[kb.ids.subTypes][kb.ids.index].missing(kb.ids.localVars)) {
+    if (method.struct_()[kb.ids.subTypes][kb.ids.index].missing(kb.ids.localVars)) {
         return;
     }
-    CellI& localVarsType   = method.type()[kb.ids.subTypes][kb.ids.index][kb.ids.localVars][kb.ids.value];
+    CellI& localVarsType   = method.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.localVars][kb.ids.value];
     Object& localVarsIndex = *new Object(kb, localVarsType, "LocalVarsIndex");
     CellI& stackFrame      = method[kb.ids.stack][kb.ids.value];
     stackFrame.set(kb.ids.localVars, localVarsIndex);
@@ -851,7 +851,7 @@ void Object::initLocalVars(CellI& method)
 
 CellI& Object::getFnValue(CellI& method)
 {
-    if (method.type()[kb.ids.subTypes][kb.ids.index].has(kb.ids.returnType)) {
+    if (method.struct_()[kb.ids.subTypes][kb.ids.index].has(kb.ids.returnType)) {
         return method[kb.ids.stack][kb.ids.value][kb.ids.output][kb.ids.value];
     }
 
@@ -865,8 +865,8 @@ void Object::setSelf(CellI& method)
 
 void Object::setFnParam(CellI& fn, Param param)
 {
-    if (fn.type()[kb.ids.subTypes][kb.ids.index][kb.ids.parameters][kb.ids.value].has(kb.ids.slots)) {
-        CellI& inputsIndex = fn.type()[kb.ids.subTypes][kb.ids.index][kb.ids.parameters][kb.ids.value][kb.ids.slots][kb.ids.index];
+    if (fn.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.parameters][kb.ids.value].has(kb.ids.slots)) {
+        CellI& inputsIndex = fn.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.parameters][kb.ids.value][kb.ids.slots][kb.ids.index];
         if (inputsIndex.has(param.role)) {
             fn[kb.ids.stack][kb.ids.value][kb.ids.input].set(param.role, param.value);
         } else {
@@ -887,7 +887,7 @@ List::Item::Item(brain::Brain& kb, List& list, CellI& value) :
 
 bool List::Item::has(CellI& role)
 {
-    if (&role == &kb.ids.type || &role == &kb.ids.value) {
+    if (&role == &kb.ids.struct_ || &role == &kb.ids.value) {
         return true;
     }
     if (&role == &kb.ids.previous && m_previous) {
@@ -923,7 +923,7 @@ void List::Item::operator()()
 
 CellI& List::Item::operator[](CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         if (!m_selfType) {
             m_selfType = &kb.getStruct(kb.templateId("std::ListItem", kb.ids.valueType, m_list.m_valueType));
         }
@@ -963,7 +963,7 @@ List::List(brain::Brain& kb, CellI& valueType, const std::string& label) :
 
 bool List::has(CellI& role)
 {
-    if (&role == &kb.ids.type || &role == &kb.ids.size) {
+    if (&role == &kb.ids.struct_ || &role == &kb.ids.size) {
         return true;
     }
     if (&role == &kb.ids.first && m_firstItem) {
@@ -993,7 +993,7 @@ void List::operator()()
 
 CellI& List::operator[](CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         if (!m_selfType) {
             m_selfType = &kb.getStruct(kb.templateId("std::List", kb.ids.valueType, m_valueType));
         }
@@ -1077,23 +1077,23 @@ int List::size()
     return m_size;
 }
 #pragma endregion
-#pragma region Type
+#pragma region Struct
 // ============================================================================
-Type::Type(brain::Brain& kb, const std::string& label) :
+Struct::Struct(brain::Brain& kb, const std::string& label) :
     CellI(kb, label),
     m_slots(*new Map(kb, kb.std.Cell, kb.std.Slot))
 {
 }
 
-Type::Type(brain::Brain& kb, WithRecursiveType recursiveType, const std::string& label) :
+Struct::Struct(brain::Brain& kb, WithRecursiveType recursiveType, const std::string& label) :
     CellI(kb, label),
     m_slots(*new Map(kb, kb.std.Cell, kb.std.Slot, *this))
 {
 }
 
-bool Type::has(CellI& role)
+bool Struct::has(CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         return true;
     }
     if (&role == &kb.ids.name) {
@@ -1118,25 +1118,25 @@ bool Type::has(CellI& role)
     return false;
 }
 
-void Type::set(CellI& key, CellI& value)
+void Struct::set(CellI& key, CellI& value)
 {
     throw "Not supported";
 }
 
-void Type::erase(CellI& role)
+void Struct::erase(CellI& role)
 {
     throw "Not supported";
 }
 
-void Type::operator()()
+void Struct::operator()()
 {
     // Do nothing, this is a data cell
 }
 
-CellI& Type::operator[](CellI& role)
+CellI& Struct::operator[](CellI& role)
 {
-    if (&role == &kb.ids.type) {
-        return kb.std.Type_;
+    if (&role == &kb.ids.struct_) {
+        return kb.std.Struct;
     }
     if (&role == &kb.ids.name) {
         if (m_name) {
@@ -1165,22 +1165,22 @@ CellI& Type::operator[](CellI& role)
     throw "No such role!";
 }
 
-void Type::addSlot(CellI& role, CellI& slot)
+void Struct::addSlot(CellI& role, CellI& slot)
 {
     m_slots.add(role, slot);
 }
 
-bool Type::hasSlot(CellI& role)
+bool Struct::hasSlot(CellI& role)
 {
     return m_slots.hasKey(role);
 }
 
-void Type::removeSlot(CellI& role)
+void Struct::removeSlot(CellI& role)
 {
     m_slots.remove(role);
 }
 
-void Type::accept(Visitor& visitor)
+void Struct::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
@@ -1189,11 +1189,11 @@ void Type::accept(Visitor& visitor)
 // ============================================================================
 Index::Index(brain::Brain& kb, const std::string& label) :
     CellI(kb, label),
-    m_type(new Type(kb, Type::WithRecursiveType::Yes))
+    m_type(new Struct(kb, Struct::WithRecursiveType::Yes))
 {
 }
 
-Index::Index(brain::Brain& kb, Type& indexType, const std::string& label) :
+Index::Index(brain::Brain& kb, Struct& indexType, const std::string& label) :
     CellI(kb, label),
     m_type(&indexType),
     m_recursiveType(true)
@@ -1202,7 +1202,7 @@ Index::Index(brain::Brain& kb, Type& indexType, const std::string& label) :
 
 bool Index::has(CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         return true;
     }
     if (m_slots.find(&role) != m_slots.end()) {
@@ -1214,7 +1214,7 @@ bool Index::has(CellI& role)
 
 void Index::set(CellI& key, CellI& value)
 {
-    if (&key == &kb.ids.type) {
+    if (&key == &kb.ids.struct_) {
         throw "The type key can not be changed!";
     }
     m_slots[&key] = &value;
@@ -1236,7 +1236,7 @@ void Index::operator()()
 
 CellI& Index::operator[](CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         return *m_type;
     }
     auto slotIt = m_slots.find(&role);
@@ -1249,7 +1249,7 @@ CellI& Index::operator[](CellI& role)
 
 void Index::insert(CellI& key, CellI& value)
 {
-    if (&key == &kb.ids.type) {
+    if (&key == &kb.ids.struct_) {
         throw "The type key can not be changed!";
     }
     m_slots[&key] = &value;
@@ -1288,7 +1288,7 @@ Map::Map(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& 
 {
 }
 
-Map::Map(brain::Brain& kb, CellI& keyType, CellI& valueType, Type& indexType, const std::string& label) :
+Map::Map(brain::Brain& kb, CellI& keyType, CellI& valueType, Struct& indexType, const std::string& label) :
     CellI(kb, label),
     m_list(kb, valueType),
     m_index(kb, indexType),
@@ -1299,7 +1299,7 @@ Map::Map(brain::Brain& kb, CellI& keyType, CellI& valueType, Type& indexType, co
 
 bool Map::has(CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         return true;
     }
     if (&role == &kb.ids.list) {
@@ -1332,7 +1332,7 @@ void Map::operator()()
 
 CellI& Map::operator[](CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         if (!m_selfType) {
             m_selfType = &kb.getStruct(kb.templateId("std::Map", kb.ids.keyType, m_keyType, kb.ids.valueType, m_valueType));
         }
@@ -1366,7 +1366,7 @@ CellI& Map::getValue(CellI& key)
 
 void Map::add(CellI& key, CellI& value)
 {
-    if (&key == &kb.ids.type) {
+    if (&key == &kb.ids.struct_) {
         throw "id.type can not be stored in a map!";
     }
     if (m_index.has(key)) {
@@ -1416,7 +1416,7 @@ TrieMap::TrieMap(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::
 
 bool TrieMap::has(CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         return true;
     }
     if (&role == &kb.ids.list) {
@@ -1449,7 +1449,7 @@ void TrieMap::operator()()
 
 CellI& TrieMap::operator[](CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         if (!m_selfType) {
             m_selfType = &kb.getStruct(kb.templateId("std::TrieMap", kb.ids.keyType, m_keyType, kb.ids.valueType, m_valueType));
         }
@@ -1650,7 +1650,7 @@ Set::Set(brain::Brain& kb, CellI& valueType, const std::string& label) :
 
 bool Set::has(CellI& role)
 {
-    if (&role == &kb.ids.type || &role == &kb.ids.size) {
+    if (&role == &kb.ids.struct_ || &role == &kb.ids.size) {
         return true;
     }
     if (&role == &kb.ids.index) {
@@ -1677,7 +1677,7 @@ void Set::operator()()
 
 CellI& Set::operator[](CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         if (!m_selfType) {
             m_selfType = &kb.getStruct(kb.templateId("std::Set", kb.ids.valueType, m_valueType));
         }
@@ -1743,7 +1743,7 @@ Number::Number(brain::Brain& kb, int value) :
 
 bool Number::has(CellI& role)
 {
-    if (&role == &kb.ids.type || &role == &kb.ids.value) {
+    if (&role == &kb.ids.struct_ || &role == &kb.ids.value) {
         return true;
     }
     if (&role == &kb.numbers.sign) {
@@ -1770,7 +1770,7 @@ void Number::operator()()
 
 CellI& Number::operator[](CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         return kb.std.Number;
     }
 
@@ -1837,7 +1837,7 @@ String::String(brain::Brain& kb, List& list, const std::string& str) :
 
 bool String::has(CellI& role)
 {
-    if (&role == &kb.ids.type || &role == &kb.ids.value) {
+    if (&role == &kb.ids.struct_ || &role == &kb.ids.value) {
         return true;
     }
     return false;
@@ -1860,7 +1860,7 @@ void String::operator()()
 
 CellI& String::operator[](CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         return kb.std.String;
     } else if (&role == &kb.ids.value) {
         if (m_characters.empty()) {
@@ -1912,7 +1912,7 @@ Color::Color(brain::Brain& kb, const input::Color& inputColor) :
 
 bool Color::has(CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         return true;
     }
     if (&role == &kb.ids.red || &role == &kb.ids.green || &role == &kb.ids.blue) {
@@ -1939,7 +1939,7 @@ void Color::operator()()
 
 CellI& Color::operator[](CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         return kb.std.Color;
     }
     if (&role == &kb.ids.red) {
@@ -1978,7 +1978,7 @@ Pixel::Pixel(brain::Brain& kb, int x, int y, const input::Color& inputColor) :
 
 bool Pixel::has(CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         return true;
     }
     if (&role == &kb.directions.up && m_up) {
@@ -2023,7 +2023,7 @@ void Pixel::operator()()
 
 CellI& Pixel::operator[](CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         return kb.std.Pixel;
     }
     if (&role == &kb.directions.up && m_up) {
@@ -2100,7 +2100,7 @@ Picture::Picture(brain::Brain& kb, input::Picture& picture) :
 
 bool Picture::has(CellI& role)
 {
-    if (&role == &kb.ids.type || &role == &kb.ids.width || &role == &kb.ids.height || &role == &kb.ids.pixels) {
+    if (&role == &kb.ids.struct_ || &role == &kb.ids.width || &role == &kb.ids.height || &role == &kb.ids.pixels) {
         return true;
     }
 
@@ -2123,7 +2123,7 @@ void Picture::operator()()
 
 CellI& Picture::operator[](CellI& role)
 {
-    if (&role == &kb.ids.type) {
+    if (&role == &kb.ids.struct_) {
         return kb.std.Picture;
     }
     if (&role == &kb.ids.width) {
@@ -2284,23 +2284,23 @@ bool tryVisitWith(CellI& cell, Visitor& visitor)
 {
     brain::Brain& kb = cell.kb;
 
-    if (&cell.type() == &kb.std.Number) {
+    if (&cell.struct_() == &kb.std.Number) {
         visitor.visit(static_cast<Number&>(cell));
         return true;
     }
-    if (&cell.type() == &kb.std.String) {
+    if (&cell.struct_() == &kb.std.String) {
         visitor.visit(static_cast<String&>(cell));
         return true;
     }
-    if (&cell.type() == &kb.std.Color) {
+    if (&cell.struct_() == &kb.std.Color) {
         visitor.visit(static_cast<hybrid::Color&>(cell));
         return true;
     }
-    if (&cell.type() == &kb.std.Pixel) {
+    if (&cell.struct_() == &kb.std.Pixel) {
         visitor.visit(static_cast<hybrid::Pixel&>(cell));
         return true;
     }
-    if (&cell.type() == &kb.std.Picture) {
+    if (&cell.struct_() == &kb.std.Picture) {
         visitor.visit(static_cast<hybrid::Picture&>(cell));
         return true;
     }

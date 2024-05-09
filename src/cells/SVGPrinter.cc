@@ -63,7 +63,7 @@ void Printer::visit(List& list)
     m_stack.push(flexbox(listItems, flexConfig));
 }
 
-void Printer::visit(Type& cell)
+void Printer::visit(Struct& cell)
 {
     m_stack.push(text("Type"));
 }

@@ -23,7 +23,7 @@ void CellStructPrinter::visit(List& cell)
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(Type& cell)
+void CellStructPrinter::visit(Struct& cell)
 {
     printImpl(cell);
 }
@@ -77,10 +77,10 @@ void CellStructPrinter::printImpl(CellI& cell)
 {
     const bool needId = false;
     brain::Brain& kb = cell.kb;
-    auto is           = [this, &cell, &kb](CellI& type) -> bool { return &cell.type() == &type || (cell.type().has(kb.ids.memberOf) && cell.type()[kb.ids.memberOf][kb.ids.index].has(type)); };
+    auto is           = [this, &cell, &kb](CellI& type) -> bool { return &cell.struct_() == &type || (cell.struct_().has(kb.ids.memberOf) && cell.struct_()[kb.ids.memberOf][kb.ids.index].has(type)); };
 
-    CellI& type   = cell.type();
-    if (&type == &kb.std.Type_) {
+    CellI& type   = cell.struct_();
+    if (&type == &kb.std.Struct) {
         if (!cell.label().empty()) {
             m_ss << cell.label() << ": ";
         }
@@ -94,11 +94,11 @@ void CellStructPrinter::printImpl(CellI& cell)
     }
 
     if (is(kb.std.List)) {
-        m_ss << "List<" << cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label() << ">";
+        m_ss << "List<" << cell.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label() << ">";
     } else if (is(kb.std.ListItem)) {
-        m_ss << "ListItem<" << cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label() << ">";
+        m_ss << "ListItem<" << cell.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label() << ">";
     } else if (is(kb.std.Map)) {
-        m_ss << "Map<" << cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.keyType][kb.ids.value].label() << ", " << cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label() << ">";
+        m_ss << "Map<" << cell.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.keyType][kb.ids.value].label() << ", " << cell.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label() << ">";
     } else {
         m_ss << "(" << type.label() << ")";
     }
@@ -107,7 +107,7 @@ void CellStructPrinter::printImpl(CellI& cell)
     m_ss << std::endl;
     CellValuePrinter typePrinter;
     type.accept(typePrinter);
-    m_ss << "    +--(type)--> " << type.label();
+    m_ss << "    +-(struct)-> " << type.label();
     if (needId)
         m_ss << " ID" << &type;
     //     m_ss << " // " << typePrinter.print();

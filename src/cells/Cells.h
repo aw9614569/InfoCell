@@ -44,7 +44,7 @@ public:
 
     bool missing(CellI& role);
     CellI& get(CellI& role);
-    CellI& type();
+    CellI& struct_();
     void eval();
 
     std::string label() const;
@@ -192,7 +192,7 @@ public:
 
     template <typename T>
     List(brain::Brain& kb, std::vector<T>& values, const std::string& label = "") :
-        List(kb, util::ref(values.front()).type(), label)
+        List(kb, util::ref(values.front()).struct_(), label)
     {
         for (auto& valueT : values) {
             add(util::ref(valueT));
@@ -236,15 +236,15 @@ protected:
 };
 // ============================================================================
 class Map;
-class Type : public CellI
+class Struct : public CellI
 {
 public:
     enum class WithRecursiveType
     {
         Yes
     };
-    Type(brain::Brain& kb, const std::string& label = "");
-    Type(brain::Brain& kb, WithRecursiveType m_recursiveType, const std::string& label = "");
+    Struct(brain::Brain& kb, const std::string& label = "");
+    Struct(brain::Brain& kb, WithRecursiveType m_recursiveType, const std::string& label = "");
 
     using CellI::get;
     using CellI::has;
@@ -276,7 +276,7 @@ class Index : public CellI
 {
 public:
     Index(brain::Brain& kb, const std::string& label = "");
-    Index(brain::Brain& kb, Type& indexType, const std::string& label = "");
+    Index(brain::Brain& kb, Struct& indexType, const std::string& label = "");
 
     using CellI::get;
     using CellI::has;
@@ -296,7 +296,7 @@ public:
     bool empty() const;
     int size();
 
-    Type* m_type;
+    Struct* m_type;
     bool m_recursiveType = false;
     std::map<CellI*, CellI*> m_slots;
 };
@@ -306,7 +306,7 @@ class Map : public CellI
 {
 public:
     Map(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& label = "");
-    Map(brain::Brain& kb, CellI& keyType, CellI& valueType, Type& indexType, const std::string& label = "");
+    Map(brain::Brain& kb, CellI& keyType, CellI& valueType, Struct& indexType, const std::string& label = "");
 
     using CellI::get;
     using CellI::has;
@@ -575,7 +575,7 @@ public:
 
     virtual void visit(List::Item&) = 0;
     virtual void visit(List&)       = 0;
-    virtual void visit(Type&)       = 0;
+    virtual void visit(Struct&)       = 0;
     virtual void visit(Index&)      = 0;
     virtual void visit(Map&)        = 0;
     virtual void visit(TrieMap&)    = 0;

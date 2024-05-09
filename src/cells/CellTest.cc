@@ -152,8 +152,8 @@ protected:
     CellI& _7_    = kb._7_;
     CellI& _8_    = kb._8_;
     CellI& _9_    = kb._9_;
-    CellI& true_  = kb.true_();
-    CellI& false_ = kb.false_();
+    CellI& true_  = kb.boolean.true_;
+    CellI& false_ = kb.boolean.false_;
 };
 std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 
@@ -171,9 +171,9 @@ TEST_F(CellTest, PrintStdCodes)
     auto& TrieMapStruct  = getStruct(kb.templateId("std::TrieMap", ids.keyType, kb.std.Number, ids.valueType, kb.std.Color));
     auto& SetStruct      = getStruct(kb.templateId("std::Set", ids.valueType, kb.std.Number));
     auto& IndexStruct    = getStruct("std::Index");
-    auto& TypeStruct     = getStruct("std::Type");
+    auto& Struct         = getStruct("std::Struct");
 
-    EXPECT_EQ(&TypeStruct, &kb.std.Type_);
+    EXPECT_EQ(&Struct, &kb.std.Struct);
 
     printAs.value(ListItemStruct);
     printMethodInType(ListItemStruct, "constructor");
@@ -213,15 +213,15 @@ TEST_F(CellTest, PrintStdCodes)
     printMethodInType(SetStruct, "first");
     printMethodInType(SetStruct, "empty");
 
-    printAs.value(TypeStruct);
-    printMethodInType(TypeStruct, "constructor");
-    printMethodInType(TypeStruct, "constructorWithRecursiveType");
-    printMethodInType(TypeStruct, "addMembership");
-    printMethodInType(TypeStruct, "addSlot");
-    printMethodInType(TypeStruct, "addSlots");
-    printMethodInType(TypeStruct, "addSubType");
-    printMethodInType(TypeStruct, "hasSlot");
-    printMethodInType(TypeStruct, "removeSlot");
+    printAs.value(Struct);
+    printMethodInType(Struct, "constructor");
+    printMethodInType(Struct, "constructorWithRecursiveType");
+    printMethodInType(Struct, "addMembership");
+    printMethodInType(Struct, "addSlot");
+    printMethodInType(Struct, "addSlots");
+    printMethodInType(Struct, "addSubType");
+    printMethodInType(Struct, "hasSlot");
+    printMethodInType(Struct, "removeSlot");
 
     printAs.value(IndexStruct);
     printMethodInType(IndexStruct, "constructor");
@@ -283,8 +283,9 @@ TEST_F(CellTest, List)
     printAs.cell(list);
     EXPECT_EQ(&list[ids.size], &_0_);
     EXPECT_EQ(&list.method(kb.id("size")), &_0_);
+    auto& aaaa = list.method(kb.id("empty"));
     EXPECT_EQ(&list.method(kb.id("empty")), &true_);
-    EXPECT_EQ(&list.type()[ids.subTypes][kb.ids.index][ids.valueType][kb.ids.value], &kb.std.Number);
+    EXPECT_EQ(&list.struct_()[ids.subTypes][kb.ids.index][ids.valueType][kb.ids.value], &kb.std.Number);
     EXPECT_FALSE(list.has(ids.first));
     EXPECT_FALSE(list.has(ids.last));
 
@@ -378,7 +379,7 @@ TEST_F(CellTest, List)
     EXPECT_EQ(&list[ids.size], &_0_);
     EXPECT_EQ(&list.method(kb.id("size")), &_0_);
     EXPECT_EQ(&list.method(kb.id("empty")), &true_);
-    EXPECT_EQ(&list.type()[ids.subTypes][kb.ids.index][ids.valueType][kb.ids.value], &kb.std.Number);
+    EXPECT_EQ(&list.struct_()[ids.subTypes][kb.ids.index][ids.valueType][kb.ids.value], &kb.std.Number);
     EXPECT_FALSE(list.has(ids.first));
     EXPECT_FALSE(list.has(ids.last));
     printAs.value(list);
@@ -397,8 +398,8 @@ TEST_F(CellTest, Map)
     EXPECT_EQ(&map[ids.size], &_0_);
     EXPECT_EQ(&map.method(kb.id("size")), &_0_);
     EXPECT_EQ(&map.method(kb.id("empty")), &true_);
-    EXPECT_EQ(&map.type()[ids.subTypes][kb.ids.index][ids.keyType][kb.ids.value], &kb.std.Cell);
-    EXPECT_EQ(&map.type()[ids.subTypes][kb.ids.index][ids.valueType][kb.ids.value], &kb.std.Slot);
+    EXPECT_EQ(&map.struct_()[ids.subTypes][kb.ids.index][ids.keyType][kb.ids.value], &kb.std.Cell);
+    EXPECT_EQ(&map.struct_()[ids.subTypes][kb.ids.index][ids.valueType][kb.ids.value], &kb.std.Slot);
 
     map.method(kb.id("add"), { ids.key, _1_ }, { ids.value, kb.ids.red });
     printAs.value(map);
@@ -411,7 +412,7 @@ TEST_F(CellTest, Map)
     EXPECT_TRUE(map[ids.index].has(_1_));
     EXPECT_EQ(&map[ids.index][_1_][ids.value], &kb.ids.red);
     EXPECT_EQ(&map.method(kb.id("empty")), &false_);
-    EXPECT_TRUE(map[ids.index][ids.type][ids.memberOf][ids.index].has(kb.std.Index));
+    EXPECT_TRUE(map[ids.index][ids.struct_][ids.memberOf][ids.index].has(kb.std.Index));
 
     map.method(kb.id("add"), { ids.key, _2_ }, { ids.value, kb.ids.green });
     map.method(kb.id("add"), { ids.key, _3_ }, { ids.value, kb.ids.blue });
@@ -427,24 +428,24 @@ TEST_F(CellTest, MapTypes)
     auto& MapStruct = getStruct(kb.templateId("std::Map", ids.keyType, kb.std.Cell, ids.valueType, kb.std.Slot));
     Object map(kb, MapStruct, kb.id("constructor"));
 
-    printAs.value(map.type());
-    printAs.value(map[ids.list].type());
+    printAs.value(map.struct_());
+    printAs.value(map[ids.list].struct_());
     printAs.value(map[ids.index], "map[ids.index]");
-    printAs.value(map[ids.index].type(), "map[ids.index].type()");
+    printAs.value(map[ids.index].struct_(), "map[ids.index].struct_()");
     map.method(kb.id("add"), { ids.key, _1_ }, { ids.value, kb.ids.red });
     printAs.value(map[ids.index], "map[ids.index]");
-    printAs.value(map[ids.index].type(), "map[ids.index].type()");
-    printAs.cell(map[ids.index].type()[ids.slots], "map[ids.index].type()[ids.slots]");
-    printAs.cell(map[ids.index].type()[ids.slots][ids.index], "map[ids.index].type()[ids.slots][ids.index]");
-    printAs.value(map[ids.index].type()[ids.slots][ids.index], "map[ids.index].type()[ids.slots][ids.index]");
+    printAs.value(map[ids.index].struct_(), "map[ids.index].struct_()");
+    printAs.cell(map[ids.index].struct_()[ids.slots], "map[ids.index].struct_()[ids.slots]");
+    printAs.cell(map[ids.index].struct_()[ids.slots][ids.index], "map[ids.index].struct_()[ids.slots][ids.index]");
+    printAs.value(map[ids.index].struct_()[ids.slots][ids.index], "map[ids.index].struct_()[ids.slots][ids.index]");
 }
 
 TEST_F(CellTest, BuiltInType)
 {
     std::string testTypeName = "Test1234";
-    Type type(kb, testTypeName);
+    Struct type(kb, testTypeName);
 
-    EXPECT_EQ(&type[ids.type], &kb.std.Type_);
+    EXPECT_EQ(&type[ids.struct_], &kb.std.Struct);
     EXPECT_EQ(&type[ids.name], &kb.id(testTypeName));
     EXPECT_EQ(&type[ids.name], &kb.id(testTypeName)); // query twice to trigger cache
 }
@@ -453,39 +454,39 @@ TEST_F(CellTest, BuiltInMap)
 {
     Map map(kb, kb.std.Number, kb.std.Color);
 
-    printAs.value(map.type());
-    printAs.value(map[ids.list].type());
+    printAs.value(map.struct_());
+    printAs.value(map[ids.list].struct_());
     printAs.cell(map[ids.index], "map[ids.index]");
     printAs.value(map[ids.index], "map[ids.index]");
-    printAs.value(map[ids.index].type(), "map[ids.index].type()");
+    printAs.value(map[ids.index].struct_(), "map[ids.index].struct_()");
     map.add(_1_, kb.ids.red);
     printAs.value(map, "map");
     printAs.cell(map[ids.index], "map[ids.index]");
     printAs.value(map[ids.index], "map[ids.index]");
-    printAs.value(map[ids.index].type(), "map[ids.index].type()");
-    printAs.cell(map[ids.index].type()[ids.slots], "map[ids.index].type()[ids.slots]");
+    printAs.value(map[ids.index].struct_(), "map[ids.index].struct_()");
+    printAs.cell(map[ids.index].struct_()[ids.slots], "map[ids.index].struct_()[ids.slots]");
     EXPECT_EQ(&map[ids.index][_1_], &map[ids.list][ids.first]);
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.size], &_1_);
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.list][ids.size], &_1_);
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.index][_1_][ids.value][ids.slotRole], &_1_);
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.index][_1_][ids.value][ids.slotType], &kb.std.Slot);
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.size], &_1_);
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.list][ids.size], &_1_);
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotRole], &_1_);
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotType], &kb.std.Slot);
 
-    EXPECT_TRUE(map[ids.index].type().has(ids.slots));
-    EXPECT_TRUE(map[ids.index].type()[ids.slots].has(ids.index));
-    EXPECT_TRUE(map[ids.index].type()[ids.slots][ids.index].has(ids.type));
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.index].type(), &map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.index].type());
+    EXPECT_TRUE(map[ids.index].struct_().has(ids.slots));
+    EXPECT_TRUE(map[ids.index].struct_()[ids.slots].has(ids.index));
+    EXPECT_TRUE(map[ids.index].struct_()[ids.slots][ids.index].has(ids.struct_));
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_(), &map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index].struct_());
 
-    EXPECT_TRUE(map[ids.index].type()[ids.slots][ids.index].type().has(ids.slots));
-    printAs.cell(map[ids.index].type()[ids.slots], "map[ids.index].type()[ids.slots][]");
-    printAs.cell(map[ids.index].type()[ids.slots][ids.index], "map[ids.index].type()[ids.slots][ids.index]");
-    printAs.value(map[ids.index].type()[ids.slots][ids.index].type(), "map[ids.index].type()[ids.slots][ids.index].type()");
-    printAs.value(map[ids.index].type()[ids.slots][ids.index].type()[ids.slots], "map[ids.index].type()[ids.slots][ids.index].type()[ids.slots]");
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.size], &_1_);
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.index][_1_][ids.value][ids.slotRole], &_1_);
-    CellI& debug = map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.index][_1_][ids.value][ids.slotType];
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.index][_1_][ids.value][ids.slotType], &kb.std.Slot);
-    printAs.value(map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.index], "map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.index]");
-    printAs.value(map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.index].type(), "map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.index].type()");
+    EXPECT_TRUE(map[ids.index].struct_()[ids.slots][ids.index].struct_().has(ids.slots));
+    printAs.cell(map[ids.index].struct_()[ids.slots], "map[ids.index].struct_()[ids.slots][]");
+    printAs.cell(map[ids.index].struct_()[ids.slots][ids.index], "map[ids.index].struct_()[ids.slots][ids.index]");
+    printAs.value(map[ids.index].struct_()[ids.slots][ids.index].struct_(), "map[ids.index].struct_()[ids.slots][ids.index].struct_()");
+    printAs.value(map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots], "map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots]");
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.size], &_1_);
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotRole], &_1_);
+    CellI& debug = map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotType];
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotType], &kb.std.Slot);
+    printAs.value(map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index], "map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index]");
+    printAs.value(map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index].struct_(), "map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index].struct_()");
 
     map.remove(_1_);
     printAs.value(map, "map");
@@ -496,40 +497,40 @@ TEST_F(CellTest, MapTemplateTypes)
     auto& MapNumberToColor = getStruct(kb.templateId("std::Map", ids.keyType, kb.std.Number, ids.valueType, kb.std.Color));
     Object map(kb, MapNumberToColor, kb.id("constructor"));
 
-    printAs.value(map.type());
-    printAs.value(map[ids.list].type());
+    printAs.value(map.struct_());
+    printAs.value(map[ids.list].struct_());
     printAs.cell(map[ids.index], "map[ids.index]");
     printAs.value(map[ids.index], "map[ids.index]");
-    printAs.value(map[ids.index].type(), "map[ids.index].type()");
+    printAs.value(map[ids.index].struct_(), "map[ids.index].struct_()");
     map.method(kb.id("add"), { ids.key, _1_ }, { ids.value, kb.ids.red });
     printAs.value(map, "map");
     printAs.cell(map[ids.index], "map[ids.index]");
     printAs.value(map[ids.index], "map[ids.index]");
-    printAs.value(map[ids.index].type(), "map[ids.index].type()");
-    printAs.cell(map[ids.index].type()[ids.slots], "map[ids.index].type()[ids.slots]");
+    printAs.value(map[ids.index].struct_(), "map[ids.index].struct_()");
+    printAs.cell(map[ids.index].struct_()[ids.slots], "map[ids.index].struct_()[ids.slots]");
     EXPECT_EQ(&map[ids.index][_1_], &map[ids.list][ids.first]);
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.size], &_1_);
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.list][ids.size], &_1_);
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.index][_1_][ids.value][ids.slotRole], &_1_);
-    CellI& debug2 = map[ids.index].type()[ids.slots][ids.index][_1_][ids.value][ids.slotType];
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.index][_1_][ids.value][ids.slotType], &kb.std.Slot);
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.size], &_1_);
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.list][ids.size], &_1_);
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotRole], &_1_);
+    CellI& debug2 = map[ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotType];
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotType], &kb.std.Slot);
 
-    EXPECT_TRUE(map[ids.index].type().has(ids.slots));
-    EXPECT_TRUE(map[ids.index].type()[ids.slots].has(ids.index));
-    EXPECT_TRUE(map[ids.index].type()[ids.slots][ids.index].has(ids.type));
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.index].type(), &map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.index].type());
+    EXPECT_TRUE(map[ids.index].struct_().has(ids.slots));
+    EXPECT_TRUE(map[ids.index].struct_()[ids.slots].has(ids.index));
+    EXPECT_TRUE(map[ids.index].struct_()[ids.slots][ids.index].has(ids.struct_));
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_(), &map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index].struct_());
 
-    EXPECT_TRUE(map[ids.index].type()[ids.slots][ids.index].type().has(ids.slots));
-    printAs.cell(map[ids.index].type()[ids.slots], "map[ids.index].type()[ids.slots][]");
-    printAs.cell(map[ids.index].type()[ids.slots][ids.index], "map[ids.index].type()[ids.slots][ids.index]");
-    printAs.value(map[ids.index].type()[ids.slots][ids.index].type(), "map[ids.index].type()[ids.slots][ids.index].type()");
-    printAs.value(map[ids.index].type()[ids.slots][ids.index].type()[ids.slots], "map[ids.index].type()[ids.slots][ids.index].type()[ids.slots]");
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.size], &_1_);
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.index][_1_][ids.value][ids.slotRole], &_1_);
-    CellI& debug = map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.index][_1_][ids.value][ids.slotType];
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.index][_1_][ids.value][ids.slotType], &kb.std.Slot);
-    printAs.value(map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.index], "map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.index]");
-    printAs.value(map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.index].type(), "map[ids.index].type()[ids.slots][ids.index].type()[ids.slots][ids.index].type()");
+    EXPECT_TRUE(map[ids.index].struct_()[ids.slots][ids.index].struct_().has(ids.slots));
+    printAs.cell(map[ids.index].struct_()[ids.slots], "map[ids.index].struct_()[ids.slots][]");
+    printAs.cell(map[ids.index].struct_()[ids.slots][ids.index], "map[ids.index].struct_()[ids.slots][ids.index]");
+    printAs.value(map[ids.index].struct_()[ids.slots][ids.index].struct_(), "map[ids.index].struct_()[ids.slots][ids.index].struct_()");
+    printAs.value(map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots], "map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots]");
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.size], &_1_);
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotRole], &_1_);
+    CellI& debug = map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotType];
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotType], &kb.std.Slot);
+    printAs.value(map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index], "map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index]");
+    printAs.value(map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index].struct_(), "map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index].struct_()");
 }
 
 TEST_F(CellTest, MapNumberToColor)
@@ -537,8 +538,8 @@ TEST_F(CellTest, MapNumberToColor)
     auto& MapNumberToColor = getStruct(kb.templateId("std::Map", ids.keyType, kb.std.Number, ids.valueType, kb.std.Color));
     Object map(kb, MapNumberToColor, kb.id("constructor"));
 
-    EXPECT_EQ(&map.type()[ids.subTypes][kb.ids.index][ids.keyType][kb.ids.value], &kb.std.Number);
-    EXPECT_EQ(&map.type()[ids.subTypes][kb.ids.index][ids.valueType][kb.ids.value], &kb.std.Color);
+    EXPECT_EQ(&map.struct_()[ids.subTypes][kb.ids.index][ids.keyType][kb.ids.value], &kb.std.Number);
+    EXPECT_EQ(&map.struct_()[ids.subTypes][kb.ids.index][ids.valueType][kb.ids.value], &kb.std.Color);
 
     printAs.value(map);
     printAs.cell(map);
@@ -557,7 +558,7 @@ TEST_F(CellTest, MapNumberToColor)
     EXPECT_TRUE(map[ids.index].has(_1_));
     EXPECT_EQ(&map[ids.index][_1_][ids.value], &kb.ids.red);
     EXPECT_EQ(&map.method(kb.id("empty")), &false_);
-    EXPECT_TRUE(map[ids.index][ids.type][ids.memberOf][ids.index].has(kb.std.Index));
+    EXPECT_TRUE(map[ids.index][ids.struct_][ids.memberOf][ids.index].has(kb.std.Index));
 
     map.method(kb.id("add"), { ids.key, _2_ }, { ids.value, kb.ids.green });
     map.method(kb.id("add"), { ids.key, _3_ }, { ids.value, kb.ids.blue });
@@ -575,15 +576,15 @@ TEST_F(CellTest, ListItem)
 
     EXPECT_EQ(&listItem[ids.value], &kb.ids.green);
 
-    EXPECT_EQ(&listItem.type()[ids.memberOf][ids.size], &_1_);
-    EXPECT_TRUE(listItem.type()[ids.memberOf][ids.index].has(kb.std.ListItem));
+    EXPECT_EQ(&listItem.struct_()[ids.memberOf][ids.size], &_1_);
+    EXPECT_TRUE(listItem.struct_()[ids.memberOf][ids.index].has(kb.std.ListItem));
 
-    EXPECT_EQ(&listItem.type()[ids.slots][ids.size], &_3_);
-    EXPECT_TRUE(listItem.type()[ids.slots][ids.index].has(ids.previous));
-    EXPECT_TRUE(listItem.type()[ids.slots][ids.index].has(ids.next));
-    EXPECT_TRUE(listItem.type()[ids.slots][ids.index].has(ids.value));
+    EXPECT_EQ(&listItem.struct_()[ids.slots][ids.size], &_3_);
+    EXPECT_TRUE(listItem.struct_()[ids.slots][ids.index].has(ids.previous));
+    EXPECT_TRUE(listItem.struct_()[ids.slots][ids.index].has(ids.next));
+    EXPECT_TRUE(listItem.struct_()[ids.slots][ids.index].has(ids.value));
 
-    EXPECT_TRUE(listItem.type()[ids.methods][ids.index].has(kb.id("constructor")));
+    EXPECT_TRUE(listItem.struct_()[ids.methods][ids.index].has(kb.id("constructor")));
 }
 
 TEST_F(CellTest, ListItemTemplate)
@@ -647,10 +648,10 @@ TEST_F(CellTest, ListTemplate)
 
 TEST_F(CellTest, FunctionTypes)
 {
-    CellI& function = kb.std.Type_[ids.methods][ids.index][kb.id("addSlot")][ids.value];
-    printAs.cell(function.type(), "function");
-    printAs.cell(function.type()[ids.subTypes][ids.index][ids.localVars][ids.value], "function[ids.subTypes][ids.localVars][ids.value]");
-    printAs.value(function.type()[ids.subTypes][ids.index][ids.localVars][ids.value], "function[ids.subTypes][ids.localVars][ids.value]");
+    CellI& function = kb.std.Struct[ids.methods][ids.index][kb.id("addSlot")][ids.value];
+    printAs.cell(function.struct_(), "function");
+    printAs.cell(function.struct_()[ids.subTypes][ids.index][ids.localVars][ids.value], "function[ids.subTypes][ids.localVars][ids.value]");
+    printAs.value(function.struct_()[ids.subTypes][ids.index][ids.localVars][ids.value], "function[ids.subTypes][ids.localVars][ids.value]");
 }
 
 TEST_F(CellTest, HybridPicture)
@@ -663,10 +664,10 @@ TEST_F(CellTest, HybridPicture)
     printAs.svg(picture[ids.pixels]);
     printAs.value(picture[ids.pixels]);
 
-    EXPECT_EQ(&picture[ids.type], &kb.std.Picture);
+    EXPECT_EQ(&picture[ids.struct_], &kb.std.Picture);
     EXPECT_EQ(&picture[ids.width], &kb.pools.numbers.get(3));
     EXPECT_EQ(&picture[ids.height], &kb.pools.numbers.get(3));
-    EXPECT_EQ(&picture[ids.pixels][ids.type], &kb.ListOf(kb.std.Pixel));
+    EXPECT_EQ(&picture[ids.pixels][ids.struct_], &kb.ListOf(kb.std.Pixel));
 
     auto& ListOfPixels  = getStruct(kb.templateId("std::List", ids.valueType, kb.std.Pixel));
     Object listOfPixels(kb, ListOfPixels, kb.id("constructor"), "listOfPixels");
@@ -677,7 +678,7 @@ TEST_F(CellTest, HybridPicture)
 
 TEST_F(CellTest, BasicObjectTest)
 {
-    auto& Type_ = getStruct("std::Type");
+    auto& Type_ = getStruct("std::Struct");
     auto& List = getStruct(kb.templateId("std::List", ids.valueType, kb.std.Cell));
     Object testType(kb, Type_, "Test");
     Object emptyList(kb, List, kb.id("constructor"));
@@ -691,7 +692,7 @@ TEST_F(CellTest, BasicObjectTest)
     Object object(kb, testType, "testObject");
 
     EXPECT_EQ(object.label(), "testObject");
-    EXPECT_EQ(&object.type(), &testType);
+    EXPECT_EQ(&object.struct_(), &testType);
 
     EXPECT_ANY_THROW(&object[ids.value]);
     EXPECT_NO_THROW(object.set(ids.value, kb.pools.numbers.get(42)));
@@ -749,7 +750,7 @@ TEST_F(CellTest, CreatingCustomType)
     Object colorGreen(kb, kb.std.Cell, "green");
     Object colorBlue(kb, kb.std.Cell, "blue");
 
-    Object colorClass(kb, kb.std.Type_, "Color");
+    Object colorClass(kb, kb.std.Struct, "Color");
 #if 1 // TODO
     auto& MapCellToSlot = getStruct(kb.templateId("std::Map", ids.keyType, kb.std.Cell, ids.valueType, kb.std.Slot));
     Object* slotMapPtr  = new Object(kb, MapCellToSlot, kb.id("constructor"));
@@ -769,11 +770,11 @@ TEST_F(CellTest, CreatingCustomType)
     EXPECT_TRUE(colorClass[ids.slots][ids.index].has(colorRed));
     EXPECT_TRUE(colorClass[ids.slots][ids.index].has(colorGreen));
     EXPECT_TRUE(colorClass[ids.slots][ids.index].has(colorBlue));
-    printAs.value(colorClass[ids.slots][ids.index][colorRed][ids.type], "colorClass slot of colorRed");
-    EXPECT_EQ(&colorClass[ids.slots][ids.index][colorRed][ids.value][ids.type], &kb.std.Slot);
-    EXPECT_EQ(&colorClass[ids.slots][ids.index][colorRed][ids.value][ids.type], &kb.std.Slot);
-    EXPECT_EQ(&colorClass[ids.slots][ids.index][colorGreen][ids.value][ids.type], &kb.std.Slot);
-    EXPECT_EQ(&colorClass[ids.slots][ids.index][colorBlue][ids.value][ids.type], &kb.std.Slot);
+    printAs.value(colorClass[ids.slots][ids.index][colorRed][ids.struct_], "colorClass slot of colorRed");
+    EXPECT_EQ(&colorClass[ids.slots][ids.index][colorRed][ids.value][ids.struct_], &kb.std.Slot);
+    EXPECT_EQ(&colorClass[ids.slots][ids.index][colorRed][ids.value][ids.struct_], &kb.std.Slot);
+    EXPECT_EQ(&colorClass[ids.slots][ids.index][colorGreen][ids.value][ids.struct_], &kb.std.Slot);
+    EXPECT_EQ(&colorClass[ids.slots][ids.index][colorBlue][ids.value][ids.struct_], &kb.std.Slot);
     printAs.value(redColor);
 
     printAs.cell(redColor);
@@ -790,9 +791,9 @@ TEST_F(CellTest, CreatingCustomType)
     printAs.svgStruct(colorClass[ids.slots][ids.list][ids.first][ids.next], "SlotListItem2 of Color");
     printAs.svgStruct(colorClass[ids.slots][ids.list][ids.first][ids.next][ids.value], "Slot2 of Color");
     printAs.value(colorClass[ids.slots][ids.index], "colorClass[ids.slots][ids.index]");
-    printAs.value(colorClass[ids.slots][ids.index][ids.type], "colorClass[ids.slots][ids.index][ids.type]");
-    printAs.value(colorClass[ids.slots][ids.index][ids.type][ids.slots], "colorClass[ids.slots][ids.index][ids.type][ids.slots]");
-    printAs.value(colorClass[ids.slots][ids.index][ids.type][ids.slots][ids.index], "colorClass[ids.slots][ids.index][ids.type][ids.slots][ids.index]");
+    printAs.value(colorClass[ids.slots][ids.index][ids.struct_], "colorClass[ids.slots][ids.index][ids.type]");
+    printAs.value(colorClass[ids.slots][ids.index][ids.struct_][ids.slots], "colorClass[ids.slots][ids.index][ids.type][ids.slots]");
+    printAs.value(colorClass[ids.slots][ids.index][ids.struct_][ids.slots][ids.index], "colorClass[ids.slots][ids.index][ids.type][ids.slots][ids.index]");
     printAs.cell(colorClass);
 
     printAs.svg(redColor);
@@ -901,19 +902,19 @@ TEST_F(CellTest, NextgenType)
     map.add(_1_, kb.ids.blue);
     printAs.value(map, "Map<Number, Color>");
 
-    printAs.value(map[ids.index][ids.type][ids.slots][ids.list], "map[ids.index][ids.type][ids.slots][ids.list]");
-    printAs.value(map[ids.index][ids.type][ids.slots][ids.index], "map[ids.index][ids.type][ids.slots][ids.list]");
-    printAs.value(map[ids.index][ids.type][ids.slots][ids.index][ids.type][ids.slots][ids.list], "map[ids.index][ids.type][ids.slots][ids.index][ids.type][ids.slots][ids.list]");
-    printAs.value(map[ids.index][ids.type][ids.slots][ids.index][ids.type][ids.slots][ids.index], "map[ids.index][ids.type][ids.slots][ids.index][ids.type][ids.slots][ids.index]");
-    EXPECT_EQ(&map[ids.index][ids.type], &map[ids.index][ids.type][ids.slots][ids.index][ids.type]);
+    printAs.value(map[ids.index][ids.struct_][ids.slots][ids.list], "map[ids.index][ids.type][ids.slots][ids.list]");
+    printAs.value(map[ids.index][ids.struct_][ids.slots][ids.index], "map[ids.index][ids.type][ids.slots][ids.list]");
+    printAs.value(map[ids.index][ids.struct_][ids.slots][ids.index][ids.struct_][ids.slots][ids.list], "map[ids.index][ids.type][ids.slots][ids.index][ids.type][ids.slots][ids.list]");
+    printAs.value(map[ids.index][ids.struct_][ids.slots][ids.index][ids.struct_][ids.slots][ids.index], "map[ids.index][ids.type][ids.slots][ids.index][ids.type][ids.slots][ids.index]");
+    EXPECT_EQ(&map[ids.index][ids.struct_], &map[ids.index][ids.struct_][ids.slots][ids.index][ids.struct_]);
 
     Index index(kb);
     index.set(kb.std.Number, kb.std.Color);
     printAs.value(index, "Index");
 
-    Type type(kb, "type");
-    type.addSlot(_1_, kb.std.slot(_1_, kb.std.Number));
-    printAs.value(type);
+    Struct struct_(kb, "struct");
+    struct_.addSlot(_1_, kb.std.slot(_1_, kb.std.Number));
+    printAs.value(struct_);
 
     Set set(kb, kb.std.Number);
     EXPECT_EQ(&set[ids.size], &_0_);
@@ -939,17 +940,17 @@ TEST_F(CellTest, NextgenBrainType)
     EXPECT_EQ(&map[ids.size], &_0_);
     EXPECT_EQ(&map.method(kb.id("size")), &_0_);
     EXPECT_EQ(&map.method(kb.id("empty")), &true_);
-    printAs.value(map.type());
-    printAs.value(map[ids.list].type());
+    printAs.value(map.struct_());
+    printAs.value(map[ids.list].struct_());
     printAs.value(map[ids.index], "map[ids.index]");
-    printAs.value(map[ids.index].type(), "map[ids.index].type()");
+    printAs.value(map[ids.index].struct_(), "map[ids.index].struct_()");
 
     map.method(kb.id("add"), { ids.key, _1_ }, { ids.value, kb.ids.red });
     printAs.value(map[ids.index], "map[ids.index]");
-    printAs.value(map[ids.index].type(), "map[ids.index].type()");
-    printAs.cell(map[ids.index].type()[ids.slots], "map[ids.index].type()[ids.slots]");
-    printAs.cell(map[ids.index].type()[ids.slots][ids.index], "map[ids.index].type()[ids.slots][ids.index]");
-    printAs.value(map[ids.index].type()[ids.slots][ids.index], "map[ids.index].type()[ids.slots][ids.index]");
+    printAs.value(map[ids.index].struct_(), "map[ids.index].struct_()");
+    printAs.cell(map[ids.index].struct_()[ids.slots], "map[ids.index].struct_()[ids.slots]");
+    printAs.cell(map[ids.index].struct_()[ids.slots][ids.index], "map[ids.index].struct_()[ids.slots][ids.index]");
+    printAs.value(map[ids.index].struct_()[ids.slots][ids.index], "map[ids.index].struct_()[ids.slots][ids.index]");
     EXPECT_EQ(&map[ids.size], &_1_);
     EXPECT_EQ(&map.method(kb.id("size")), &_1_);
     EXPECT_EQ(&map[ids.list][ids.size], &_1_);
@@ -958,7 +959,7 @@ TEST_F(CellTest, NextgenBrainType)
     EXPECT_TRUE(map[ids.index].has(_1_));
     EXPECT_EQ(&map[ids.index][_1_][ids.value], &kb.ids.red);
     EXPECT_EQ(&map.method(kb.id("empty")), &false_);
-    EXPECT_TRUE(map[ids.index][ids.type][ids.memberOf][ids.index].has(kb.std.Index));
+    EXPECT_TRUE(map[ids.index][ids.struct_][ids.memberOf][ids.index].has(kb.std.Index));
 
     map.method(kb.id("add"), { ids.key, _2_ }, { ids.value, kb.ids.green });
     map.method(kb.id("add"), { ids.key, _3_ }, { ids.value, kb.ids.blue });
@@ -979,7 +980,7 @@ TEST_F(CellTest, NextgenBrainType)
     EXPECT_TRUE(map[ids.index].has(_1_));
     EXPECT_EQ(&map[ids.index][_1_][ids.value], &kb.ids.red);
     EXPECT_EQ(&map.method(kb.id("empty")), &false_);
-    EXPECT_TRUE(map[ids.index][ids.type][ids.memberOf][ids.index].has(kb.std.Index));
+    EXPECT_TRUE(map[ids.index][ids.struct_][ids.memberOf][ids.index].has(kb.std.Index));
 }
 
 
@@ -991,8 +992,8 @@ TEST_F(CellTest, TrieMap)
     EXPECT_EQ(&trieMap[ids.size], &_0_);
     EXPECT_EQ(&trieMap.method(kb.id("size")), &_0_);
     EXPECT_EQ(&trieMap.method(kb.id("empty")), &true_);
-    printAs.value(trieMap.type());
-    printAs.value(trieMap[ids.list].type());
+    printAs.value(trieMap.struct_());
+    printAs.value(trieMap[ids.list].struct_());
 
     EXPECT_EQ(&trieMap.method(kb.id("hasKey"), { ids.key, kb.list(_1_, _1_, _1_, _1_) }), &false_);
     trieMap.method(kb.id("add"), { ids.key, kb.list(_1_, _1_, _1_, _1_) }, { ids.value, kb.ids.red });
@@ -1042,23 +1043,23 @@ TEST_F(CellTest, Set)
     EXPECT_EQ(&set[ids.size], &_0_);
     EXPECT_EQ(&set.method(kb.id("size")), &_0_);
     EXPECT_EQ(&set.method(kb.id("empty")), &true_);
-    printAs.value(set.type());
+    printAs.value(set.struct_());
     printAs.value(set[ids.index], "map[ids.index]");
-    printAs.value(set[ids.index].type(), "map[ids.index].type()");
+    printAs.value(set[ids.index].struct_(), "map[ids.index].struct_()");
 
     set.method(kb.id("add"), { ids.value, _1_ });
     printAs.value(set[ids.index], "map[ids.index]");
-    printAs.value(set[ids.index].type(), "map[ids.index].type()");
-    printAs.cell(set[ids.index].type()[ids.slots], "map[ids.index].type()[ids.slots]");
-    printAs.cell(set[ids.index].type()[ids.slots][ids.index], "map[ids.index].type()[ids.slots][ids.index]");
-    printAs.value(set[ids.index].type()[ids.slots][ids.index], "map[ids.index].type()[ids.slots][ids.index]");
+    printAs.value(set[ids.index].struct_(), "map[ids.index].struct_()");
+    printAs.cell(set[ids.index].struct_()[ids.slots], "map[ids.index].struct_()[ids.slots]");
+    printAs.cell(set[ids.index].struct_()[ids.slots][ids.index], "map[ids.index].struct_()[ids.slots][ids.index]");
+    printAs.value(set[ids.index].struct_()[ids.slots][ids.index], "map[ids.index].struct_()[ids.slots][ids.index]");
     EXPECT_EQ(&set[ids.size], &_1_);
     EXPECT_EQ(&set.method(kb.id("size")), &_1_);
     EXPECT_TRUE(set[ids.index].has(_1_));
     EXPECT_EQ(&set[ids.index][_1_], &_1_);
     EXPECT_EQ(&set.method(kb.id("empty")), &false_);
     EXPECT_EQ(&set.method(kb.id("contains"), { "value", _1_ }), &true_);
-    EXPECT_TRUE(set[ids.index][ids.type][ids.memberOf][ids.index].has(kb.std.Index));
+    EXPECT_TRUE(set[ids.index][ids.struct_][ids.memberOf][ids.index].has(kb.std.Index));
 
     set.method(kb.id("add"), { ids.value, _2_ });
     set.method(kb.id("add"), { ids.value, _3_ });
@@ -1076,7 +1077,7 @@ TEST_F(CellTest, Set)
     EXPECT_TRUE(set[ids.index].has(_1_));
     EXPECT_EQ(&set[ids.index][_1_], &_1_);
     EXPECT_EQ(&set.method(kb.id("empty")), &false_);
-    EXPECT_TRUE(set[ids.index][ids.type][ids.memberOf][ids.index].has(kb.std.Index));
+    EXPECT_TRUE(set[ids.index][ids.struct_][ids.memberOf][ids.index].has(kb.std.Index));
 }
 
 ////////////
@@ -1259,8 +1260,8 @@ TEST_F(CellTest, StringTest)
     String& testStr1 = kb.pools.strings.get("test");
     String& testStr2 = kb.pools.strings.get("test");
     EXPECT_EQ(&testStr1, &testStr2);
-    EXPECT_EQ(&testStr1.type(), &kb.std.String);
-    EXPECT_EQ(&testStr1[kb.ids.value].type(), &kb.ListOf(kb.std.Char));
+    EXPECT_EQ(&testStr1.struct_(), &kb.std.String);
+    EXPECT_EQ(&testStr1[kb.ids.value].struct_(), &kb.ListOf(kb.std.Char));
     EXPECT_EQ(&testStr1[kb.ids.value], &testStr1[kb.ids.value]);
     EXPECT_EQ(&testStr1[kb.ids.value], &testStr2[kb.ids.value]);
     printAs.value(testStr1[kb.ids.value]);

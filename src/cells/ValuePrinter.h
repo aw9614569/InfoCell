@@ -13,7 +13,7 @@ public:
     void visit(Object& cell) override;
     void visit(List::Item& cell) override;
     void visit(List& cell) override;
-    void visit(Type& cell) override;
+    void visit(Struct& cell) override;
     void visit(Index& cell) override;
     void visit(Map& cell) override;
     void visit(TrieMap& cell) override;

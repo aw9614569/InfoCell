@@ -84,6 +84,7 @@ public:
     List statement;
     List static_;
     List status;
+    List struct_;
     List structs;
     List structType;
     List subTypes;
@@ -91,7 +92,6 @@ public:
     List templateParams;
     List then;
     List throw_;
-    List type;
     List unknownInstances;
     List unknownStructs;
     List value;
@@ -224,7 +224,7 @@ protected:
 public:
     Object Cell;
     Object Slot;
-    Object Type_;
+    Object Struct;
     Object Enum;
     Object Container;
     Object List;
@@ -1139,7 +1139,7 @@ CellI& Brain::templateId(const std::string& str, Args&&... args)
 template <typename... Args>
 List& Brain::list(CellI& value, Args&&... args)
 {
-    List& ret = *new List(*this, value.type());
+    List& ret = *new List(*this, value.struct_());
     ret.add(value);
     if constexpr (sizeof...(Args) > 0) {
         ret.add(std::forward<Args>(args)...);
@@ -1151,7 +1151,7 @@ List& Brain::list(CellI& value, Args&&... args)
 template <typename... Args>
 Map& Brain::map(CellI& key, CellI& value, Args&&... args)
 {
-    Map& ret = *new Map(*this, key.type(), value.type(), std::format("Map<{}, {}>(...)", key.type().label(), value.type().label()));
+    Map& ret = *new Map(*this, key.struct_(), value.struct_(), std::format("Map<{}, {}>(...)", key.struct_().label(), value.struct_().label()));
     if constexpr (sizeof...(Args) > 0) {
         ret.add(std::forward<Args>(args)...);
     }
@@ -1162,7 +1162,7 @@ Map& Brain::map(CellI& key, CellI& value, Args&&... args)
 template <typename... Args>
 Set& Brain::set(CellI& value, Args&&... args)
 {
-    Set& ret = *new Set(*this, value.type(), std::format("Map<{}, {}>(...)", value.type().label()));
+    Set& ret = *new Set(*this, value.struct_(), std::format("Map<{}, {}>(...)", value.struct_().label()));
     if constexpr (sizeof...(Args) > 0) {
         ret.add(std::forward<Args>(args)...);
     }

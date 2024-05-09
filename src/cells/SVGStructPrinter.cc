@@ -33,7 +33,7 @@ void StructPrinter::visit(List& cell)
     printStruct(cell);
 }
 
-void StructPrinter::visit(Type& cell)
+void StructPrinter::visit(Struct& cell)
 {
     printStruct(cell);
 }
@@ -85,7 +85,7 @@ void StructPrinter::visit(hybrid::Picture& cell)
 void StructPrinter::printStruct(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    CellI& type      = cell.type();
+    CellI& type      = cell.struct_();
     fsvgui::Color cellTypeColor(255, 0, 0);
     fsvgui::Color roleColor(163, 21, 21);
     fsvgui::Color typeColor(0, 0, 0) ;
@@ -111,7 +111,7 @@ void StructPrinter::printStruct(CellI& cell)
                       filler() | size(WIDTH, EQUAL, 10),
                       text(type.label())->fontSize(14)->fontColor(typeColor),
                       filler() | size(WIDTH, EQUAL, 10),
-                      text(std::format("{}", (void*)&cell[kb.ids.type]))->fontSize(14)->fontColor(typeColor) });
+                      text(std::format("{}", (void*)&cell[kb.ids.struct_]))->fontSize(14)->fontColor(typeColor) });
 
     if (type.has(kb.ids.slots)) {
         CellI& slotList = type[kb.ids.slots][kb.ids.list];
@@ -123,7 +123,7 @@ void StructPrinter::printStruct(CellI& cell)
 
             CellI& slotType                = slot[kb.ids.slotType];
             CellI& connectedCell           = cell[role];
-            std::string connectedCellLabel = connectedCell.label().empty() ? std::format("A {}", connectedCell.type().label()) : connectedCell.label();
+            std::string connectedCellLabel = connectedCell.label().empty() ? std::format("A {}", connectedCell.struct_().label()) : connectedCell.label();
 
             lines.push_back({ filler() | size(HEIGHT, EQUAL, 2), filler() | size(WIDTH, EQUAL, 10), filler() | size(HEIGHT, EQUAL, 2) });
             lines.push_back({ flexbox({ text(role.label())->fontSize(14)->fontColor(roleColor) }, flexConfig),
