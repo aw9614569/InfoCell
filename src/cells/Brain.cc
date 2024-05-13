@@ -28,6 +28,7 @@ ID::ID(brain::Brain& kb) :
     data(kb, kb.std.Char, "data"),
     destructor(kb, kb.std.Char, "destructor"),
     else_(kb, kb.std.Char, "else_"),
+    enum_(kb, kb.std.Char, "enum_"),
     emptyObject(kb, kb.std.Char, "emptyObject"),
     first(kb, kb.std.Char, "first"),
     functions(kb, kb.std.Char, "functions"),
@@ -150,6 +151,8 @@ Ast::Ast(brain::Brain& kb) :
     Delete(kb, kb.std.Struct, "ast::Delete"),
     Divide(kb, kb.std.Struct, "ast::Divide"),
     Do(kb, kb.std.Struct, "ast::Do"),
+    Enum(kb, kb.std.Struct, "ast::Enum"),
+    EnumValue(kb, kb.std.Struct, "ast::EnumValue"),
     Equal(kb, kb.std.Struct, "ast::Equal"),
     Erase(kb, kb.std.Struct, "ast::Erase"),
     Function(kb, kb.std.Struct, "ast::Function"),
@@ -631,61 +634,54 @@ Ast::Block::Block(brain::Brain& kb, List& list) :
 }
 
 Ast::Scope::Scope(brain::Brain& kb, const std::string& name) :
-    BaseT<Scope>(kb, kb.std.ast.Scope, name)
+    BaseT<Scope>(kb, kb.std.ast.Scope, name),
+    scopesImpl(kb, "scopes", *this),
+    functionsImpl(kb, "functions", *this),
+    functionTsImpl(kb, "functionTs", *this),
+    variablesImpl(kb, "variables", *this),
+    structsImpl(kb, "structs", *this),
+    structTsImpl(kb, "structTs", *this),
+    enumsImpl(kb, "enums", *this)
 {
     set("id", kb.id(name));
 }
 
+#pragma region Scope
 bool Ast::Scope::hasScope(CellI& id)
 {
-    if (missing("scopes")) {
-        return false;
-    }
-
-    return scopes().hasKey(id);
+    return scopesImpl.has(id);
 }
 
 Ast::Scope& Ast::Scope::getScope(const std::string& name)
 {
-    return getScope(kb.id(name));
+    return scopesImpl.get(name);
 }
 
 Ast::Scope& Ast::Scope::getScope(CellI& id)
 {
-    if (missing("scopes")) {
-        throw "No such scope";
-    }
-
-    if (scopes().hasKey(id)) {
-        return static_cast<Ast::Scope&>(scopes().getValue(id));
-    }
-
-    throw "No such scope";
+    return scopesImpl.get(id);
 }
 
 Ast::Scope& Ast::Scope::addScope(const std::string& name)
 {
-    auto& scope = *new Ast::Scope(kb, name);
-    addScope(scope);
+    auto& scope = scopesImpl.add(name);
+    scope.set("parent", *this);
 
     return scope;
 }
 
 void Ast::Scope::addScope(Scope& scope)
 {
-    CellI& id = scope[kb.ids.id];
-
-    if (missing("scopes")) {
-        set("scopes", *new TrieMap(kb, kb.std.Cell, kb.std.ast.Scope, "TrieMap<Cell, Type::Ast::Scope>(...)"));
-    }
-    if (scopes().hasKey(id)) {
-        throw "Already registered!";
-    }
-
+    scopesImpl.add(scope);
     scope.set("parent", *this);
-    scopes().add(id, scope);
 }
 
+TrieMap& Ast::Scope::scopes()
+{
+    return scopesImpl.map();
+}
+#pragma endregion
+#pragma region Function
 Ast::Function& Ast::Scope::addFunction(const std::string& name)
 {
     return addFunction(kb.id(name), name);
@@ -713,6 +709,12 @@ void Ast::Scope::addFunction(Function& function)
     functions().add(name, function);
 }
 
+TrieMap& Ast::Scope::functions()
+{
+    return functionsImpl.map();
+}
+#pragma endregion
+#pragma region FunctionT
 Ast::FunctionT& Ast::Scope::addFunctionT(const std::string& name)
 {
     return addFunctionT(kb.id(name), name);
@@ -732,7 +734,12 @@ Ast::FunctionT& Ast::Scope::addFunctionT(CellI& id, const std::string& label)
 
     return functionT;
 }
-
+TrieMap& Ast::Scope::functionTs()
+{
+    return functionTsImpl.map();
+}
+#pragma endregion
+#pragma region Variable
 bool Ast::Scope::hasVariable(CellI& id)
 {
     if (missing("variables")) {
@@ -782,6 +789,12 @@ Ast::Var& Ast::Scope::addVariable(CellI& id)
     return var;
 }
 
+TrieMap& Ast::Scope::variables()
+{
+    return variablesImpl.map();
+}
+#pragma endregion
+#pragma region Struct
 Ast::Struct& Ast::Scope::resolveStructName(CellI& structName)
 {
     auto& name = structName[kb.ids.name];
@@ -789,39 +802,19 @@ Ast::Struct& Ast::Scope::resolveStructName(CellI& structName)
         auto& scopes = structName[kb.ids.scopes];
         return resolveFullStructId(scopes, name);
     } else {
-        return resolveStructNameImpl(name);
+        static List emptyList(kb, kb.std.Cell, "empty list");
+        return resolveFullStructId(emptyList, name);
     }
 }
-
-Ast::Struct& Ast::Scope::resolveStructNameImpl(CellI& name)
-{
-    if (missing("structs")) {
-        if (missing("parent")) {
-            throw "No struct in scope!";
-        }
-    } else if (structs().hasKey(name)) {
-        return static_cast<Ast::Struct&>(structs().getValue(name));
-    }
-
-    if (missing("parent")) {
-        throw "No struct in scope!";
-    } else {
-        return static_cast<Scope&>(get("parent")).resolveStructNameImpl(name);
-    }
-}
-
 
 bool Ast::Scope::hasStruct(CellI& id)
 {
-    if (missing("structs")) {
-        return false;
-    }
-    return (structs().hasKey(id));
+    return structsImpl.has(id);
 }
 
 Ast::Struct& Ast::Scope::getStruct(const std::string& name)
 {
-    return getStruct(kb.id(name));
+    return structsImpl.get(name);
 }
 
 Ast::Struct& Ast::Scope::getStruct(CellI& id)
@@ -856,6 +849,12 @@ Ast::Struct& Ast::Scope::addStruct(const std::string& name)
     return struct_;
 }
 
+TrieMap& Ast::Scope::structs()
+{
+    return structsImpl.map();
+}
+#pragma endregion
+#pragma region StructT
 bool Ast::Scope::hasStructT(CellI& id)
 {
     if (missing("structTs")) {
@@ -885,6 +884,61 @@ Ast::StructT& Ast::Scope::addStructT(const std::string& name)
     return structT;
 }
 
+TrieMap& Ast::Scope::structTs()
+{
+    return structTsImpl.map();
+}
+#pragma endregion
+#pragma region Enum
+bool Ast::Scope::hasEnum(CellI& id)
+{
+    if (missing("enums")) {
+        return false;
+    }
+    return enums().hasKey(id);
+}
+
+Ast::Enum& Ast::Scope::getEnum(CellI& id)
+{
+    return static_cast<Ast::Enum&>(enums().getValue(id));
+}
+
+void Ast::Scope::addEnum(Enum& enum_)
+{
+    CellI& id = enum_[kb.ids.id];
+
+    if (missing("enums")) {
+        set("enums", *new TrieMap(kb, kb.std.Cell, kb.std.ast.Enum, "TrieMap<Cell, Type::Ast::Enum>(...)"));
+    }
+    if (enums().hasKey(id)) {
+        throw "Already registered!";
+    }
+    enums().add(id, enum_);
+    enum_.set("scope", *this);
+}
+
+Ast::Enum& Ast::Scope::addEnum(const std::string& name)
+{
+    CellI& id = kb.id(name);
+    if (missing("enums")) {
+        set("enums", *new TrieMap(kb, kb.std.Cell, kb.std.ast.Enum, "TrieMap<Cell, Type::Ast::Enum>(...)"));
+    }
+    if (enums().hasKey(id)) {
+        throw "Already registered!";
+    }
+    auto& enum_ = *new Ast::Enum(kb, id, name);
+    enums().add(id, enum_);
+    enum_.set("scope", *this);
+
+    return enum_;
+}
+
+TrieMap& Ast::Scope::enums()
+{
+    return enumsImpl.map();
+}
+#pragma endregion
+
 Ast::Struct& Ast::Scope::resolveFullStructId(CellI& scopeList, CellI& id)
 {
     const auto& hasCb = [&id](Ast::Scope& currentScope) -> bool {
@@ -895,6 +949,18 @@ Ast::Struct& Ast::Scope::resolveFullStructId(CellI& scopeList, CellI& id)
     };
 
     return static_cast<Struct&>(resolveFullIdInAllScope(scopeList, id, hasCb, getCb));
+}
+
+Ast::Enum& Ast::Scope::resolveFullEnumId(CellI& scopeList, CellI& id)
+{
+    const auto& hasCb = [&id](Ast::Scope& currentScope) -> bool {
+        return currentScope.hasEnum(id);
+    };
+    const auto& getCb = [&id](Ast::Scope& currentScope) -> Enum* {
+        return &currentScope.getEnum(id);
+    };
+
+    return static_cast<Enum&>(resolveFullIdInAllScope(scopeList, id, hasCb, getCb));
 }
 
 Ast::StructT& Ast::Scope::resolveFullTemplateId(CellI& scopeList, CellI& id)
@@ -911,27 +977,20 @@ Ast::StructT& Ast::Scope::resolveFullTemplateId(CellI& scopeList, CellI& id)
 
 Ast::Base& Ast::Scope::resolveFullIdInAllScope(CellI& scopeList, CellI& id, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb)
 {
-    // resolve in local scope
-    Base* ret = nullptr;
-    if (ret = resolveFullIdInOneScope(this, scopeList, hasCb, getCb)) {
-        return *ret;
-    }
+    Scope* currentScope = this;
 
-    // resolve in parent scope
-    if (missing(kb.ids.parent)) {
-        throw "Unknown Struct!";
-    }
-    Scope* rootScope   = &getRootScope();
-    Scope* parentScope = &static_cast<Scope&>(get("parent"));
-    if (parentScope != rootScope) {
-        if (ret = resolveFullIdInOneScope(parentScope, scopeList, hasCb, getCb)) {
+    while (currentScope) {
+        Base* ret = resolveFullIdInOneScope(currentScope, scopeList, hasCb, getCb);
+        if (ret) {
             return *ret;
         }
-    }
+        // resolve in parent scope
+        if (currentScope->has(kb.ids.parent)) {
+            currentScope = &static_cast<Scope&>(currentScope->get("parent"));
+        } else {
+            currentScope = nullptr;
+        }
 
-    // resolve in root scope
-    if (ret = resolveFullIdInOneScope(rootScope, scopeList, hasCb, getCb)) {
-        return *ret;
     }
 
     throw "Unknown Struct!";
@@ -1213,6 +1272,13 @@ void Ast::Scope::resolveTypes(CellI& state)
             resolvedScope.addStruct(resolvedAstStruct);
         });
     }
+    if (has("enums")) {
+        Visitor::visitList(enums()[kb.ids.list], [this, &state, &resolvedScope](CellI& origAstEnumCell, int i, bool& stop) {
+            Ast::Enum& origAstEnum     = static_cast<Ast::Enum&>(origAstEnumCell[kb.ids.value]);
+//            Ast::Enum& resolvedAstEnum = origAstEnum.resolveTypes(state);
+//            resolvedScope.addEnum(resolvedAstEnum);
+        });
+    }
     if (has("variables")) {
         Visitor::visitList(variables()[kb.ids.list], [this, &state, &resolvedScope](CellI& origAstVarCell, int i, bool& stop) {
             Ast::Var& origAstVar = static_cast<Ast::Var&>(origAstVarCell[kb.ids.value]);
@@ -1233,70 +1299,73 @@ void Ast::Scope::resolveTypes(CellI& state)
     }
 }
 
-TrieMap& Ast::Scope::variables()
+TrieMap& Ast::Scope::trieMap(const std::string& trieMapName)
 {
-    if (missing("variables")) {
-        throw "No variables!";
+    static const std::set<std::string> trieMaps = {
+        "variables",
+        "scopes",
+        "functions",
+        "functionTs",
+        "structs",
+        "structTs",
+        "enums",
+        "enumsTs"
+    };
+    if (!trieMaps.contains(trieMapName)) {
+        throw std::format("Invalid {}!", trieMapName);
+    }
+    if (missing(trieMapName)) {
+        throw std::format("No {}!", trieMapName);
     } else {
-        return static_cast<TrieMap&>(get("variables"));
+        return static_cast<TrieMap&>(get(trieMapName));
     }
 }
 
-TrieMap& Ast::Scope::scopes()
+bool Ast::Scope::hasNameInTrieMap(const std::string& trieMapName, CellI& id)
 {
-    if (missing("scopes")) {
-        throw "No scopes!";
-    } else {
-        return static_cast<TrieMap&>(get("scopes"));
+    if (missing(trieMapName)) {
+        return false;
     }
+
+    return trieMap(trieMapName).hasKey(id);
 }
 
-TrieMap& Ast::Scope::functions()
+Ast::Base& Ast::Scope::getNameFromTrieMap(const std::string& trieMapName, const std::string& name)
 {
-    if (missing("functions")) {
-        throw "No functions!";
-    } else {
-        return static_cast<TrieMap&>(get("functions"));
-    }
+    return getIdFromTrieMap(trieMapName, kb.id(name));
 }
 
-TrieMap& Ast::Scope::functionTs()
+Ast::Base& Ast::Scope::getIdFromTrieMap(const std::string& trieMapName, CellI& id)
 {
-    if (missing("functionTs")) {
-        throw "No functions!";
-    } else {
-        return static_cast<TrieMap&>(get("functionTs"));
+    if (missing(trieMapName)) {
+        throw "No such scope";
     }
+
+    if (trieMap(trieMapName).hasKey(id)) {
+        return static_cast<Ast::Base&>(trieMap(trieMapName).getValue(id));
+    }
+
+    throw "No such scope";
 }
 
-TrieMap& Ast::Scope::structs()
+void Ast::Scope::addAstObjToTrieMap(const std::string& trieMapName, Base& obj)
 {
-    if (missing("structs")) {
-        throw "No structs!";
-    } else {
-        return static_cast<TrieMap&>(get("structs"));
-    }
-}
+    CellI& id = obj[kb.ids.id];
 
-TrieMap& Ast::Scope::structTs()
-{
-    if (missing("structTs")) {
-        throw "No structs!";
-    } else {
-        return static_cast<TrieMap&>(get("structTs"));
+    if (missing(trieMapName)) {
+        set(trieMapName, *new TrieMap(kb, kb.std.Cell, kb.std.ast.Base, "TrieMap<Cell, Type::Ast::Base>(...)"));
     }
+    if (trieMap(trieMapName).hasKey(id)) {
+        throw "Already registered!";
+    }
+
+    trieMap(trieMapName).add(id, obj);
 }
 
 Ast::StructBase::StructBase(brain::Brain& kb, CellI& astType, CellI& id, const std::string& label) :
     Base(kb, astType, label)
 {
     set("id", id);
-}
-
-Ast::StructBase::StructBase(brain::Brain& kb, CellI& astType, const std::string& name) :
-    Base(kb, astType, name)
-{
-    set("id", kb.id(name));
 }
 
 Ast::Function& Ast::StructBase::addMethod(const std::string& name)
@@ -1404,12 +1473,6 @@ Ast::Base& Ast::StructBase::getSubType(CellI& name)
 Ast::Struct::Struct(brain::Brain& kb, CellI& id, const std::string& label) :
     StructBase(kb, kb.std.ast.Struct, id, label)
 {
-}
-
-Ast::Struct::Struct(brain::Brain& kb, const std::string& name) :
-    StructBase(kb, kb.std.ast.Struct, name)
-{
-    getFullId();
 }
 
 CellI& Ast::Struct::getFullId()
@@ -1623,11 +1686,6 @@ CellI& Ast::Struct::compile(CellI& state)
 
 Ast::StructT::StructT(brain::Brain& kb, CellI& id, const std::string& label) :
     StructBase(kb, kb.std.ast.StructT, id, label)
-{
-}
-
-Ast::StructT::StructT(brain::Brain& kb, const std::string& name) :
-    StructBase(kb, kb.std.ast.Struct, name)
 {
 }
 
@@ -1941,18 +1999,215 @@ Map& Ast::StructT::templateParams()
     }
 }
 
+Ast::EnumValue::EnumValue(brain::Brain& kb, const std::string& name) :
+    BaseT<EnumValue>(kb, kb.std.ast.EnumValue, name)
+{
+    set("name", kb.id(name));
+    label(name);
+}
+
+Ast::Enum::Enum(brain::Brain& kb, CellI& name, const std::string& nameStr) :
+    BaseT<Enum>(kb, kb.std.ast.Enum, nameStr)
+{
+    set("name", name);
+    label(nameStr);
+}
+
+CellI& Ast::Enum::getFullId()
+{
+    if (has("fullId")) {
+        return get("fullId");
+    }
+    Scope& scope       = static_cast<Scope&>(get("scope"));
+    CellI& scopeFullId = scope.getFullId();
+
+    List& fullId = *new List(kb, kb.std.Char);
+    Visitor::visitList(scopeFullId, [this, &fullId](CellI& character, int i, bool& stop) {
+        fullId.add(character);
+    });
+    if (!fullId.empty()) {
+        fullId.add(kb.pools.chars.get(':'));
+        fullId.add(kb.pools.chars.get(':'));
+    }
+    auto& id = get(kb.ids.id);
+    Visitor::visitList(id, [this, &fullId](CellI& character, int i, bool& stop) {
+        fullId.add(character);
+    });
+    std::stringstream ss;
+    int templateParamPrintModeFromCharIndex = fullId.size();
+    if (has("instanceOf")) {
+        int paramsLength                    = static_cast<List&>(get("templateParams")).size();
+        templateParamPrintModeFromCharIndex = fullId.size() - paramsLength * 2;
+    }
+    Visitor::visitList(fullId, [this, &fullId, &ss, &templateParamPrintModeFromCharIndex](CellI& character, int i, bool& stop) {
+        if (i == templateParamPrintModeFromCharIndex) {
+            stop = true;
+            return;
+        }
+        ss << character.label();
+    });
+    if (has("instanceOf")) {
+        ss << "<";
+        Visitor::visitList(get("templateParams"), [this, &ss](CellI& slot, int i, bool& stop) {
+            CellI& slotRole = slot[kb.ids.slotRole];
+            CellI& slotType = slot[kb.ids.slotType];
+            if (i != 0) {
+                ss << ", ";
+            }
+            ss << std::format("{}={}", slotRole.label(), getCompiledTypeFromResolvedType(slotType).label());
+        });
+        ss << ">";
+    }
+    fullId.label(ss.str());
+    set("fullId", fullId);
+
+    return fullId;
+}
+
+Ast::Enum& Ast::Enum::resolveTypes(CellI& state)
+{
+    auto& enumId       = get("id");
+    auto& structs        = static_cast<TrieMap&>(state[kb.ids.structs]);
+    auto& unknownStructs = static_cast<TrieMap&>(state[kb.ids.unknownStructs]);
+    Ast::Enum& ret       = *new Ast::Enum(kb, enumId, std::format("{}", label()));
+
+    if (has("instanceOf")) {
+        ret.set("instanceOf", get("instanceOf"));
+        ret.set("templateParams", get("templateParams"));
+        ret.set("scope", get("scope"));
+    }
+
+    auto& fullId             = getFullId();
+    CellI* resolvedStructPtr = nullptr;
+    if (unknownStructs.hasKey(fullId)) {
+        CellI& unknownStruct = unknownStructs.getValue(fullId);
+        resolvedStructPtr    = &unknownStruct["value"];
+        unknownStructs.remove(fullId);
+    } else {
+        resolvedStructPtr = new Object(kb, kb.std.Struct, std::format("{}", fullId.label()));
+    }
+    auto& resolvedStruct = *resolvedStructPtr;
+    structs.add(getFullId(), resolvedStruct);
+
+    state.set("currentStruct", ret);
+
+    std::stringstream ss;
+    std::stringstream subTypesSs;
+    if (debugCompiledStructs) {
+        ss << std::format("struct {}", label());
+    }
+
+    if (debugCompiledStructs) {
+        std::cout << ss.str() << " {" << std::endl;
+        std::cout << subTypesSs.str();
+    }
+
+#if 0
+    // resolve methods
+    if (has("methods")) {
+        Visitor::visitList(methods()[kb.ids.list], [this, &ret, &state](CellI& origAstFunctionCell, int i, bool& stop) {
+            auto& origAstFunction     = static_cast<Ast::Function&>(origAstFunctionCell);
+            auto& resolvedAstFunction = origAstFunction.resolveTypes(state);
+            ret.addMethod(resolvedAstFunction);
+            if (debugCompiledStructs) {
+                std::cout << std::format("    {};\n", resolvedAstFunction.shortName());
+            }
+        });
+        if (debugCompiledStructs) {
+            if (has("members")) {
+                std::cout << std::endl;
+            }
+        }
+    }
+    // resolve members
+    if (has("members")) {
+        CellI& membersList = members()[kb.ids.list];
+        Visitor::visitList(membersList, [this, &ret, &state](CellI& memberCell, int i, bool& stop) {
+            CellI& memberId           = memberCell[kb.ids.slotRole];
+            CellI& memberType         = memberCell[kb.ids.slotType];
+            CellI& resolvedMemberType = resolveType(memberType, state);
+            ret.members(kb.ast.slot(memberId, resolvedMemberType));
+            if (debugCompiledStructs) {
+                std::cout << std::format("    {}: {};", memberId.label(), getCompiledTypeFromResolvedType(resolvedMemberType).label()) << std::endl;
+            }
+        });
+    }
+#endif
+
+    if (debugCompiledStructs) {
+        std::cout << "}" << std::endl;
+    }
+
+    return ret;
+}
+
+CellI& Ast::Enum::compile(CellI& state)
+{
+    CellI& compiledStruct = getResolvedTypeById(getFullId(), has("instanceOf"), state);
+    compiledStruct.erase("incomplete");
+    // std::cout << std::format("DDDD compile {} resolved at {:p}\n", getFullId().label(), (void*)&compiledStruct) << std::endl;
+
+#if 0
+    // compile methods
+    if (has("methods")) {
+        Map& compiledMethods = *new Map(kb, kb.std.Cell, kb.std.ast.Function);
+        Visitor::visitList(methods()[kb.ids.list], [this, &compiledMethods, &state](CellI& astFunction, int i, bool& stop) {
+            auto& compiledFunction = static_cast<Ast::Function&>(astFunction).compile(state);
+            compiledMethods.add(astFunction[kb.ids.name], compiledFunction);
+        });
+        compiledStruct.set("methods", compiledMethods);
+    }
+
+    // compile members
+    if (has("members")) {
+        Map& compiledMembers = *new Map(kb, kb.std.Cell, kb.std.Slot, "members Map<Cell, Slot>(...)");
+        Visitor::visitList(members()[kb.ids.list], [this, &compiledMembers, &compiledStruct, &state](CellI& slot, int i, bool& stop) {
+            CellI& slotRole        = slot[kb.ids.slotRole];
+            CellI& slotType        = slot[kb.ids.slotType];
+            auto& compiledSlotType = getCompiledTypeFromResolvedType(slotType);
+            compiledMembers.add(slotRole, kb.std.slot(slotRole, compiledSlotType));
+        });
+        compiledStruct.set("slots", compiledMembers);
+    }
+
+    // compile memberOf list
+    if (has("memberOf")) {
+        Map& compiledMemberOfs = *new Map(kb, kb.std.Struct, kb.std.Struct, "memberOf Map<Type, Type>(...)");
+        Visitor::visitList(memberOf(), [this, &compiledMemberOfs](CellI& membershipType, int i, bool& stop) {
+            auto& compiledMembershipType = getCompiledTypeFromResolvedType(membershipType);
+            compiledMemberOfs.add(compiledMembershipType, compiledMembershipType);
+        });
+        compiledStruct.set("memberOf", compiledMemberOfs);
+    }
+#endif
+
+    return compiledStruct;
+}
+
+Ast::Enum& Ast::Enum::values(EnumValue& value)
+{
+    if (missing("values")) {
+        set("values", *new Map(kb, kb.std.Cell, kb.std.ast.EnumValue));
+    }
+    values().add(value["name"], value);
+
+    return *this;
+}
+
+TrieMap& Ast::Enum::values()
+{
+    if (missing("values")) {
+        throw "No values!";
+    } else {
+        return static_cast<TrieMap&>(get("values"));
+    }
+}
+
 Ast::Function::Function(brain::Brain& kb, CellI& name, const std::string& label) :
     BaseT<Function>(kb, kb.std.ast.Function, label)
 {
     set("name", name);
     this->label(label);
-}
-
-Ast::Function::Function(brain::Brain& kb, const std::string& name) :
-    BaseT<Function>(kb, kb.std.ast.Function, name)
-{
-    set("id", kb.pools.strings.get(name)[kb.ids.value]);
-    label(name);
 }
 
 Ast::Function& Ast::Function::parameters(Slot& param)
@@ -3313,6 +3568,11 @@ Ast::Slot& Ast::slot(CellI& role, CellI& type)
     return Slot::New(kb, role, type);
 }
 
+Ast::EnumValue& Ast::enumValue(const std::string& idStr)
+{
+    return EnumValue::New(kb, idStr);
+}
+
 Ast::Call& Ast::call(CellI& object, const std::string& method)
 {
     return Call::New(kb, object, kb.ast.cell(kb.id(method)));
@@ -3841,6 +4101,11 @@ Ast::Slot& Brain::member(const std::string& name, CellI& type)
     return ast.slot(id(name), type);
 }
 
+Ast::EnumValue& Brain::enumValue(const std::string& value)
+{
+    return ast.enumValue(value);
+}
+
 Ast::TemplateParam& Brain::tp_(const std::string& name)
 {
     return ast.templateParam(id(name));
@@ -4338,14 +4603,18 @@ void Brain::createStd()
     createOp(stdScope);
     createAst(stdScope);
 
-#if 0
+    /*
+     * enum type
+     *   tag: roleId
+     *   roleId: value
+     */
     stdScope.addEnum("Boolean")
         .values(
             enumValue("true"),
             enumValue("false"));
-#endif
 
     stdScope.addStruct("Cell");
+    stdScope.addStruct("Void");
     stdScope.addStruct("Slot")
         .members(
             member("slotRole", "Cell"),
@@ -4353,7 +4622,7 @@ void Brain::createStd()
 
     stdScope.addStruct("Enum")
         .members(
-            member("members", tt_("List", "valueType", "Cell")));
+            member("values", tt_("Map", "keyType", "Cell", "valueType", "Struct")));
 
     stdScope.addStruct("Container");
     stdScope.addStruct("Boolean");
@@ -4563,22 +4832,23 @@ void Brain::createStd()
     auto& structStruct
         = stdScope.addStruct("Struct")
               .members(
-                  member("name", tt_("List", "valueType", _(std.Char))),
-                  member("slots", tt_("Map", "keyType", _(std.Cell), "valueType", _(std.Slot))),
-                  member("incomplete", _(std.Boolean)),
-                  member("sharedObject", _(std.Slot)),
-                  member("subTypes", tt_("Map", "keyType", _(std.Cell), "valueType", "Struct")),
+                  member("name", tt_("List", "valueType", "Char")),
+                  member("slots", tt_("Map", "keyType", "Cell", "valueType", "Slot")),
+                  member("enum", "Boolean"),
+                  member("incomplete", "Boolean"),
+                  member("sharedObject", "Slot"),
+                  member("subTypes", tt_("Map", "keyType", "Cell", "valueType", "Struct")),
                   member("memberOf", tt_("Map", "keyType", "Struct", "valueType", "Struct")),
-                  member("asts", tt_("Map", "keyType", _(std.Cell), "valueType", _(std.ast.Function))),
-                  member("methods", tt_("Map", "keyType", _(std.Cell), "valueType", _(std.op.Function))));
+                  member("asts", tt_("Map", "keyType", "Cell", "valueType", "ast::Function")),
+                  member("methods", tt_("Map", "keyType", "Cell", "valueType", "op::Function")));
 
     structStruct.addMethod("constructor")
         .code(
-            m_("slots") = ast.new_(tt_("Map", "keyType", _(std.Cell), "valueType", _(std.Slot)), "constructor"));
+            m_("slots") = ast.new_(tt_("Map", "keyType", "Cell", "valueType", "Slot"), "constructor"));
 
     structStruct.addMethod("constructorWithRecursiveType")
         .code(
-            m_("slots") = ast.new_(tt_("Map", "keyType", _(std.Cell), "valueType", _(std.Slot)), "constructorWithIndexType", param("indexType", ast.self())));
+            m_("slots") = ast.new_(tt_("Map", "keyType", "Cell", "valueType", "Slot"), "constructorWithIndexType", param("indexType", ast.self())));
 
     structStruct.addMethod("addSubType")
         .parameters(
@@ -5732,7 +6002,7 @@ void Brain::createTests()
 
     auto& testVariable = testScope.addVariable(id("testVariable"));
 
-    auto& testStruct = testScope.addStruct("Test");
+    auto& testStruct = testScope.addStruct("TestStruct");
     CellI& fullId    = testStruct.getFullId();
 
     testStruct.addMethod("testCreateNewListOfNumbers")
@@ -5759,6 +6029,28 @@ void Brain::createTests()
                     ast.return_(ast.multiply(p_("input"), ast.self().call("factorial", param("input", ast.subtract(p_("input"), _(_1_)))))),
                     ast.return_(_(_1_))));
 
+    testScope.addEnum("TestEnum")
+        .values(
+            enumValue("value1"), // init with Void
+            enumValue("value2"));
+
+#if 0
+    testScope.addEnum("TestEnumWithValues")
+        .values(
+            enumValue("value1", _(_1_)), // init with a value
+            enumValue("value2", _(_2_)));
+
+    testScope.addEnum("TestEnumTyped")
+        .values(
+                         // value
+            enumTypedValue("value1", "TestStruct"), // init with value
+            enumTypedValue("value2", "TestStruct"));
+
+    testScope.addEnum("TestEnumTypedWithValues")
+        .values(
+            enumTypedValue("value1", "TestStruct"), // init with value
+            enumTypedValue("value2", "TestStruct"));
+#endif
     // TODO
     //    type.String.method(ids.addSlots, { ids.list, list(type.slot(ids.value, type.ListOf(type.Char))) });
     // try/catch: almost the same as break/continue/return it can go through function calls. We need an op::Catch node

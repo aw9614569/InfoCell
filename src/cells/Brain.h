@@ -31,6 +31,7 @@ public:
     List data;
     List destructor;
     List else_;
+    List enum_;
     List emptyObject;
     List first;
     List functions;
@@ -165,6 +166,8 @@ public:
     Object Delete;
     Object Divide;
     Object Do;
+    Object Enum;
+    Object EnumValue;
     Object Equal;
     Object Erase;
     Object Function;
@@ -414,7 +417,69 @@ public:
     class FunctionT;
     class Struct;
     class StructT;
-    class Scope : public BaseT<Scope>
+    class Enum;
+
+    class TrieMapMemberI
+    {
+    public:
+        virtual TrieMap& trieMap(const std::string& trieMapName) = 0;
+        virtual bool hasNameInTrieMap(const std::string& trieMapName, CellI& id) = 0;
+        virtual Base& getNameFromTrieMap(const std::string& trieMapName, const std::string& name) = 0;
+        virtual Base& getIdFromTrieMap(const std::string& trieMapName, CellI& id) = 0;
+        virtual void addAstObjToTrieMap(const std::string& trieMapName, Base& obj) = 0;
+    };
+
+    template <class TAst>
+    class TrieMapMember
+    {
+    public:
+        TrieMapMember(brain::Brain& kb, const std::string& mapName, TrieMapMemberI& trieMapMemberI) :
+            kb(kb),
+            m_mapName(mapName),
+            m_trieMapMemberI(trieMapMemberI)
+        {}
+
+        bool has(CellI& id)
+        {
+            return m_trieMapMemberI.hasNameInTrieMap(m_mapName, id);
+        }
+
+        TAst& get(const std::string& name)
+        {
+            return static_cast<TAst&>(m_trieMapMemberI.getNameFromTrieMap(m_mapName, name));
+        }
+
+        TAst& get(CellI& id)
+        {
+            return static_cast<TAst&>(m_trieMapMemberI.getIdFromTrieMap(m_mapName, id));
+        }
+
+        TAst& add(const std::string& name)
+        {
+            TAst& ast = *new TAst(kb, name);
+            add(ast);
+
+            return ast;
+        }
+
+        void add(Base& scope)
+        {
+            m_trieMapMemberI.addAstObjToTrieMap(m_mapName, scope);
+        }
+
+        TrieMap& map()
+        {
+            return m_trieMapMemberI.trieMap(m_mapName);
+        }
+
+        brain::Brain& kb;
+        const std::string m_mapName;
+        TrieMapMemberI& m_trieMapMemberI;
+    };
+
+
+    class Scope : public BaseT<Scope>,
+                  public TrieMapMemberI
     {
     public:
         Scope(brain::Brain& kb, const std::string& name);
@@ -422,32 +487,44 @@ public:
         bool hasScope(CellI& id);
         Scope& getScope(const std::string& name);
         Scope& getScope(CellI& id);
-        Scope& addScope(const std::string& name);
         void addScope(Scope& scope);
+        Scope& addScope(const std::string& name);
+        TrieMap& scopes();
 
         Function& addFunction(const std::string& name);
         Function& addFunction(CellI& id, const std::string& label);
         void addFunction(Function& function);
+        TrieMap& functions();
 
         FunctionT& addFunctionT(const std::string& name);
         FunctionT& addFunctionT(CellI& id, const std::string& label);
+        TrieMap& functionTs();
 
         bool hasVariable(CellI& id);
         Var& getVariable(CellI& id);
         Var& addVariable(CellI& id);
+        TrieMap& variables();
 
         Ast::Struct& resolveStructName(CellI& name);
-        Ast::Struct& resolveStructNameImpl(CellI& name);
         bool hasStruct(CellI& id);
         Struct& getStruct(const std::string& name);
         Struct& getStruct(CellI& id);
         void addStruct(Struct& struct_);
         Struct& addStruct(const std::string& name);
+        TrieMap& structs();
 
         bool hasStructT(CellI& id);
         StructT& getStructT(CellI& id);
         StructT& addStructT(const std::string& name);
+        TrieMap& structTs();
 
+        bool hasEnum(CellI& id);
+        Enum& getEnum(CellI& id);
+        void addEnum(Enum& enum_);
+        Enum& addEnum(const std::string& name);
+        TrieMap& enums();
+
+        Enum& resolveFullEnumId(CellI& scopeList, CellI& id);
         Struct& resolveFullStructId(CellI& scopeList, CellI& id);
         StructT& resolveFullTemplateId(CellI& scopeList, CellI& id);
         Scope& getRootScope();
@@ -462,19 +539,25 @@ public:
         void resolveTypes(CellI& state);
         void compileTheResolvedAsts(CellI& programData, CellI& state);
 
-        TrieMap& variables();
-        TrieMap& scopes();
-        TrieMap& functions();
-        TrieMap& functionTs();
-        TrieMap& structs();
-        TrieMap& structTs();
+        TrieMap& trieMap(const std::string& trieMapName) override;
+        bool hasNameInTrieMap(const std::string& trieMapName, CellI& id) override;
+        Base& getNameFromTrieMap(const std::string& trieMapName, const std::string& name) override;
+        Base& getIdFromTrieMap(const std::string& trieMapName, CellI& id) override;
+        void addAstObjToTrieMap(const std::string& trieMapName, Base& obj) override;
+
+        TrieMapMember<Scope> scopesImpl;
+        TrieMapMember<Function> functionsImpl;
+        TrieMapMember<FunctionT> functionTsImpl;
+        TrieMapMember<Var> variablesImpl;
+        TrieMapMember<Struct> structsImpl;
+        TrieMapMember<StructT> structTsImpl;
+        TrieMapMember<Enum> enumsImpl;
     };
 
     class StructBase : public Base
     {
     public:
         StructBase(brain::Brain& kb, CellI& astType, CellI& cell, const std::string& label);
-        StructBase(brain::Brain& kb, CellI& astType, const std::string& name);
 
         Function& addMethod(const std::string& name);
         void addMethod(Function& method);
@@ -522,8 +605,7 @@ public:
                    public NewT<Struct>
     {
     public:
-        Struct(brain::Brain& kb, CellI& id, const std::string& label = "ast.struct");
-        Struct(brain::Brain& kb, const std::string& name);
+        Struct(brain::Brain& kb, CellI& id, const std::string& label);
 
         CellI& getFullId();
         Struct& resolveTypes(CellI& resolveState);
@@ -535,8 +617,7 @@ public:
     {
     public:
         using StructBase::kb;
-        StructT(brain::Brain& kb, CellI& id, const std::string& label = "ast.structT");
-        StructT(brain::Brain& kb, const std::string& name);
+        StructT(brain::Brain& kb, CellI& id, const std::string& label);
 
         Ast::StructT& templateParams(Slot& param);
 
@@ -557,11 +638,38 @@ public:
         Map& templateParams();
     };
 
+    class EnumValue : public BaseT<EnumValue>
+    {
+    public:
+        EnumValue(brain::Brain& kb, const std::string& idStr);
+    };
+
+    class Enum : public BaseT<Enum>
+    {
+    public:
+        Enum(brain::Brain& kb, CellI& id, const std::string& label);
+
+        CellI& getFullId();
+        Enum& resolveTypes(CellI& resolveState);
+        CellI& compile(CellI& state);
+
+        Enum& values(EnumValue& value);
+        template <typename... Args>
+        Enum& values(EnumValue& value, Args&&... args)
+        {
+            values(value);
+            values(std::forward<Args>(args)...);
+            return *this;
+        }
+
+    private:
+        TrieMap& values();
+    };
+
     class Function : public BaseT<Function>
     {
     public:
-        Function(brain::Brain& kb, CellI& name, const std::string& label = "ast.function");
-        Function(brain::Brain& kb, const std::string& name);
+        Function(brain::Brain& kb, CellI& name, const std::string& label);
 
         Function& parameters(Slot& param);
 
@@ -598,7 +706,7 @@ public:
     class FunctionT : public BaseT<FunctionT>
     {
     public:
-        FunctionT(brain::Brain& kb, CellI& name, const std::string& label = "ast.functionT");
+        FunctionT(brain::Brain& kb, CellI& name, const std::string& label);
         FunctionT(brain::Brain& kb, const std::string& name);
 
         void templateParams(Slot& param);
@@ -845,6 +953,8 @@ public:
     Parameter& parameter(CellI& role);
     Slot& slot(const std::string& role, CellI& type);
     Slot& slot(CellI& role, CellI& type);
+    EnumValue& enumValue(const std::string& idStr);
+    EnumValue& enumValue(const std::string& idStr, CellI& init);
 
     Call& call(CellI& object, const std::string& method);
     Call& call(CellI& object, CellI& method);
@@ -1040,6 +1150,7 @@ public:
     Ast::Slot& param(const std::string& name, CellI& value);
     Ast::Slot& member(const std::string& name, const std::string& type);
     Ast::Slot& member(const std::string& name, CellI& type);
+    Ast::EnumValue& enumValue(const std::string& value);
     template <typename... Args>
     Ast::SubType& st_(const std::string& name, Args&&... args);
     Ast::TemplateParam& tp_(const std::string& name);

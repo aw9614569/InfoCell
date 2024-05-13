@@ -237,7 +237,7 @@ TEST_F(CellTest, PrintStdCodes)
 TEST_F(CellTest, PrintTestCodes)
 {
 #if 1
-    auto& TestStruct = getStruct("test::Test");
+    auto& TestStruct = getStruct("test::TestStruct");
     printMethodInType(TestStruct, "factorial");
     printMethodInType(TestStruct, "testCreateNewListOfNumbers");
 #endif
@@ -263,8 +263,8 @@ TEST_F(CellTest, PrintArcCodes)
 
 TEST_F(CellTest, RecursiveCall)
 {
-    auto& TestStruct = getStruct("test::Test");
-    Object testNumber(kb, TestStruct, "TestStruct");
+    auto& TestStruct = getStruct("test::TestStruct");
+    Object testNumber(kb, TestStruct, "testNumber");
 
     EXPECT_EQ(&testNumber.method(kb.id("factorial"), { ids.input, _0_ }), &_1_);
     EXPECT_EQ(&testNumber.method(kb.id("factorial"), { ids.input, _1_ }), &_1_);
