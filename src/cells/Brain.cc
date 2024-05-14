@@ -191,6 +191,7 @@ Ast::Ast(brain::Brain& kb) :
     TemplateParam(kb, kb.std.Struct, "ast::TemplateParam"),
     Throw(kb, kb.std.Struct, "ast::Throw"),
     Try(kb, kb.std.Struct, "ast::Try"),
+    TypedEnumValue(kb, kb.std.Struct, "ast::TypedEnumValue"),
     Var(kb, kb.std.Struct, "ast::Var"),
     While(kb, kb.std.Struct, "ast::While")
 {
@@ -1771,6 +1772,31 @@ Ast::EnumValue::EnumValue(brain::Brain& kb, const std::string& name) :
     label(name);
 }
 
+Ast::EnumValue::EnumValue(brain::Brain& kb, const std::string& name, CellI& value) :
+    BaseT<EnumValue>(kb, kb.std.ast.EnumValue, name)
+{
+    set("name", kb.name(name));
+    set("value", value);
+    label(name);
+}
+
+Ast::TypedEnumValue::TypedEnumValue(brain::Brain& kb, const std::string& nameStr, CellI& value) :
+    BaseT<TypedEnumValue>(kb, kb.std.ast.TypedEnumValue, nameStr)
+{
+    set("name", kb.name(nameStr));
+    set("value", value);
+    label(nameStr);
+}
+
+Ast::TypedEnumValue::TypedEnumValue(brain::Brain& kb, const std::string& nameStr, CellI& value, CellI& enumType) :
+    BaseT<TypedEnumValue>(kb, kb.std.ast.TypedEnumValue, nameStr)
+{
+    set("name", kb.name(nameStr));
+    set("value", value);
+    set("enumType", enumType);
+    label(nameStr);
+}
+
 Ast::Enum::Enum(brain::Brain& kb, CellI& name) :
     BaseT<Enum>(kb, kb.std.ast.Enum, name.label())
 {
@@ -1956,10 +1982,10 @@ CellI& Ast::Enum::compile(CellI& state)
     return compiledStruct;
 }
 
-Ast::Enum& Ast::Enum::values(EnumValue& value)
+Ast::Enum& Ast::Enum::values(Base& value)
 {
     if (missing("values")) {
-        set("values", *new Map(kb, kb.std.Cell, kb.std.ast.EnumValue));
+        set("values", *new Map(kb, kb.std.Cell, kb.std.ast.Base));
     }
     values().add(value["name"], value);
 
@@ -3353,9 +3379,24 @@ Ast::Slot& Ast::slot(CellI& role, CellI& type)
     return Slot::New(kb, role, type);
 }
 
-Ast::EnumValue& Ast::enumValue(const std::string& idStr)
+Ast::EnumValue& Ast::enumValue(const std::string& nameStr)
 {
-    return EnumValue::New(kb, idStr);
+    return EnumValue::New(kb, nameStr);
+}
+
+Ast::EnumValue& Ast::enumValue(const std::string& nameStr, CellI& init)
+{
+    return EnumValue::New(kb, nameStr, init);
+}
+
+Ast::TypedEnumValue& Ast::typedEnumValue(const std::string& nameStr, CellI& type)
+{
+    return TypedEnumValue::New(kb, nameStr, type);
+}
+
+Ast::TypedEnumValue& Ast::typedEnumValue(const std::string& nameStr, CellI& type, CellI& value)
+{
+    return TypedEnumValue::New(kb, nameStr, type, value);
 }
 
 Ast::Call& Ast::call(CellI& object, const std::string& method)
@@ -3891,9 +3932,44 @@ Ast::Slot& Brain::member(const std::string& nameStr, CellI& type)
     return ast.slot(name(nameStr), type);
 }
 
-Ast::EnumValue& Brain::enumValue(const std::string& value)
+Ast::EnumValue& Brain::ev_(const std::string& nameStr)
 {
-    return ast.enumValue(value);
+    return ast.enumValue(nameStr);
+}
+
+Ast::EnumValue& Brain::ev_(const std::string& nameStr, CellI& value)
+{
+    return ast.enumValue(nameStr, value);
+}
+
+Ast::TypedEnumValue& Brain::tev_(const std::string& nameStr, CellI& type)
+{
+    return ast.typedEnumValue(nameStr, type);
+}
+
+Ast::TypedEnumValue& Brain::tev_(const std::string& nameStr, const std::string& typeStr)
+{
+    return ast.typedEnumValue(nameStr, struct_(typeStr));
+}
+
+Ast::TypedEnumValue& Brain::tev_(const std::string& nameStr, CellI& type, CellI& value)
+{
+    return ast.typedEnumValue(nameStr, type, value);
+}
+
+Ast::TypedEnumValue& Brain::tev_(const std::string& nameStr, CellI& type, const std::string& valueStr)
+{
+    return ast.typedEnumValue(nameStr, type, ids.emptyObject); // TODO, we need a value_("name") thing with an Ast:: ValueName type
+}
+
+Ast::TypedEnumValue& Brain::tev_(const std::string& nameStr, const std::string& typeStr, CellI& value)
+{
+    return ast.typedEnumValue(nameStr, struct_(typeStr), value);
+}
+
+Ast::TypedEnumValue& Brain::tev_(const std::string& nameStr, const std::string& typeStr, const std::string& valueStr)
+{
+    return ast.typedEnumValue(nameStr, struct_(typeStr), ids.emptyObject); // TODO, we need a value_("name") thing with an Ast:: ValueName type
 }
 
 Ast::TemplateParam& Brain::tp_(const std::string& nameStr)
@@ -4411,8 +4487,8 @@ void Brain::createStd()
      */
     stdScope.add<Enum>("Boolean")
         .values(
-            enumValue("true"),
-            enumValue("false"));
+            ev_("true"),
+            ev_("false"));
 
     stdScope.add<Struct>("Cell");
     stdScope.add<Struct>("Void");
@@ -5842,26 +5918,24 @@ void Brain::createTests()
 
     testScope.add<Enum>("TestEnum")
         .values(
-            enumValue("value1"), // init with Void
-            enumValue("value2"));
+            ev_("value1"), // init with Void
+            ev_("value2"));
 
-#if 0
-    testScope.addEnum("TestEnumWithValues")
+    testScope.add<Enum>("TestEnumWithValues")
         .values(
-            enumValue("value1", _(_1_)), // init with a value
-            enumValue("value2", _(_2_)));
+            ev_("value1", _(_1_)), // init with a value
+            ev_("value2", _(_2_)));
 
-    testScope.addEnum("TestEnumTyped")
+    testScope.add<Enum>("TestEnumTyped")
         .values(
-                         // value
-            enumTypedValue("value1", "TestStruct"), // init with value
-            enumTypedValue("value2", "TestStruct"));
+            tev_("value1", struct_("TestStruct")), // init with value
+            tev_("value2", "TestStruct"));
 
-    testScope.addEnum("TestEnumTypedWithValues")
+    testScope.add<Enum>("TestEnumTypedWithValues")
         .values(
-            enumTypedValue("value1", "TestStruct"), // init with value
-            enumTypedValue("value2", "TestStruct"));
-#endif
+            tev_("value1", "TestStruct", "testStruct1"), // init with value
+            tev_("value2", "TestStruct", "testStruct2"));
+
     // TODO
     //    type.String.method(ids.addSlots, { ids.list, list(type.slot(ids.value, type.ListOf(type.Char))) });
     // try/catch: almost the same as break/continue/return it can go through function calls. We need an op::Catch node

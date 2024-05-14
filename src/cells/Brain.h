@@ -206,6 +206,7 @@ public:
     Object TemplateParam;
     Object Throw;
     Object Try;
+    Object TypedEnumValue;
     Object Var;
     Object While;
 };
@@ -267,6 +268,9 @@ public:
         return *new T(std::forward<Args>(args)...);
     }
 };
+
+template <class T, class EnumValue, class TypedEnumValue>
+concept EnumValueConcept = std::is_same<T, EnumValue>::value || std::is_same<T, TypedEnumValue>::value;
 
 class Ast
 {
@@ -644,7 +648,15 @@ public:
     class EnumValue : public BaseT<EnumValue>
     {
     public:
-        EnumValue(brain::Brain& kb, const std::string& idStr);
+        EnumValue(brain::Brain& kb, const std::string& nameStr);
+        EnumValue(brain::Brain& kb, const std::string& nameStr, CellI& value);
+    };
+
+    class TypedEnumValue : public BaseT<TypedEnumValue>
+    {
+    public:
+        TypedEnumValue(brain::Brain& kb, const std::string& nameStr, CellI& type);
+        TypedEnumValue(brain::Brain& kb, const std::string& nameStr, CellI& type, CellI& value);
     };
 
     class Enum : public BaseT<Enum>
@@ -657,11 +669,13 @@ public:
         Enum& resolveTypes(CellI& resolveState);
         CellI& compile(CellI& state);
 
-        Enum& values(EnumValue& value);
-        template <typename... Args>
-        Enum& values(EnumValue& value, Args&&... args)
+        Enum& values(Base& value);
+
+        template <class T, class... Args>
+        Enum& values(T& value, Args&&... args)
+            requires EnumValueConcept<T, EnumValue, TypedEnumValue>
         {
-            values(value);
+            values(static_cast<Base&>(value));
             values(std::forward<Args>(args)...);
             return *this;
         }
@@ -959,8 +973,10 @@ public:
     Parameter& parameter(CellI& role);
     Slot& slot(const std::string& role, CellI& type);
     Slot& slot(CellI& role, CellI& type);
-    EnumValue& enumValue(const std::string& idStr);
-    EnumValue& enumValue(const std::string& idStr, CellI& init);
+    EnumValue& enumValue(const std::string& nameStr);
+    EnumValue& enumValue(const std::string& nameStr, CellI& init);
+    TypedEnumValue& typedEnumValue(const std::string& nameStr, CellI& value);
+    TypedEnumValue& typedEnumValue(const std::string& nameStr, CellI& type, CellI& value);
 
     Call& call(CellI& object, const std::string& method);
     Call& call(CellI& object, CellI& method);
@@ -1126,6 +1142,16 @@ public:
     pools::Strings strings;
 };
 
+template <typename T>
+concept is_string = std::is_convertible<T, std::string>::value or std::is_bounded_array_v<char[]>;
+
+template <typename T>
+concept is_cell = std::is_base_of<T, CellI>::value;
+
+template <typename T>
+concept string_or_cell = is_string<T> or is_cell<T>;
+
+
 class Brain
 {
 public:
@@ -1157,7 +1183,14 @@ public:
     Ast::Slot& param(const std::string& nameStr, CellI& value);
     Ast::Slot& member(const std::string& nameStr, const std::string& type);
     Ast::Slot& member(const std::string& nameStr, CellI& type);
-    Ast::EnumValue& enumValue(const std::string& value);
+    Ast::EnumValue& ev_(const std::string& nameStr);
+    Ast::EnumValue& ev_(const std::string& nameStr, CellI& value);
+    Ast::TypedEnumValue& tev_(const std::string& nameStr, CellI& type);
+    Ast::TypedEnumValue& tev_(const std::string& nameStr, const std::string& typeStr);
+    Ast::TypedEnumValue& tev_(const std::string& nameStr, CellI& type, CellI& value);
+    Ast::TypedEnumValue& tev_(const std::string& nameStr, const std::string& typeStr, CellI& value);
+    Ast::TypedEnumValue& tev_(const std::string& nameStr, CellI& type, const std::string& valueStr);
+    Ast::TypedEnumValue& tev_(const std::string& nameStr, const std::string& typeStr, const std::string& valueStr);
     template <typename... Args>
     Ast::SubType& st_(const std::string& nameStr, Args&&... args);
     Ast::TemplateParam& tp_(const std::string& name);
