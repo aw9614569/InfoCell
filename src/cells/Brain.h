@@ -819,6 +819,7 @@ public:
     public:
         Match(brain::Brain& kb, Base& enum_);
 
+        Match& case_(CellI& memberName, Base& op);
         Match& case_(const std::string& memberStr, Base& op);
         Match& default_(Base& value);
     };

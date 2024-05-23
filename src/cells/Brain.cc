@@ -1921,16 +1921,18 @@ CellI& Ast::Enum::compile(CellI& state)
             CellI& valueCell = kvPair[kb.ids.value];
             CellI& valueName = valueCell[kb.ids.name];
             if (&valueCell.struct_() == &kb.std.ast.EnumValue) {
-                auto& enumValue        = static_cast<EnumValue&>(valueCell);
-                auto& fullName         = enumValue.getFullyQualifiedName();
-                auto& compiledVariable = *new Object(kb, kb.std.op.Var, std::format("{}::{}", label(), enumValue.label()));
+                auto& enumValue     = static_cast<EnumValue&>(valueCell);
+                auto& fullName      = enumValue.getFullyQualifiedName();
                 if (valueCell.has(kb.ids.value)) {
                     auto& value         = enumValue[kb.ids.value];
                     auto& resolvedValue = resolveEnumValue(value);
                     auto& valueType     = resolvedValue.struct_();
                     compiledMembers.add(valueKey, valueType);
                 } else {
-                    compiledVariables.add(fullName, compiledVariable);
+                    auto& compiledValue = *new Object(kb, compiledStruct, std::format("{}::{}", label(), enumValue.label()));
+                    compiledValue.set("tag", valueName);
+                    compiledValue.set(valueName, kb.ids.emptyObject);
+                    compiledVariables.add(fullName, compiledValue);
                     compiledMembers.add(valueKey, compiledStruct);
                 }
             } else if (&valueCell.struct_() == &kb.std.ast.TypedEnumValue) {
@@ -2155,6 +2157,14 @@ Ast::Base& Ast::Function::resolveTypesInCode(CellI& resolveState, CellI& ast)
         } else {
             return kb.ast.if_(resolveNode(ast[kb.ids.condition])).then_(resolveNode(ast[kb.ids.then]));
         }
+    } else if (&ast.struct_() == &kb.std.ast.Match) {
+        auto& ret = kb.ast.match_(static_cast<Base&>(ast["enum"]));
+        Visitor::visitList(ast["cases"][kb.ids.list], [this, &resolveNode, &ret](CellI& kvpair, int, bool&) {
+            auto& key = kvpair[kb.ids.key];
+            auto& op  = resolveNode(kvpair[kb.ids.value]);
+            ret.case_(key, op);
+        });
+        return ret;
     } else if (&ast.struct_() == &kb.std.ast.Do) {
         return kb.ast.do_(resolveNode(ast[kb.ids.statement])).while_(resolveNode(ast[kb.ids.condition]));
     } else if (&ast.struct_() == &kb.std.ast.While) {
@@ -2445,6 +2455,20 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         } else {
             return retOp;
         }
+    } else if (&ast.struct_() == &kb.std.ast.Match) {
+        auto& enumObj   = ast["enum"];
+        auto& caseList  = ast["cases"][kb.ids.list];
+        auto& astCases  = *new cells::List(kb, kb.std.ast.Base);
+        Block& astBlock = *new Block(kb, astCases);
+
+        Visitor::visitList(caseList, [this, &compile, &ast, &function, &enumObj, &astCases](CellI& kvpair, int, bool&) {
+            auto& kind    = kvpair[kb.ids.key];
+            auto& op      = kvpair[kb.ids.value];
+            auto& oneCase = kb.ast.if_(kb.ast.same(kb._(kind), kb._(enumObj) / "tag")).then_(static_cast<Base&>(op));
+            astCases.add(oneCase);
+        });
+        auto& retOp = compile(astBlock);
+        return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Do) {
         Object& retOp = *new Object(kb, kb.std.op.Do);
         retOp.set("ast", ast);
@@ -3009,10 +3033,20 @@ Ast::Match::Match(brain::Brain& kb, Base& enum_) :
     set("enum", enum_);
 }
 
+Ast::Match& Ast::Match::case_(CellI& memberName, Base& op)
+{
+    if (missing("cases")) {
+        set("cases", *new TrieMap(kb, kb.std.List, kb.std.ast.Base));
+    }
+    auto& casesMap = static_cast<TrieMap&>(get("cases"));
+    casesMap.add(memberName, op);
+
+    return *this;
+}
+
 Ast::Match& Ast::Match::case_(const std::string& memberStr, Base& op)
 {
-    // TODO
-    return *this;
+    return case_(kb.name(memberStr), op);
 }
 
 Ast::Do::Do(brain::Brain& kb, Base& statement) :
@@ -5559,7 +5593,6 @@ void Brain::createArcSolver()
         .returnType(struct_("Vector"))
         .code(
             var_("ret") = ast.new_("Vector", "constructor", param("x", m_("x")), param("y", m_("y"))),
-#if 0
             ast.match_(p_("rotationDir"))
                 // 🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭
                 .case_(
@@ -5603,7 +5636,7 @@ void Brain::createArcSolver()
                     ast.block(
                         ast.set(*var_("ret"), "x", ast.add(m_("x"), m_("y"))),
                         ast.set(*var_("ret"), "y", ast.add(ast.subtract(_(_0_), m_("x")), m_("y"))))),
-#endif
+
             ast.return_(*var_("ret")));
 
     // struct VectorShape
