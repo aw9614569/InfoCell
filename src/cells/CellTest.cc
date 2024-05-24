@@ -128,6 +128,11 @@ protected:
         printAs.value(type[ids.methods][ids.index][kb.name(method)][ids.value]);
     }
 
+    CellI& getVariable(const std::string& name)
+    {
+        return kb.getVariable(name);
+    }
+
     CellI& getStruct(const std::string& name)
     {
         return kb.getStruct(name);
@@ -1361,6 +1366,72 @@ static ftxui::Element renderShape(CellI& shape)
     return vbox(boardLines);
 }
 
+static void printVectorShape(CellI& shape)
+{
+    std::map<int, std::map<int, ftxui::Color>> board;
+    int ShapeColorRed   = static_cast<Number&>(shape["color"][shape.kb.ids.red]).value();
+    int ShapeColorGreen = static_cast<Number&>(shape["color"][shape.kb.ids.green]).value();
+    int ShapeColorBlue  = static_cast<Number&>(shape["color"][shape.kb.ids.blue]).value();
+    ftxui::Color shapeColor(ShapeColorRed, ShapeColorGreen, ShapeColorBlue);
+    int x       = static_cast<Number&>(shape["firstPixel"]["x"]).value();
+    int y       = static_cast<Number&>(shape["firstPixel"]["y"]).value();
+    board[x][y] = shapeColor;
+    int maxX    = x;
+    int maxY    = y;
+    int minX    = x;
+    int minY    = y;
+
+    CellI& vectorList = shape["vectors"];
+    Visitor::visitList(vectorList, [&board, &x, &y, &maxX, &maxY, &minX, &minY, shapeColor](CellI& vector, int i, bool&) {
+        x += static_cast<Number&>(vector["x"]).value();
+        y += static_cast<Number&>(vector["y"]).value();
+        if (x > maxX) {
+            maxX = x;
+        }
+        if (y > maxY) {
+            maxY = y;
+        }
+        if (x < minX) {
+            minX = x;
+        }
+        if (y < minY) {
+            minY = y;
+        }
+        board[x][y] = shapeColor;
+    });
+    ftxui::Elements boardLines;
+    int width  = maxX - minX + 1;
+    int height = maxY - minY + 1;
+    std::map<int, std::map<int, ftxui::Color>> board2;
+    for (const auto& x : board) {
+        for (const auto& y : x.second) {
+            board2[x.first - minX][y.first - minY] = y.second;
+        }
+    }
+    board = board2;
+    for (int y = 0; y < height; ++y) {
+        ftxui::Elements arcSetInputLine;
+        for (int x = 0; x < width; ++x) {
+            ftxui::Color* currentColor = &ftxAlphaColor;
+            if (board.contains(x) && board[x].contains(y)) {
+                currentColor = &shapeColor;
+            }
+            arcSetInputLine.push_back(colorTile(*currentColor));
+        }
+        boardLines.push_back(hbox(arcSetInputLine));
+    }
+
+    auto renderedBoard = vbox(boardLines);
+    auto document      = renderedBoard | ftxui::border;
+    auto screen        = ftxui::Screen::Create(
+        ftxui::Dimension::Fit(document), // Width
+        ftxui::Dimension::Fit(document)  // Height
+    );
+    ftxui::Render(screen, document);
+    screen.Print();
+    std::cout << "\n";
+}
+
 static void printShapeList(CellI& shapeList)
 {
     ftxui::Elements shapesInLine;
@@ -1388,6 +1459,14 @@ static void printShapeList(CellI& shapeList)
 TEST_F(CellTest, ShaperTest)
 {
     auto& ShaperStruct = getStruct("arc::Shaper");
+    auto& rotationDir_45  = getVariable("arc::RotationDir::Degree_45");
+    auto& rotationDir_90  = getVariable("arc::RotationDir::Degree_90");
+    auto& rotationDir_135 = getVariable("arc::RotationDir::Degree_135");
+    auto& rotationDir_180 = getVariable("arc::RotationDir::Degree_180");
+    auto& rotationDir_225 = getVariable("arc::RotationDir::Degree_225");
+    auto& rotationDir_270 = getVariable("arc::RotationDir::Degree_270");
+    auto& rotationDir_315 = getVariable("arc::RotationDir::Degree_315");
+
     const auto& printPixels = [this](CellI& pixelList) -> std::string {
         std::stringstream ss;
         Visitor::visitList(pixelList, [this, &ss](CellI& arcPixel, int, bool&) {
@@ -1414,13 +1493,22 @@ TEST_F(CellTest, ShaperTest)
     EXPECT_EQ(printPixels(shape1_2pixels),       "[1, 0][2, 0]" \
                                            "[0, 1][1, 1][2, 1]" \
                                                  "[1, 2][2, 2]");
-    CellI& vectorShape1_2 = shape1_2.method("toVectorShape");
+    auto& vectorShape1_2 = static_cast<Object&>(shape1_2.method("toVectorShape"));
     CellI& vectorShape1_2_1v = vectorShape1_2["vectors"]["first"]["value"];
     EXPECT_EQ(&vectorShape1_2_1v["x"], &_1_);
     EXPECT_EQ(&vectorShape1_2_1v["y"], &_0_);
     CellI& vectorShape1_2_2v = vectorShape1_2["vectors"]["first"]["next"]["value"];
     EXPECT_EQ(&vectorShape1_2_2v["x"], &kb.pools.numbers.get(-2));
     EXPECT_EQ(&vectorShape1_2_2v["y"], &_1_);
+    printVectorShape(vectorShape1_2);
+    CellI& rotated_45 = vectorShape1_2.method(kb.name("rotate"), { "rotationDir", rotationDir_45 });
+    printVectorShape(rotated_45);
+    CellI& rotated_90 = vectorShape1_2.method(kb.name("rotate"), { "rotationDir", rotationDir_90 });
+    printVectorShape(rotated_90);
+    CellI& rotated_180 = vectorShape1_2.method(kb.name("rotate"), { "rotationDir", rotationDir_180 });
+    printVectorShape(rotated_180);
+    CellI& rotated_270 = vectorShape1_2.method(kb.name("rotate"), { "rotationDir", rotationDir_270 });
+    printVectorShape(rotated_270);
 
     // 7 0 0
     // 0 7 0

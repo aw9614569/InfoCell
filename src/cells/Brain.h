@@ -1274,8 +1274,10 @@ public:
     CellI* compiledGlobalScopePtr = nullptr;
 
 public:
-    CellI& getStruct(const std::string& name);
-    CellI& getStruct(CellI& id);
+    CellI& getStruct(const std::string& nameStr);
+    CellI& getStruct(CellI& name);
+    CellI& getVariable(const std::string& nameStr);
+    CellI& getVariable(CellI& name);
     CellI& reigisterStructBeforeCompilation(CellI& id);
     void registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct);
     CellI& name(const std::string& str);

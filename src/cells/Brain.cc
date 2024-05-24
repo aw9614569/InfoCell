@@ -2456,7 +2456,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
             return retOp;
         }
     } else if (&ast.struct_() == &kb.std.ast.Match) {
-        auto& enumObj   = ast["enum"];
+        auto& enumObj   = static_cast<Base&>(ast["enum"]);
         auto& caseList  = ast["cases"][kb.ids.list];
         auto& astCases  = *new cells::List(kb, kb.std.ast.Base);
         Block& astBlock = *new Block(kb, astCases);
@@ -2464,7 +2464,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         Visitor::visitList(caseList, [this, &compile, &ast, &function, &enumObj, &astCases](CellI& kvpair, int, bool&) {
             auto& kind    = kvpair[kb.ids.key];
             auto& op      = kvpair[kb.ids.value];
-            auto& oneCase = kb.ast.if_(kb.ast.same(kb._(kind), kb._(enumObj) / "tag")).then_(static_cast<Base&>(op));
+            auto& oneCase = kb.ast.if_(kb.ast.same(kb.ast.get(enumObj, "tag"), kb._(kind))).then_(static_cast<Base&>(op));
             astCases.add(oneCase);
         });
         auto& retOp = compile(astBlock);
@@ -5540,8 +5540,8 @@ void Brain::createArcSolver()
     arcScope.add<Enum>("RotationDir")
         .values(
             ev_("Degree_0"),   // 🡩
-            ev_("Degree_45,"), // 🡭
-            ev_("Degree_90,"), // 🡪
+            ev_("Degree_45"),  // 🡭
+            ev_("Degree_90"),  // 🡪
             ev_("Degree_135"), // 🡮
             ev_("Degree_180"), // 🡫
             ev_("Degree_225"), // 🡯
@@ -5594,6 +5594,10 @@ void Brain::createArcSolver()
         .code(
             var_("ret") = ast.new_("Vector", "constructor", param("x", m_("x")), param("y", m_("y"))),
             ast.match_(p_("rotationDir"))
+                // 🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩🡩
+                .case_(
+                    "Degree_0",
+                    ast.return_(*var_("ret")))
                 // 🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭
                 .case_(
                     "Degree_45",
@@ -5698,6 +5702,42 @@ void Brain::createArcSolver()
                     ast.if_(ast.has(*var_("pixel"), "next"))
                         .then_(var_("pixel") = *var_("pixel") / "next")
                         .else_(var_("pixel") = _(ids.emptyObject)))));
+
+    /*
+    VectorShape VectorShape::rotate(RotationDir rotationDir) const
+    {
+        std::vector<Vector> rotatedVectors;
+
+        for (const Vector& vector : m_vectors) {
+            Vector newVector = vector.rotate(rotationDir);
+            rotatedVectors.push_back(newVector);
+            //            loggerPtr->log(DEBUG) << " rotate vector [" << vector.x << ", " << vector.y << "] => [" << newVector.x << ", " << newVector.y << "]";
+        }
+
+        return VectorShape(std::move(rotatedVectors), m_color, m_firstPixel);
+    }
+    */
+    vectorShapeStruct.addMethod("rotate")
+        .parameters(
+            param("rotationDir", struct_("RotationDir")))
+        .returnType(struct_("VectorShape"))
+        .code(
+            var_("ret")            = ast.new_(struct_("VectorShape")),
+            var_("rotatedVectors") = ast.new_(tt_("std::List", "valueType", "Vector"), "constructor"),
+            ast.set(*var_("ret"), "color", m_("color")),
+            ast.set(*var_("ret"), "firstPixel", m_("firstPixel")),
+            ast.set(*var_("ret"), "vectors", *var_("rotatedVectors")),
+            var_("vector") = _(ids.emptyObject),
+            ast.if_(ast.has(m_("vectors"), "first"))
+                .then_(var_("vector") = m_("vectors") / "first"),
+            ast.while_(ast.notSame(*var_("vector"), _(ids.emptyObject)))
+                .do_(ast.block(
+                    var_("newVector") = ast.call(*var_("vector") / "value", "rotate", param("rotationDir", p_("rotationDir"))),
+                    ast.call(*var_("rotatedVectors"), "add", param("value", *var_("newVector"))),
+                    ast.if_(ast.has(*var_("vector"), "next"))
+                        .then_(var_("vector") = *var_("vector") / "next")
+                        .else_(var_("vector") = _(ids.emptyObject)))),
+            ast.return_(*var_("ret")));
 
     // struct ShapePixel
     auto& shapePixelStruct
@@ -6223,7 +6263,7 @@ CellI& Brain::getStruct(const std::string& nameStr)
     return getStruct(name(nameStr));
 }
 
-CellI& Brain::getStruct(CellI& id)
+CellI& Brain::getStruct(CellI& name)
 {
     switch (m_initPhase) {
     case InitPhase::Init:
@@ -6231,7 +6271,27 @@ CellI& Brain::getStruct(CellI& id)
     case InitPhase::Compiling:
         throw "Get struct during compilation is not possible";
     case InitPhase::FullyConstructed:
-        return static_cast<TrieMap&>((*compiledGlobalScopePtr)[ids.structs]).getValue(id);
+        return static_cast<TrieMap&>((*compiledGlobalScopePtr)[ids.structs]).getValue(name);
+    case InitPhase::DestructBegin:
+        return ids.emptyObject;
+    }
+    throw "Unhandled state!";
+}
+
+CellI& Brain::getVariable(const std::string& nameStr)
+{
+    return getVariable(name(nameStr));
+}
+
+CellI& Brain::getVariable(CellI& name)
+{
+    switch (m_initPhase) {
+    case InitPhase::Init:
+        throw "Get variable before compilation is not possible";
+    case InitPhase::Compiling:
+        throw "Get variable during compilation is not possible";
+    case InitPhase::FullyConstructed:
+        return static_cast<TrieMap&>((*compiledGlobalScopePtr)[ids.variables]).getValue(name);
     case InitPhase::DestructBegin:
         return ids.emptyObject;
     }
