@@ -2690,6 +2690,28 @@ block {
                                            .then_(kb.ast.set(_(block), _("value"), _(varMethod) / "value" / "stack" / "value" / "output" / "value")));
         CellI& setStackToOld = compile(kb.ast.set(_(varMethod) / "value" / "stack" / "previous" / "value" / "method", _("stack"), _(varMethod) / "value" / "stack" / "previous"));
 
+        CellI& revertStackVar = compile(
+            kb.ast.set(_(varNewStackItem), _("value"), _(varMethod) / "value" / "stack" ));
+
+        CellI& deleteStackItem = compile(
+            kb.ast.block(
+                kb.ast.if_(kb.ast.has(_(varNewStackItem) / "value" / "value", "localVars"))
+                    .then_(kb.ast.block(
+                        kb.ast.set(_(varLocalVarsListItem), "value", _(varNewStackItem) / "value" / "value" / "method" / "struct" / "subTypes" / "index" / "localVars" / "value" / "slots" / "list" / "first"),
+                        kb.ast.do_(kb.ast.block(
+                                       kb.ast.delete_(kb.ast.get(_(varNewStackItem) / "value" / "value" / "localVars", _(varLocalVarsListItem) / "value" / "value" / "slotRole")),
+                                       kb.ast.set(_(varLocalVarsListItemHasNext), "value", _(kb.boolean.true_)),
+                                       kb.ast.if_(kb.ast.has(_(varLocalVarsListItem) / "value", "next"))
+                                           .then_(kb.ast.set(_(varLocalVarsListItem), "value", _(varLocalVarsListItem) / "value" / "next"))
+                                           .else_(kb.ast.set(_(varLocalVarsListItemHasNext), "value", _(kb.boolean.false_)))))
+                            .while_(kb.ast.same(_(varLocalVarsListItemHasNext) / "value", _(kb.boolean.true_))),
+                        kb.ast.delete_(_(varNewStackItem) / "value" / "value" / "localVars"))),
+                kb.ast.if_(kb.ast.has(_(varNewStackItem) / "value" / "value", "output"))
+                    .then_(kb.ast.delete_(_(varNewStackItem) / "value" / "value" / "output")),
+                kb.ast.delete_(_(varNewStackItem) / "value" / "value" / "input"),
+                kb.ast.delete_(_(varNewStackItem) / "value" / "value"),
+                kb.ast.delete_(_(varNewStackItem) / "value")));
+
         compiledAsts.add(storeMethod);
         compiledAsts.add(setCurrentStack);
         compiledAsts.add(storeStackItem);
@@ -2720,12 +2742,14 @@ block {
         compiledAsts.add(setStackToNew);
         compiledAsts.add(evalMethod);
         compiledAsts.add(getResult);
+        compiledAsts.add(revertStackVar);
         compiledAsts.add(setStackToOld);
+        compiledAsts.add(deleteStackItem);
 
         getMethod.label("Call { getMethod; }");
         storeMethod.label("Call { storeMethod; }");
         setCurrentStack.label("Call  { setCurrentStack; }");
-        storeStackItem.label("Call { storeStackFrame; }");
+        storeStackItem.label("Call { storeStackItem; }");
         storeStackFrame.label("Call { storeStackFrame; }");
         setListItem.label("Call { setListItem; }");
         setListItemPrev.label("Call { setListItemPrev; }");
@@ -2739,7 +2763,9 @@ block {
         setStackNext.label("Call { setStackNext; }");
         setStackToNew.label("Call { setStackToNew; }");
         getResult.label("Call { getResult; }");
+        revertStackVar.label("Call { revertStackVar; }");
         setStackToOld.label("Call { setStackToOld; }");
+        deleteStackItem.label("Call { deleteStackItem; }");
 
         if (prevBlock) {
             state.set("lastBlock", *prevBlock);

@@ -59,4 +59,29 @@ ArcTask::ArcTask(cells::brain::Brain& kb, const nlohmann::json& jsonArcFile) :
     m_task.set("solution", m_solution);
 }
 
+ArcPrizeTask::ArcPrizeTask(cells::brain::Brain& kb, const nlohmann::json& jsonArcFile) :
+    m_inputPicture("Test input"),
+    m_challenge(kb, m_inputPicture.loadFromJsonArray(to_string(jsonArcFile["/test/0/input"_json_pointer]))),
+    m_taskStruct(kb.getStruct("arc::Task")),
+    m_demonstrationStruct(kb.getStruct("arc::Demonstration")),
+    m_task(kb, m_taskStruct),
+    m_examples(kb, m_demonstrationStruct)
+{
+    const nlohmann::json& jsonTrainSet = jsonArcFile.at("train");
+    m_demonstrations.reserve(jsonTrainSet.size());
+    m_exampleObjects.reserve(jsonTrainSet.size());
+    int number = 1;
+    for (const auto& train : jsonTrainSet) {
+        m_demonstrations.emplace_back(kb, number++, to_string(train.at("input")), to_string(train.at("output")));
+        ArcDemonstration& arcDemonstration = m_demonstrations.back();
+        m_exampleObjects.emplace_back(kb, m_demonstrationStruct);
+        cells::Object& exampleObject = m_exampleObjects.back();
+        exampleObject.set("input", arcDemonstration.m_input);
+        exampleObject.set("output", arcDemonstration.m_output);
+        m_examples.add(exampleObject);
+    }
+    m_task.set("examples", m_examples);
+    m_task.set("challenge", m_challenge);
+}
+
 } // namespace synth

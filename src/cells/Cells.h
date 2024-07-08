@@ -115,6 +115,7 @@ public:
     CellI& smethod(CellI& role, Param param1, Param param2, Param param3);
     CellI& smethod(CellI& role, Param param1, Param param2, Param param3, Param param4);
     void resetIndent();
+    static void clearStack(CellI& method);
 
 protected:
     void destructor();

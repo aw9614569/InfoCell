@@ -784,7 +784,6 @@ CellI& Object::getMethod(CellI& role)
         CellI& methodsIndex = struct_()[kb.ids.methods][kb.ids.index];
         if (methodsIndex.has(role)) {
             CellI& method = methodsIndex[role][kb.ids.value];
-            Object& inputIndex = *new Object(kb, kb.std.Index);
             createStack(method);
             initLocalVars(method);
             setSelf(method);
@@ -821,15 +820,35 @@ void Object::createStack(CellI& method)
     stackFrame.set(kb.ids.input, inputIndex);
 
     if (method.struct_()[kb.ids.subTypes][kb.ids.index].has(kb.ids.returnType)) {
-        Object& varResult   = *new Object(kb, kb.std.op.Var, "varResult");
         Object& outputIndex = *new Object(kb, kb.std.Index, "ResultIndex");
-        outputIndex.set(kb.ids.value, varResult);
         stackFrame.set(kb.ids.output, outputIndex);
     }
     stackListItem0.set(kb.ids.next, stackListItem1);
     stackListItem1.set(kb.ids.value, stackFrame);
     stackListItem1.set(kb.ids.previous, stackListItem0);
     method.set(kb.ids.stack, stackListItem1);
+}
+
+void Object::clearStack(CellI& method)
+{
+    CellI* stackListItem1 = &method["stack"];
+    CellI* stackListItem0 = &(*stackListItem1)["previous"];
+    CellI* stackFrame     = &(*stackListItem1)["value"];
+    CellI* inputIndex     = &(*stackFrame)["input"];
+    if (method.struct_()["subTypes"]["index"].has("returnType")) {
+        CellI* outputIndex = &(*stackFrame)["output"];
+        delete outputIndex;
+    }
+    if (method.struct_()["subTypes"]["index"].has("localVars")) {
+        CellI* localVarsIndex = &(*stackFrame)["localVars"];
+        delete localVarsIndex;
+        // TODO
+    }
+
+    delete stackListItem1;
+    delete stackListItem0;
+    delete stackFrame;
+    delete inputIndex;
 }
 
 void Object::initLocalVars(CellI& method)

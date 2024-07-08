@@ -40,4 +40,21 @@ public:
     cells::List m_examples;
 };
 
+class ArcPrizeTask
+{
+public:
+    ArcPrizeTask(cells::brain::Brain& kb, const nlohmann::json& jsonArcFile);
+
+    std::vector<ArcDemonstration> m_demonstrations;
+    std::vector<cells::Object> m_exampleObjects;
+    input::Picture m_inputPicture;
+    std::unique_ptr<input::Picture> m_solutionPicture;
+    cells::hybrid::Picture m_challenge;
+    std::unique_ptr<cells::hybrid::Picture> m_solution;
+    cells::CellI& m_taskStruct;
+    cells::CellI& m_demonstrationStruct;
+    cells::Object m_task;
+    cells::List m_examples;
+};
+
 } // namespace synth
