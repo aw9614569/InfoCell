@@ -220,7 +220,7 @@ Std::Std(brain::Brain& kb) :
     String(kb, kb.std.Struct, "String"),
     Color(kb, kb.std.Struct, "Color"),
     Pixel(kb, kb.std.Struct, "Pixel"),
-    Picture(kb, kb.std.Struct, "Picture"),
+    Grid(kb, kb.std.Struct, "Grid"),
     Stack(kb, kb.std.Struct, "Stack"),
     StackFrame(kb, kb.std.Struct, "StackFrame"),
     Program(kb, kb.std.Struct, "Program"),
@@ -4569,7 +4569,7 @@ void Brain::createStd()
             member("blue", "Number"));
 
     stdScope.add<Struct>("Pixel");
-    stdScope.add<Struct>("Picture");
+    stdScope.add<Struct>("Grid");
     stdScope.add<Struct>("Stack");
 
     stdScope.add<Struct>("StackFrame")
@@ -5549,18 +5549,18 @@ void Brain::createArcSolver()
 
     auto& arcScope = globalScope.add<Scope>("arc");
 
-    auto& demonstrationStruct
-        = arcScope.add<Struct>("Demonstration")
+    auto& exampleStruct
+        = arcScope.add<Struct>("Example")
               .members(
-                  member("input", _(std.Picture)),
-                  member("output", _(std.Picture)));
+                  member("input", _(std.Grid)),
+                  member("output", _(std.Grid)));
 
     auto& taskStruct
         = arcScope.add<Struct>("Task")
               .members(
-                  member("examples", tt_("std::List", "valueType", "Demonstration")),
-                  member("challenge", _(std.Picture)),
-                  member("solution", _(std.Picture)));
+                  member("examples", tt_("std::List", "valueType", "Example")),
+                  member("tests", tt_("std::List", "valueType", "Example")),
+                  member("solution", _(std.Grid)));
 
     arcScope.add<Enum>("RotationDir")
         .values(
@@ -5850,7 +5850,7 @@ void Brain::createArcSolver()
               .members(
                   member("width", _(std.Number)),
                   member("height", _(std.Number)),
-                  member("picture", _(std.Picture)),
+                  member("grid", _(std.Grid)),
                   member("shapePixels", st_("tableType")),
                   member("shapes", tt_("std::List", "valueType", "Shape")),
                   member("shapeSet", tt_("std::Set", "valueType", "Shape")),
@@ -5868,11 +5868,11 @@ void Brain::createArcSolver()
     */
     shaperStruct.addMethod("constructor")
         .parameters(
-            param("picture", _(std.Picture)))
+            param("grid", _(std.Grid)))
         .code(
-            m_("picture")     = p_("picture"),
-            m_("width")       = p_("picture") / "width",
-            m_("height")      = p_("picture") / "height",
+            m_("grid")        = p_("grid"),
+            m_("width")       = p_("grid") / "width",
+            m_("height")      = p_("grid") / "height",
             m_("shapes")      = ast.new_(tt_("std::List", "valueType", "Shape"), "constructor"),
             m_("shapePixels") = ast.new_(st_("tableType"), "constructor"),
             m_("shapeSet")    = ast.new_(tt_("std::Set", "valueType", "Shape"), "constructor"),
@@ -5889,7 +5889,7 @@ void Brain::createArcSolver()
     */
     shaperStruct.addMethod("processInputPixels")
         .code(
-            var_("pixels") = m_("picture") / "pixels",
+            var_("pixels") = m_("grid") / "pixels",
             var_("pixel")  = _(ids.emptyObject),
             ast.if_(ast.has(*var_("pixels"), "first"))
                 .then_(var_("pixel") = *var_("pixels") / "first"),
@@ -6237,7 +6237,7 @@ Brain::Brain() :
     registerBuiltInStruct("std::String", std.String);
     registerBuiltInStruct("std::Color", std.Color);
     registerBuiltInStruct("std::Pixel", std.Pixel);
-    registerBuiltInStruct("std::Picture", std.Picture);
+    registerBuiltInStruct("std::Grid", std.Grid);
     registerBuiltInStruct("std::Stack", std.Stack);
     registerBuiltInStruct("std::StackFrame", std.StackFrame);
     registerBuiltInStruct("std::Program", std.Program);

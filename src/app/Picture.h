@@ -50,14 +50,14 @@ public:
     uint8_t m_alpha = 0;
 };
 
-class Picture
+class Grid
 {
 public:
-    Picture(const std::string& name);
-    Picture(const std::string& name, const std::string& jsonStr);
+    Grid(const std::string& name);
+    Grid(const std::string& name, const std::string& jsonStr);
 
-    Picture& loadFromJsonArray(const std::string& jsonStr);
-    Picture& loadFromVector(int width, int height, const std::vector<int>& pixels);
+    Grid& loadFromJsonArray(const std::string& jsonStr);
+    Grid& loadFromVector(int width, int height, const std::vector<int>& pixels);
     const std::string& label() const;
     int width() const;
     int height() const;

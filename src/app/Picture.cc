@@ -18,17 +18,17 @@ const std::array<Color, 10> arcColors = {
     Color(0x87, 0x0C, 0x25)  /* brown */
 };
 
-Picture::Picture(const std::string& name) :
+Grid::Grid(const std::string& name) :
     m_name(name)
 {
 }
-Picture::Picture(const std::string& name, const std::string& jsonStr) :
+Grid::Grid(const std::string& name, const std::string& jsonStr) :
     m_name(name)
 {
     loadFromJsonArray(jsonStr);
 }
 
-Picture& Picture::loadFromJsonArray(const std::string& jsonStr)
+Grid& Grid::loadFromJsonArray(const std::string& jsonStr)
 {
     nlohmann::json arcMatrix = nlohmann::json::parse(jsonStr);
     size_t matrixHeight = arcMatrix.size();
@@ -47,7 +47,7 @@ Picture& Picture::loadFromJsonArray(const std::string& jsonStr)
     return *this;
 }
 
-Picture& Picture::loadFromVector(int width, int height, const std::vector<int>& pixelColors)
+Grid& Grid::loadFromVector(int width, int height, const std::vector<int>& pixelColors)
 {
     m_width  = width;
     m_height = height;
@@ -59,27 +59,27 @@ Picture& Picture::loadFromVector(int width, int height, const std::vector<int>& 
     return *this;
 }
 
-const std::string& Picture::label() const
+const std::string& Grid::label() const
 {
     return m_name;
 }
 
-int Picture::width() const
+int Grid::width() const
 {
     return m_width;
 }
 
-int Picture::height() const
+int Grid::height() const
 {
     return m_height;
 }
 
-std::vector<Color>& Picture::pixels()
+std::vector<Color>& Grid::pixels()
 {
     return m_pixels;
 }
 
-const std::vector<Color>& Picture::pixels() const
+const std::vector<Color>& Grid::pixels() const
 {
     return m_pixels;
 }

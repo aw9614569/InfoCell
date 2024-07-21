@@ -532,7 +532,7 @@ private:
 class Picture : public CellI
 {
 public:
-    Picture(brain::Brain& kb, input::Picture& screen);
+    Picture(brain::Brain& kb, input::Grid& screen);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -564,6 +564,69 @@ protected:
     std::unique_ptr<List> m_pixelsList;
 };
 
+namespace arc {
+// ============================================================================
+class Grid;
+class Pixel : public CellI
+{
+public:
+    Pixel(brain::Brain& kb, int x, int y, int arcColor, Grid& grid);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    const int color() const;
+
+    Number& m_x;
+    Number& m_y;
+    Number& m_arcColor;
+
+private:
+    Grid& m_grid;
+};
+
+// ============================================================================
+class Grid : public CellI
+{
+public:
+    Grid(brain::Brain& kb, input::Grid& screen);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    Pixel& getPixel(int x, int y);
+    const Pixel& getPixel(int x, int y) const;
+    bool hasPixel(int x, int y) const;
+
+    int currentIndex(int x, int y) const;
+    Pixel* upPixel(int x, int y);
+    Pixel* downPixel(int x, int y);
+    Pixel* leftPixel(int x, int y);
+    Pixel* rightPixel(int x, int y);
+    std::vector<Pixel>& pixels();
+
+    int width() const;
+    int height() const;
+
+protected:
+    int m_width;
+    int m_height;
+    Number& m_widthCell;
+    Number& m_heightCell;
+    std::vector<Pixel> m_pixels;
+    std::unique_ptr<List> m_pixelsList;
+};
+
+} // namespace arc
+
 } // namespace hybrid
 
 // ============================================================================
@@ -577,7 +640,7 @@ public:
 
     virtual void visit(List::Item&) = 0;
     virtual void visit(List&)       = 0;
-    virtual void visit(Struct&)       = 0;
+    virtual void visit(Struct&)     = 0;
     virtual void visit(Index&)      = 0;
     virtual void visit(Map&)        = 0;
     virtual void visit(TrieMap&)    = 0;

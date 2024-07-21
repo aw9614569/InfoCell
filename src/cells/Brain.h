@@ -246,7 +246,7 @@ public:
     Object String;
     Object Color;
     Object Pixel;
-    Object Picture;
+    Object Grid;
     Object Stack;
     Object StackFrame;
     Object Program;

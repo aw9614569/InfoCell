@@ -1,5 +1,6 @@
 #include "Cells.h"
 #include "Brain.h"
+#include "app/Colors.h"
 
 #include <fmt/core.h>
 #include <sstream>
@@ -2082,7 +2083,7 @@ const input::Color& Pixel::color() const
 #pragma endregion
 #pragma region Picture
 // ============================================================================
-Picture::Picture(brain::Brain& kb, input::Picture& picture) :
+Picture::Picture(brain::Brain& kb, input::Grid& picture) :
     CellI(kb, picture.label()),
     m_width(picture.width()),
     m_height(picture.height()),
@@ -2143,7 +2144,7 @@ void Picture::operator()()
 CellI& Picture::operator[](CellI& role)
 {
     if (&role == &kb.ids.struct_) {
-        return kb.std.Picture;
+        return kb.std.Grid;
     }
     if (&role == &kb.ids.width) {
         return m_widthCell;
@@ -2256,6 +2257,266 @@ int Picture::height() const
     return m_height;
 }
 #pragma endregion
+
+namespace arc {
+#pragma region Pixel
+// ============================================================================
+Pixel::Pixel(brain::Brain& kb, int x, int y, int arcColor, Grid& grid) :
+    CellI(kb),
+    m_x(kb.pools.numbers.get(x)),
+    m_y(kb.pools.numbers.get(y)),
+    m_arcColor(kb.pools.numbers.get(arcColor)),
+    m_grid(grid)
+{
+}
+
+bool Pixel::has(CellI& role)
+{
+    if (&role == &kb.ids.struct_) {
+        return true;
+    }
+    if (&role == &kb.directions.up && m_grid.hasPixel(m_x.value(), m_y.value() - 1)) {
+        return true;
+    }
+    if (&role == &kb.directions.down && m_grid.hasPixel(m_x.value(), m_y.value() + 1)) {
+        return true;
+    }
+    if (&role == &kb.directions.left && m_grid.hasPixel(m_x.value() - 1, m_y.value())) {
+        return true;
+    }
+    if (&role == &kb.directions.right && m_grid.hasPixel(m_x.value() + 1, m_y.value())) {
+        return true;
+    }
+    if (&role == &kb.ids.color) {
+        return true;
+    }
+    if (&role == &kb.coordinates.x) {
+        return true;
+    }
+    if (&role == &kb.coordinates.y) {
+        return true;
+    }
+
+    return false;
+}
+
+void Pixel::set(CellI& role, CellI& value)
+{
+    throw "Changing a hybrid pixel cell is not possible!";
+}
+
+void Pixel::erase(CellI& role)
+{
+    throw "Changing a hybrid pixel cell is not possible!";
+}
+
+void Pixel::operator()()
+{
+    // Do nothing
+}
+
+CellI& Pixel::operator[](CellI& role)
+{
+    if (&role == &kb.ids.struct_) {
+        return kb.std.Pixel;
+    }
+    if (&role == &kb.directions.up && m_grid.hasPixel(m_x.value(), m_y.value() - 1)) {
+        return m_grid.getPixel(m_x.value(), m_y.value() - 1);
+    }
+    if (&role == &kb.directions.down && m_grid.hasPixel(m_x.value(), m_y.value() + 1)) {
+        return m_grid.getPixel(m_x.value(), m_y.value() + 1);
+    }
+    if (&role == &kb.directions.left && m_grid.hasPixel(m_x.value() - 1, m_y.value())) {
+        return m_grid.getPixel(m_x.value() - 1, m_y.value());
+    }
+    if (&role == &kb.directions.right && m_grid.hasPixel(m_x.value() + 1, m_y.value())) {
+        return m_grid.getPixel(m_x.value() + 1, m_y.value());
+    }
+    if (&role == &kb.ids.color) {
+        return m_arcColor;
+    }
+    if (&role == &kb.coordinates.x) {
+        return m_x;
+    }
+    if (&role == &kb.coordinates.y) {
+        return m_y;
+    }
+
+    throw "No such role!";
+}
+
+void Pixel::accept(Visitor& visitor)
+{
+//    visitor.visit(*this);
+}
+
+const int Pixel::color() const
+{
+    return m_arcColor.value();
+}
+#pragma endregion
+#pragma region Picture
+int getArcColorId(const synth::input::Color& color)
+{
+    static synth::input::Color black(0x00, 0x00, 0x00);
+    static synth::input::Color blue(0x00, 0x74, 0xD9);
+    static synth::input::Color red(0xFF, 0x41, 0x36);
+    static synth::input::Color green(0x2E, 0xCC, 0x40);
+    static synth::input::Color yellow(0xFF, 0xDC, 0x00);
+    static synth::input::Color grey(0xAA, 0xAA, 0xAA);
+    static synth::input::Color fuschia(0xF0, 0x12, 0xBE);
+    static synth::input::Color orange(0xFF, 0x85, 0x1B);
+    static synth::input::Color teal(0x7F, 0xDB, 0xFF);
+    static synth::input::Color brown(0x87, 0x0C, 0x25);
+
+    static std::map<synth::input::Color, synth::arc::Colors> arcColorNames = {
+        { black, synth::arc::Colors::black },
+        { blue, synth::arc::Colors::blue },
+        { red, synth::arc::Colors::red },
+        { green, synth::arc::Colors::green },
+        { yellow, synth::arc::Colors::yellow },
+        { grey, synth::arc::Colors::grey },
+        { fuschia, synth::arc::Colors::fuschia },
+        { orange, synth::arc::Colors::orange },
+        { teal, synth::arc::Colors::teal },
+        { brown, synth::arc::Colors::brown }
+    };
+
+    return static_cast<int>(arcColorNames.find({ color.red(), color.green(), color.blue() })->second);
+}
+// ============================================================================
+Grid::Grid(brain::Brain& kb, input::Grid& picture) :
+    CellI(kb, picture.label()),
+    m_width(picture.width()),
+    m_height(picture.height()),
+    m_widthCell(kb.pools.numbers.get(m_width)),
+    m_heightCell(kb.pools.numbers.get(m_height))
+{
+    const int senzorSize = m_height * m_width;
+
+    m_pixels.clear();
+    m_pixels.reserve(senzorSize);
+
+    int x = 0;
+    int y = 0;
+
+    for (const input::Color& color : picture.pixels()) {
+        m_pixels.emplace_back(kb, x++, y, getArcColorId(color), *this);
+        if (x == m_width) {
+            x = 0;
+            y += 1;
+        }
+    }
+
+    m_pixelsList.reset(new List(kb, m_pixels));
+}
+
+bool Grid::has(CellI& role)
+{
+    if (&role == &kb.ids.struct_ || &role == &kb.ids.width || &role == &kb.ids.height || &role == &kb.ids.pixels) {
+        return true;
+    }
+
+    return false;
+}
+
+void Grid::set(CellI& role, CellI& value)
+{
+    throw "Changing a hybrid picture cell is not possible!";
+}
+
+void Grid::erase(CellI& role)
+{
+    throw "Changing a hybrid picture cell is not possible!";
+}
+
+void Grid::operator()()
+{
+}
+
+CellI& Grid::operator[](CellI& role)
+{
+    if (&role == &kb.ids.struct_) {
+        return kb.std.Grid;
+    }
+    if (&role == &kb.ids.width) {
+        return m_widthCell;
+    }
+    if (&role == &kb.ids.height) {
+        return m_heightCell;
+    }
+    if (&role == &kb.ids.pixels) {
+        return *m_pixelsList;
+    }
+
+    throw "No such role!";
+}
+
+void Grid::accept(Visitor& visitor)
+{
+//    visitor.visit(*this);
+}
+
+Pixel& Grid::getPixel(int x, int y)
+{
+    return m_pixels[currentIndex(x, y)];
+}
+
+const Pixel& Grid::getPixel(int x, int y) const
+{
+    return m_pixels.at(currentIndex(x, y));
+}
+
+int Grid::currentIndex(int x, int y) const
+{
+    return y * m_width + x;
+}
+
+bool Grid::hasPixel(int x, int y) const
+{
+    if (y < 0 || x < 0 || x > m_width - 1 || y > m_height - 1) {
+        return false;
+    }
+
+    return true;
+}
+
+/*
+       5 x 5
+m_width  = 5
+m_height = 5
+
+     0  1  2  3  4
+ 0  00 01 02 03 04
+ 1  05 06 07 08 09
+ 2  10 11 12 13 14
+ 3  15 16 17 18 19
+ 4  20 21 22 23 24
+
+ x=0, y=4 is 20
+
+ upPixel(4, 4) = 19
+ 3 * 5 + 4
+
+ */
+
+std::vector<Pixel>& Grid::pixels()
+{
+    return m_pixels;
+}
+
+int Grid::width() const
+{
+    return m_width;
+}
+
+int Grid::height() const
+{
+    return m_height;
+}
+#pragma endregion
+} // namespace arc
+
 } // namespace hybrid
 
 void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, bool& stop)> visitFn)
@@ -2319,7 +2580,7 @@ bool tryVisitWith(CellI& cell, Visitor& visitor)
         visitor.visit(static_cast<hybrid::Pixel&>(cell));
         return true;
     }
-    if (&cell.struct_() == &kb.std.Picture) {
+    if (&cell.struct_() == &kb.std.Grid) {
         visitor.visit(static_cast<hybrid::Picture&>(cell));
         return true;
     }

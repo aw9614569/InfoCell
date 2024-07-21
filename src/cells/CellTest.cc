@@ -678,7 +678,7 @@ TEST_F(CellTest, FunctionTypes)
 
 TEST_F(CellTest, HybridPicture)
 {
-    input::Picture inputPicture("input");
+    input::Grid inputPicture("input");
     inputPicture.loadFromJsonArray("[[0, 7, 0], [7, 7, 7], [0, 7, 0]]");
     hybrid::Picture picture(kb, inputPicture);
 
@@ -686,7 +686,7 @@ TEST_F(CellTest, HybridPicture)
     printAs.svg(picture[ids.pixels]);
     printAs.value(picture[ids.pixels]);
 
-    EXPECT_EQ(&picture[ids.struct_], &kb.std.Picture);
+    EXPECT_EQ(&picture[ids.struct_], &kb.std.Grid);
     EXPECT_EQ(&picture[ids.width], &kb.pools.numbers.get(3));
     EXPECT_EQ(&picture[ids.height], &kb.pools.numbers.get(3));
     EXPECT_EQ(&picture[ids.pixels][ids.struct_], &kb.ListOf(kb.std.Pixel));
@@ -1319,14 +1319,15 @@ static ftxui::Element renderJsonBoard(const nlohmann::json& inputRow)
     return vbox(boardLines);
 }
 
-static ftxui::Element renderJsonBoard(cells::hybrid::Picture& picture)
+static ftxui::Element renderJsonBoard(cells::hybrid::arc::Grid& grid)
 {
     ftxui::Elements boardLines;
-    for (int y = 0; y < picture.height(); ++y) {
+    for (int y = 0; y < grid.height(); ++y) {
         ftxui::Elements arcSetInputLine;
-        for (int x = 0; x < picture.width(); ++x) {
-            auto& pixel = picture.getPixel(x, y);
-            arcSetInputLine.push_back(colorTile(ftxui::Color(pixel.color().red(), pixel.color().green(), pixel.color().blue())));
+        for (int x = 0; x < grid.width(); ++x) {
+            auto& pixel = grid.getPixel(x, y);
+            const ftxui::Color& ftxColor = synth::App::arcColors[pixel.color()];
+            arcSetInputLine.push_back(colorTile(ftxColor));
         }
         boardLines.push_back(hbox(arcSetInputLine));
     }
@@ -1334,9 +1335,9 @@ static ftxui::Element renderJsonBoard(cells::hybrid::Picture& picture)
     return vbox(boardLines);
 }
 
-static void printInputPicture(cells::hybrid::Picture& picture)
+static void printGrid(cells::hybrid::arc::Grid& grid)
 {
-    auto document = renderJsonBoard(picture);
+    auto document = renderJsonBoard(grid);
     auto screen   = ftxui::Screen::Create(
         ftxui::Dimension::Full(),       // Width
         ftxui::Dimension::Fit(document) // Height
@@ -1353,15 +1354,13 @@ static ftxui::Element renderShape(CellI& shape)
     CellI* currentPixelItem = &pixelList["first"];
     int shapePixelX         = static_cast<Number&>((*currentPixelItem)["value"]["x"]).value();
     int shapePixelY         = static_cast<Number&>((*currentPixelItem)["value"]["y"]).value();
-    int ShapeColorRed       = static_cast<Number&>(shape["color"]["red"]).value();
-    int ShapeColorGreen     = static_cast<Number&>(shape["color"]["green"]).value();
-    int ShapeColorBlue      = static_cast<Number&>(shape["color"]["blue"]).value();
-    ftxui::Color shapeColor(ShapeColorRed, ShapeColorGreen, ShapeColorBlue);
+    int shapeColorNum       = static_cast<Number&>(shape["color"]).value();
+    const ftxui::Color& shapeColor = synth::App::arcColors[shapeColorNum];
     ftxui::Elements boardLines;
     for (int y = 0; y < height; ++y) {
         ftxui::Elements arcSetInputLine;
         for (int x = 0; x < width; ++x) {
-            ftxui::Color* currentColor = &ftxAlphaColor;
+            const ftxui::Color* currentColor = &ftxAlphaColor;
             if (currentPixelItem && shapePixelX == x && shapePixelY == y) {
                 currentColor = &shapeColor;
                 if (currentPixelItem->has("next")) {
@@ -1383,10 +1382,8 @@ static ftxui::Element renderShape(CellI& shape)
 static void printVectorShape(CellI& shape)
 {
     std::map<int, std::map<int, ftxui::Color>> board;
-    int ShapeColorRed   = static_cast<Number&>(shape["color"][shape.kb.ids.red]).value();
-    int ShapeColorGreen = static_cast<Number&>(shape["color"][shape.kb.ids.green]).value();
-    int ShapeColorBlue  = static_cast<Number&>(shape["color"][shape.kb.ids.blue]).value();
-    ftxui::Color shapeColor(ShapeColorRed, ShapeColorGreen, ShapeColorBlue);
+    int shapeColorNum   = static_cast<Number&>(shape["color"]).value();
+    const ftxui::Color& shapeColor = synth::App::arcColors[shapeColorNum];
     int x       = static_cast<Number&>(shape["firstPixel"]["x"]).value();
     int y       = static_cast<Number&>(shape["firstPixel"]["y"]).value();
     board[x][y] = shapeColor;
@@ -1426,7 +1423,7 @@ static void printVectorShape(CellI& shape)
     for (int y = 0; y < height; ++y) {
         ftxui::Elements arcSetInputLine;
         for (int x = 0; x < width; ++x) {
-            ftxui::Color* currentColor = &ftxAlphaColor;
+            const ftxui::Color* currentColor = &ftxAlphaColor;
             if (board.contains(x) && board[x].contains(y)) {
                 currentColor = &shapeColor;
             }
@@ -1504,10 +1501,10 @@ TEST_F(CellTest, ShaperTest)
     // 0 7 7
     // 7 7 7
     // 0 7 7
-    input::Picture inputPicture1("inputPicture1", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
-    cells::hybrid::Picture picture1(kb, inputPicture1);
-    printInputPicture(picture1);
-    Object shaper1(kb, ShaperStruct, kb.name("constructor"), { "picture", picture1 });
+    input::Grid inputGrid1("inputGrid1", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
+    cells::hybrid::arc::Grid grid1(kb, inputGrid1);
+    printGrid(grid1);
+    Object shaper1(kb, ShaperStruct, kb.name("constructor"), { "grid", grid1 });
     shaper1.method("process");
     printAs.value(shaper1["shapes"]["size"], "shaper[shapes][size]");
     EXPECT_EQ(&shaper1["shapes"]["size"], &_3_);
@@ -1538,10 +1535,10 @@ TEST_F(CellTest, ShaperTest)
     // 7 0 0
     // 0 7 0
     // 0 0 7
-    input::Picture inputPicture2("inputPicture2", "[[7, 0, 0], [0, 7, 0], [0, 0, 7]]");
-    cells::hybrid::Picture picture2(kb, inputPicture2);
-    printInputPicture(picture2);
-    Object shaper2(kb, ShaperStruct, kb.name("constructor"), { "picture", picture2 });
+    input::Grid inputGrid2("inputGrid2", "[[7, 0, 0], [0, 7, 0], [0, 0, 7]]");
+    cells::hybrid::arc::Grid grid2(kb, inputGrid2);
+    printGrid(grid2);
+    Object shaper2(kb, ShaperStruct, kb.name("constructor"), { "grid", grid2 });
     shaper2.method("process");
     printAs.value(shaper2["shapes"]["size"], "shaper[shapes][size]");
     EXPECT_EQ(&shaper2["shapes"]["size"], &_2_);
@@ -1555,13 +1552,13 @@ TEST_F(CellTest, ShaperTest)
     // 7 0 7
     // 7 0 7
     // 7 7 7
-    input::Picture inputPicture3("inputPicture3", "[" \
+    input::Grid inputGrid3("inputGrid3", "[" \
                                                      "[7, 0, 7]," \
                                                      "[7, 0, 7]," \
                                                      "[7, 7, 7]]");
-    cells::hybrid::Picture picture3(kb, inputPicture3);
-    printInputPicture(picture3);
-    Object shaper3(kb, ShaperStruct, kb.name("constructor"), { "picture", picture3 });
+    cells::hybrid::arc::Grid grid3(kb, inputGrid3);
+    printGrid(grid3);
+    Object shaper3(kb, ShaperStruct, kb.name("constructor"), { "grid", grid3 });
     shaper3.method("process");
     printAs.value(shaper3["shapes"]["size"], "shaper[shapes][size]");
     EXPECT_EQ(&shaper3["shapes"]["size"], &_2_);
@@ -1586,10 +1583,10 @@ TEST_F(CellTest, DISABLED_ArcTaskTest)
     ftxui::Render(screen, document);
     screen.Print();
 
-    ArcTask arcTaskLoader(kb, jsonTask);
-    CellI& arcTask = arcTaskLoader.m_task;
+    ArcPrizeTask arcTaskLoader(kb, "007bbfb7", jsonTask);
+    CellI& arcTask = arcTaskLoader.m_cellTask;
 
-    Object shaper(kb, shaperStruct, kb.name("constructor"), { "picture", arcTask["challenge"]});
+    Object shaper(kb, shaperStruct, kb.name("constructor"), { "grid", arcTask["challenge"]});
     shaper.method("process");
     printAs.value(shaper["shapes"]["size"], "shaper[shapes][size]");
     printShapeList(shaper["shapes"]);
@@ -1608,14 +1605,14 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrize)
 
         printTask(jsonRiddle[jsonTaskPath]);
 
-        ArcPrizeTask arcTaskLoader(kb, jsonRiddle);
-        CellI* arcTaskPtr = &arcTaskLoader.m_task;
+        ArcPrizeTask arcTaskLoader(kb, riddleId, jsonRiddle);
+        CellI* arcTaskPtr = &arcTaskLoader.m_cellTask;
         for (const auto& cellPath : cellPaths) {
             arcTaskPtr = &(*arcTaskPtr)[cellPath];
         }
         CellI& arcTask = *arcTaskPtr;
 
-        Object shaper(kb, shaperStruct, kb.name("constructor"), { "picture", arcTask });
+        Object shaper(kb, shaperStruct, kb.name("constructor"), { "grid", arcTask });
         shaper.method("process");
         printAs.value(shaper["shapes"]["size"], "shaper[shapes][size]");
         printShapeList(shaper["shapes"]);
@@ -1631,36 +1628,25 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrize)
 
 std::string getArcColorName(CellI& hybridColor)
 {
-    hybrid::Color& color = static_cast<hybrid::Color&>(hybridColor);
-    static synth::input::Color black(0x00, 0x00, 0x00);
-    static synth::input::Color blue(0x00, 0x74, 0xD9);
-    static synth::input::Color red(0xFF, 0x41, 0x36);
-    static synth::input::Color green(0x2E, 0xCC, 0x40);
-    static synth::input::Color yellow(0xFF, 0xDC, 0x00);
-    static synth::input::Color grey(0xAA, 0xAA, 0xAA);
-    static synth::input::Color fuschia(0xF0, 0x12, 0xBE);
-    static synth::input::Color orange(0xFF, 0x85, 0x1B);
-    static synth::input::Color teal(0x7F, 0xDB, 0xFF);
-    static synth::input::Color brown(0x87, 0x0C, 0x25);
-    static synth::input::Color white(0xFF, 0xFF, 0xFF);
-    static std::map<synth::input::Color, std::string> arcColorNames = {
-        { black, "black" },
-        { blue, "blue" },
-        { red, "red" },
-        { green, "green" },
-        { yellow, "yellow" },
-        { grey, "grey" },
-        { fuschia, "fuschia" },
-        { orange, "orange" },
-        { teal, "teal" },
-        { brown, "brown" },
-        { white, "white" }
+    static std::map<synth::arc::Colors, std::string> arcColorNames = {
+        { synth::arc::Colors::black, "black" },
+        { synth::arc::Colors::blue, "blue" },
+        { synth::arc::Colors::red, "red" },
+        { synth::arc::Colors::green, "green" },
+        { synth::arc::Colors::yellow, "yellow" },
+        { synth::arc::Colors::grey, "grey" },
+        { synth::arc::Colors::fuschia, "fuschia" },
+        { synth::arc::Colors::orange, "orange" },
+        { synth::arc::Colors::teal, "teal" },
+        { synth::arc::Colors::brown, "brown" }
     };
 
-    return arcColorNames.find({ color.color().red(), color.color().green(), color.color().blue() })->second;
+    synth::arc::Colors colorNum = static_cast<synth::arc::Colors>(static_cast<Number&>(hybridColor).value());
+
+    return arcColorNames.find(colorNum)->second;
 }
 
-TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPair)
+TEST_F(CellTest, DISABLE_ArcTaskFromArcPrizeExamineTrainPair)
 {
     const auto examineTrainPair = [this](const nlohmann::json& allTask, const std::string& riddleId, int trainNum) {
         auto& shaperStruct            = getStruct("arc::Shaper");
@@ -1689,51 +1675,51 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPair)
         printTask(jsonRiddle[jsonInputTaskPath]);
         printTask(jsonRiddle[jsonOutputTaskPath]);
 
-        CellI* inputPicturePtr  = nullptr;
+        CellI* inputGridPtr  = nullptr;
         CellI* inputShapesPtr   = nullptr;
-        CellI* outputPicturePtr = nullptr;
+        CellI* outputGridPtr = nullptr;
         CellI* outputShapesPtr  = nullptr;
 
-        ArcPrizeTask arcTaskLoader(kb, jsonRiddle);
+        ArcPrizeTask arcTaskLoader(kb, riddleId, jsonRiddle);
         {
-            CellI* arcTaskPtr = &arcTaskLoader.m_task;
+            CellI* arcTaskPtr = &arcTaskLoader.m_cellTask;
             for (const auto& cellPath : cellInputPath) {
                 arcTaskPtr = &(*arcTaskPtr)[cellPath];
             }
-            inputPicturePtr = arcTaskPtr;
+            inputGridPtr = arcTaskPtr;
             CellI& arcTask  = *arcTaskPtr;
 
-            Object shaper(kb, shaperStruct, kb.name("constructor"), { "picture", arcTask });
+            Object shaper(kb, shaperStruct, kb.name("constructor"), { "grid", arcTask });
             shaper.method("process");
             inputShapesPtr = &shaper["shapes"];
             printAs.value(shaper["shapes"]["size"], "shaper[shapes][size]");
             printShapeList(shaper["shapes"]);
         }
         {
-            CellI* arcTaskPtr = &arcTaskLoader.m_task;
+            CellI* arcTaskPtr = &arcTaskLoader.m_cellTask;
             for (const auto& cellPath : cellOutputPath) {
                 arcTaskPtr = &(*arcTaskPtr)[cellPath];
             }
-            outputPicturePtr = arcTaskPtr;
+            outputGridPtr = arcTaskPtr;
             CellI& arcTask   = *arcTaskPtr;
 
-            Object shaper(kb, shaperStruct, kb.name("constructor"), { "picture", arcTask });
+            Object shaper(kb, shaperStruct, kb.name("constructor"), { "grid", arcTask });
             shaper.method("process");
             outputShapesPtr = &shaper["shapes"];
             printAs.value(shaper["shapes"]["size"], "shaper[shapes][size]");
             printShapeList(shaper["shapes"]);
         }
-        CellI& inputPicture  = *inputPicturePtr;
+        CellI& inputGrid     = *inputGridPtr;
         CellI& inputShapes   = *inputShapesPtr;
-        CellI& outputPicture = *outputPicturePtr;
+        CellI& outputGrid    = *outputGridPtr;
         CellI& outputShapes  = *outputShapesPtr;
-        int inputPictureWidth   = static_cast<Number&>(inputPicture[kb.ids.width]).value();
-        int outputPictureWidth  = static_cast<Number&>(outputPicture[kb.ids.width]).value();
-        int inputPictureHeight  = static_cast<Number&>(inputPicture[kb.ids.height]).value();
-        int outputPictureHeight = static_cast<Number&>(outputPicture[kb.ids.height]).value();
-        int inputShapesNum      = static_cast<Number&>(inputShapes[kb.ids.size]).value();
-        int outputShapesNum     = static_cast<Number&>(outputShapes[kb.ids.size]).value();
-        if (inputPictureWidth == outputPictureWidth && inputPictureHeight == outputPictureHeight && outputShapesNum > inputShapesNum) {
+        int inputGridWidth   = static_cast<Number&>(inputGrid[kb.ids.width]).value();
+        int outputGridWidth  = static_cast<Number&>(outputGrid[kb.ids.width]).value();
+        int inputGridHeight  = static_cast<Number&>(inputGrid[kb.ids.height]).value();
+        int outputGridHeight = static_cast<Number&>(outputGrid[kb.ids.height]).value();
+        int inputShapesNum   = static_cast<Number&>(inputShapes[kb.ids.size]).value();
+        int outputShapesNum  = static_cast<Number&>(outputShapes[kb.ids.size]).value();
+        if (inputGridWidth == outputGridWidth && inputGridHeight == outputGridHeight && outputShapesNum > inputShapesNum) {
             Visitor::visitList(inputShapes, [](CellI& shape, int i, bool&) {
                 std::cout << "DDDD input shape color: " << getArcColorName(shape["color"]) << ", size: " << static_cast<Number&>(shape["pixels"]["size"]).value() << std::endl;
             });
@@ -1749,6 +1735,137 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPair)
     examineTrainPair(allTask, "0ca9ddb6", 0);
 }
 
+TEST_F(CellTest, LoadArcTask)
+{
+    static const std::string arcFilePath = SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
+    TaskSet taskSet(kb, SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
+}
+
+TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
+{
+    const auto examineTrainPair = [this](const nlohmann::json& allTask, const std::string& riddleId, int trainNum) {
+        auto& shaperStruct            = getStruct("arc::Shaper");
+        std::string jsonRiddlePathStr = "/";
+        jsonRiddlePathStr += riddleId;
+        json::json_pointer jsonRiddlePath(jsonRiddlePathStr);
+        auto jsonRiddle                         = allTask[jsonRiddlePath];
+        std::string exampleInputPath            = fmt::format("/train/{}/input", trainNum);
+        std::string exampleOutputPath           = fmt::format("/train/{}/output", trainNum);
+        std::vector<std::string> cellInputPath  = { "examples", "first" };
+        std::vector<std::string> cellOutputPath = { "examples", "first" };
+        for (int i = 0; i < trainNum; ++i) {
+            cellInputPath.push_back("next");
+            cellOutputPath.push_back("next");
+        }
+        cellInputPath.push_back("value");
+        cellOutputPath.push_back("value");
+        cellInputPath.push_back("input");
+        cellOutputPath.push_back("output");
+
+        json::json_pointer jsonInputTaskPath(exampleInputPath);
+        json::json_pointer jsonOutputTaskPath(exampleOutputPath);
+        auto jsonInputTask  = jsonRiddle[jsonInputTaskPath];
+        auto jsonOutputTask = jsonRiddle[jsonOutputTaskPath];
+
+        printTask(jsonRiddle[jsonInputTaskPath]);
+        printTask(jsonRiddle[jsonOutputTaskPath]);
+
+        CellI* inputGridPtr    = nullptr;
+        CellI* inputShapesPtr  = nullptr;
+        CellI* outputGridPtr   = nullptr;
+        CellI* outputShapesPtr = nullptr;
+
+        ArcPrizeTask arcTaskLoader(kb, riddleId, jsonRiddle);
+        {
+            CellI* arcTaskPtr = &arcTaskLoader.m_cellTask;
+            for (const auto& cellPath : cellInputPath) {
+                arcTaskPtr = &(*arcTaskPtr)[cellPath];
+            }
+            inputGridPtr        = arcTaskPtr;
+            CellI& inputArcTask = *arcTaskPtr;
+            Visitor::visitList(inputArcTask["pixels"], [this](CellI& arcPixel, int, bool&) {
+                //                std::cout << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
+                // pixelHashList = arcPixel.hashList();
+                // inputGridSet.insert(pixelHashList, pixel);
+            });
+            std::cout << "";
+        }
+        {
+            CellI* arcTaskPtr = &arcTaskLoader.m_cellTask;
+            for (const auto& cellPath : cellOutputPath) {
+                arcTaskPtr = &(*arcTaskPtr)[cellPath];
+            }
+            outputGridPtr  = arcTaskPtr;
+            CellI& arcTask = *arcTaskPtr;
+        }
+#if 0
+                vector<vector<int>> findDifference(vector<int>& nums1, vector<int>& nums2)
+                {
+                    vector<vector<int>> ret(2);
+                    auto& ret0 = ret[0];
+                    auto& ret1 = ret[1];
+
+                    std::set<int> nums1Set;
+                    for (auto num : nums1) {
+                        nums1Set.insert(num);
+                    }
+
+                    std::set<int> nums2Set;
+                    for (auto num : nums2) {
+                        nums2Set.insert(num);
+                    }
+
+                    for (auto num : nums1Set) {
+                        if (!nums2Set.contains(num)) {
+                            ret0.push_back(num);
+                        }
+                    }
+                    for (auto num : nums2Set) {
+                        if (!nums1Set.contains(num)) {
+                            ret1.push_back(num);
+                        }
+                    }
+                    return ret;
+                }
+                template<class T>
+                struct SetDifference
+                {
+                    Set<T> removedPixels;
+                    Set<T> addedPixels;
+                };
+                findDifference(hybrid::Grid& inputGrid, hybrid::Grid& outputGrid) -> SetDifference<Pixel>
+                {
+                    TrieMap<List, Pixel> inputPixelMap;
+                    TrieMap<List, Pixel> outputPixelMap;
+                    inputGridIt = inputGrid.GetEnumerator();
+                    Visitor::visitList(inputGrid["pixels"], [this](CellI& arcPixel, int, bool&) {
+                        pixelHashList = arcPixel.hashList();
+                        inputPixelMap.insert(pixelHashList, pixel);
+                    });
+                    Visitor::visitList(inputPixelMap["pixels"], [this](CellI& arcPixel, int, bool&) {
+                        pixelHashList = arcPixel.hashList();
+                        outputPixelMap.insert(pixelHashList, pixel);
+                    });
+                    Visitor::visitList(inputPixelMap["list"], [this](CellI& kvPair, int, bool&) {
+                        if (not outputPixelMap.hasKey(kvPair.key)) {
+                            removedPixels.insert(kvPair);
+                        }
+                    });
+                    Visitor::visitList(outputPixelMap["list"], [this](CellI& kvPair, int, bool&) {
+                        if (not inputPixelMap.hasKey(kvPair.key)) {
+                            addedPixels.insert(kvPair);
+                        }
+                    });
+                }
+
+#endif
+    };
+
+    static const std::string arcFilePath = SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
+    auto allTask                         = json::parse(std::ifstream(arcFilePath));
+
+    examineTrainPair(allTask, "0ca9ddb6", 0);
+}
 
 TEST_F(CellTest, DISABLED_ArcTaskFromArcPrizeExamineAllTrainPair)
 {
@@ -1781,39 +1898,37 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrizeExamineAllTrainPair)
 //            printTask(jsonRiddle[jsonInputTaskPath]);
 //            printTask(jsonRiddle[jsonOutputTaskPath]);
 
-            CellI* inputPicturePtr  = nullptr;
-            CellI* outputPicturePtr = nullptr;
+            CellI* inputGridPtr  = nullptr;
+            CellI* outputGridPtr = nullptr;
 
-            ArcPrizeTask arcTaskLoader(kb, jsonRiddle);
+            ArcPrizeTask arcTaskLoader(kb, it.key(), jsonRiddle);
             {
-                CellI* arcTaskPtr = &arcTaskLoader.m_task;
+                CellI* arcTaskPtr = &arcTaskLoader.m_cellTask;
                 for (const auto& cellPath : cellInputPath) {
                     arcTaskPtr = &(*arcTaskPtr)[cellPath];
                 }
-                inputPicturePtr = arcTaskPtr;
-                CellI& arcTask  = *arcTaskPtr;
+                inputGridPtr = arcTaskPtr;
 
-                Object shaper(kb, shaperStruct, kb.name("constructor"), { "picture", arcTask });
+                Object shaper(kb, shaperStruct, kb.name("constructor"), { "grid", *inputGridPtr });
                 shaper.method("process");
 //                printAs.value(shaper["shapes"]["size"], "shaper[shapes][size]");
 //                printShapeList(shaper["shapes"]);
             }
             {
-                CellI* arcTaskPtr = &arcTaskLoader.m_task;
+                CellI* arcTaskPtr = &arcTaskLoader.m_cellTask;
                 for (const auto& cellPath : cellOutputPath) {
                     arcTaskPtr = &(*arcTaskPtr)[cellPath];
                 }
-                outputPicturePtr = arcTaskPtr;
-                CellI& arcTask   = *arcTaskPtr;
+                outputGridPtr = arcTaskPtr;
 
-                Object shaper(kb, shaperStruct, kb.name("constructor"), { "picture", arcTask });
+                Object shaper(kb, shaperStruct, kb.name("constructor"), { "grid", *outputGridPtr });
                 shaper.method("process");
 //                printAs.value(shaper["shapes"]["size"], "shaper[shapes][size]");
 //                printShapeList(shaper["shapes"]);
             }
-            CellI& inputPicture  = *inputPicturePtr;
-            CellI& outputPicture = *outputPicturePtr;
-            if (&inputPicture[kb.ids.width] == &outputPicture[kb.ids.width] && &inputPicture[kb.ids.height] == &outputPicture[kb.ids.height]) {
+            CellI& inputGrid  = *inputGridPtr;
+            CellI& outputGrid = *outputGridPtr;
+            if (&inputGrid[kb.ids.width] == &outputGrid[kb.ids.width] && &inputGrid[kb.ids.height] == &outputGrid[kb.ids.height]) {
                 std::cout << i << " " << it.key() << std::endl;
             }
             ++i;
@@ -1826,14 +1941,63 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrizeExamineAllTrainPair)
     examineTrainPair(allTask, 0);
 }
 
+/*
+Tasks
 
+1. I want itarate through objects which contains elements. So I want to handle objects as containers.
+   Main use case is, the ArcGrid which contains ArcPixels. Connected same color ArcPixels can form some shape (line, box, etc..)
+   Other use case, processing elemnts in list.
+
+   So I want a cells::Iterator and cells::Iterable like thing which has at least a Next method (which gives back the current element AND steps the iterator).
+
+     - in Rust cells::Iterable is std::iter::IntoIterator trait which contains a fn into_iter(self) -> std::iter::Iterator<Item = Self::Item>
+     - in C# it is called IEnumerable which contains a IEnumerator GetEnumerator() method
+     - in Java it is called Iterable<T> which contains a Iterator<T> iterator() method
+
+   Three type of interfaces are possible.
+
+     - Normal interface without any extra type input
+     - Generic or templated interface which expects a type during usage and constructing, so it can create a unique type name for it
+     - Associated type parameter or type constructor where you can create Interface objects which are types. Every type instance will have the same type name.
+
+Interfaces
+
+   We can add an extra "interfaces" key to the struct description beside the "methods"
+   Current struct:
+    astScope.add<Struct>("Struct")
+        .members(
+            member("name", "std::Cell"),
+            ...
+            member("methods", MapOf(std.Cell, std.ast.Function)),
+
+    astScope.add<Struct>("Struct")
+        .members(
+            member("name", "std::Cell"),
+            ...
+            member("interfaces", MapOf(std.Cell, std.ast.Struct)), // interface name to Struct
+            member("methods", MapOf(std.Cell, std.ast.Function)),
+
+    I think the interface can be a struct in first, maybe we can change it later
+    If two interfaces require to implement the same method name then we shouldn't allow it now, as resolve it takes too much time now, I think this a nice to have feature
+      ... or it can be an enum like thing, so methods becames MapOf(std.Cell, enum<std.ast.Function, List<std.ast.Function>))
+
+Object uniqueness
+
+   So we should create a primaryKey()->List or contentList()->List like method maybe behind an interface. Or every object should inherit from an object interface.
+   Can we autogenerate this, by indicate the uniquness of objects somehow?
+
+   Primary use case to be able to put elements to a containers. So we have to ArcGrid with the same size. One of them contains extra pixels.
+   So the strategy is to put every pixels to a container and look up those pixels from the other grid. Maybe the ArcGrid should be a container already?
+
+
+*/
 
 /*
 The strategy is to interpret the input and output as a set of objects which objects has a variety of properties. The start state is obviously a set of pixels
-where the pixels has coordinates. The pixels are in a set called picture. We can interpret (parse) the objects to other thing, for example 4 pixels in a line
+where the pixels has coordinates. The pixels are in a set called grid. We can interpret (parse) the objects to other thing, for example 4 pixels in a line
 is actually can be interpreted (parse) as a line object.
    Input:
-      Picture { Pixel1, Pixel2, ... , PixelLast }
+      Grid { Pixel1, Pixel2, ... , PixelLast }
          Interpretations: Line { startPixel, endPixel, size }
 
 So we interpret the input and output as a set of objects, now the challenge is to find the transformation algorithm. The strategy here is to make as many observation about the change as possible
@@ -1871,16 +2035,16 @@ Observations between input and output:
 
 
 We can categorize the result of a set difference algorithm:
-  1. the two start state picture has the same size, and the output picture contains only extra pixels.
+  1. the two start state grid has the same size, and the output grid contains only extra pixels.
 
      In this case we try to observe how the new pixels relate to the original one.
      - The new pixels can be relative to the original objects:
-        - new pixels are at the border of the original picture
-        - new pixels are at the border of one of the original object on the picture
+        - new pixels are at the border of the original grid
+        - new pixels are at the border of one of the original object on the grid
 
-  2. the two start state picture has the same size, and the output picture has some missing pixels
+  2. the two start state grid has the same size, and the output grid has some missing pixels
 
-  3. the two start state picture has the same size
+  3. the two start state grid has the same size
      input pixel missing but same number pixel appear on output, so the pixel is moving
      We need a moving observer
 
@@ -1906,13 +2070,13 @@ Input                    Output
 1 .................      1 .................
 0 1 2 3 4 5 6 7 8 9      0 1 2 3 4 5 6 7 8 9
 
-Picture1 9 x 9 => Picture 9 x 9
+Grid1 9 x 9 => Grid 9 x 9
 
 If black Pixel is categorized as background, then
-  The input picture contains
+  The input grid contains
      - Pixel { red, x=3, y=6 }
      - Pixel { blue, x=7, y=3 }
-  The output picture contains
+  The output grid contains
      - Pixel { red, x=3, y=6 }
      - Pixel { blue, x=7, y=3 }
      - Pixel { yellow, x=2, y=7 }

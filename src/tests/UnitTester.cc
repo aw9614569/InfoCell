@@ -66,9 +66,9 @@ std::vector<TestCase> TestCases::m_testCases;
 void TestCases::addTestCases()
 {
     add(TestCase("ShapeTest", []() {
-        input::Picture inputPicture("test", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
+        input::Grid inputGrid("test", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
         cells::brain::Brain kb;
-        cells::hybrid::Picture picture(kb, inputPicture);
+        cells::hybrid::Picture picture(kb, inputGrid);
         Shaper shaper(picture);
         shaper.process();
 #if 0
@@ -82,9 +82,9 @@ void TestCases::addTestCases()
     }));
 
     add(TestCase("ShapeTestDiagonal", []() {
-        input::Picture inputPicture("test", "[[7, 0, 0], [0, 7, 0], [0, 0, 7]]");
+        input::Grid inputGrid("test", "[[7, 0, 0], [0, 7, 0], [0, 0, 7]]");
         cells::brain::Brain kb;
-        cells::hybrid::Picture picture(kb, inputPicture);
+        cells::hybrid::Picture picture(kb, inputGrid);
         Shaper shaper(picture);
         shaper.process();
 #if 0
@@ -98,9 +98,9 @@ void TestCases::addTestCases()
     }));
 
     add(TestCase("ShapeMergeTest", []() {
-        input::Picture inputPicture("test", "[[7, 0, 7], [7, 0, 7], [7, 7, 7]]");
+        input::Grid inputGrid("test", "[[7, 0, 7], [7, 0, 7], [7, 7, 7]]");
         cells::brain::Brain kb;
-        cells::hybrid::Picture picture(kb, inputPicture);
+        cells::hybrid::Picture picture(kb, inputGrid);
         Shaper shaper(picture);
         shaper.process();
 #if 0
