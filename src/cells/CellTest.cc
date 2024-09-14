@@ -38,6 +38,8 @@ struct Add
 } // namespace ns_level2
 } // namespace ns_level1
 
+#include "CellTestBase.h"
+
 #include <fmt/core.h>
 #include <fstream>
 #include <gtest/gtest.h>
@@ -59,110 +61,7 @@ using nlohmann::json;
 using namespace synth;
 using namespace synth::cells;
 
-class PrintAs
-{
-public:
-    PrintAs(const std::string& postfix) :
-        m_postfix(postfix),
-        m_svgPrinter(800, 600),
-        m_svgStructPrinter(800, 600)
-    {
-    }
-
-    ~PrintAs()
-    {
-        m_svgPrinter.writeFile(fmt::format("svgv-{}.svg", m_postfix));
-        m_svgStructPrinter.writeFile(fmt::format("svgs-{}.svg", m_postfix));
-    }
-
-    void value(CellI& cell, const std::string& label = "")
-    {
-        CellValuePrinter valuePrinter;
-        cell.accept(valuePrinter);
-
-        if (!label.empty()) {
-            std::cout << label << ": ";
-        }
-
-        std::cout << valuePrinter.print() << std::endl;
-    }
-
-    void cell(CellI& cell, const std::string& label = "")
-    {
-        CellStructPrinter structPrinter;
-        cell.accept(structPrinter);
-
-        if (!label.empty()) {
-            std::cout << label << ": ";
-        }
-
-        std::cout << structPrinter.print() << std::endl;
-    }
-
-    void svg(CellI& cell, const std::string& caseName = "Case")
-    {
-        cell.accept(m_svgPrinter);
-        m_svgPrinter.showcaseLastResult(caseName);
-    }
-
-    void svgStruct(CellI& cell, const std::string& caseName = "Case")
-    {
-        cell.accept(m_svgStructPrinter);
-        m_svgStructPrinter.showcaseLastResult(caseName);
-    }
-
-    std::string m_postfix;
-    svg::Printer m_svgPrinter;
-    svg::StructPrinter m_svgStructPrinter;
-};
-
-class CellTest : public ::testing::Test
-{
-protected:
-    CellTest() :
-        kb(*m_kb),
-        printAs(::testing::UnitTest::GetInstance()->current_test_info()->name())
-    {
-    }
-
-    void printMethodInType(CellI& type, const std::string& method)
-    {
-        printAs.value(type[ids.methods][ids.index][kb.name(method)][ids.value]);
-    }
-
-    CellI& getVariable(const std::string& name)
-    {
-        return kb.getVariable(name);
-    }
-
-    CellI& getStruct(const std::string& name)
-    {
-        return kb.getStruct(name);
-    }
-
-    CellI& getStruct(CellI& id)
-    {
-        return kb.getStruct(id);
-    }
-
-    static std::unique_ptr<brain::Brain> m_kb;
-    brain::Brain& kb;
-    brain::ID& ids = kb.ids;
-    PrintAs printAs;
-    CellI& _0_    = kb._0_;
-    CellI& _1_    = kb._1_;
-    CellI& _2_    = kb._2_;
-    CellI& _3_    = kb._3_;
-    CellI& _4_    = kb._4_;
-    CellI& _5_    = kb._5_;
-    CellI& _6_    = kb._6_;
-    CellI& _7_    = kb._7_;
-    CellI& _8_    = kb._8_;
-    CellI& _9_    = kb._9_;
-    CellI& true_  = kb.boolean.true_;
-    CellI& false_ = kb.boolean.false_;
-};
-std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
+using synth::cells::test::CellTest;
 
 // TODO
 // inline methods
@@ -1735,10 +1634,52 @@ TEST_F(CellTest, DISABLE_ArcTaskFromArcPrizeExamineTrainPair)
     examineTrainPair(allTask, "0ca9ddb6", 0);
 }
 
-TEST_F(CellTest, LoadArcTask)
+TEST_F(CellTest, LoadAllArcTask)
 {
     static const std::string arcFilePath = SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
     TaskSet taskSet(kb, SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
+    for (auto& task : taskSet.m_tasks) {
+        std::cout <<
+            "id: " << task.first <<
+            ", examples num:" << static_cast<List&>(task.second.m_cellExamplesList).size() <<
+            ", tests num:" << static_cast<List&>(task.second.m_cellTestsList).size() << std::endl;
+        std::cout <<"   examples:" << std::endl;
+        Visitor::visitList(task.second.m_cellExamplesList, [](CellI& example, int i, bool&) {
+            std::cout <<
+                "    size " << static_cast<hybrid::arc::Grid&>(example["input"]).width() << "x" << static_cast<hybrid::arc::Grid&>(example["input"]).height() <<
+                " -> " << static_cast<hybrid::arc::Grid&>(example["output"]).width() << "x" << static_cast<hybrid::arc::Grid&>(example["output"]).height() << std::endl;
+        });
+        std::cout << "   tests:" << std::endl;
+        Visitor::visitList(task.second.m_cellTestsList, [](CellI& example, int i, bool&) {
+            std::cout << "    size " << static_cast<hybrid::arc::Grid&>(example["input"]).width() << "x" << static_cast<hybrid::arc::Grid&>(example["input"]).height() << std::endl;
+        });
+    }
+}
+
+TEST_F(CellTest, LoadThoseArcTaskWhereInputSizeEqOutputSize)
+{
+    static const std::string arcFilePath = SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
+    TaskSet taskSet(kb, SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
+    for (auto& task : taskSet.m_tasks) {
+        bool allSameSize = false;
+        Visitor::visitList(task.second.m_cellExamplesList, [&allSameSize](CellI& example, int i, bool& stop) {
+            int inputWidth  = static_cast<hybrid::arc::Grid&>(example["input"]).width();
+            int inputHeight = static_cast<hybrid::arc::Grid&>(example["input"]).height();
+            int outputWidth = static_cast<hybrid::arc::Grid&>(example["output"]).width();
+            int outputHeight = static_cast<hybrid::arc::Grid&>(example["output"]).height();
+            if (inputWidth == outputWidth && inputHeight == outputHeight) {
+                allSameSize = true;
+            } else {
+                allSameSize = false;
+                stop        = true;
+            }
+        });
+        if (!allSameSize) {
+            continue;
+        }
+        std::cout << "id: " << task.first << ", examples num:" << static_cast<List&>(task.second.m_cellExamplesList).size() << ", tests num:" << static_cast<List&>(task.second.m_cellTestsList).size() << std::endl;
+        std::cout << "   examples:" << std::endl;
+    }
 }
 
 TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
@@ -1776,28 +1717,50 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
         CellI* outputShapesPtr = nullptr;
 
         ArcPrizeTask arcTaskLoader(kb, riddleId, jsonRiddle);
+        CellI* arcTaskPtr = nullptr;
         {
-            CellI* arcTaskPtr = &arcTaskLoader.m_cellTask;
+            arcTaskPtr = &arcTaskLoader.m_cellTask;
             for (const auto& cellPath : cellInputPath) {
                 arcTaskPtr = &(*arcTaskPtr)[cellPath];
             }
             inputGridPtr        = arcTaskPtr;
-            CellI& inputArcTask = *arcTaskPtr;
-            Visitor::visitList(inputArcTask["pixels"], [this](CellI& arcPixel, int, bool&) {
-                //                std::cout << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
-                // pixelHashList = arcPixel.hashList();
-                // inputGridSet.insert(pixelHashList, pixel);
-            });
             std::cout << "";
         }
+        CellI& inputGrid = *arcTaskPtr;
         {
-            CellI* arcTaskPtr = &arcTaskLoader.m_cellTask;
+            arcTaskPtr = &arcTaskLoader.m_cellTask;
             for (const auto& cellPath : cellOutputPath) {
                 arcTaskPtr = &(*arcTaskPtr)[cellPath];
             }
             outputGridPtr  = arcTaskPtr;
             CellI& arcTask = *arcTaskPtr;
         }
+        CellI& outputGrid = *arcTaskPtr;
+        Visitor::visitList(inputGrid["pixels"], [this, &outputGrid](CellI& arcPixel, int, bool&) {
+            //                std::cout << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
+            // pixelHashList = arcPixel.hashList();
+            List pixelContent(kb, kb.std.Pixel);
+            pixelContent.add(arcPixel[kb.coordinates.x]);
+            pixelContent.add(arcPixel[kb.coordinates.y]);
+
+            CellI& outputColor = static_cast<TrieMap&>(outputGrid["pixelsMap"]).getValue(pixelContent);
+            if (&outputColor != &arcPixel["color"])
+            {
+                std::cout << "DDDD removedPixel: " << fmt::format("[{}, {}, {}]\n", arcPixel["x"].label(), arcPixel["y"].label(), arcPixel["color"].label());
+            }
+        });
+        Visitor::visitList(outputGrid["pixels"], [this, &inputGrid](CellI& arcPixel, int, bool&) {
+            //                std::cout << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
+            // pixelHashList = arcPixel.hashList();
+            List pixelContent(kb, kb.std.Pixel);
+            pixelContent.add(arcPixel[kb.coordinates.x]);
+            pixelContent.add(arcPixel[kb.coordinates.y]);
+
+            CellI& inputColor = static_cast<TrieMap&>(inputGrid["pixelsMap"]).getValue(pixelContent);
+            if (&inputColor != &arcPixel["color"]) {
+                std::cout << "DDDD addedPixel: " << fmt::format("[{}, {}, {}]\n", arcPixel["x"].label(), arcPixel["y"].label(), arcPixel["color"].label());
+            }
+        });
 #if 0
                 vector<vector<int>> findDifference(vector<int>& nums1, vector<int>& nums2)
                 {
@@ -2000,6 +1963,13 @@ is actually can be interpreted (parse) as a line object.
       Grid { Pixel1, Pixel2, ... , PixelLast }
          Interpretations: Line { startPixel, endPixel, size }
 
+What is looks like very important is to able to observe, how the observed objects are relative to each other.
+So in the input we have an input grid which contains pixels.
+In a next layer we need Shapes which contains shape-pixels. A shape pixel has a shape id and a pixel.
+   Input:
+      Grid { Pixel1, Pixel2, ... , PixelLast }
+          Shapes { Shape1 { ShapePixel1 { shape: Shape, left: ShapePixel, up: ShapePixel,  ... }
+
 So we interpret the input and output as a set of objects, now the challenge is to find the transformation algorithm. The strategy here is to make as many observation about the change as possible
 and find those which are true for every case.
 
@@ -2140,6 +2110,46 @@ Can we generalize this observation to at least one property?
 
 
 */
+
+class Point
+{
+public:
+    int x;
+    int y;
+};
+
+enum class Direction
+{
+    up,
+    down,
+    left,
+    right
+};
+
+class ShapeEdgeUnitVector;
+
+using Edge = std::list<ShapeEdgeUnitVector>;
+
+class ShapeEdgeUnitVector
+{
+public:
+    ShapeEdgeUnitVector* fromEdge = nullptr;
+    ShapeEdgeUnitVector* toEdge   = nullptr;
+    Point from;
+    Direction direction;
+    Edge* edge;
+};
+
+using Edges = std::list<Edge>;
+
+class EdgeIndex
+{
+public:
+    Point from;
+    Direction direction;
+};
+
+using EdgeMap = std::map<EdgeIndex, Edge>;
 
 int main(int argc, char** argv)
 {

@@ -623,6 +623,7 @@ protected:
     Number& m_heightCell;
     std::vector<Pixel> m_pixels;
     std::unique_ptr<List> m_pixelsList;
+    TrieMap m_pixelsMap;
 };
 
 } // namespace arc

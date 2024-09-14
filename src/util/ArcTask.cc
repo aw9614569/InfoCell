@@ -107,10 +107,7 @@ ArcPrizeTask::ArcPrizeTask(cells::brain::Brain& kb, const std::string& id, const
         m_cellTests.emplace_back(kb, m_cellExampleStruct);
         cells::Object& exampleObject = m_cellTests.back();
         exampleObject.set("input", arcDemonstration.m_input);
-        m_cellExamplesList.add(exampleObject);
-    }
-    if (testExampleNumber > 2) {
-        std::cout << m_id << " " << testExampleNumber - 1 << std::endl;
+        m_cellTestsList.add(exampleObject);
     }
 
     m_cellTask.set("examples", m_cellExamplesList);

@@ -21,8 +21,7 @@ target_link_libraries(cellslib
         fmt::fmt
 )
 
-add_executable(celltest
-    CellTest.cc
+add_library(celltestbase STATIC
     StructPrinter.cc
     StructPrinter.h
     SVGPrinter.cc
@@ -31,11 +30,30 @@ add_executable(celltest
     SVGStructPrinter.h
     ValuePrinter.cc
     ValuePrinter.h
+    CellTestBase.cc
+    CellTestBase.h
 )
-target_link_libraries(celltest
-PRIVATE
+
+target_link_libraries(celltestbase
+PUBLIC
     config
     cellslib
     applib
     fsvguilib
+)
+
+add_executable(celltest
+    CellTest.cc
+)
+target_link_libraries(celltest
+PRIVATE
+    celltestbase
+)
+
+add_executable(edgetest
+    EdgeTest.cc
+)
+target_link_libraries(edgetest
+PRIVATE
+    celltestbase
 )

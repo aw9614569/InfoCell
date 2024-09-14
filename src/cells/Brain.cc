@@ -60,6 +60,7 @@ ID::ID(brain::Brain& kb) :
     parameters(kb, kb.std.Char, "parameters"),
     parent(kb, kb.std.Char, "parent"),
     pixels(kb, kb.std.Char, "pixels"),
+    pixelsMap(kb, kb.std.Char, "pixelsMap"),
     previous(kb, kb.std.Char, "previous"),
     process(kb, kb.std.Char, "process"),
     red(kb, kb.std.Char, "red"),
@@ -3699,8 +3700,8 @@ Directions::Directions(brain::Brain& kb) :
 }
 
 Coordinates::Coordinates(brain::Brain& kb) :
-    x(kb, kb.std.Cell, "x"),
-    y(kb, kb.std.Cell, "y")
+    x(kb, kb.std.Char, "x"),
+    y(kb, kb.std.Char, "y")
 {
 }
 
@@ -3860,6 +3861,7 @@ Strings::Strings(brain::Brain& kb) :
         { "parameters", kb.ids.parameters },
         { "parent", kb.ids.parent },
         { "pixels", kb.ids.pixels },
+        { "pixelsMap", kb.ids.pixelsMap },
         { "previous", kb.ids.previous },
         { "red", kb.ids.red },
         { "resolvedScope", kb.ids.resolvedScope },
@@ -3892,7 +3894,9 @@ Strings::Strings(brain::Brain& kb) :
         { "value", kb.ids.value },
         { "valueType", kb.ids.valueType },
         { "variables", kb.ids.variables },
-        { "width", kb.ids.width }
+        { "width", kb.ids.width },
+        { "x", kb.coordinates.x },
+        { "y", kb.coordinates.y }
     };
     for (auto& reservedString : reservedStrings) {
         auto& str = reservedString.str;
@@ -5769,6 +5773,10 @@ void Brain::createArcSolver()
         = arcScope.add<Struct>("ShapePixel")
               .members(
                   member("shape", "Shape"),
+                  member("up", "ShapePixel"),
+                  member("down", "ShapePixel"),
+                  member("left", "ShapePixel"),
+                  member("right", "ShapePixel"),
                   member("pixel", _(std.Pixel)));
 
     shapePixelStruct.addMethod("constructor")

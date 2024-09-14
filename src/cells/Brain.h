@@ -64,6 +64,7 @@ public:
     List parameters;
     List parent;
     List pixels;
+    List pixelsMap;
     List previous;
     List process;
     List red;
@@ -1056,8 +1057,8 @@ class Coordinates
 {
 public:
     Coordinates(brain::Brain& kb);
-    Object x;
-    Object y;
+    List x;
+    List y;
 };
 
 class Boolean

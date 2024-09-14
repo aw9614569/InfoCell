@@ -2390,18 +2390,25 @@ Grid::Grid(brain::Brain& kb, input::Grid& picture) :
     m_width(picture.width()),
     m_height(picture.height()),
     m_widthCell(kb.pools.numbers.get(m_width)),
-    m_heightCell(kb.pools.numbers.get(m_height))
+    m_heightCell(kb.pools.numbers.get(m_height)),
+    m_pixelsMap(kb, kb.std.Cell, kb.std.Pixel, "PixelsMap")
 {
-    const int senzorSize = m_height * m_width;
+    const int gridSize = m_height * m_width;
 
     m_pixels.clear();
-    m_pixels.reserve(senzorSize);
+    m_pixels.reserve(gridSize);
 
     int x = 0;
     int y = 0;
 
     for (const input::Color& color : picture.pixels()) {
-        m_pixels.emplace_back(kb, x++, y, getArcColorId(color), *this);
+        int colorId = getArcColorId(color);
+        m_pixels.emplace_back(kb, x, y, colorId, *this);
+        List pixelContent(kb, kb.std.Pixel);
+        pixelContent.add(kb.pools.numbers.get(x));
+        pixelContent.add(kb.pools.numbers.get(y));
+        m_pixelsMap.add(pixelContent, kb.pools.numbers.get(colorId));
+        x = x + 1;
         if (x == m_width) {
             x = 0;
             y += 1;
@@ -2413,7 +2420,7 @@ Grid::Grid(brain::Brain& kb, input::Grid& picture) :
 
 bool Grid::has(CellI& role)
 {
-    if (&role == &kb.ids.struct_ || &role == &kb.ids.width || &role == &kb.ids.height || &role == &kb.ids.pixels) {
+    if (&role == &kb.ids.struct_ || &role == &kb.ids.width || &role == &kb.ids.height || &role == &kb.ids.pixels || &role == &kb.ids.pixelsMap) {
         return true;
     }
 
@@ -2447,6 +2454,9 @@ CellI& Grid::operator[](CellI& role)
     }
     if (&role == &kb.ids.pixels) {
         return *m_pixelsList;
+    }
+    if (&role == &kb.ids.pixelsMap) {
+        return m_pixelsMap;
     }
 
     throw "No such role!";
