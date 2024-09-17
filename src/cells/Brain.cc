@@ -3691,12 +3691,11 @@ CellI& Ast::processNamespacedName(const std::string& inputName, std::function<Ce
 }
 
 Directions::Directions(brain::Brain& kb) :
-    up(kb, kb.std.Directions, "up"),
-    down(kb, kb.std.Directions, "down"),
-    left(kb, kb.std.Directions, "left"),
-    right(kb, kb.std.Directions, "right")
+    up(kb, kb.std.Char, "up"),
+    down(kb, kb.std.Char, "down"),
+    left(kb, kb.std.Char, "left"),
+    right(kb, kb.std.Char, "right")
 {
-    kb.std.Directions.set("members", kb.list(up, down, left, right));
 }
 
 Coordinates::Coordinates(brain::Brain& kb) :
@@ -3895,6 +3894,10 @@ Strings::Strings(brain::Brain& kb) :
         { "valueType", kb.ids.valueType },
         { "variables", kb.ids.variables },
         { "width", kb.ids.width },
+        { "up", kb.directions.up },
+        { "down", kb.directions.down },
+        { "left", kb.directions.left },
+        { "right", kb.directions.right },
         { "x", kb.coordinates.x },
         { "y", kb.coordinates.y }
     };
@@ -5768,6 +5771,18 @@ void Brain::createArcSolver()
                         .else_(var_("vector") = _(ids.emptyObject)))),
             ast.return_(*var_("ret")));
 
+    // struct ShapePoint
+    auto& shapePointStruct
+        = arcScope.add<Struct>("ShapePoint")
+              .members(
+                  member("shape", "Shape"),
+                  member("up", "ShapePoint"),
+                  member("down", "ShapePoint"),
+                  member("left", "ShapePoint"),
+                  member("right", "ShapePoint"),
+                  member("x", _(std.Number)),
+                  member("y", _(std.Number)));
+
     // struct ShapePixel
     auto& shapePixelStruct
         = arcScope.add<Struct>("ShapePixel")
@@ -5777,6 +5792,10 @@ void Brain::createArcSolver()
                   member("down", "ShapePixel"),
                   member("left", "ShapePixel"),
                   member("right", "ShapePixel"),
+                  member("upLeftPoint", "ShapePoint"),
+                  member("upRightPoint", "ShapePoint"),
+                  member("downLeftPoint", "ShapePoint"),
+                  member("downRightPoint", "ShapePoint"),
                   member("pixel", _(std.Pixel)));
 
     shapePixelStruct.addMethod("constructor")

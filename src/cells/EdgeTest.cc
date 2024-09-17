@@ -5,6 +5,75 @@ using namespace synth::cells;
 
 using synth::cells::test::CellTest;
 
+class EdgeLine;
+class Shape
+{
+public:
+    Shape(CellI& id) :
+        id(id) { }
+    void addEdge(const EdgeLine& edge);
+    CellI& id;
+    std::map<int, std::list<EdgeLine>> edges;
+    std::map<int, std::map<int, EdgeLine*>> edgeIndex;
+};
+enum class Direction
+{
+    Horizontal,
+    Vertical
+};
+class EdgeLine
+{
+public:
+    EdgeLine(int x, int y, Direction direction) :
+        x(x), y(x), direction(direction)
+    {
+    }
+    int x, y;
+    Direction direction;
+};
+
+void Shape::addEdge(const EdgeLine& edge)
+{
+    int endX  = edge.x;
+    int endY  = edge.y;
+    if (edge.direction == Direction::Horizontal) {
+        endX += 1;
+    } else {
+        endY += 1;
+    }
+    EdgeLine* previousStartEdge = nullptr;
+    EdgeLine* previousEndEdge = nullptr;
+
+    auto colX = edgeIndex.find(edge.x);
+    if (colX != edgeIndex.end()) {
+        auto edgeIt = colX->second.find(edge.y);
+        if (edgeIt != colX->second.end()) {
+            previousStartEdge = edgeIt->second;
+        }
+    }
+    colX = edgeIndex.find(endX);
+    if (colX != edgeIndex.end()) {
+        auto edgeIt = colX->second.find(endY);
+        if (edgeIt != colX->second.end()) {
+            previousEndEdge = edgeIt->second;
+        }
+    }
+    if (previousStartEdge && previousEndEdge) {
+
+    }
+}
+
+class ShapePoint
+{
+public:
+    Number& x;
+    Number& y;
+    ShapePoint* up;
+    ShapePoint* down;
+    ShapePoint* left;
+    ShapePoint* right;
+};
+
 TEST_F(CellTest, EdgeTest)
 {
     auto& ShaperStruct = getStruct("arc::Shaper");
@@ -18,9 +87,9 @@ TEST_F(CellTest, EdgeTest)
         return ss.str();
     };
 
-    // 0 7 7
-    // 7 7 7
-    // 0 7 7
+    // 0 7 7 7
+    // 7 7 7 7
+    // 0 7 7 7
     input::Grid inputGrid1("inputGrid1", "[[0, 7, 7, 7], [7, 7, 7, 7], [0, 7, 7, 7]]");
     cells::hybrid::arc::Grid grid1(kb, inputGrid1);
 //    printGrid(grid1);
@@ -36,6 +105,8 @@ TEST_F(CellTest, EdgeTest)
     EXPECT_EQ(&toCellNumber(inputGrid1.height()), &shaper["height"]);
     Object& shapePixels = static_cast<Object&>(shaper["shapePixels"]);
 
+    auto& ShapePointStruct = getStruct("arc::ShapePoint");
+
     CellI* previousUpPixel = nullptr;
     CellI* upPixel         = nullptr;
     CellI* leftPixel       = nullptr;
@@ -47,7 +118,6 @@ TEST_F(CellTest, EdgeTest)
             if (!firstShapePixel) {
                 firstShapePixel = &shapePixel;
             }
-            CellI& pixel      = shapePixel["pixel"];
             if (leftPixel) {
                 (*leftPixel).set("right", shapePixel);
                 shapePixel.set("left", *leftPixel);
@@ -56,7 +126,72 @@ TEST_F(CellTest, EdgeTest)
                 (*upPixel).set("down", shapePixel);
                 shapePixel.set("up", *upPixel);
             }
-            if (pixel.has(kb.directions.right)) {
+
+            CellI& pixel             = shapePixel["pixel"];
+            CellI* upLeftPointPtr    = nullptr;
+            CellI* downLeftPointPtr  = nullptr;
+            CellI* upRightPointPtr   = nullptr;
+            CellI* downRightPointPtr = new Object(kb, ShapePointStruct);
+
+            if (leftPixel && upPixel) {
+                upLeftPointPtr   = &(*leftPixel)["upRightPoint"];
+                upRightPointPtr  = &(*upPixel)["downRightPoint"];
+                downLeftPointPtr = &(*leftPixel)["downRightPoint"];
+            } else if (leftPixel && !upPixel) {
+                upLeftPointPtr   = &(*leftPixel)["upRightPoint"];
+                upRightPointPtr  = new Object(kb, ShapePointStruct);
+                downLeftPointPtr = &(*leftPixel)["downRightPoint"];
+
+                (*upLeftPointPtr).set("right", *upRightPointPtr);
+                (*upRightPointPtr).set("left", *upLeftPointPtr);
+
+                (*upRightPointPtr).set("x", kb.pools.numbers.get(static_cast<Number&>(pixel["x"]).value() + 1));
+                (*upRightPointPtr).set("y", pixel["y"]);
+            } else if (!leftPixel && upPixel) {
+                upLeftPointPtr   = &(*upPixel)["downLeftPoint"];
+                upRightPointPtr  = &(*upPixel)["downRightPoint"];
+                downLeftPointPtr = new Object(kb, ShapePointStruct);
+
+                (*upLeftPointPtr).set("down", *downLeftPointPtr);
+                (*downLeftPointPtr).set("up", *upLeftPointPtr);
+
+                (*downLeftPointPtr).set("x", pixel["x"]);
+                (*downLeftPointPtr).set("y", kb.pools.numbers.get(static_cast<Number&>(pixel["y"]).value() + 1));
+            } else if (!leftPixel && !upPixel) {
+                upLeftPointPtr   = new Object(kb, ShapePointStruct);
+                upRightPointPtr  = new Object(kb, ShapePointStruct);
+                downLeftPointPtr = new Object(kb, ShapePointStruct);
+
+                (*upLeftPointPtr).set("right", *upRightPointPtr);
+                (*upRightPointPtr).set("left", *upLeftPointPtr);
+
+                (*upLeftPointPtr).set("down", *downLeftPointPtr);
+                (*downLeftPointPtr).set("up", *upLeftPointPtr);
+
+                (*upLeftPointPtr).set("x", pixel["x"]);
+                (*upLeftPointPtr).set("y", pixel["y"]);
+
+                (*upRightPointPtr).set("x", kb.pools.numbers.get(static_cast<Number&>(pixel["x"]).value() + 1));
+                (*upRightPointPtr).set("y", pixel["y"]);
+
+                (*downLeftPointPtr).set("x", pixel["x"]);
+                (*downLeftPointPtr).set("y", kb.pools.numbers.get(static_cast<Number&>(pixel["y"]).value() + 1));
+            }
+            (*upRightPointPtr).set("down", *downRightPointPtr);
+            (*downRightPointPtr).set("up", *upRightPointPtr);
+
+            (*downLeftPointPtr).set("right", *downRightPointPtr);
+            (*downRightPointPtr).set("left", *downLeftPointPtr);
+
+            (*downRightPointPtr).set("x", pixel["x"]);
+            (*downRightPointPtr).set("y", kb.pools.numbers.get(static_cast<Number&>(pixel["y"]).value() + 1));
+
+            shapePixel.set("upLeftPoint", *upLeftPointPtr);
+            shapePixel.set("downLeftPoint", *downLeftPointPtr);
+            shapePixel.set("upRightPoint", *upRightPointPtr);
+            shapePixel.set("downRightPoint", *downRightPointPtr);
+
+            if (pixel.has("right")) {
                 leftPixel = &shapePixel;
                 if (upPixel) {
                     upPixel = &(*upPixel)["right"];
@@ -68,7 +203,7 @@ TEST_F(CellTest, EdgeTest)
                     upPixel = previousUpPixel;
                 }
             }
-            if (pixel.missing(kb.directions.left)) {
+            if (pixel.missing("left")) {
                 // first column
                 previousUpPixel = &shapePixel;
             }
@@ -205,21 +340,23 @@ TEST_F(CellTest, EdgeTest)
         }
     }
 
-    currentShapePixelPtr = firstShapePixel;
-    firstColumnPixelPtr  = firstShapePixel;
     enum class ScanLineState
     {
         Up,
         Middle,
         Down
-    } scanLineState = ScanLineState::Up;
+    };
+
+    ScanLineState scanLineState = ScanLineState::Up;
+    currentShapePixelPtr = firstShapePixel;
+    firstColumnPixelPtr  = firstShapePixel;
     while (currentShapePixelPtr) {
-        CellI& currentShapePixel = *currentShapePixelPtr;
+        CellI& currentShapePixel            = *currentShapePixelPtr;
         hybrid::arc::Pixel& currentArcPixel = static_cast<hybrid::arc::Pixel&>(currentShapePixel["pixel"]);
         const int x                         = currentArcPixel.m_x.value();
         const int y                         = currentArcPixel.m_y.value();
 
-        CellI& currentShape      = currentShapePixel["shape"];
+        CellI& currentShape = currentShapePixel["shape"];
 
         switch (scanLineState) {
         case ScanLineState::Up:
@@ -227,7 +364,7 @@ TEST_F(CellTest, EdgeTest)
                 CellI& upShape = currentShapePixel["up"]["shape"];
                 if (&currentShape != &upShape) {
                     if (currentShapePixel.missing("right")) {
-                        std::cout << "--+";
+                        std::cout << "--";
                     } else if (currentShapePixel.missing("left")) {
                         std::cout << "+-";
                     } else {
@@ -235,7 +372,7 @@ TEST_F(CellTest, EdgeTest)
                     }
                 } else {
                     if (currentShapePixel.missing("right")) {
-                        std::cout << "..|";
+                        std::cout << "..";
                     } else if (currentShapePixel.missing("left")) {
                         std::cout << "|.";
                     } else {
@@ -250,11 +387,18 @@ TEST_F(CellTest, EdgeTest)
                 }
             } else {
                 if (currentShapePixel.missing("right")) {
-                    std::cout << "--+";
+                    std::cout << "--";
                 } else if (currentShapePixel.missing("left")) {
                     std::cout << "+-";
                 } else {
                     std::cout << "--";
+                }
+            }
+            if (currentShapePixel.missing("right")) {
+                if (currentShapePixel.missing("up")) {
+                    std::cout << "+";
+                } else {
+                    std::cout << "|";
                 }
             }
             break;
@@ -264,30 +408,16 @@ TEST_F(CellTest, EdgeTest)
                 if (&currentShape != &leftShape) {
                     std::cout << "|" << currentShape["id"].label();
                 } else {
-                    if (currentShapePixel.missing("right")) {
-                        std::cout << "." << currentShape["id"].label() << "|";
-                    } else {
-                        std::cout << "." << currentShape["id"].label();
-                    }
+                    std::cout << "." << currentShape["id"].label();
                 }
             } else {
                 std::cout << "|" << currentShape["id"].label();
             }
-            /*
-            if (currentShapePixel.has("right")) {
-                CellI& rightShape = currentShapePixel["right"]["shape"];
-                if (&currentShape != &rightShape) {
-                    std::cout << currentShape["id"].label() << "|";
-                } else {
-                    std::cout << currentShape["id"].label() << ".";
-                }
-            } else {
-                std::cout << currentShape["id"].label() << "|";
+            if (currentShapePixel.missing("right")) {
+                std::cout << "|";
             }
-            */
             break;
         case ScanLineState::Down:
-            if (currentShapePixel.missing("down")) {
                 if (currentShapePixel.missing("right")) {
                     std::cout << "--+";
                 } else if (currentShapePixel.missing("left")) {
@@ -295,39 +425,107 @@ TEST_F(CellTest, EdgeTest)
                 } else {
                     std::cout << "--";
                 }
-            }
             break;
         }
 
         if (currentShapePixelPtr->has("right")) {
             currentShapePixelPtr = &(*currentShapePixelPtr)["right"];
-        } else if (firstColumnPixelPtr->has("down")) {
-            if (scanLineState == ScanLineState::Up) {
-                scanLineState = ScanLineState::Middle;
-                currentShapePixelPtr = firstColumnPixelPtr;
-                std::cout << std::endl;
-            } else if (scanLineState == ScanLineState::Middle) {
-                scanLineState = ScanLineState::Down;
-                currentShapePixelPtr = firstColumnPixelPtr;
-                std::cout << std::endl;
-            } else if (scanLineState == ScanLineState::Down) {
+        } else if (scanLineState == ScanLineState::Up) {
+            scanLineState        = ScanLineState::Middle;
+            currentShapePixelPtr = firstColumnPixelPtr;
+            std::cout << std::endl;
+        } else if (scanLineState == ScanLineState::Middle) {
+            if (currentShapePixel.has("down")) {
                 scanLineState = ScanLineState::Up;
                 currentShapePixelPtr = &(*firstColumnPixelPtr)["down"];
                 firstColumnPixelPtr  = currentShapePixelPtr;
-            }
-        } else {
-            if (scanLineState == ScanLineState::Up) {
-                scanLineState        = ScanLineState::Middle;
+            } else {
+                scanLineState = ScanLineState::Down;
                 currentShapePixelPtr = firstColumnPixelPtr;
-            } else if (scanLineState == ScanLineState::Middle) {
-                scanLineState        = ScanLineState::Down;
-                currentShapePixelPtr = firstColumnPixelPtr;
-            } else if (scanLineState == ScanLineState::Down) {
-                currentShapePixelPtr = nullptr;
             }
             std::cout << std::endl;
+        } else if (scanLineState == ScanLineState::Down) {
+            scanLineState = ScanLineState::Up;
+            currentShapePixelPtr = nullptr;
         }
     }
+    std::cout << std::endl;
+
+    scanLineState = ScanLineState::Up;
+    currentShapePixelPtr        = firstShapePixel;
+    firstColumnPixelPtr         = firstShapePixel;
+
+    Shape cppShape1(_1_);
+    Shape cppShape2(_2_);
+    Shape cppShape3(_3_);
+    while (currentShapePixelPtr) {
+        CellI& currentShapePixel            = *currentShapePixelPtr;
+        hybrid::arc::Pixel& currentArcPixel = static_cast<hybrid::arc::Pixel&>(currentShapePixel["pixel"]);
+        const int x                         = currentArcPixel.m_x.value();
+        const int y                         = currentArcPixel.m_y.value();
+
+        CellI& currentShape = currentShapePixel["shape"];
+        Shape* currentCppShapePtr = nullptr;
+        if (&currentShape["id"] == &cppShape1.id) {
+            currentCppShapePtr = &cppShape1;
+        } else if (&currentShape["id"] == &cppShape2.id) {
+            currentCppShapePtr = &cppShape2;
+        } else if (&currentShape["id"] == &cppShape3.id) {
+            currentCppShapePtr = &cppShape3;
+        }
+        Shape& currentCppShape = *currentCppShapePtr;
+
+        switch (scanLineState) {
+        case ScanLineState::Up:
+            if (currentShapePixel.missing("up") || &currentShapePixel["up"]["shape"] != &currentShape) {
+                EdgeLine newEdge(x, y, Direction::Horizontal);
+                currentCppShape.addEdge(newEdge);
+                // add edge
+                std::cout << "--";
+            } else {
+                std::cout << "  ";
+            }
+            break;
+        case ScanLineState::Middle:
+            if (currentShapePixel.missing("left") || &currentShapePixel["left"]["shape"] != &currentShape) {
+                EdgeLine newEdge(x, y, Direction::Vertical);
+                currentCppShape.addEdge(newEdge);
+                // add edge
+                std::cout << "| ";
+            } else {
+                std::cout << "  ";
+            }
+            break;
+        case ScanLineState::Down:
+            std::cout << "--";
+            break;
+        }
+        if (currentShapePixel.missing("right")) {
+            std::cout << "|";
+        }
+
+        if (currentShapePixelPtr->has("right")) {
+            currentShapePixelPtr = &(*currentShapePixelPtr)["right"];
+        } else if (scanLineState == ScanLineState::Up) {
+            scanLineState        = ScanLineState::Middle;
+            currentShapePixelPtr = firstColumnPixelPtr;
+            std::cout << std::endl;
+        } else if (scanLineState == ScanLineState::Middle) {
+            if (currentShapePixel.has("down")) {
+                scanLineState        = ScanLineState::Up;
+                currentShapePixelPtr = &(*firstColumnPixelPtr)["down"];
+                firstColumnPixelPtr  = currentShapePixelPtr;
+            } else {
+                scanLineState        = ScanLineState::Down;
+                currentShapePixelPtr = firstColumnPixelPtr;
+            }
+            std::cout << std::endl;
+        } else if (scanLineState == ScanLineState::Down) {
+            scanLineState        = ScanLineState::Up;
+            currentShapePixelPtr = nullptr;
+        }
+    }
+    std::cout << std::endl;
 
     for (int y = 0; y < inputGrid1.height(); ++y) {
         Object& colX = static_cast<Object&>(shapePixels.method(kb.name("getValue"), { kb.ids.key, toCellNumber(y) }));

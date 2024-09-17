@@ -1047,10 +1047,10 @@ class Directions
 {
 public:
     Directions(brain::Brain& kb);
-    Object up;
-    Object down;
-    Object left;
-    Object right;
+    List up;
+    List down;
+    List left;
+    List right;
 };
 
 class Coordinates
