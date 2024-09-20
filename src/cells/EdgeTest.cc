@@ -98,7 +98,9 @@ TEST_F(CellTest, EdgeTest)
     printAs.value(shaper["shapes"]["size"], "shaper[shapes][size]");
     EXPECT_EQ(&shaper["shapes"]["size"], &_3_);
     EXPECT_EQ(&shaper["shapes"]["first"]["value"]["pixels"]["size"], &_1_);
+    CellI& shape1 = static_cast<Object&>(shaper["shapes"]["first"]["value"]);
     CellI& shape2 = static_cast<Object&>(shaper["shapes"]["first"]["next"]["value"]);
+    CellI& shape3 = static_cast<Object&>(shaper["shapes"]["first"]["next"]["next"]["value"]);
     printAs.value(shape2["pixels"]["size"], R"("shape2["pixels"]["size"])");
     EXPECT_EQ(&shape2["pixels"]["size"], &toCellNumber(10));
     EXPECT_EQ(&toCellNumber(inputGrid1.width()), &shaper["width"]);
@@ -106,6 +108,7 @@ TEST_F(CellTest, EdgeTest)
     Object& shapePixels = static_cast<Object&>(shaper["shapePixels"]);
 
     auto& ShapePointStruct = getStruct("arc::ShapePoint");
+    auto& ShapePixelStruct = getStruct("arc::ShapePixel");
 
     CellI* previousUpPixel = nullptr;
     CellI* upPixel         = nullptr;
@@ -127,11 +130,17 @@ TEST_F(CellTest, EdgeTest)
                 shapePixel.set("up", *upPixel);
             }
 
+            CellI& currentShape      = shapePixel["shape"];
             CellI& pixel             = shapePixel["pixel"];
             CellI* upLeftPointPtr    = nullptr;
             CellI* downLeftPointPtr  = nullptr;
             CellI* upRightPointPtr   = nullptr;
             CellI* downRightPointPtr = new Object(kb, ShapePointStruct);
+
+            bool upLeftPointCreated    = false;
+            bool upRightPointCreated   = false;
+            bool downLeftPointCreated  = false;
+            bool downRightPointCreated = true;
 
             if (leftPixel && upPixel) {
                 upLeftPointPtr   = &(*leftPixel)["upRightPoint"];
@@ -141,6 +150,8 @@ TEST_F(CellTest, EdgeTest)
                 upLeftPointPtr   = &(*leftPixel)["upRightPoint"];
                 upRightPointPtr  = new Object(kb, ShapePointStruct);
                 downLeftPointPtr = &(*leftPixel)["downRightPoint"];
+
+                upRightPointCreated = true;
 
                 (*upLeftPointPtr).set("right", *upRightPointPtr);
                 (*upRightPointPtr).set("left", *upLeftPointPtr);
@@ -152,6 +163,8 @@ TEST_F(CellTest, EdgeTest)
                 upRightPointPtr  = &(*upPixel)["downRightPoint"];
                 downLeftPointPtr = new Object(kb, ShapePointStruct);
 
+                downLeftPointCreated = true;
+
                 (*upLeftPointPtr).set("down", *downLeftPointPtr);
                 (*downLeftPointPtr).set("up", *upLeftPointPtr);
 
@@ -161,6 +174,10 @@ TEST_F(CellTest, EdgeTest)
                 upLeftPointPtr   = new Object(kb, ShapePointStruct);
                 upRightPointPtr  = new Object(kb, ShapePointStruct);
                 downLeftPointPtr = new Object(kb, ShapePointStruct);
+
+                upLeftPointCreated   = true;
+                upRightPointCreated  = true;
+                downLeftPointCreated = true;
 
                 (*upLeftPointPtr).set("right", *upRightPointPtr);
                 (*upRightPointPtr).set("left", *upLeftPointPtr);
@@ -183,13 +200,19 @@ TEST_F(CellTest, EdgeTest)
             (*downLeftPointPtr).set("right", *downRightPointPtr);
             (*downRightPointPtr).set("left", *downLeftPointPtr);
 
-            (*downRightPointPtr).set("x", pixel["x"]);
+            (*downRightPointPtr).set("x", kb.pools.numbers.get(static_cast<Number&>(pixel["x"]).value() + 1));
             (*downRightPointPtr).set("y", kb.pools.numbers.get(static_cast<Number&>(pixel["y"]).value() + 1));
 
             shapePixel.set("upLeftPoint", *upLeftPointPtr);
             shapePixel.set("downLeftPoint", *downLeftPointPtr);
             shapePixel.set("upRightPoint", *upRightPointPtr);
             shapePixel.set("downRightPoint", *downRightPointPtr);
+
+            if (currentShape.missing("shapePixels")) {
+                currentShape.set("shapePixels", *new List(kb, ShapePixelStruct));
+            }
+            List& shapePixelList = static_cast<List&>(currentShape["shapePixels"]);
+            shapePixelList.add(shapePixel);
 
             if (pixel.has("right")) {
                 leftPixel = &shapePixel;
@@ -211,6 +234,210 @@ TEST_F(CellTest, EdgeTest)
     }
     CellI* firstColumnPixelPtr = firstShapePixel;
     CellI* currentShapePixelPtr = firstShapePixel;
+
+    Visitor::visitList(shaper["shapes"], [this](CellI& currentShape, int, bool&) {
+        std::cout << "Shape id:" << currentShape["id"].label() << ", pixels: ";
+        Visitor::visitList(currentShape["shapePixels"], [this](CellI& shapePixel, int, bool&) {
+            std::cout << fmt::format("[{}, {}]", shapePixel["pixel"]["x"].label(), shapePixel["pixel"]["y"].label());
+        });
+        std::cout << std::endl;
+    });
+    std::cout << std::endl;
+    enum class ScanLineState
+    {
+        Up,
+        Middle,
+        Down
+    };
+
+    Visitor::visitList(shaper["shapes"], [this](CellI& currentShape, int, bool&) {
+        std::cout << "Shape id:" << currentShape["id"].label() << ", points:\n";
+
+        ScanLineState scanLineState = ScanLineState::Up;
+
+        CellI* currentListItemPtr    = &currentShape["shapePixels"][kb.ids.first];
+        CellI* upMiddleRowListItem   = nullptr;
+        CellI* downMiddleRowListItem = nullptr;
+        CellI* firstColumnPixelItem  = currentListItemPtr;
+        CellI& firstShapePixel       = (*currentListItemPtr)[kb.ids.value];
+
+        int upMiddleColumnIndex   = -1;
+        int downMiddleColumnIndex = -1;
+        int pixelX                = static_cast<Number&>(firstShapePixel["pixel"]["x"]).value();
+        int pixelY                = static_cast<Number&>(firstShapePixel["pixel"]["y"]).value();
+        int pointX                = -1;
+
+        while (currentListItemPtr || upMiddleRowListItem || downMiddleRowListItem) {
+            switch (scanLineState) {
+            case ScanLineState::Up: {
+                CellI& currentListItem = *currentListItemPtr;
+                CellI& shapePixel      = currentListItem[kb.ids.value];
+                int upLeftPointX       = static_cast<Number&>(shapePixel["upLeftPoint"]["x"]).value();
+
+                if (upLeftPointX > pointX) {
+                    std::cout << fmt::format("({},{}) ", upLeftPointX, pixelY);
+                }
+                pointX = upLeftPointX + 1;
+                std::cout << fmt::format("({},{}) ", pointX, pixelY);
+                CellI* nextListItem          = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
+                bool isNextItemInTheSameLine = nextListItem ? &(*firstColumnPixelItem)["value"]["pixel"]["y"] == &(*nextListItem)["value"]["pixel"]["y"] : false;
+
+                if (nextListItem) {
+                    if (isNextItemInTheSameLine) {
+                        currentListItemPtr = nextListItem;
+                    } else {
+                        upMiddleRowListItem   = firstColumnPixelItem;
+                        downMiddleRowListItem = nextListItem;
+                        firstColumnPixelItem  = downMiddleRowListItem;
+                        upMiddleColumnIndex   = static_cast<Number&>((*upMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                        downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                        pointX                = -1;
+                        ++pixelY;
+                        scanLineState         = ScanLineState::Middle;
+                        std::cout << " Up -> Middle" << std::endl;
+                    }
+                } else {
+                    currentListItemPtr = firstColumnPixelItem;
+                    pointX             = -1;
+                    ++pixelY;
+                    scanLineState = ScanLineState::Down;
+                    std::cout << " Up -> Down" << std::endl;
+                }
+            } break;
+            case ScanLineState::Middle: {
+                if (upMiddleColumnIndex < downMiddleColumnIndex) {
+                    CellI& currentListItem = *upMiddleRowListItem;
+                    CellI& shapePixel      = currentListItem[kb.ids.value];
+                    CellI& downLeftPoint   = shapePixel["downLeftPoint"];
+                    int downLeftPointX     = static_cast<Number&>(shapePixel["downLeftPoint"]["x"]).value();
+                    if (downLeftPointX > pointX) {
+                        std::cout << fmt::format("({},{}) ", downLeftPointX, pixelY);
+                    }
+                    pointX = downLeftPointX + 1;
+                    std::cout << fmt::format("({},{}) ", pointX, pixelY);
+
+                    CellI* nextUpListItem   = &(*upMiddleRowListItem)[kb.ids.next];
+                    CellI* nextDownListItem = downMiddleRowListItem;
+                    bool hasMoreUp          = (nextUpListItem != firstColumnPixelItem);
+                    bool hasMoreDown        = nextDownListItem;
+
+                    if (hasMoreUp && hasMoreDown) {
+                        upMiddleRowListItem   = nextUpListItem;
+                        downMiddleRowListItem = nextDownListItem;
+                        upMiddleColumnIndex   = static_cast<Number&>((*upMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                        downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                    } else if (hasMoreUp && !hasMoreDown) {
+                        upMiddleRowListItem = nextUpListItem;
+                    } else if (!hasMoreUp && hasMoreDown) {
+                        downMiddleRowListItem = nextDownListItem;
+                    } else if (!hasMoreUp && !hasMoreDown) {
+                        upMiddleRowListItem   = nullptr;
+                        downMiddleRowListItem = nullptr;
+                        currentListItemPtr    = firstColumnPixelItem;
+                        pointX                = -1;
+                        ++pixelY;
+                        scanLineState = ScanLineState::Down;
+                        std::cout << " Middle -> Down" << std::endl;
+                    }
+                } else if (upMiddleColumnIndex == downMiddleColumnIndex) {
+                    CellI& currentListItem = *upMiddleRowListItem;
+                    CellI& shapePixel      = currentListItem[kb.ids.value];
+                    CellI& downLeftPoint   = shapePixel["downLeftPoint"];
+                    int downLeftPointX     = static_cast<Number&>(shapePixel["downLeftPoint"]["x"]).value();
+                    if (downLeftPointX > pointX) {
+                        std::cout << fmt::format("({},{}) ", downLeftPointX, pixelY);
+                    }
+                    pointX = downLeftPointX + 1;
+                    std::cout << fmt::format("({},{}) ", pointX, pixelY);
+
+                    CellI* nextUpListItem   = &(*upMiddleRowListItem)[kb.ids.next];
+                    CellI* nextDownListItem = (*downMiddleRowListItem).has(kb.ids.next) ? &(*downMiddleRowListItem)[kb.ids.next] : nullptr;
+                    bool hasMoreUp          = (nextUpListItem != firstColumnPixelItem);
+                    bool hasMoreDown        = nextDownListItem;
+                    bool isDownInSameLine   = hasMoreDown ? static_cast<Number&>((*nextDownListItem)["value"]["pixel"]["y"]).value() == pixelY : false;
+
+                    if (hasMoreUp && hasMoreDown) {
+                        upMiddleRowListItem   = nextUpListItem;
+                        downMiddleRowListItem = nextDownListItem;
+                        upMiddleColumnIndex   = static_cast<Number&>((*upMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                        downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                    } else if (hasMoreUp && !hasMoreDown) {
+                        upMiddleRowListItem = nextUpListItem;
+                    } else if (!hasMoreUp && hasMoreDown) {
+                        if (isDownInSameLine) {
+                            downMiddleRowListItem = nextDownListItem;
+                        } else {
+                            currentListItemPtr    = nextDownListItem;
+                            upMiddleRowListItem   = firstColumnPixelItem;
+                            downMiddleRowListItem = nextDownListItem;
+                            firstColumnPixelItem  = nextDownListItem;
+                            pointX                = -1;
+                            ++pixelY;
+                            std::cout << " Middle -> Middle" << std::endl;
+                        }
+                    } else if (!hasMoreUp && !hasMoreDown) {
+                        upMiddleRowListItem   = nullptr;
+                        downMiddleRowListItem = nullptr;
+                        currentListItemPtr    = firstColumnPixelItem;
+                        pointX                = -1;
+                        ++pixelY;
+                        scanLineState = ScanLineState::Down;
+                        std::cout << " Middle -> Down" << std::endl;
+                    }
+                } else {
+                    CellI& currentListItem = *downMiddleRowListItem;
+                    CellI& shapePixel      = currentListItem[kb.ids.value];
+                    CellI& downLeftPoint   = shapePixel["downLeftPoint"];
+                    int upLeftPointX       = static_cast<Number&>(shapePixel["upLeftPoint"]["x"]).value();
+                    if (upLeftPointX > pointX) {
+                        std::cout << fmt::format("({},{}) ", upLeftPointX, pixelY);
+                    }
+                    pointX = upLeftPointX + 1;
+                    std::cout << fmt::format("({},{}) ", pointX, pixelY);
+
+                    // stepping
+                    CellI* nextUpListItem   = upMiddleRowListItem;
+                    CellI* nextDownListItem = (*downMiddleRowListItem).has(kb.ids.next) ? &(*downMiddleRowListItem)[kb.ids.next] : nullptr;
+                    bool hasMoreUp          = (nextUpListItem != firstColumnPixelItem);
+                    bool hasMoreDown        = nextDownListItem;
+
+                    if (hasMoreUp && hasMoreDown) {
+                        upMiddleRowListItem   = nextUpListItem;
+                        downMiddleRowListItem = nextDownListItem;
+                        upMiddleColumnIndex   = static_cast<Number&>((*upMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                        downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                    } else if (hasMoreUp && !hasMoreDown) {
+                        upMiddleRowListItem = nextUpListItem;
+                    } else if (!hasMoreUp && hasMoreDown) {
+                        downMiddleRowListItem = nextDownListItem;
+                    } else if (!hasMoreUp && !hasMoreDown) {
+                        upMiddleRowListItem   = nullptr;
+                        downMiddleRowListItem = nullptr;
+                        currentListItemPtr    = firstColumnPixelItem;
+                        ++pixelY;
+                        scanLineState = ScanLineState::Down;
+                        std::cout << " Middle -> Down" << std::endl;
+                    }
+                }
+            } break;
+            case ScanLineState::Down: {
+                CellI& currentListItem = *currentListItemPtr;
+                CellI& shapePixel      = currentListItem[kb.ids.value];
+                CellI& downLeftPoint   = shapePixel["downLeftPoint"];
+                int downLeftPointX     = static_cast<Number&>(shapePixel["downLeftPoint"]["x"]).value();
+
+                if (downLeftPointX > pointX) {
+                    std::cout << fmt::format("({},{}) ", downLeftPointX, pixelY);
+                }
+                pointX = downLeftPointX + 1;
+                std::cout << fmt::format("({},{}) ", pointX, pixelY);
+
+                currentListItemPtr = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
+            } break;
+            }
+        }
+        std::cout << std::endl;
+    });
 
     // 1. row
     EXPECT_FALSE(currentShapePixelPtr->has("up"));
@@ -299,6 +526,7 @@ TEST_F(CellTest, EdgeTest)
     currentShapePixelPtr = firstShapePixel;
     firstColumnPixelPtr = firstShapePixel;
 
+    std::cout << "All shape pixel:" << std::endl;
     while (currentShapePixelPtr) {
         hybrid::arc::Pixel& currentArcPixel = static_cast<hybrid::arc::Pixel&>((*currentShapePixelPtr)["pixel"]);
         const int x                         = currentArcPixel.m_x.value();
@@ -339,13 +567,6 @@ TEST_F(CellTest, EdgeTest)
             std::cout << std::endl;
         }
     }
-
-    enum class ScanLineState
-    {
-        Up,
-        Middle,
-        Down
-    };
 
     ScanLineState scanLineState = ScanLineState::Up;
     currentShapePixelPtr = firstShapePixel;

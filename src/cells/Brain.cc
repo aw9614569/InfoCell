@@ -5814,6 +5814,8 @@ void Brain::createArcSolver()
                   member("color", "Color"),
                   member("width", _(std.Number)),
                   member("height", _(std.Number)),
+                  member("shapePixels", tt_("std::List", "valueType", "ShapePixel")),
+                  member("shapePoints", tt_("std::List", "valueType", "ShapePoint")),
                   member("hybridPixels", tt_("std::Set", "valueType", _(std.Pixel))),
                   member("pixels", tt_("std::List", "valueType", "Pixel")));
 
