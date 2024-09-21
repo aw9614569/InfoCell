@@ -250,10 +250,13 @@ TEST_F(CellTest, EdgeTest)
         Down
     };
 
-    Visitor::visitList(shaper["shapes"], [this](CellI& currentShape, int, bool&) {
+    Visitor::visitList(shaper["shapes"], [this, &ShapePointStruct](CellI& currentShape, int, bool&) {
         std::cout << "Shape id:" << currentShape["id"].label() << ", points:\n";
 
         ScanLineState scanLineState = ScanLineState::Up;
+
+        List& shapePoints = *new List(kb, ShapePointStruct);
+        currentShape.set("shapePoints", shapePoints);
 
         CellI* currentListItemPtr    = &currentShape["shapePixels"][kb.ids.first];
         CellI* upMiddleRowListItem   = nullptr;
@@ -271,13 +274,16 @@ TEST_F(CellTest, EdgeTest)
             case ScanLineState::Up: {
                 CellI& currentListItem = *currentListItemPtr;
                 CellI& shapePixel      = currentListItem[kb.ids.value];
-                int upLeftPointX       = static_cast<Number&>(shapePixel["upLeftPoint"]["x"]).value();
+                CellI& shapePoint      = shapePixel["upLeftPoint"];
+                int upLeftPointX       = static_cast<Number&>(shapePoint["x"]).value();
 
                 if (upLeftPointX > pointX) {
                     std::cout << fmt::format("({},{}) ", upLeftPointX, pointY);
+                    shapePoints.add(shapePoint);
                 }
                 pointX = upLeftPointX + 1;
                 std::cout << fmt::format("({},{}) ", pointX, pointY);
+                shapePoints.add(shapePoint["right"]);
                 CellI* nextListItem          = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
                 bool isNextItemInTheSameLine = nextListItem ? &(*firstColumnPixelItem)["value"]["pixel"]["y"] == &(*nextListItem)["value"]["pixel"]["y"] : false;
 
@@ -306,13 +312,16 @@ TEST_F(CellTest, EdgeTest)
             case ScanLineState::Middle: {
                 bool isUpperLine       = upMiddleColumnIndex <= downMiddleColumnIndex;
                 CellI& currentListItem = isUpperLine ? *upMiddleRowListItem : *downMiddleRowListItem;
-                CellI& shapePixel = currentListItem[kb.ids.value];
-                int currentPointX  = static_cast<Number&>(shapePixel[isUpperLine ? "downLeftPoint" : "upLeftPoint"]["x"]).value();
+                CellI& shapePixel      = currentListItem[kb.ids.value];
+                CellI& shapePoint      = shapePixel[isUpperLine ? "downLeftPoint" : "upLeftPoint"];
+                int currentPointX      = static_cast<Number&>(shapePoint["x"]).value();
                 if (currentPointX > pointX) {
                     std::cout << fmt::format("({},{}) ", currentPointX, pointY);
+                    shapePoints.add(shapePoint);
                 }
                 pointX = currentPointX + 1;
                 std::cout << fmt::format("({},{}) ", pointX, pointY);
+                shapePoints.add(shapePoint["right"]);
 
                 // stepping
                 CellI* nextUpListItem   = nullptr;
@@ -366,19 +375,30 @@ TEST_F(CellTest, EdgeTest)
             case ScanLineState::Down: {
                 CellI& currentListItem = *currentListItemPtr;
                 CellI& shapePixel      = currentListItem[kb.ids.value];
-                CellI& downLeftPoint   = shapePixel["downLeftPoint"];
-                int downLeftPointX     = static_cast<Number&>(shapePixel["downLeftPoint"]["x"]).value();
+                CellI& shapePoint      = shapePixel["downLeftPoint"];
+                int downLeftPointX     = static_cast<Number&>(shapePoint["x"]).value();
 
                 if (downLeftPointX > pointX) {
                     std::cout << fmt::format("({},{}) ", downLeftPointX, pointY);
+                    shapePoints.add(shapePoint);
                 }
                 pointX = downLeftPointX + 1;
                 std::cout << fmt::format("({},{}) ", pointX, pointY);
+                shapePoints.add(shapePoint["right"]);
 
                 currentListItemPtr = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
             } break;
             }
         }
+        std::cout << std::endl;
+    });
+
+    Visitor::visitList(shaper["shapes"], [this](CellI& currentShape, int, bool&) {
+        std::cout << "Shape id:" << currentShape["id"].label() << ", points:\n";
+
+        Visitor::visitList(currentShape["shapePoints"], [this](CellI& shapePoint, int, bool&) {
+            std::cout << fmt::format("({},{}) ", static_cast<Number&>(shapePoint["x"]).value(), static_cast<Number&>(shapePoint["y"]).value());
+        });
         std::cout << std::endl;
     });
 
