@@ -263,9 +263,8 @@ TEST_F(CellTest, EdgeTest)
 
         int upMiddleColumnIndex   = -1;
         int downMiddleColumnIndex = -1;
-        int pixelX                = static_cast<Number&>(firstShapePixel["pixel"]["x"]).value();
-        int pixelY                = static_cast<Number&>(firstShapePixel["pixel"]["y"]).value();
         int pointX                = -1;
+        int pointY                = static_cast<Number&>(firstShapePixel["pixel"]["y"]).value();
 
         while (currentListItemPtr || upMiddleRowListItem || downMiddleRowListItem) {
             switch (scanLineState) {
@@ -275,10 +274,10 @@ TEST_F(CellTest, EdgeTest)
                 int upLeftPointX       = static_cast<Number&>(shapePixel["upLeftPoint"]["x"]).value();
 
                 if (upLeftPointX > pointX) {
-                    std::cout << fmt::format("({},{}) ", upLeftPointX, pixelY);
+                    std::cout << fmt::format("({},{}) ", upLeftPointX, pointY);
                 }
                 pointX = upLeftPointX + 1;
-                std::cout << fmt::format("({},{}) ", pointX, pixelY);
+                std::cout << fmt::format("({},{}) ", pointX, pointY);
                 CellI* nextListItem          = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
                 bool isNextItemInTheSameLine = nextListItem ? &(*firstColumnPixelItem)["value"]["pixel"]["y"] == &(*nextListItem)["value"]["pixel"]["y"] : false;
 
@@ -292,131 +291,75 @@ TEST_F(CellTest, EdgeTest)
                         upMiddleColumnIndex   = static_cast<Number&>((*upMiddleRowListItem)["value"]["pixel"]["x"]).value();
                         downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListItem)["value"]["pixel"]["x"]).value();
                         pointX                = -1;
-                        ++pixelY;
+                        ++pointY;
                         scanLineState         = ScanLineState::Middle;
                         std::cout << " Up -> Middle" << std::endl;
                     }
                 } else {
                     currentListItemPtr = firstColumnPixelItem;
                     pointX             = -1;
-                    ++pixelY;
+                    ++pointY;
                     scanLineState = ScanLineState::Down;
                     std::cout << " Up -> Down" << std::endl;
                 }
             } break;
             case ScanLineState::Middle: {
+                bool isUpperLine       = upMiddleColumnIndex <= downMiddleColumnIndex;
+                CellI& currentListItem = isUpperLine ? *upMiddleRowListItem : *downMiddleRowListItem;
+                CellI& shapePixel = currentListItem[kb.ids.value];
+                int currentPointX  = static_cast<Number&>(shapePixel[isUpperLine ? "downLeftPoint" : "upLeftPoint"]["x"]).value();
+                if (currentPointX > pointX) {
+                    std::cout << fmt::format("({},{}) ", currentPointX, pointY);
+                }
+                pointX = currentPointX + 1;
+                std::cout << fmt::format("({},{}) ", pointX, pointY);
+
+                // stepping
+                CellI* nextUpListItem   = nullptr;
+                CellI* nextDownListItem = nullptr;
                 if (upMiddleColumnIndex < downMiddleColumnIndex) {
-                    CellI& currentListItem = *upMiddleRowListItem;
-                    CellI& shapePixel      = currentListItem[kb.ids.value];
-                    CellI& downLeftPoint   = shapePixel["downLeftPoint"];
-                    int downLeftPointX     = static_cast<Number&>(shapePixel["downLeftPoint"]["x"]).value();
-                    if (downLeftPointX > pointX) {
-                        std::cout << fmt::format("({},{}) ", downLeftPointX, pixelY);
-                    }
-                    pointX = downLeftPointX + 1;
-                    std::cout << fmt::format("({},{}) ", pointX, pixelY);
-
-                    CellI* nextUpListItem   = &(*upMiddleRowListItem)[kb.ids.next];
-                    CellI* nextDownListItem = downMiddleRowListItem;
-                    bool hasMoreUp          = (nextUpListItem != firstColumnPixelItem);
-                    bool hasMoreDown        = nextDownListItem;
-
-                    if (hasMoreUp && hasMoreDown) {
-                        upMiddleRowListItem   = nextUpListItem;
-                        downMiddleRowListItem = nextDownListItem;
-                        upMiddleColumnIndex   = static_cast<Number&>((*upMiddleRowListItem)["value"]["pixel"]["x"]).value();
-                        downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListItem)["value"]["pixel"]["x"]).value();
-                    } else if (hasMoreUp && !hasMoreDown) {
-                        upMiddleRowListItem = nextUpListItem;
-                    } else if (!hasMoreUp && hasMoreDown) {
-                        downMiddleRowListItem = nextDownListItem;
-                    } else if (!hasMoreUp && !hasMoreDown) {
-                        upMiddleRowListItem   = nullptr;
-                        downMiddleRowListItem = nullptr;
-                        currentListItemPtr    = firstColumnPixelItem;
-                        pointX                = -1;
-                        ++pixelY;
-                        scanLineState = ScanLineState::Down;
-                        std::cout << " Middle -> Down" << std::endl;
-                    }
+                    // step up line iter only
+                    nextUpListItem   = &(*upMiddleRowListItem)[kb.ids.next];
+                    nextDownListItem = downMiddleRowListItem;
                 } else if (upMiddleColumnIndex == downMiddleColumnIndex) {
-                    CellI& currentListItem = *upMiddleRowListItem;
-                    CellI& shapePixel      = currentListItem[kb.ids.value];
-                    CellI& downLeftPoint   = shapePixel["downLeftPoint"];
-                    int downLeftPointX     = static_cast<Number&>(shapePixel["downLeftPoint"]["x"]).value();
-                    if (downLeftPointX > pointX) {
-                        std::cout << fmt::format("({},{}) ", downLeftPointX, pixelY);
-                    }
-                    pointX = downLeftPointX + 1;
-                    std::cout << fmt::format("({},{}) ", pointX, pixelY);
-
-                    CellI* nextUpListItem   = &(*upMiddleRowListItem)[kb.ids.next];
-                    CellI* nextDownListItem = (*downMiddleRowListItem).has(kb.ids.next) ? &(*downMiddleRowListItem)[kb.ids.next] : nullptr;
-                    bool hasMoreUp          = (nextUpListItem != firstColumnPixelItem);
-                    bool hasMoreDown        = nextDownListItem;
-                    bool isDownInSameLine   = hasMoreDown ? static_cast<Number&>((*nextDownListItem)["value"]["pixel"]["y"]).value() == pixelY : false;
-
-                    if (hasMoreUp && hasMoreDown) {
-                        upMiddleRowListItem   = nextUpListItem;
-                        downMiddleRowListItem = nextDownListItem;
-                        upMiddleColumnIndex   = static_cast<Number&>((*upMiddleRowListItem)["value"]["pixel"]["x"]).value();
-                        downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListItem)["value"]["pixel"]["x"]).value();
-                    } else if (hasMoreUp && !hasMoreDown) {
-                        upMiddleRowListItem = nextUpListItem;
-                    } else if (!hasMoreUp && hasMoreDown) {
-                        if (isDownInSameLine) {
-                            downMiddleRowListItem = nextDownListItem;
-                        } else {
-                            currentListItemPtr    = nextDownListItem;
-                            upMiddleRowListItem   = firstColumnPixelItem;
-                            downMiddleRowListItem = nextDownListItem;
-                            firstColumnPixelItem  = nextDownListItem;
-                            pointX                = -1;
-                            ++pixelY;
-                            std::cout << " Middle -> Middle" << std::endl;
-                        }
-                    } else if (!hasMoreUp && !hasMoreDown) {
-                        upMiddleRowListItem   = nullptr;
-                        downMiddleRowListItem = nullptr;
-                        currentListItemPtr    = firstColumnPixelItem;
-                        pointX                = -1;
-                        ++pixelY;
-                        scanLineState = ScanLineState::Down;
-                        std::cout << " Middle -> Down" << std::endl;
-                    }
+                    // step up and down line iters
+                    nextUpListItem   = &(*upMiddleRowListItem)[kb.ids.next];
+                    nextDownListItem = (*downMiddleRowListItem).has(kb.ids.next) ? &(*downMiddleRowListItem)[kb.ids.next] : nullptr;
                 } else {
-                    CellI& currentListItem = *downMiddleRowListItem;
-                    CellI& shapePixel      = currentListItem[kb.ids.value];
-                    CellI& downLeftPoint   = shapePixel["downLeftPoint"];
-                    int upLeftPointX       = static_cast<Number&>(shapePixel["upLeftPoint"]["x"]).value();
-                    if (upLeftPointX > pointX) {
-                        std::cout << fmt::format("({},{}) ", upLeftPointX, pixelY);
-                    }
-                    pointX = upLeftPointX + 1;
-                    std::cout << fmt::format("({},{}) ", pointX, pixelY);
+                    // step down line iter only
+                    nextUpListItem   = upMiddleRowListItem;
+                    nextDownListItem = (*downMiddleRowListItem).has(kb.ids.next) ? &(*downMiddleRowListItem)[kb.ids.next] : nullptr;
+                }
 
-                    // stepping
-                    CellI* nextUpListItem   = upMiddleRowListItem;
-                    CellI* nextDownListItem = (*downMiddleRowListItem).has(kb.ids.next) ? &(*downMiddleRowListItem)[kb.ids.next] : nullptr;
-                    bool hasMoreUp          = (nextUpListItem != firstColumnPixelItem);
-                    bool hasMoreDown        = nextDownListItem;
+                bool hasMoreUp   = (nextUpListItem != firstColumnPixelItem);
+                bool hasMoreDown = nextDownListItem ? static_cast<Number&>((*nextDownListItem)["value"]["pixel"]["y"]).value() == pointY : false;
+                bool isLastLine  = !nextDownListItem;
 
-                    if (hasMoreUp && hasMoreDown) {
-                        upMiddleRowListItem   = nextUpListItem;
-                        downMiddleRowListItem = nextDownListItem;
-                        upMiddleColumnIndex   = static_cast<Number&>((*upMiddleRowListItem)["value"]["pixel"]["x"]).value();
-                        downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListItem)["value"]["pixel"]["x"]).value();
-                    } else if (hasMoreUp && !hasMoreDown) {
+                if (isLastLine) {
+                    upMiddleRowListItem   = nullptr;
+                    downMiddleRowListItem = nullptr;
+                    currentListItemPtr    = firstColumnPixelItem;
+                    pointX                = -1;
+                    ++pointY;
+                    scanLineState = ScanLineState::Down;
+                    std::cout << " Middle -> Down" << std::endl;
+                } else if (!hasMoreUp && !hasMoreDown) {
+                    pointX = -1;
+                    ++pointY;
+                    upMiddleRowListItem   = nextUpListItem;
+                    downMiddleRowListItem = nextDownListItem;
+                    firstColumnPixelItem  = nextDownListItem;
+                    upMiddleColumnIndex   = static_cast<Number&>((*upMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                    downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                    std::cout << " Middle -> Middle" << std::endl;
+                } else {
+                    if (hasMoreUp) {
                         upMiddleRowListItem = nextUpListItem;
-                    } else if (!hasMoreUp && hasMoreDown) {
+                        upMiddleColumnIndex = static_cast<Number&>((*upMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                    }
+                    if (hasMoreDown) {
                         downMiddleRowListItem = nextDownListItem;
-                    } else if (!hasMoreUp && !hasMoreDown) {
-                        upMiddleRowListItem   = nullptr;
-                        downMiddleRowListItem = nullptr;
-                        currentListItemPtr    = firstColumnPixelItem;
-                        ++pixelY;
-                        scanLineState = ScanLineState::Down;
-                        std::cout << " Middle -> Down" << std::endl;
+                        downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListItem)["value"]["pixel"]["x"]).value();
                     }
                 }
             } break;
@@ -427,10 +370,10 @@ TEST_F(CellTest, EdgeTest)
                 int downLeftPointX     = static_cast<Number&>(shapePixel["downLeftPoint"]["x"]).value();
 
                 if (downLeftPointX > pointX) {
-                    std::cout << fmt::format("({},{}) ", downLeftPointX, pixelY);
+                    std::cout << fmt::format("({},{}) ", downLeftPointX, pointY);
                 }
                 pointX = downLeftPointX + 1;
-                std::cout << fmt::format("({},{}) ", pointX, pixelY);
+                std::cout << fmt::format("({},{}) ", pointX, pointY);
 
                 currentListItemPtr = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
             } break;
