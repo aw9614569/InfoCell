@@ -272,18 +272,22 @@ TEST_F(CellTest, EdgeTest)
         List& shapePoints = *new List(kb, ShapePointStruct);
         currentShape.set("shapePoints", shapePoints);
 
-        CellI* currentListItemPtr    = &currentShape["shapePixels"][kb.ids.first];
-        CellI* upMiddleRowListItem   = nullptr;
-        CellI* downMiddleRowListItem = nullptr;
-        CellI* firstColumnPixelItem  = currentListItemPtr;
-        CellI& firstShapePixel       = (*currentListItemPtr)[kb.ids.value];
+        CellI* currentListItemPtr       = &currentShape["shapePixels"][kb.ids.first];
+        CellI* currentMiddleRowListItem = nullptr;
+        CellI* upMiddleRowListItem      = nullptr;
+        CellI* downMiddleRowListItem    = nullptr;
+        CellI* firstColumnPixelItem     = currentListItemPtr;
+        CellI& firstShapePixel          = (*currentListItemPtr)[kb.ids.value];
 
+        bool isUpperLine          = false;
+        bool hasMoreUp            = false;
+        bool hasMoreDown          = false;
         int upMiddleColumnIndex   = -1;
         int downMiddleColumnIndex = -1;
         int pointX                = -1;
         int pointY                = static_cast<Number&>(firstShapePixel["pixel"]["y"]).value();
 
-        while (currentListItemPtr || upMiddleRowListItem || downMiddleRowListItem) {
+        while (currentListItemPtr) {
             switch (scanLineState) {
             case ScanLineState::Up: {
                 CellI& currentListItem = *currentListItemPtr;
@@ -310,6 +314,10 @@ TEST_F(CellTest, EdgeTest)
                         firstColumnPixelItem  = downMiddleRowListItem;
                         upMiddleColumnIndex   = static_cast<Number&>((*upMiddleRowListItem)["value"]["pixel"]["x"]).value();
                         downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                        isUpperLine           = upMiddleColumnIndex <= downMiddleColumnIndex;
+                        currentListItemPtr    = isUpperLine ? upMiddleRowListItem : downMiddleRowListItem;
+                        hasMoreUp             = true;
+                        hasMoreDown           = true;
                         pointX                = -1;
                         ++pointY;
                         scanLineState         = ScanLineState::Middle;
@@ -324,11 +332,11 @@ TEST_F(CellTest, EdgeTest)
                 }
             } break;
             case ScanLineState::Middle: {
-                bool isUpperLine       = upMiddleColumnIndex <= downMiddleColumnIndex;
-                CellI& currentListItem = isUpperLine ? *upMiddleRowListItem : *downMiddleRowListItem;
+                CellI& currentListItem = *currentListItemPtr;
                 CellI& shapePixel      = currentListItem[kb.ids.value];
                 CellI& shapePoint      = shapePixel[isUpperLine ? "downLeftPoint" : "upLeftPoint"];
                 int currentPointX      = static_cast<Number&>(shapePoint["x"]).value();
+                int currentPointY      = static_cast<Number&>(shapePoint["y"]).value();
                 if (currentPointX > pointX) {
                     std::cout << fmt::format("({},{}) ", currentPointX, pointY);
                     shapePoints.add(shapePoint);
@@ -340,31 +348,42 @@ TEST_F(CellTest, EdgeTest)
                 // stepping
                 CellI* nextUpListItem   = nullptr;
                 CellI* nextDownListItem = nullptr;
-                if (upMiddleColumnIndex < downMiddleColumnIndex) {
+                if (hasMoreUp && hasMoreDown) {
+                    if (upMiddleColumnIndex < downMiddleColumnIndex) {
+                        // step up line iter only
+                        nextUpListItem   = &(*upMiddleRowListItem)[kb.ids.next];
+                        nextDownListItem = downMiddleRowListItem;
+                    } else if (upMiddleColumnIndex == downMiddleColumnIndex) {
+                        // step up and down line iters
+                        nextUpListItem   = &(*upMiddleRowListItem)[kb.ids.next];
+                        nextDownListItem = (*downMiddleRowListItem).has(kb.ids.next) ? &(*downMiddleRowListItem)[kb.ids.next] : nullptr;
+                    } else {
+                        // step down line iter only
+                        nextUpListItem   = upMiddleRowListItem;
+                        nextDownListItem = (*downMiddleRowListItem).has(kb.ids.next) ? &(*downMiddleRowListItem)[kb.ids.next] : nullptr;
+                    }
+                } else if (hasMoreUp && !hasMoreDown) {
                     // step up line iter only
                     nextUpListItem   = &(*upMiddleRowListItem)[kb.ids.next];
                     nextDownListItem = downMiddleRowListItem;
-                } else if (upMiddleColumnIndex == downMiddleColumnIndex) {
-                    // step up and down line iters
-                    nextUpListItem   = &(*upMiddleRowListItem)[kb.ids.next];
-                    nextDownListItem = (*downMiddleRowListItem).has(kb.ids.next) ? &(*downMiddleRowListItem)[kb.ids.next] : nullptr;
-                } else {
+                } else if (!hasMoreUp && hasMoreDown) {
                     // step down line iter only
                     nextUpListItem   = upMiddleRowListItem;
                     nextDownListItem = (*downMiddleRowListItem).has(kb.ids.next) ? &(*downMiddleRowListItem)[kb.ids.next] : nullptr;
                 }
 
-                bool hasMoreUp   = (nextUpListItem != firstColumnPixelItem);
-                bool hasMoreDown = nextDownListItem ? static_cast<Number&>((*nextDownListItem)["value"]["pixel"]["y"]).value() == pointY : false;
+                hasMoreUp   = (nextUpListItem != firstColumnPixelItem);
+                hasMoreDown = nextDownListItem ? static_cast<Number&>((*nextDownListItem)["value"]["pixel"]["y"]).value() == pointY : false;
                 bool isLastLine  = !nextDownListItem;
 
-                if (isLastLine) {
+                if (isLastLine && !hasMoreUp && !hasMoreDown) {
                     upMiddleRowListItem   = nullptr;
                     downMiddleRowListItem = nullptr;
                     currentListItemPtr    = firstColumnPixelItem;
                     pointX                = -1;
                     ++pointY;
                     scanLineState = ScanLineState::Down;
+                    isUpperLine   = false;
                     std::cout << " Middle -> Down" << std::endl;
                 } else if (!hasMoreUp && !hasMoreDown) {
                     pointX = -1;
@@ -374,15 +393,29 @@ TEST_F(CellTest, EdgeTest)
                     firstColumnPixelItem  = nextDownListItem;
                     upMiddleColumnIndex   = static_cast<Number&>((*upMiddleRowListItem)["value"]["pixel"]["x"]).value();
                     downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                    isUpperLine           = upMiddleColumnIndex <= downMiddleColumnIndex;
+                    currentListItemPtr    = isUpperLine ? upMiddleRowListItem : downMiddleRowListItem;
+                    hasMoreUp             = true;
+                    hasMoreDown           = true;
                     std::cout << " Middle -> Middle" << std::endl;
                 } else {
+                    upMiddleRowListItem   = nextUpListItem;
+                    downMiddleRowListItem = nextDownListItem;
                     if (hasMoreUp) {
-                        upMiddleRowListItem = nextUpListItem;
                         upMiddleColumnIndex = static_cast<Number&>((*upMiddleRowListItem)["value"]["pixel"]["x"]).value();
                     }
                     if (hasMoreDown) {
-                        downMiddleRowListItem = nextDownListItem;
                         downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                    }
+                    if (hasMoreUp && hasMoreDown) {
+                        isUpperLine        = upMiddleColumnIndex <= downMiddleColumnIndex;
+                        currentListItemPtr = isUpperLine ? upMiddleRowListItem : downMiddleRowListItem;
+                    } else if (!hasMoreUp) {
+                        currentListItemPtr = downMiddleRowListItem;
+                        isUpperLine        = false;
+                    } else {
+                        currentListItemPtr = upMiddleRowListItem;
+                        isUpperLine        = true;
                     }
                 }
             } break;
@@ -407,6 +440,7 @@ TEST_F(CellTest, EdgeTest)
         std::cout << std::endl;
     });
 
+    std::cout << "\nPrinting shape points:" << std::endl;
     Visitor::visitList(shaper["shapes"], [this](CellI& currentShape, int, bool&) {
         std::cout << "Shape id:" << currentShape["id"].label() << ", points:\n";
 
@@ -463,15 +497,15 @@ For leftToRight direction edge from point middle
 15 0111 Skip
 16 1111 Skip
 
-Invalid   Skip     Continue  Continue Skip     Skip              New edge*  New edge           Skip     Skip     Continue Continue  Skip     Skip
- 1        2         3        4        5        6         7        8         9        10        11       12       13        14       15       16
- 0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭   0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭    0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭   0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭
- 0🡯 0🡮   0🡯 0🡮   0🡯 0🡮   0🡯 0🡮   1🡯 0🡮   1🡯 0🡮   1🡯 0🡮   1🡯 0🡮    0🡯 1🡮   0🡯 1🡮   0🡯 1🡮   0🡯 1🡮   1🡯 1🡮   1🡯 1🡮   1🡯 1🡮   1🡯 1🡮
- .--.--.  .--.--.  .--.--.   .--.--.  .--.--.  .--.--.   .--.--.  .--.--.   .--.--.  .--.--.   .--.--.  .--.--.  .--.--.  .--.--.   .--.--.  .--.--.
- |  |  |  |XX|  |  |  |XX|   |XX|XX|  |  |  |  |XX|  |   |  |XX|  |XX|XX|   |  |  |  |XX|  |   |  |XX|  |XX|XX|  |  |  |  |XX|  |   |  |XX|  |XX|XX|
- .--o->.  .--o->.  .--o->.   .--o->.  .--o->.  .--o->.   .--o->.  .--o->.   .--o->.  .--o->.   .--o->.  .--o->.  .--o->.  .--o->.   .--o->.  .--o->.
- |  |  |  |  |  |  |  |  |   |  |  |  |XX|  |  |XX|  |   |XX|  |  |XX|  |   |  |XX|  |  |XX|   |  |XX|  |  |XX|  |XX|XX|  |XX|XX|   |XX|XX|  |XX|XX|
- .--.--.  .--.--.  .--.--.   .--.--.  .--.--.  .--.--.   .--.--.  .--.--.   .--.--.  .--.--.   .--.--.  .--.--.  .--.--.  .--.--.   .--.--.  .--.--.
+Invalid   Skip     Continue  Continue Skip     Skip               New edge New edge           Skip     Skip     Continue Continue  Skip     Skip
+ 1        2         3        4        5        6         7        8        9        10        11       12       13        14       15       16
+ 0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭   0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭   🡬 0🡭    1🡬 0🡭   0🡬 1🡭   1🡬 1🡭   0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭
+ 0🡯 0🡮   0🡯 0🡮   0🡯 0🡮   0🡯 0🡮   1🡯 0🡮   1🡯 0🡮   1🡯 0🡮   1🡯 0🡮   🡯 1🡮    0🡯 1🡮   0🡯 1🡮   0🡯 1🡮   1🡯 1🡮   1🡯 1🡮   1🡯 1🡮   1🡯 1🡮
+ .--.--.  .--.--.  .--.--.   .--.--.  .--.--.  .--.--.   .--.--.  .--.--.  .--.--.  .--.--.   .--.--.  .--.--.  .--.--.  .--.--.   .--.--.  .--.--.
+ |  |  |  |XX|  |  |  |XX|   |XX|XX|  |  |  |  |XX|  |   |  |XX|  |XX|XX|  |  |  |  |XX|  |   |  |XX|  |XX|XX|  |  |  |  |XX|  |   |  |XX|  |XX|XX|
+ .--o->.  .--o->.  .--o->.   .--o->.  .--o->.  .--o->.   .--o->.  .--o->.  .--o->.  .--o->.   .--o->.  .--o->.  .--o->.  .--o->.   .--o->.  .--o->.
+ |  |  |  |  |  |  |  |  |   |  |  |  |XX|  |  |XX|  |   |XX|  |  |XX|  |  |  |XX|  |  |XX|   |  |XX|  |  |XX|  |XX|XX|  |XX|XX|   |XX|XX|  |XX|XX|
+ .--.--.  .--.--.  .--.--.   .--.--.  .--.--.  .--.--.   .--.--.  .--.--.  .--.--.  .--.--.   .--.--.  .--.--.  .--.--.  .--.--.   .--.--.  .--.--.
 
 For upToDown direction edge from point middle
  1 0000 Invalid state, can not happen
@@ -508,6 +542,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
             int caseNum       = 1 + (int)hasUpLeft + ((int)hasUpRight * 2) + ((int)hasDownLeft * 4) + ((int)hasDownRight * 8);
             if (caseNum == 1) {
                 std::cout << "WTF";
+                throw "Invalid pixel state";
             } else {
                 std::cout << "";
             }
@@ -516,7 +551,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
             CellI* previousEdgeDir  = nullptr;
             CellI* shapeDir         = nullptr;
             if (processingDirection == ProcessingDirection::LeftToRight) {
-                std::cout << "[" << caseNum << "-]";
+                std::cout << std::format("[{:2}-]", caseNum);
 
                 // Skip      Skip     Skip     Skip     Skip     Skip     Skip
                 //  2        5        6        11       12       15       16
@@ -613,21 +648,23 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                     shapeDir         = &DirectionLeftEV;
                 }
 
-                // New edge
-                // 9
-                // 0🡬 0🡭
-                // 0🡯 1🡮
-                // .--.--.
-                // |  |  |
-                // .--o->.
-                // |  |XX|
-                // .--.--.
-                if (!hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight) {
+                // New edge New edge
+                // 8        9
+                // 1🡬 1🡭   0🡬 0🡭
+                // 1🡯 0🡮   0🡯 1🡮
+                // .--.--.  .--.--.
+                // |XX|XX|  |  |  |
+                // .--o->.  .--o->.
+                // |XX|  |  |  |XX|
+                // .--.--.  .--.--.
+                if ((hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) ||
+                    (!hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight)) {
                     toDirectionPtr = &DirectionRightEV;
                     shapeDir       = &DirectionRightEV;
                 }
             } else {
-                std::cout << "[" << caseNum << "|]";
+                std::cout << std::format("[{:2}|]", caseNum);
+
                 //  2 1000 Skip
                 //  3 0100 Skip
                 //  4 1100 Skip
@@ -833,31 +870,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                 // the join
                 fromEdgeJoint.set(toDirectionPtr == &DirectionRightEV ? "right" : "down", newEdgeNode);
                 const char* nextJointSlotName = toDirectionPtr == &DirectionRightEV ? "left" : "up";
-#if 0
-           [9-](1,0) [13-](2,0) [13-](3,0) [5-](4,0)
-           [9|](1,0) [13|](2,0) [13|](3,0) [5|](4,0)
-[9-](0,1) [15-](1,1) [16-](2,1) [16-](3,1) [6-](4,1)
-[9|](0,1) [15|](1,1) [16|](2,1) [16|](3,1) [6|](4,1)
-[3-](0,2) [12-](1,2) [16-](2,2) [16-](3,2) [6-](4,2)
-[3|](0,2) [12|](1,2) [16|](2,2) [16|](3,2) [6|](4,2)
-           [3-](1,3)  [4-](2,3)  [4-](3,3) [2-](4,3)
 
-           [9-](1,0) [13-](2,0) [13-](3,0) [5-](4,0)
-           [9|](1,0) [13|](2,0) [13|](3,0) [5|](4,0)
-[9-](0,1) [15-](1,1) [16-](2,1) [16-](3,1) [6-](4,1)
-[9|](0,1) [15|](1,1) [16|](2,1) [16|](3,1) [6|](4,1)
-[3-](0,2) [12-](1,2) [16-](2,2) [16-](3,2) [6-](4,2)
-[3|](0,2) [12|](1,2) [16|](2,2) [16|](3,2) [6|](4,2)
-           [3-](1,3)  [4-](2,3)  [4-]nextEdgeId(1) < previousEdgeId(2)(3,3) [2-](4,3) edges: 2
-
-            [9-]1(1,0) [13-]1(2,0) [13-]1(3,0) [5-] (4,0)
-            [9|]1(1,0) [13|] (2,0) [13|] (3,0) [5|]1(4,0)
-[9-]2(0,1) [15-] (1,1) [16-] (2,1) [16-] (3,1) [6-] (4,1)
-[9|]2(0,1) [15|] (1,1) [16|] (2,1) [16|] (3,1) [6|]1(4,1)
-[3-]2(0,2) [12-] (1,2) [16-] (2,2) [16-] (3,2) [6-] (4,2)
-[3|] (0,2) [12|]2(1,2) [16|] (2,2) [16|] (3,2) [6|]1(4,2)
-            [3-]2(1,3)  [4-]2(2,3)  [4-]2(3,3) [2-] (4,3)
-#endif
                 if (toDirectionPtr == &DirectionRightEV && toEdgeJoint.has("up")) {
                     CellI& upEdgeNode     = toEdgeJoint["up"];
                     CellI* upLeftSidePtr  = nullptr;
@@ -929,6 +942,8 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                 } else {
                     toEdgeJoint.set(nextJointSlotName, newEdgeNode);
                 }
+            } else {
+                std::cout << " ";
             }
             std::cout << fmt::format("({},{}) ", static_cast<Number&>(shapePoint["x"]).value(), static_cast<Number&>(shapePoint["y"]).value());
 
@@ -942,6 +957,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                 if (nextListItemPtr) {
                     currentListItemPtr = firstColumnPointItem;
                     processingDirection = ProcessingDirection::UpToDown;
+                    std::cout << std::endl;
                 } else {
                     currentListItemPtr = nextListItemPtr;
                 }
@@ -949,6 +965,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                 currentListItemPtr   = nextListItemPtr;
                 firstColumnPointItem = nextListItemPtr;
                 processingDirection  = ProcessingDirection::LeftToRight;
+                std::cout << std::endl;
             }
         }
         std::cout << "edges: " << static_cast<List&>(currentShape["edges"]).size() << std::endl;
@@ -1195,6 +1212,8 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
     Shape cppShape1(_1_);
     Shape cppShape2(_2_);
     Shape cppShape3(_3_);
+    Shape cppShape4(_4_);
+    Shape cppShape5(_5_);
     while (currentShapePixelPtr) {
         CellI& currentShapePixel            = *currentShapePixelPtr;
         hybrid::arc::Pixel& currentArcPixel = static_cast<hybrid::arc::Pixel&>(currentShapePixel["pixel"]);
@@ -1209,6 +1228,12 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
             currentCppShapePtr = &cppShape2;
         } else if (&currentShape["id"] == &cppShape3.id) {
             currentCppShapePtr = &cppShape3;
+        } else if (&currentShape["id"] == &cppShape4.id) {
+            currentCppShapePtr = &cppShape3;
+        } else if (&currentShape["id"] == &cppShape5.id) {
+            currentCppShapePtr = &cppShape3;
+        } else {
+            std::cout << "";
         }
         Shape& currentCppShape = *currentCppShapePtr;
 
