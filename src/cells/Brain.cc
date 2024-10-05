@@ -5861,7 +5861,7 @@ void Brain::createArcSolver()
                   member("color", "Color"),
                   member("width", _(std.Number)),
                   member("height", _(std.Number)),
-                  member("edges", tt_("std::List", "valueType", "ShapeEdge")),
+                  member("edges", tt_("std::Map", "keyType", _(std.Number), "valueType", "ShapeEdge")),
                   member("shapePixels", tt_("std::List", "valueType", "ShapePixel")),
                   member("shapePoints", tt_("std::List", "valueType", "ShapePoint")),
                   member("hybridPixels", tt_("std::Set", "valueType", _(std.Pixel))),
@@ -5930,7 +5930,7 @@ void Brain::createArcSolver()
                   member("grid", _(std.Grid)),
                   member("shapePixels", st_("tableType")),
                   member("shapes", tt_("std::List", "valueType", "Shape")),
-                  member("shapeSet", tt_("std::Set", "valueType", "Shape")),
+                  member("shapeMap", tt_("std::Map", "keyType", _(std.Number), "valueType", "Shape")),
                   member("inputPixels", tt_("std::Set", "valueType", _(std.Pixel))));
 
     /*
@@ -5952,7 +5952,7 @@ void Brain::createArcSolver()
             m_("height")      = p_("grid") / "height",
             m_("shapes")      = ast.new_(tt_("std::List", "valueType", "Shape"), "constructor"),
             m_("shapePixels") = ast.new_(st_("tableType"), "constructor"),
-            m_("shapeSet")    = ast.new_(tt_("std::Set", "valueType", "Shape"), "constructor"),
+            m_("shapeMap")    = ast.new_(tt_("std::Map", "keyType", _(std.Number), "valueType", "Shape"), "constructor"),
             m_("inputPixels") = ast.new_(tt_("std::Set", "valueType", _(std.Pixel)), "constructor"),
             ast.self().call("processInputPixels"));
     /*
@@ -6027,9 +6027,9 @@ void Brain::createArcSolver()
                             var_("shape")      = *var_("shapePixel") / "shape",
                             var_("pixel")      = *var_("shapePixel") / "pixel",
                             ast.call(*var_("shape"), "addPixel", param("pixel", *var_("pixel"))),
-                            ast.if_(ast.not_(m_("shapeSet").call("contains", param("value", *var_("shape")))))
+                            ast.if_(ast.not_(m_("shapeMap").call("hasKey", param("key", *var_("shape") / "id"))))
                                 .then_(ast.block(
-                                    m_("shapeSet").call("add", param("value", *var_("shape"))),
+                                    m_("shapeMap").call("add", param("key", *var_("shape") / "id"), param("value", *var_("shape"))),
                                     m_("shapes").call("add", param("value", *var_("shape"))))),
                             var_("x") = ast.add(*var_("x"), _(_1_)))),
                     var_("y") = ast.add(*var_("y"), _(_1_)))));

@@ -897,15 +897,15 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                         newEdge.set("shape", currentShape);
                         newEdge.set("edgeNodes", edgeNodes);
                         previousEdgePtr = &newEdge;
-                        List* edgesPtr  = nullptr;
+                        Map* edgesPtr  = nullptr;
                         if (currentShape.missing("edges")) {
-                            List& newEdges = *new List(kb, ShapeEdgeStruct);
+                            Map& newEdges = *new Map(kb, kb.std.Number, ShapeEdgeStruct);
                             currentShape.set("edges", newEdges);
                             newEdge.set("id", _1_);
                             newEdge.set("kind", ExternalEdgeEV);
                             edgesPtr = &newEdges;
                         } else {
-                            edgesPtr = &static_cast<List&>(currentShape["edges"]);
+                            edgesPtr = &static_cast<Map&>(currentShape["edges"]);
                             newEdge.set("id", kb.pools.numbers.get(edgesPtr->size() + 1));
                             newEdge.set("kind", InternalEdgeEV);
                         }
@@ -929,8 +929,8 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
   -
   2
 #endif
-                        List& edges = *edgesPtr;
-                        edges.add(newEdge);
+                        Map& edges = *edgesPtr;
+                        edges.add(newEdge["id"], newEdge);
                     } else {
                         CellI* previousEdgeNodePtr = nullptr;
                         if (previousEdgeDir == &DirectionUpEV) {
@@ -1017,16 +1017,8 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                                     // toDeleteEdgeNodes.remove(&static_cast<List::Item&>(toDeleteEdgeNode)); TODO
                                 });
                                 CellI& toDeleteEdgeIdCell = toDeleteEdge["id"];
-                                List& currentShapeEdges   = static_cast<List&>(currentShape["edges"]);
-                                CellI* currentEdgeItemPtr = &currentShapeEdges[kb.ids.first];
-                                while (currentEdgeItemPtr) {
-                                    CellI& currentEdgeItem = *currentEdgeItemPtr;
-                                    CellI& currentEdge     = currentEdgeItem[kb.ids.value];
-                                    if (&currentEdge["id"] == &toDeleteEdgeIdCell) {
-                                        currentShapeEdges.remove(static_cast<List::Item*>(currentEdgeItemPtr));
-                                    }
-                                    currentEdgeItemPtr = currentEdgeItem.has(kb.ids.next) ? &currentEdgeItem[kb.ids.next] : nullptr;
-                                }
+                                Map& currentShapeEdges   = static_cast<Map&>(currentShape["edges"]);
+                                currentShapeEdges.remove(toDeleteEdgeIdCell);
                             }
                         }
                     }
@@ -1057,7 +1049,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                     std::cout << std::endl;
                 }
             }
-            std::cout << "edges: " << static_cast<List&>(currentShape["edges"]).size() << std::endl;
+            std::cout << "edges: " << static_cast<Map&>(currentShape["edges"]).size() << std::endl;
         });
     }
 
@@ -1307,6 +1299,23 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
         }
     }
 
+    void expectedShapesCount(int expectedCount)
+    {
+        int shapeCount = static_cast<Number&>(shaper()["shapes"]["size"]).value();
+        EXPECT_EQ(shapeCount, expectedCount);
+    }
+
+    void expectedShapeEdgeCounts(const std::map<int, int>& shapeEdgeCounts)
+    {
+        for (const auto& edgeCountPair : shapeEdgeCounts) {
+            int shapeId = edgeCountPair.first;
+            int edgeCount = edgeCountPair.second;
+            CellI& shape  = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(shapeId) });
+            Map& shapeEdges = static_cast<Map&>(shape["edges"]);
+            EXPECT_EQ(edgeCount, shapeEdges.size());
+        }
+    }
+
     CellI& ShaperStruct;
     CellI& ShapePointStruct;
     CellI& ShapePixelStruct;
@@ -1336,6 +1345,7 @@ TEST_F(EdgeTester, EdgeTest)
                         11411
                         15161
                         11111)");
+//    expectedShapeEdgeCounts({ { 1, 2 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 1 } });
 }
 
 TEST_F(EdgeTester, EdgeTestTwoLeftCorners)
@@ -1347,6 +1357,55 @@ TEST_F(EdgeTester, EdgeTestTwoLeftCorners)
     expectedShapeIds(R"(1222
                         2222
                         3222)");
+    expectedShapesCount(3);
+    expectedShapeEdgeCounts({ { 1, 1 }, { 2, 1 }, { 3, 1 } });
+}
+
+TEST_F(EdgeTester, EdgeTestWithFourCorners)
+{
+    testEdges(R"([[0, 7, 7, 0],
+                  [7, 7, 7, 7],
+                  [0, 7, 7, 0]])");
+
+    expectedShapeIds(R"(1223
+                        2222
+                        4225)");
+    expectedShapesCount(5);
+    expectedShapeEdgeCounts({ { 1, 1 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 } });
+}
+
+TEST_F(EdgeTester, EdgeTestWithLineDiagonalFromUpLeft)
+{
+    testEdges(R"([[7, 0, 0, 0, 0],
+                  [0, 7, 0, 0, 0],
+                  [0, 0, 7, 0, 0],
+                  [0, 0, 0, 7, 0],
+                  [0, 0, 0, 0, 7]])");
+
+    expectedShapeIds(R"(12222
+                        21222
+                        22122
+                        22212
+                        22221)");
+    expectedShapesCount(2);
+    expectedShapeEdgeCounts({ { 1, 1 }, { 2, 1 } });
+}
+
+TEST_F(EdgeTester, EdgeTestWithLineDiagonalFromUpRight)
+{
+    testEdges(R"([[0, 0, 0, 0, 7],
+                  [0, 0, 0, 7, 0],
+                  [0, 0, 7, 0, 0],
+                  [0, 7, 0, 0, 0],
+                  [7, 0, 0, 0, 0]])");
+
+    expectedShapeIds(R"(11112
+                        11121
+                        11211
+                        12111
+                        21111)");
+    expectedShapesCount(2);
+    expectedShapeEdgeCounts({ { 1, 1 }, { 2, 1 } });
 }
 
 int main(int argc, char** argv)
