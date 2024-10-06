@@ -1425,20 +1425,22 @@ TEST_F(EdgeTester, EdgeTestWithArc_4be741c5_Train3Output)
 
 TEST_F(EdgeTester, EdgeTestWithAllArcTask)
 {
-    static const std::string arcFilePath = SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
     TaskSet taskSet(kb, SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
+//    TaskSet taskSet(kb, SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_EVALUATION_CHALLENGES_FILENAME);
     for (auto& task : taskSet.m_tasks) {
         std::cout << "id: " << task.first << ", examples num:" << static_cast<List&>(task.second.m_cellExamplesList).size() << ", tests num:" << static_cast<List&>(task.second.m_cellTestsList).size() << std::endl;
         std::cout << "   examples:" << std::endl;
-        Visitor::visitList(task.second.m_cellExamplesList, [this](CellI& example, int i, bool&) {
-            std::cout << "    size " << static_cast<hybrid::arc::Grid&>(example["input"]).width() << "x" << static_cast<hybrid::arc::Grid&>(example["input"]).height() << " -> " << static_cast<hybrid::arc::Grid&>(example["output"]).width() << "x" << static_cast<hybrid::arc::Grid&>(example["output"]).height() << std::endl;
+        Visitor::visitList(task.second.m_cellExamplesList, [this, &task](CellI& example, int i, bool&) {
+            std::cout << "id: " << task.first << ", example input:" << i << std::endl;
             testEdges(static_cast<hybrid::arc::Grid&>(example["input"]));
+            std::cout << "id: " << task.first << ", example output:" << i << std::endl;
             testEdges(static_cast<hybrid::arc::Grid&>(example["output"]));
 
         });
         std::cout << "   tests:" << std::endl;
-        Visitor::visitList(task.second.m_cellTestsList, [](CellI& example, int i, bool&) {
-            std::cout << "    size " << static_cast<hybrid::arc::Grid&>(example["input"]).width() << "x" << static_cast<hybrid::arc::Grid&>(example["input"]).height() << std::endl;
+        Visitor::visitList(task.second.m_cellTestsList, [this, &task](CellI& example, int i, bool&) {
+            std::cout << "id: " << task.first << ", test input:" << i << std::endl;
+            testEdges(static_cast<hybrid::arc::Grid&>(example["input"]));
         });
     }
 }
