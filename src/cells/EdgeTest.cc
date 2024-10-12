@@ -381,6 +381,148 @@ public:
         }
     }
 
+    void debugShapePointEdgeJoints()
+    {
+        static std::map<int, std::string> arcColors = {
+            { 0, "#000000" },
+            { 1, "#0074D9" },
+            { 2, "#FF4136" },
+            { 3, "#2ECC40" },
+            { 4, "#FFDC00" },
+            { 5, "#AAAAAA" },
+            { 6, "#F012BE" },
+            { 7, "#FF851B" },
+            { 8, "#7FDBFF" },
+            { 9, "#870C25" }
+        };
+        const std::filesystem::path& path = "test.svg";
+        std::ofstream svgFile(path);
+        svgFile << "<svg xmlns=\"http://www.w3.org/2000/svg\">\n";
+        svgFile << R"-(
+<style>
+    .arrowText {
+        font: 8px sans-serif;
+     }
+</style>
+<marker
+      id="arrow"
+      viewBox="0 0 10 10"
+      refX="5"
+      refY="5"
+      markerWidth="6"
+      markerHeight="6"
+      orient="auto-start-reverse">
+      <path fill="context-stroke" d="M 0 0 L 10 5 L 0 10 z" />
+</marker>
+<g transform="translate(10 10)
+              scale(1.5 1.5)">
+)-";
+
+        CellI* currentShapePointPtr = &(*firstShapePixelPtr())["upLeftPoint"];
+        CellI* firstColumnPointPtr  = currentShapePointPtr;
+        while (currentShapePointPtr) {
+            CellI& shapePoint      = *currentShapePointPtr;
+            int pointX             = static_cast<Number&>(shapePoint["x"]).value();
+            int pointY             = static_cast<Number&>(shapePoint["y"]).value();
+            svgFile << fmt::format("    <!-- point({}, {}) -->\n", pointX, pointY);
+            svgFile << fmt::format("    <ellipse cx=\"{}\" cy=\"{}\" rx=\"3\" ry=\"3\" fill=\"black\" stroke=\"grey\"/>\n", 10 + pointX * 120, 30 + pointY * 120);
+            svgFile << fmt::format("    <!-- edgeJoint -->\n");
+            if (shapePoint.has("edgeJoint")) {
+                CellI& edgeJoint = shapePoint["edgeJoint"];
+                svgFile << fmt::format("    <path d=\"M {} {} L {} {}\" fill=\"none\" stroke=\"#d79b00\" stroke-miterlimit=\"10\" stroke-dasharray=\"1 1\"/>", 10 + pointX * 120, 20 + pointY * 120, 10 + pointX * 120, 30 + pointY * 120);
+                svgFile << fmt::format("    <rect x=\"{}\" y=\"{}\" width=\"20\" height=\"20\" fill=\"#ffe6cc\" stroke=\"#d79b00\"/>\n", pointX * 120, pointY * 120);
+                if (edgeJoint.has("right")) {
+                    svgFile << fmt::format("      <!-- edgeJoint right -->\n");
+                    CellI& rightEdgeNode = edgeJoint["right"];
+                    if (rightEdgeNode.has("rightSide")) {
+                        int color = static_cast<Number&>(rightEdgeNode["rightSide"]["shape"]["color"]).value();
+                        svgFile << fmt::format("      <!-- rightSide -->\n");
+                        svgFile << fmt::format("      <text x=\"{}\" y=\"{}\" fill=\"{}\" class=\"arrowText\">{}</text>\n", 30 + pointX * 120, 18 + pointY * 120, arcColors[color], rightEdgeNode["rightSide"]["id"].label());
+                        svgFile << fmt::format("      <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", 20 + pointX * 120, 20 + pointY * 120, 50 + pointX * 120, 20 + pointY * 120, arcColors[color]);
+                    }
+                    if (rightEdgeNode.has("leftSide")) {
+                        int color = static_cast<Number&>(rightEdgeNode["leftSide"]["shape"]["color"]).value();
+                        svgFile << fmt::format("      <!-- leftSide -->\n");
+                        svgFile << fmt::format("      <text x=\"{}\" y=\"{}\" fill=\"{}\" class=\"arrowText\">{}</text>\n", 30 + pointX * 120, -2 + pointY * 120, arcColors[color], rightEdgeNode["leftSide"]["id"].label());
+                        svgFile << fmt::format("      <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", 20 + pointX * 120, pointY * 120, 50 + pointX * 120, pointY * 120, arcColors[color]);
+                    }
+                }
+                if (edgeJoint.has("down")) {
+                    svgFile << fmt::format("      <!-- edgeJoint down -->\n");
+                    CellI& downEdgeNode = edgeJoint["down"];
+                    if (downEdgeNode.has("rightSide")) {
+                        int color = static_cast<Number&>(downEdgeNode["rightSide"]["shape"]["color"]).value();
+                        svgFile << fmt::format("      <!-- rightSide -->\n");
+                        svgFile << fmt::format("      <g transform=\"translate({} {}) rotate(90)\">\n", pointX * 120, 20 + pointY * 120, 20 + pointX * 120, 50 + pointY * 120, arcColors[color]);
+                        svgFile << fmt::format("        <text x=\"15\" y=\"-2\" fill=\"{}\" class=\"arrowText\">{}</text>\n", arcColors[color], downEdgeNode["rightSide"]["id"].label());
+                        svgFile << fmt::format("        <line x1=\"0\" y1=\"0\" x2=\"30\" y2=\"0\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", arcColors[color]);
+                        svgFile << fmt::format("      </g>\n");
+                    }
+                    if (downEdgeNode.has("leftSide")) {
+                        int color = static_cast<Number&>(downEdgeNode["leftSide"]["shape"]["color"]).value();
+                        svgFile << fmt::format("      <!-- leftSide -->\n");
+                        svgFile << fmt::format("      <g transform=\"translate({} {}) rotate(90)\">\n", 20 + pointX * 120, 20 + pointY * 120, 20 + pointX * 120, 50 + pointY * 120, arcColors[color]);
+                        svgFile << fmt::format("        <text x=\"15\" y=\"-2\" fill=\"{}\" class=\"arrowText\">{}</text>\n", arcColors[color], downEdgeNode["leftSide"]["id"].label());
+                        svgFile << fmt::format("        <line x1=\"0\" y1=\"0\" x2=\"30\" y2=\"0\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", arcColors[color]);
+                        svgFile << fmt::format("      </g>\n");
+                    }
+                }
+                if (edgeJoint.has("left")) {
+                    CellI& leftEdgeNode = edgeJoint["left"];
+                    svgFile << fmt::format("      <!-- edgeJoint left -->\n");
+                    if (leftEdgeNode.has("rightSide")) {
+                        int color = static_cast<Number&>(leftEdgeNode["rightSide"]["shape"]["color"]).value();
+                        svgFile << fmt::format("      <!-- rightSide -->\n");
+                        svgFile << fmt::format("      <text x=\"{}\" y=\"{}\" fill=\"{}\" class=\"arrowText\">{}</text>\n", -20 + pointX * 120, 18 + pointY * 120, arcColors[color], leftEdgeNode["rightSide"]["id"].label());
+                        svgFile << fmt::format("      <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", -30 + pointX * 120, 20 + pointY * 120, pointX * 120, 20 + pointY * 120, arcColors[color]);
+                    }
+                    if (leftEdgeNode.has("leftSide")) {
+                        int color = static_cast<Number&>(leftEdgeNode["leftSide"]["shape"]["color"]).value();
+                        svgFile << fmt::format("      <!-- leftSide -->\n");
+                        svgFile << fmt::format("      <text x=\"{}\" y=\"{}\" fill=\"{}\" class=\"arrowText\">{}</text>\n", -20 + pointX * 120, -2 + pointY * 120, arcColors[color], leftEdgeNode["leftSide"]["id"].label());
+                        svgFile << fmt::format("      <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", -30 + pointX * 120, pointY * 120, pointX * 120, pointY * 120, arcColors[color]);
+                    }
+                }
+                if (edgeJoint.has("up")) {
+                    svgFile << fmt::format("      <!-- edgeJoint up -->\n");
+                    CellI& upEdgeNode = edgeJoint["up"];
+                    if (upEdgeNode.has("rightSide")) {
+                        int color = static_cast<Number&>(upEdgeNode["rightSide"]["shape"]["color"]).value();
+                        svgFile << fmt::format("      <!-- rightSide -->\n");
+                        svgFile << fmt::format("      <g transform=\"translate({} {}) rotate(90)\">\n", pointX * 120, -30 + pointY * 120, arcColors[color]);
+                        svgFile << fmt::format("        <text x=\"10\" y=\"-2\" fill=\"{}\" class=\"arrowText\">{}</text>\n", arcColors[color], upEdgeNode["rightSide"]["id"].label());
+                        svgFile << fmt::format("        <line x1=\"0\" y1=\"0\" x2=\"30\" y2=\"0\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", arcColors[color]);
+                        svgFile << fmt::format("      </g>\n");
+                    }
+                    if (upEdgeNode.has("leftSide")) {
+                        int color = static_cast<Number&>(upEdgeNode["leftSide"]["shape"]["color"]).value();
+                        svgFile << fmt::format("      <!-- leftSide -->\n");
+                        svgFile << fmt::format("      <g transform=\"translate({} {}) rotate(90)\">\n", 20 + pointX * 120, -30 + pointY * 120, arcColors[color]);
+                        svgFile << fmt::format("        <text x=\"10\" y=\"-2\" fill=\"{}\" class=\"arrowText\">{}</text>\n", arcColors[color], upEdgeNode["leftSide"]["id"].label());
+                        svgFile << fmt::format("        <line x1=\"0\" y1=\"0\" x2=\"30\" y2=\"0\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", arcColors[color]);
+                        svgFile << fmt::format("      </g>\n");
+                    }
+                }
+            }
+            if (shapePoint.has("downRightPixel")) {
+                svgFile << fmt::format("    <!-- pixel -->\n");
+                hybrid::arc::Pixel& pixel = static_cast<hybrid::arc::Pixel&>(shapePoint["downRightPixel"]["pixel"]);
+                svgFile << fmt::format("    <rect x=\"{}\" y=\"{}\" width=\"40\" height=\"40\" fill=\"{}\" stroke=\"black\"/>\n", 50 + pointX * 120, 70 + pointY * 120, arcColors[pixel.color()]);
+            }
+            svgFile << "\n";
+            if (shapePoint.has("right")) {
+                currentShapePointPtr = &shapePoint["right"];
+            } else if (shapePoint.has("down")) {
+                currentShapePointPtr = &(*firstColumnPointPtr)["down"];
+                firstColumnPointPtr  = currentShapePointPtr;
+            } else {
+                currentShapePointPtr = nullptr;
+            }
+        }
+
+        svgFile << "</g>\n</svg>";
+    }
+
     void sortShapePoints()
     {
         Visitor::visitList(shaper()["shapes"], [this](CellI& currentShape, int, bool&) {
@@ -763,7 +905,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                     // .--.--.
                     if (!hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) {
                         toDirectionPtr  = &DirectionRightEV;
-                        previousEdgeDir = &DirectionLeftEV;
+//                        previousEdgeDir = &DirectionLeftEV;
                         shapeDir        = &DirectionLeftEV;
                     }
 
@@ -939,7 +1081,14 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                     CellI* previousEdgePtr = nullptr;
 
                     const char* shapeDirStr = shapeDir == &DirectionRightEV ? "rightSide" : "leftSide";
-
+                    if (caseNum == 10 && toDirectionPtr == &DirectionRightEV && &currentShape["id"] == &_2_) {
+                        debugShapePointEdgeJoints();
+                        std::cout << "";
+                    }
+                    if (caseNum == 7 && toDirectionPtr == &DirectionDownEV && &currentShape["id"] == &_2_) {
+                        debugShapePointEdgeJoints();
+                        std::cout << "";
+                    }
                     if (!previousEdgeDir) {
                         std::cout << std::format("N");
                         CellI& newEdge  = *new Object(kb, ShapeEdgeStruct);
@@ -1016,17 +1165,25 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                     fromEdgeJoint.set(toDirectionStr, edgeNode);
                     const char* nextJointSlotName = toDirectionPtr == &DirectionRightEV ? "left" : "up";
 
-                    if (toDirectionPtr == &DirectionRightEV && toEdgeJoint.has("up")) {
+                    bool alreadyContinued = false;
+                    if (fromEdgeJoint.has("left") && fromEdgeJoint.has("up")) {
+                        alreadyContinued = true;
+                    }
+                    if (caseNum == 7 && toDirectionPtr == &DirectionRightEV && &currentShape["id"] == &_2_) {
+                        debugShapePointEdgeJoints();
+                        std::cout << "";
+                    }
+                    if (toDirectionPtr == &DirectionRightEV && toEdgeJoint.has("up") && !alreadyContinued) {
                         CellI& upEdgeNode     = toEdgeJoint["up"];
                         CellI* upLeftSidePtr  = nullptr;
                         CellI* upRightSidePtr = nullptr;
-                        CellI* nextEdgePtr    = nullptr;
                         if (upEdgeNode.has("rightSide")) {
                             upRightSidePtr = &upEdgeNode["rightSide"];
                         }
                         if (upEdgeNode.has("leftSide")) {
                             upLeftSidePtr = &upEdgeNode["leftSide"];
                         }
+                        CellI* nextEdgePtr = nullptr;
                         if (upRightSidePtr && (&(*upRightSidePtr)["shape"] == &currentShape)) {
                             // possible join, check edge id
                             nextEdgePtr = &(*upRightSidePtr);
@@ -1040,7 +1197,35 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                             CellI& nextEdge    = *nextEdgePtr;
                             int nextEdgeId     = static_cast<Number&>(nextEdge["id"]).value();
                             int previousEdgeId = static_cast<Number&>(previousEdge["id"]).value();
-                            if (nextEdgeId != previousEdgeId) {
+#if 0
+                            bool alreadyContinued = false;
+                            if (toEdgeJoint.has("left")) {
+                                // so we have a third candidate
+                                CellI& leftEdgeNode = fromEdgeJoint["left"];
+                                CellI* leftLeftSidePtr  = nullptr;
+                                CellI* leftRightSidePtr = nullptr;
+                                if (leftEdgeNode.has("rightSide")) {
+                                    leftRightSidePtr = &leftEdgeNode["rightSide"];
+                                }
+                                if (leftEdgeNode.has("leftSide")) {
+                                    leftLeftSidePtr = &leftEdgeNode["leftSide"];
+                                }
+                                CellI* previousEdgePtr = nullptr;
+                                if (leftRightSidePtr && (&(*leftRightSidePtr)["shape"] == &currentShape)) {
+                                    // possible join, check edge id
+                                    previousEdgePtr = &(*leftRightSidePtr);
+                                }
+                                if (!previousEdgePtr && leftLeftSidePtr && (&(*leftLeftSidePtr)["shape"] == &currentShape)) {
+                                    // possible join, check edge id
+                                    previousEdgePtr = &(*leftLeftSidePtr);
+                                }
+                                CellI& previousEdge = *previousEdgePtr;
+                                int previousEdgeId  = static_cast<Number&>(previousEdge["id"]).value();
+
+                                alreadyContinued = previousEdgeId == nextEdgeId;
+                            }
+#endif
+                            if (nextEdgeId != previousEdgeId && !alreadyContinued) {
                                 CellI* toDeleteEdgePtr = nullptr;
                                 CellI* toExtendEdgePtr = nullptr;
                                 if (nextEdgeId < previousEdgeId) {
@@ -1083,6 +1268,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                     std::cout << "      ";
                 }
                 std::cout << fmt::format("({},{}) ", static_cast<Number&>(shapePoint["x"]).value(), static_cast<Number&>(shapePoint["y"]).value());
+                debugShapePointEdgeJoints();
 
                 CellI* nextListItemPtr       = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
                 int nextPointY               = nextListItemPtr ? static_cast<Number&>((*nextListItemPtr)["value"]["y"]).value() : -1;
@@ -1507,8 +1693,19 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
     std::unique_ptr<Object> m_shaper;
 };
 
+TEST_F(EdgeTester, EdgeTestCase7Horizontal)
+{
+    testEdges(R"([[0,0,0,0,0],
+                  [0,0,1,0,0],
+                  [0,1,8,1,0],
+                  [0,0,1,0,0],
+                  [0,0,0,0,0]])");
+    debugShapePointEdgeJoints();
+}
+
 TEST_F(EdgeTester, EdgeTestInternalEdges)
 {
+    exit(0);
     testEdges(R"([[0,0,0,0,0,0,0],
                   [0,1,1,1,1,1,0],
                   [0,1,8,8,8,1,0],
@@ -1939,7 +2136,7 @@ TEST_F(EdgeTester, EdgeTestWithArc_4be741c5_Train3Output)
                   [3]])");
 }
 
-TEST_F(EdgeTester, DISABLED_EdgeTestWithAllArcTask)
+TEST_F(EdgeTester, EdgeTestWithAllArcTask)
 {
     TaskSet taskSet(kb, SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
 //    TaskSet taskSet(kb, SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_EVALUATION_CHALLENGES_FILENAME);
