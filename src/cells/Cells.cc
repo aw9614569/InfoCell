@@ -1748,6 +1748,11 @@ int Set::size()
     return m_size;
 }
 
+CellI& Set::first()
+{
+    return m_index["struct"]["slots"]["list"]["first"]["value"]["slotRole"];
+}
+
 void Set::accept(Visitor& visitor)
 {
     visitor.visit(*this);
@@ -2524,6 +2529,17 @@ int Grid::height() const
 {
     return m_height;
 }
+
+Number& Grid::widthCell()
+{
+    return m_widthCell;
+}
+
+Number& Grid::heightCell()
+{
+    return m_heightCell;
+}
+
 #pragma endregion
 } // namespace arc
 

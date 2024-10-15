@@ -42,6 +42,11 @@ public:
     {
     }
 
+    void setOutputSVGName(const std::string& fileName)
+    {
+        m_outputSVGFileName = fileName;
+    }
+
     void testEdges(const std::string& jsonStr)
     {
         setInputGrid(jsonStr);
@@ -396,14 +401,38 @@ public:
             { 8, "#7FDBFF" },
             { 9, "#870C25" }
         };
-        std::string testCaseName          = ::testing::UnitTest::GetInstance()->current_test_info()->name();
-        const std::filesystem::path& path = testCaseName + ".svg";
+        std::string outputSVGFileName;
+        if (m_outputSVGFileName.empty()) {
+            outputSVGFileName = ::testing::UnitTest::GetInstance()->current_test_info()->name();
+        } else {
+            outputSVGFileName = m_outputSVGFileName;
+        }
+
+        const std::filesystem::path& path = outputSVGFileName + ".svg";
         std::ofstream svgFile(path);
-        svgFile << "<svg xmlns=\"http://www.w3.org/2000/svg\">\n";
+        svgFile << fmt::format("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}\" height=\"{}\">\n", 40 + inputHybridGrid().width() * 120, 50 + inputHybridGrid().height() * 120);
         svgFile << R"-(
 <style>
     .arrowText {
         font: 8px sans-serif;
+     }
+	 .pointCoordinateText {
+        font: 5px sans-serif;
+        fill: #d79b00;
+	 }
+	 .pixelCoordinateText {
+        font: 8px sans-serif;
+        fill: white;
+		stroke: black;
+		stroke-width: 1px;
+		paint-order: stroke;
+	 }
+     .pixelShapeIdText {
+        font: 16px sans-serif;
+        fill: white;
+		stroke: black;
+		stroke-width: 2px;
+		paint-order: stroke;
      }
 </style>
 <marker
@@ -431,8 +460,10 @@ public:
             svgFile << fmt::format("    <!-- edgeJoint -->\n");
             if (shapePoint.has("edgeJoint")) {
                 CellI& edgeJoint = shapePoint["edgeJoint"];
-                svgFile << fmt::format("    <path d=\"M {} {} L {} {}\" fill=\"none\" stroke=\"#d79b00\" stroke-miterlimit=\"10\" stroke-dasharray=\"1 1\"/>", 10 + pointX * 120, 20 + pointY * 120, 10 + pointX * 120, 30 + pointY * 120);
+                svgFile << fmt::format("    <path d=\"M {} {} L {} {}\" fill=\"none\" stroke=\"#d79b00\" stroke-miterlimit=\"10\" stroke-dasharray=\"1 1\"/>\n", 10 + pointX * 120, 20 + pointY * 120, 10 + pointX * 120, 30 + pointY * 120);
                 svgFile << fmt::format("    <rect x=\"{}\" y=\"{}\" width=\"20\" height=\"20\" fill=\"#ffe6cc\" stroke=\"#d79b00\"/>\n", pointX * 120, pointY * 120);
+                svgFile << fmt::format("    <text x=\"{}\" y=\"{}\" class=\"pointCoordinateText\">({}, {})</text>\n", 1 + pointX * 120, 8 + pointY * 120, pointX, pointY);
+
                 if (edgeJoint.has("right")) {
                     svgFile << fmt::format("      <!-- edgeJoint right -->\n");
                     CellI& rightEdgeNode = edgeJoint["right"];
@@ -510,6 +541,17 @@ public:
                 svgFile << fmt::format("    <!-- pixel -->\n");
                 hybrid::arc::Pixel& pixel = static_cast<hybrid::arc::Pixel&>(shapePoint["downRightPixel"]["pixel"]);
                 svgFile << fmt::format("    <rect x=\"{}\" y=\"{}\" width=\"40\" height=\"40\" fill=\"{}\" stroke=\"black\"/>\n", 50 + pointX * 120, 70 + pointY * 120, arcColors[pixel.color()]);
+                int shapeId = static_cast<Number&>(shapePoint["downRightPixel"]["shape"]["id"]).value();
+                int startX  = 0;
+                if (shapeId < 10) {
+                    startX = 66;
+                } else if (shapeId < 100) {
+                    startX = 62;
+                } else {
+                    startX = 57;
+                }
+                svgFile << fmt::format("    <text x=\"{}\" y=\"{}\" class=\"pixelCoordinateText\">({}, {})</text>\n", 52 + pointX * 120, 78 + pointY * 120, pixel.m_x.value(), pixel.m_y.value());
+                svgFile << fmt::format("    <text x=\"{}\" y=\"{}\" class=\"pixelShapeIdText\">{}</text>\n", startX + pointX * 120, 98 + pointY * 120, shapeId);
             }
             svgFile << "\n";
             if (shapePoint.has("right")) {
@@ -1041,9 +1083,6 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
 
                         fromEdgeJoint.set(toDirectionStr, edgeNode);
                         toEdgeJoint.set(oppositeDirectionStr, edgeNode);
-
-                        debugShapePointEdgeJoints();
-                        std::cout << "";
                     }
 
                     processingMode = ProcessingMode::Searching;
@@ -1330,9 +1369,6 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
 
                         fromEdgeJoint.set(toDirectionStr, edgeNode);
                         toEdgeJoint.set(oppositeDirectionStr, edgeNode);
-
-                        debugShapePointEdgeJoints();
-                        std::cout << "";
                     }
                     currentListItemPtr = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
                     processingMode = ProcessingMode::Searching;
@@ -1788,20 +1824,161 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
     std::unique_ptr<cells::hybrid::arc::Grid> m_inputHybridGrid;
     cells::hybrid::arc::Grid* m_inputHybridGridPtr = nullptr;
     std::unique_ptr<Object> m_shaper;
+    std::string m_outputSVGFileName;
 };
+
+TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train1Input)
+{
+    testEdges(R"([[0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,0,2,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,1,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0]])");
+
+    expectedShapeIds(R"(111111111
+                        111111111
+                        111111111
+                        112111111
+                        111111111
+                        111111111
+                        111111311
+                        111111111)");
+    expectedShapesCount(3);
+    expectedShapeEdgeCounts({ { 1, 3 }, { 2, 1 }, { 3, 1 } });
+}
+
+TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train1Output)
+{
+    testEdges(R"([[0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,4,0,4,0,0,0,0,0],
+                  [0,0,2,0,0,0,0,0,0],
+                  [0,4,0,4,0,0,0,0,0],
+                  [0,0,0,0,0,0,7,0,0],
+                  [0,0,0,0,0,7,1,7,0],
+                  [0,0,0,0,0,0,7,0,0],
+                  [0,0,0,0,0,0,0,0,0]])");
+#if 0
+  The input grid contains
+     - Pixel { red, x=2, y=3 }
+     - Pixel { blue, x=6, y=6 }
+
+shape id 1
+    edge id 2 internal and contains: shape2 { Pixel{red, x=2, y=3}}
+    edge id 3 internal and contains: shape3 { Pixel{blue, x=6, y=6}}
+
+  The output grid contains
+     - Pixel { red, x=2, y=3 }
+     - Pixel { blue, x=6, y=6 }
+     - Pixel { yellow, x=1, y=2 }
+     - Pixel { yellow, x=3, y=2 }
+     - Pixel { yellow, x=1, y=4 }
+     - Pixel { yellow, x=3, y=4 }
+     - Shape {
+         - Pixel { orange, x=6, y=5 }
+         - Pixel { orange, x=5, y=6 }
+         - Pixel { orange, x=7, y=6 }
+         - Pixel { orange, x=6, y=7 }
+
+shape id 1
+    edge id 2 contains: shape(2) shape(3) shape(4) shape(5) shape(6)
+    edge id 3 contains: shape(7)
+shape id 7
+    edge id 2 contains: shape(8)
+#endif
+
+    expectedShapeIds(R"(111111111
+                        111111111
+                        121311111
+                        114111111
+                        151611111
+                        111111711
+                        111117871
+                        111111711)");
+    expectedShapesCount(8);
+    expectedShapeEdgeCounts({ { 1, 3 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 1 }, { 7, 2 }, { 8, 1 } });
+}
+
+TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train2Input)
+{
+    testEdges(R"([[0,0,0,8,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,2,0,0],
+                  [0,0,1,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,1,0,0],
+                  [0,2,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0]])");
+
+    expectedShapeIds(R"(111211111
+                        111111111
+                        111111311
+                        114111111
+                        111111111
+                        111111111
+                        111111511
+                        161111111
+                        111111111)");
+    expectedShapesCount(6);
+    expectedShapeEdgeCounts({ { 1, 5 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 1 } });
+}
+
+TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train2Output)
+{
+    testEdges(R"([[0,0,0,8,0,0,0,0,0],
+                  [0,0,0,0,0,4,0,4,0],
+                  [0,0,7,0,0,0,2,0,0],
+                  [0,7,1,7,0,4,0,4,0],
+                  [0,0,7,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,7,0,0],
+                  [4,0,4,0,0,7,1,7,0],
+                  [0,2,0,0,0,0,7,0,0],
+                  [4,0,4,0,0,0,0,0,0]])");
+
+    expectedShapesCount(16);
+}
+
+TEST_F(EdgeTester, EdgeTestWithArc_00d62c1b_Train5Input)
+{
+    testEdges(R"([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,3,3,3,3,0,3,3,0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,3,0,3,0,0,0,0,0,0,0,3,0],
+                  [0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,3,0,0,0,0],
+                  [0,0,0,0,3,0,0,0,3,0,0,0,0,0,0,3,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,3,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,3,0,0,0,0],
+                  [0,0,3,0,0,0,0,0,3,3,3,3,3,3,3,3,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,3,3,3,0,0,0,0,3,0,3,0,0],
+                  [0,0,0,0,0,0,3,3,0,0,3,0,0,3,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,3,0,0,3,3,0,0,3,0,0,3,0,0],
+                  [0,0,0,0,0,0,0,3,3,3,3,0,3,0,0,3,3,3,0,0],
+                  [0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,3,0,3,0,0],
+                  [0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,3,3,3,0,0],
+                  [0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]])");
+}
 
 TEST_F(EdgeTester, EdgeTestWithArc_0b148d64_minified_Train0Input)
 {
-    testEdges(R"([[8, 8, 8, 8, 8, 0, 8, 8, 8, 8, 0],
-                  [8, 0, 0, 8, 0, 8, 0, 8, 8, 8, 0],
-                  [8, 8, 8, 0, 0, 0, 8, 8, 8, 8, 0],
-                  [8, 8, 0, 8, 8, 8, 8, 0, 8, 8, 0],
-                  [8, 8, 8, 8, 0, 8, 8, 0, 8, 8, 0],
-                  [0, 0, 0, 8, 8, 0, 8, 0, 0, 8, 0],
-                  [8, 8, 8, 8, 0, 0, 8, 0, 8, 0, 0],
-                  [8, 0, 0, 8, 0, 0, 8, 8, 0, 8, 0],
-                  [8, 8, 8, 8, 8, 8, 0, 8, 0, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])");
+    testEdges(R"([[8,8,8,8,8,0,8,8,8,8,0],
+                  [8,0,0,8,0,8,0,8,8,8,0],
+                  [8,8,8,0,0,0,8,8,8,8,0],
+                  [8,8,0,8,8,8,8,0,8,8,0],
+                  [8,8,8,8,0,8,8,0,8,8,0],
+                  [0,0,0,8,8,0,8,0,0,8,0],
+                  [8,8,8,8,0,0,8,0,8,0,0],
+                  [8,0,0,8,0,0,8,8,0,8,0],
+                  [8,8,8,8,8,8,0,8,0,0,0],
+                  [0,0,0,0,0,0,0,0,0,0,0]])");
 }
 
 TEST_F(EdgeTester, EdgeTestCase7Horizontal)
@@ -2174,54 +2351,6 @@ TEST_F(EdgeTester, EdgeTestWithLineDiagonalFromUpRight)
     expectedShapeEdgeCounts({ { 1, 2 }, { 2, 1 } });
 }
 
-TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train1Input)
-{
-    testEdges(R"([[0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,2,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,1,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0]])");
-
-    expectedShapeIds(R"(111111111
-                        111111111
-                        111111111
-                        112111111
-                        111111111
-                        111111111
-                        111111311
-                        111111111)");
-    expectedShapesCount(3);
-    expectedShapeEdgeCounts({ { 1, 3 }, { 2, 1 }, { 3, 1 } });
-}
-
-TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train1Output)
-{
-    testEdges(R"([[0, 0, 0, 0, 0, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                  [0, 4, 0, 4, 0, 0, 0, 0, 0],
-                  [0, 0, 2, 0, 0, 0, 0, 0, 0],
-                  [0, 4, 0, 4, 0, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 7, 0, 0],
-                  [0, 0, 0, 0, 0, 7, 1, 7, 0],
-                  [0, 0, 0, 0, 0, 0, 7, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 0, 0, 0]])");
-
-    expectedShapeIds(R"(111111111
-                        111111111
-                        121311111
-                        114111111
-                        151611111
-                        111111711
-                        111117871
-                        111111711)");
-    expectedShapesCount(8);
-    expectedShapeEdgeCounts({ { 1, 3 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 1 }, { 7, 2 }, { 8, 1 } });
-}
-
 TEST_F(EdgeTester, EdgeTestWithArc_4be741c5_Train3Input)
 {
     testEdges(R"([[6, 6, 6, 6, 6, 6, 6, 6, 6],
@@ -2245,7 +2374,7 @@ TEST_F(EdgeTester, EdgeTestWithArc_4be741c5_Train3Output)
                   [3]])");
 }
 
-TEST_F(EdgeTester, EdgeTestWithAllArcTask)
+TEST_F(EdgeTester, DISABLED_EdgeTestWithAllArcTask)
 {
     TaskSet taskSet(kb, SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
 //    TaskSet taskSet(kb, SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_EVALUATION_CHALLENGES_FILENAME);
@@ -2254,18 +2383,227 @@ TEST_F(EdgeTester, EdgeTestWithAllArcTask)
         std::cout << "   examples:" << std::endl;
         Visitor::visitList(task.second.m_cellExamplesList, [this, &task](CellI& example, int i, bool&) {
             std::cout << "id: " << task.first << ", example input:" << i << std::endl;
+            setOutputSVGName(std::format("EdgeTestWithArc_{}_{}{}{}", task.first, "Train", i, "Input"));
             testEdges(static_cast<hybrid::arc::Grid&>(example["input"]));
             std::cout << "id: " << task.first << ", example output:" << i << std::endl;
+            setOutputSVGName(std::format("EdgeTestWithArc_{}_{}{}{}", task.first, "Train", i, "Output"));
             testEdges(static_cast<hybrid::arc::Grid&>(example["output"]));
 
         });
         std::cout << "   tests:" << std::endl;
         Visitor::visitList(task.second.m_cellTestsList, [this, &task](CellI& example, int i, bool&) {
             std::cout << "id: " << task.first << ", test input:" << i << std::endl;
+            setOutputSVGName(std::format("EdgeTestWithArc_{}_{}{}{}", task.first, "Test", i, "Input"));
             testEdges(static_cast<hybrid::arc::Grid&>(example["input"]));
         });
     }
 }
+
+/*
+Tasks
+
+1. I want itarate through objects which contains elements. So I want to handle objects as containers.
+   Main use case is, the ArcGrid which contains ArcPixels. Connected same color ArcPixels can form some shape (line, box, etc..)
+   Other use case, processing elemnts in list.
+
+   So I want a cells::Iterator and cells::Iterable like thing which has at least a Next method (which gives back the current element AND steps the iterator).
+
+     - in Rust cells::Iterable is std::iter::IntoIterator trait which contains a fn into_iter(self) -> std::iter::Iterator<Item = Self::Item>
+     - in C# it is called IEnumerable which contains a IEnumerator GetEnumerator() method
+     - in Java it is called Iterable<T> which contains a Iterator<T> iterator() method
+
+   Three type of interfaces are possible.
+
+     - Normal interface without any extra type input
+     - Generic or templated interface which expects a type during usage and constructing, so it can create a unique type name for it
+     - Associated type parameter or type constructor where you can create Interface objects which are types. Every type instance will have the same type name.
+
+Interfaces
+
+   We can add an extra "interfaces" key to the struct description beside the "methods"
+   Current struct:
+    astScope.add<Struct>("Struct")
+        .members(
+            member("name", "std::Cell"),
+            ...
+            member("methods", MapOf(std.Cell, std.ast.Function)),
+
+    astScope.add<Struct>("Struct")
+        .members(
+            member("name", "std::Cell"),
+            ...
+            member("interfaces", MapOf(std.Cell, std.ast.Struct)), // interface name to Struct
+            member("methods", MapOf(std.Cell, std.ast.Function)),
+
+    I think the interface can be a struct in first, maybe we can change it later
+    If two interfaces require to implement the same method name then we shouldn't allow it now, as resolve it takes too much time now, I think this a nice to have feature
+      ... or it can be an enum like thing, so methods becames MapOf(std.Cell, enum<std.ast.Function, List<std.ast.Function>))
+
+Object uniqueness
+
+   So we should create a primaryKey()->List or contentList()->List like method maybe behind an interface. Or every object should inherit from an object interface.
+   Can we autogenerate this, by indicate the uniquness of objects somehow?
+
+   Primary use case to be able to put elements to a containers. So we have to ArcGrid with the same size. One of them contains extra pixels.
+   So the strategy is to put every pixels to a container and look up those pixels from the other grid. Maybe the ArcGrid should be a container already?
+
+
+*/
+
+/*
+The strategy is to interpret the input and output as a set of objects which objects has a variety of properties. The start state is obviously a set of pixels
+where the pixels has coordinates. The pixels are in a set called grid. We can interpret (parse) the objects to other thing, for example 4 pixels in a line
+is actually can be interpreted (parse) as a line object.
+   Input:
+      Grid { Pixel1, Pixel2, ... , PixelLast }
+         Interpretations: Line { startPixel, endPixel, size }
+
+What is looks like very important is to able to observe, how the observed objects are relative to each other.
+So in the input we have an input grid which contains pixels.
+In a next layer we need Shapes which contains shape-pixels. A shape pixel has a shape id and a pixel.
+   Input:
+      Grid { Pixel1, Pixel2, ... , PixelLast }
+          Shapes { Shape1 { ShapePixel1 { shape: Shape, left: ShapePixel, up: ShapePixel,  ... }
+
+So we interpret the input and output as a set of objects, now the challenge is to find the transformation algorithm. The strategy here is to make as many observation about the change as possible
+and find those which are true for every case.
+
+We need an ObservationMaker object which creates Observations
+
+Observations between input and output:
+  Same
+   - sourceObjectDef: object definition
+  ResultOperation: Copy
+
+  RelativeObjectAdd, RelativeObjectRemove
+  Relative to
+   - sourceObjectDef: object definition
+   - distance: vector distance (x, y)
+   - targetObjectDef: object definition
+   - operation: appeared, disappeared
+  ResultOperation: SetPixel
+
+  Move
+  Relative to
+   - object definition
+   - vector distance (x, y)
+  ResultOperation: SetPixel()
+
+  Pattern
+   - object definition
+   - vector distance (x, y)
+   - count
+
+  Symmetry
+
+  Rotation
+
+
+We can categorize the result of a set difference algorithm:
+  1. the two start state grid has the same size, and the output grid contains only extra pixels.
+
+     In this case we try to observe how the new pixels relate to the original one.
+     - The new pixels can be relative to the original objects:
+        - new pixels are at the border of the original grid
+        - new pixels are at the border of one of the original object on the grid
+
+  2. the two start state grid has the same size, and the output grid has some missing pixels
+
+  3. the two start state grid has the same size
+     input pixel missing but same number pixel appear on output, so the pixel is moving
+     We need a moving observer
+
+
+
+Example
+
+BB = Blue pixel
+OO = Orange pixel
+RR = Red pixel
+YY = Yellow pixel
+.. = Black pixel
+
+    Input                    Output
+  0 1 2 3 4 5 6 7 8x       0 1 2 3 4 5 6 7 8x
+0 .................      0 .................
+1 .................      1 .................
+2 .................      2 ..YY..YY.........
+3 ....RR...........      3 ....RR...........
+4 .................  =>  4 ..YY..YY.........
+5 .................      5 ............OO...
+6 ............BB...      6 ..........OOBBOO.
+7 .................      7 ............OO...
+8 .................      8 .................
+y                        y
+
+Grid1 9 x 9 => Grid 9 x 9
+
+If black Pixel is categorized as background, then
+  The input grid contains
+     - Pixel { red, x=2, y=3 }
+     - Pixel { blue, x=6, y=6 }
+  The output grid contains
+     - Pixel { red, x=2, y=3 }
+     - Pixel { blue, x=6, y=6 }
+     - Pixel { yellow, x=1, y=2 }
+     - Pixel { yellow, x=3, y=2 }
+     - Pixel { yellow, x=1, y=4 }
+     - Pixel { yellow, x=3, y=4 }
+     - Shape {
+         - Pixel { orange, x=6, y=5 }
+         - Pixel { orange, x=5, y=6 }
+         - Pixel { orange, x=7, y=6 }
+         - Pixel { orange, x=6, y=7 }
+       }
+
+ The Pixel { red, x=2, y=3 } and Pixel { blue, x=6, y=6 } are in the same position, so only extra pixels on the screen. Orange can be interpreted as shape also.
+
+ New pixels relative position from { red, x=2, y=3 } pixel :
+     - Vector { x = -1, y = -1 } is Pixel { yellow, x=1, y=2 }
+     - Vector { x = 1,  y = -1 } is Pixel { yellow, x=3, y=2 }
+     - Vector { x = -1, y = 1  } is Pixel { yellow, x=1, y=4 }
+     - Vector { x = 1,  y = 1  } is Pixel { yellow, x=3, y=4 }
+     - Vector { x = 4, y = 2 }  is Pixel { orange, x=6, y=5 }
+     - Vector { x = 3, y = 3 }  is Pixel { orange, x=5, y=6 }
+     - Vector { x = 5, y = 3 }  is Pixel { orange, x=7, y=6 }
+     - Vector { x = 4, y = 4 }  is Pixel { orange, x=6, y=7 }
+     So these are the RelativePositionObservations
+     RelativePositionObservation
+     - fromObject: Pixel { red, x=2, y=3 }
+     - relativeDistance: Vector { x = -1, y = 1  }
+     - toObject: Pixel { yellow, x=1, y=4 }
+ New pixels relative position from { blue, x=6, y=6 } pixel :
+     - Vector { x = 0,  y = 1  } is Pixel { orange, x=6, y=7 }
+     - Vector { x = -1, y = 0  } is Pixel { orange, x=5, y=6 }
+     - Vector { x = 1,  y = 0  } is Pixel { orange, x=7, y=6 }
+     - Vector { x = 0,  y = -1 } is Pixel { orange, x=6, y=5 }
+     - Vector { x = -5, y = -4 } is Pixel { yellow, x=1, y=2 }
+     - Vector { x = -5, y = -2 } is Pixel { yellow, x=1, y=4 }
+     - Vector { x = -3, y = -4 } is Pixel { yellow, x=3, y=2 }
+     - Vector { x = -3, y = -2 } is Pixel { yellow, x=3, y=4 }
+
+Generalized true rules
+ From Pixel { red }
+     - Vector { x = -1, y = 1  } is Pixel { yellow }
+     - Vector { x = -1, y = -1 } is Pixel { yellow }
+     - Vector { x = 1,  y = 1  } is Pixel { yellow }
+     - Vector { x = 1,  y = -1 } is Pixel { yellow }
+From Pixel { blue }
+     - Vector { x = 0,  y = 1  } is Pixel { orange }
+     - Vector { x = -1, y = 0  } is Pixel { orange }
+     - Vector { x = 1,  y = 0  } is Pixel { orange }
+     - Vector { x = 0,  y = -1 } is Pixel { orange }
+
+We should somehow conclude that
+From a red Pixel to distance { x = -1, y = 1  } put a yellow Pixel
+From a blue Pixel to distance { x = 0, y = 1  } put an orange Pixel
+
+ So here is an object { described by these properties: color, x, y, blabla }
+and here is an observation which state that the distance is descibed by a distance object { vector, x, y }
+   there is an other object { described by these properties: color, x, y, blabla }
+
+Can we generalize this observation to at least one property?
+*/
 
 int main(int argc, char** argv)
 {

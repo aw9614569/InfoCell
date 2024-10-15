@@ -416,6 +416,7 @@ public:
     void remove(CellI& key);
     bool empty() const;
     int size();
+    CellI& first();
 
 protected:
     CellI& m_valueType;
@@ -615,6 +616,8 @@ public:
 
     int width() const;
     int height() const;
+    Number& widthCell();
+    Number& heightCell();
 
 protected:
     int m_width;

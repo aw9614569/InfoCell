@@ -1,4 +1,6 @@
 add_library(cellslib STATIC
+    Arc.cc
+    Arc.h
     Cells.cc
     Cells.h
     Brain.cc
