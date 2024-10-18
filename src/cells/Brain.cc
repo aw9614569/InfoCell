@@ -883,7 +883,6 @@ Resolve template related references in normal functions or structs:
     instantiate structT with listed method
   - templates are instantied to a dedicated place
 */
-static bool debugCompiledStructs = true;
 CellI& Ast::Scope::compile(TrieMap& earlyStructs)
 {
     auto& program     = *new Object(kb, kb.std.Program, "Program");
@@ -926,9 +925,9 @@ CellI& Ast::Scope::compile(TrieMap& earlyStructs)
         auto& structId       = earlyStructKV[kb.ids.key];
         auto& structRefAst   = earlyStructKV[kb.ids.value][kb.ids.slotRole];
         auto& compiledStruct = earlyStructKV[kb.ids.value][kb.ids.slotType];
-        if (debugCompiledStructs) {
-            std::cout << "early struct: " << earlyStructKV[kb.ids.key].label() << std::endl;
-        }
+
+        TRACE(compileStruct, "early struct: {}", earlyStructKV[kb.ids.key].label());
+
         auto& structReference = *new Object(kb, kb.std.StructReference);
         structReference.set("value", compiledStruct);
         structReference.set("id", structId);
@@ -949,9 +948,8 @@ CellI& Ast::Scope::compile(TrieMap& earlyStructs)
         auto& structId       = earlyStructKV[kb.ids.key];
         auto& structRefAst   = earlyStructKV[kb.ids.value][kb.ids.slotRole];
         auto& compiledStruct = earlyStructKV[kb.ids.value][kb.ids.slotType];
-        if (debugCompiledStructs) {
-            std::cout << "resolve early struct: " << earlyStructKV[kb.ids.key].label() << std::endl;
-        }
+
+        TRACE(compileStruct, "resolve early struct: {}", earlyStructKV[kb.ids.key].label());
 
         if (&structRefAst.struct_() == &kb.std.ast.TemplatedType) {
             if (unknownInstances.hasKey(structId)) {
@@ -969,23 +967,23 @@ CellI& Ast::Scope::compile(TrieMap& earlyStructs)
     });
 
     Visitor::visitList(unknownStructs[kb.ids.list], [this](CellI& unknownStruct, int i, bool& stop) {
-        if (debugCompiledStructs) {
-            std::cout << "unknown struct: " << unknownStruct[kb.ids.value][kb.ids.value].label() << std::endl;
-        }
+        TRACE(compileStruct, "unknown struct: {}", unknownStruct[kb.ids.value][kb.ids.value].label());
     });
     int instantiedNum = 0;
     Visitor::visitList(unknownInstances[kb.ids.list], [this, &compileState, &instantiedNum](CellI& unknownInstanceSlot, int i, bool& stop) {
         CellI& unknownInstance  = unknownInstanceSlot[kb.ids.value];
         auto& unknownInstanceId = unknownInstance[kb.ids.id];
-        if (debugCompiledStructs) {
-            std::cout << "unknown instance: " << unknownInstanceId.label() << std::endl;
+
+        if (IS_LOG_ENABLED) {
+            TRACE(compileStruct, "unknown instance: {}", unknownInstanceId.label());
             if (unknownInstance.has("currentStruct")) {
-                std::cout << "     from struct: " << unknownInstance[kb.ids.currentStruct].label() << std::endl;
+                TRACE(compileStruct, "     from struct: {}", unknownInstance[kb.ids.currentStruct].label());
             }
             if (unknownInstance.has("currentFn")) {
-                std::cout << "   from function: " << unknownInstance[kb.ids.currentFn].label() << std::endl;
+                TRACE(compileStruct, "   from function: {}", unknownInstance[kb.ids.currentFn].label());
             }
         }
+
         std::stringstream ss;
 
         CellI& templateId     = unknownInstance[kb.ids.templateId];
@@ -993,7 +991,7 @@ CellI& Ast::Scope::compile(TrieMap& earlyStructs)
         auto& scope           = static_cast<Scope&>(unknownInstance[kb.ids.scope]);
         auto& idScope         = unknownInstance.has(kb.name("idScope")) ? static_cast<Scope&>(unknownInstance[kb.name("idScope")]) : scope;
 
-        ss << fmt::format("        in scope: {}\n", idScope.getFullyQualifiedName().label());
+        ss << fmt::format("        in scope: {}", idScope.getFullyQualifiedName().label());
         ss << fmt::format("  instantiate id: {}<", templateId.label());
         Visitor::visitList(templateParams, [this, &ss, &compileState](CellI& param, int i, bool& stop) {
             CellI& paramId   = param[kb.ids.slotRole];
@@ -1004,10 +1002,7 @@ CellI& Ast::Scope::compile(TrieMap& earlyStructs)
             ss << fmt::format("{}: {}", paramId.label(), getCompiledTypeFromResolvedType(paramType).label());
         });
         ss << ">";
-        if (debugCompiledStructs) {
-            std::cout << ss.str() << "\n"
-                      << std::endl;
-        }
+        TRACE(compileStruct, ss.str());
 
         auto& resolvedIdScope = static_cast<Scope&>(idScope[kb.ids.resolvedScope]);
         compileState.set("scope", idScope);
@@ -1088,7 +1083,6 @@ void Ast::Scope::resolveTypes(CellI& state)
             Ast::Function& origAstFunction     = static_cast<Ast::Function&>(origAstFunctionCell[kb.ids.value]);
             Ast::Function& resolvedAstFunction = origAstFunction.resolveTypes(state);
             resolvedScope.add<Function>(resolvedAstFunction);
-            std::cout << resolvedAstFunction.label() << std::endl;
         });
     }
     if (has("structs")) {
@@ -1278,27 +1272,22 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
     state.set("currentStruct", ret);
 
     std::stringstream ss;
-    std::stringstream subTypesSs;
-    if (debugCompiledStructs) {
-        ss << fmt::format("struct {}", label());
+    std::vector<std::string> subTypesStrs;
+
+    if (IS_LOG_ENABLED) {
     }
 
     // resolve sub types
     if (has("subTypes")) {
-        Visitor::visitList(subTypes()[kb.ids.list], [this, &ret, &state, &subTypesSs](CellI& subTypeCell, int i, bool& stop) {
+        Visitor::visitList(subTypes()[kb.ids.list], [this, &ret, &state, &subTypesStrs](CellI& subTypeCell, int i, bool& stop) {
             CellI& subTypeId           = subTypeCell[kb.ids.slotRole];
             CellI& subTypeType         = subTypeCell[kb.ids.slotType];
             CellI& resolvedSubTypeType = resolveType(subTypeType, state);
             ret.subTypes(kb.ast.slot(subTypeId, resolvedSubTypeType));
-            if (debugCompiledStructs) {
-                subTypesSs << fmt::format("    alias {} = {};", subTypeId.label(), getCompiledTypeFromResolvedType(resolvedSubTypeType).label()) << std::endl;
+            if (IS_LOG_ENABLED) {
+                subTypesStrs.push_back(fmt::format("    alias {} = {};", subTypeId.label(), getCompiledTypeFromResolvedType(resolvedSubTypeType).label()));
             }
         });
-        if (debugCompiledStructs) {
-            if (has("methods") || has("members")) {
-                subTypesSs << std::endl;
-            }
-        }
     }
 
     // resolve memberOf list
@@ -1313,9 +1302,15 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
             ret.memberOf(resolvedMembershipType);
         });
     }
-    if (debugCompiledStructs) {
-        std::cout << ss.str() << " {" << std::endl;
-        std::cout << subTypesSs.str();
+    if (IS_LOG_ENABLED) {
+        TRACE(compileStruct, "struct {}{}", label(), ss.str());
+        TRACE(compileStruct, "{");
+        for (const auto& subTypeStr : subTypesStrs) {
+            TRACE(compileStruct, subTypeStr);
+        }
+        if (!subTypesStrs.empty() && (has("methods") || has("members"))) {
+            TRACE(compileStruct, "");
+        }
     }
 
     // resolve methods
@@ -1324,13 +1319,11 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
             auto& origAstFunction     = static_cast<Ast::Function&>(origAstFunctionCell);
             auto& resolvedAstFunction = origAstFunction.resolveTypes(state);
             ret.addMethod(resolvedAstFunction);
-            if (debugCompiledStructs) {
-                std::cout << fmt::format("    {};\n", resolvedAstFunction.shortName());
-            }
+            TRACE(compileStruct, "    {};", resolvedAstFunction.shortName());
         });
-        if (debugCompiledStructs) {
+        if (IS_LOG_ENABLED) {
             if (has("members")) {
-                std::cout << std::endl;
+                TRACE(compileStruct, "");
             }
         }
     }
@@ -1342,15 +1335,12 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
             CellI& memberType = memberCell[kb.ids.slotType];
             CellI& resolvedMemberType = resolveType(memberType, state);
             ret.members(kb.ast.slot(memberId, resolvedMemberType));
-            if (debugCompiledStructs) {
-                std::cout << fmt::format("    {}: {};", memberId.label(), getCompiledTypeFromResolvedType(resolvedMemberType).label()) << std::endl;
-            }
+            TRACE(compileStruct, "    {}: {};", memberId.label(), getCompiledTypeFromResolvedType(resolvedMemberType).label());
         });
     }
 
-    if (debugCompiledStructs) {
-        std::cout << "}" << std::endl;
-    }
+    TRACE(compileStruct, "}");
+    TRACE(compileStruct, "");
 
     return ret;
 }
@@ -1827,16 +1817,7 @@ Ast::Enum& Ast::Enum::resolveTypes(CellI& state)
 
     state.set("currentStruct", ret);
 
-    std::stringstream ss;
-    std::stringstream subTypesSs;
-    if (debugCompiledStructs) {
-        ss << fmt::format("enum {}", label());
-    }
-
-    if (debugCompiledStructs) {
-        std::cout << ss.str() << " {" << std::endl;
-        std::cout << subTypesSs.str();
-    }
+    TRACE(compileStruct, "enum {} {{", label());
 
 #if 0
     // resolve methods
@@ -1862,6 +1843,7 @@ Ast::Enum& Ast::Enum::resolveTypes(CellI& state)
         Visitor::visitList(valuesList, [this, &ret, &state](CellI& kvPair, int i, bool& stop) {
             CellI& valueCell = kvPair[kb.ids.value];
             CellI& valueName = valueCell[kb.ids.name];
+            std::stringstream ss;
             if (valueCell.has("enumType")) {
                 CellI& valueType               = valueCell["enumType"];
                 CellI& resolvedValueType       = resolveType(valueType, state);
@@ -1870,27 +1852,23 @@ Ast::Enum& Ast::Enum::resolveTypes(CellI& state)
                     typedEnumValue.set(kb.ids.value, valueCell[kb.ids.value]);
                 }
                 ret.values(typedEnumValue);
-                if (debugCompiledStructs) {
-                    std::cout << fmt::format("    {}({})", valueName.label(), getCompiledTypeFromResolvedType(resolvedValueType).label());
+                if (IS_LOG_ENABLED) {
+                    ss << fmt::format("    {}({})", valueName.label(), getCompiledTypeFromResolvedType(resolvedValueType).label());
                 }
             } else {
                 ret.values(static_cast<Base&>(valueCell));
-                if (debugCompiledStructs) {
-                    std::cout << fmt::format("    {}", valueName.label());
-                }
+                ss << fmt::format("    {}", valueName.label());
             }
-            if (debugCompiledStructs) {
+            if (IS_LOG_ENABLED) {
                 if (valueCell.has(kb.ids.value)) {
-                    std::cout << fmt::format(" = {}", resolveEnumValue(valueCell[kb.ids.value]).label());
+                    ss << fmt::format(" = {}", resolveEnumValue(valueCell[kb.ids.value]).label());
                 }
-                std::cout << "," << std::endl;
+                ss << ",";
+                TRACE(compileStruct, ss.str());
             }
             });
     }
-
-    if (debugCompiledStructs) {
-        std::cout << "}" << std::endl;
-    }
+    TRACE(compileStruct, "}");
 
     return ret;
 }
@@ -2567,6 +2545,7 @@ block {
 #if 1
         bool checked = false;
         // New<T>.constructor(...)
+        std::stringstream ss;
         if (&astCell.struct_() == &kb.std.ast.Get && &astCell[kb.ids.cell].struct_() == &kb.std.ast.Cell && &astCell[kb.ids.cell][kb.ids.value].struct_() == &kb.std.op.Block) {
             auto& opBlock = astCell[kb.ids.cell][kb.ids.value];
             auto& opBlockAst = opBlock[kb.ids.ast];
@@ -2578,7 +2557,7 @@ block {
         // var_xxx.call(...)
         } else if (&astCell.struct_() == &kb.std.ast.Get && &astCell[kb.ids.cell].struct_() == &kb.std.ast.Var) {
             auto& astVar = astCell[kb.ids.cell];
-            std::cout << "In " << astVar.label() << " ";
+            ss << "In " << astVar.label() << " ";
         // m_xxx.method(...)
         } else if (&astCell.struct_() == &kb.std.ast.Member) {
             auto& astMemberId = astCell[kb.ids.role];
@@ -2627,7 +2606,7 @@ block {
             }
         }
         if (!checked) {
-            std::cout << "Unchecked method call " << astMethodId.label() << " in " << function.label() << std::endl;
+            WARN(compileStruct, "{} Unchecked method call {} in {}", ss.str(), astMethodId.label(), function.label());
         }
 #endif
         Ast::Get* getMethodPtr = nullptr;
@@ -3944,25 +3923,6 @@ Pools::Pools(brain::Brain& kb) :
     numbers(kb),
     strings(kb)
 {
-}
-
-Brain::Logger::Logger()
-{
-    createLogger("symbolResolver");
-    createLogger("compiledSymbols");
-
-    spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
-}
-
-void Brain::Logger::createLogger(const std::string& name)
-{
-    static auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_st>();
-    console_sink->set_level(spdlog::level::trace);
-    console_sink->set_pattern("[%n] %v");
-
-    auto logger = std::make_shared<spdlog::logger>(name, console_sink);
-    logger->set_level(spdlog::level::trace);
-    spdlog::register_logger(logger);
 }
 
 Ast::Cell& Brain::_(CellI& cell)
@@ -6576,6 +6536,27 @@ CellI& Brain::toKbBool(bool value)
 Brain::InitPhase Brain::initPhase()
 {
     return m_initPhase;
+}
+
+Brain::Logger::Logger()
+{
+    createLogger("compileStruct");
+    createLogger("symbolResolver");
+    createLogger("compiledSymbols");
+
+    spdlog::get("compileStruct")->set_level(spdlog::level::off);
+    spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
+}
+
+void Brain::Logger::createLogger(const std::string& name)
+{
+    static auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_st>();
+    console_sink->set_level(spdlog::level::trace);
+    console_sink->set_pattern("[%n][%^%L%$] %v");
+
+    auto logger = std::make_shared<spdlog::logger>(name, console_sink);
+    logger->set_level(spdlog::level::trace);
+    spdlog::register_logger(logger);
 }
 
 } // namespace brain

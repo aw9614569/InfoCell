@@ -1,7 +1,7 @@
+#define IS_LOG_ENABLED (SPDLOG_ACTIVE_LEVEL != SPDLOG_LEVEL_OFF)
+
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
-
-
 
 #define TRACE(category, msg, ...) SPDLOG_LOGGER_TRACE(spdlog::get(#category), msg, __VA_ARGS__)
 #define DEBUG(category, msg, ...) SPDLOG_LOGGER_DEBUG(spdlog::get(#category), msg, __VA_ARGS__)
