@@ -1,43 +1,10 @@
 cmake_minimum_required(VERSION 3.27)
 
-project(synth)
+project(infocells)
 
-message("CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
-
-set(SYNTH_ARC_PRIZE_EVALUATION_CHALLENGES_FILENAME "arc-agi_evaluation_challenges.json")
-set(SYNTH_ARC_PRIZE_EVALUATION_SOLUTIONS_FILENAME "arc-agi_evaluation_solutions.json")
-set(SYNTH_ARC_PRIZE_TEST_CHALLENGES_FILENAME "arc-agi_test_challenges.json")
-set(SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME "arc-agi_training_challenges.json")
-set(SYNTH_ARC_PRIZE_TRAINING_SOLUTIONS_FILENAME "arc-agi_training_solutions.json")
-set(SYNTH_ARC_PRIZE_SUBMISSION_FILENAME "sample_submission.json")
-
-if(WIN32)
-set(SYNTH_TTF_FONT_PATH "C:/Windows/Fonts/")
-set(SYNTH_ARC_TRAINING_PATH "E:/Devel/ARC/ARC/data/training/")
-set(SYNTH_ARC_PRIZE_PATH "E:/Devel/ARC/arc-prize-2024/")
-set(SYNTH_CONAN_PATH_BASE "E:/Devel/ARC/conan")
-elseif(UNIX)
-set(SYNTH_TTF_FONT_PATH "/home/npeter/devel/")
-set(SYNTH_ARC_PRIZE_PATH "/home/npeter/devel/arc-prize-2024/")
-set(SYNTH_CONAN_PATH_BASE "/home/npeter/devel/conan")
-else()
-message(FATAL_ERROR "Unsupported platform")
-endif()
-
-if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-list(APPEND CMAKE_MODULE_PATH ${SYNTH_CONAN_PATH_BASE}/Release)
-list(APPEND CMAKE_PREFIX_PATH ${SYNTH_CONAN_PATH_BASE}/Release)
-message("CMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
-message("CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}")
-elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
-list(APPEND CMAKE_MODULE_PATH ${SYNTH_CONAN_PATH_BASE}/Release)
-list(APPEND CMAKE_PREFIX_PATH ${SYNTH_CONAN_PATH_BASE}/Release)
-message("CMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
-message("CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}")
-else()
-list(APPEND CMAKE_MODULE_PATH ${SYNTH_CONAN_PATH_BASE}/Debug)
-list(APPEND CMAKE_PREFIX_PATH ${SYNTH_CONAN_PATH_BASE}/Debug)
-endif()
+# Conan integration
+list(APPEND CMAKE_MODULE_PATH ${SYNTH_CONAN_PATH_BASE}/${CMAKE_BUILD_TYPE})
+list(APPEND CMAKE_PREFIX_PATH ${SYNTH_CONAN_PATH_BASE}/${CMAKE_BUILD_TYPE})
 
 set (CMAKE_CXX_STANDARD 20)
 
@@ -49,5 +16,7 @@ find_package(Freetype REQUIRED)
 find_package(GTest REQUIRED)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
+
 enable_testing()
+
 add_subdirectory(src)

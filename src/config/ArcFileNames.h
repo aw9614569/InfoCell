@@ -1,0 +1,6 @@
+#define SYNTH_ARC_PRIZE_EVALUATION_CHALLENGES_FILENAME "arc-agi_evaluation_challenges.json"
+#define SYNTH_ARC_PRIZE_EVALUATION_SOLUTIONS_FILENAME "arc-agi_evaluation_solutions.json"
+#define SYNTH_ARC_PRIZE_TEST_CHALLENGES_FILENAME "arc-agi_test_challenges.json"
+#define SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME "arc-agi_training_challenges.json"
+#define SYNTH_ARC_PRIZE_TRAINING_SOLUTIONS_FILENAME "arc-agi_training_solutions.json"
+#define SYNTH_ARC_PRIZE_SUBMISSION_FILENAME "sample_submission.json"
