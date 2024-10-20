@@ -6,12 +6,11 @@
 #include "util/ArcTask.h"
 
 #include <fstream>
-#include <ftxui/dom/elements.hpp>
-#include <ftxui/screen/screen.hpp>
 #include <nlohmann/json.hpp>
 
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include "Log.h"
+#include <fmt/color.h>
 
 using namespace infocell;
 using namespace infocell::cells;
@@ -35,11 +34,13 @@ public:
             infocell::cells::brain::Brain::Logger::createLogger("edge");
             infocell::cells::brain::Brain::Logger::createLogger("shapeRelations");
             infocell::cells::brain::Brain::Logger::createLogger("shapeIdGrid");
+            infocell::cells::brain::Brain::Logger::createLogger("grid");
 
             spdlog::get("compileStruct")->set_level(spdlog::level::off);
             spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
             spdlog::get("edge")->set_level(spdlog::level::off);
             spdlog::get("shapeIdGrid")->set_level(spdlog::level::off);
+            spdlog::get("grid")->set_level(spdlog::level::trace);
         }),
         ShaperStruct(getStruct("arc::Shaper")),
         ShapeStruct(getStruct("arc::Shape")),
@@ -101,38 +102,37 @@ public:
         m_inputHybridGrid = std::make_unique<cells::hybrid::arc::Grid>(kb, *m_inputGrid);
     }
 
-    static ftxui::Element colorTile(const ftxui::Color& p_color)
+    static std::string colorTile(int color)
     {
-        static ftxui::Color ftxAlphaColor(255, 255, 255);
-        if (&p_color == &ftxAlphaColor)
-            return ftxui::text(L"╳╳") | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 2) | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1) | ftxui::color(ftxui::Color::GrayDark) | ftxui::bgcolor(ftxui::Color::GrayLight);
-        return ftxui::text("") | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 2) | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1) | bgcolor(p_color);
+        static std::vector<std::string> colors(
+            {
+                fmt::format(fmt::bg(fmt::rgb(0x00, 0x00, 0x00)), "  "), /* 0 black */
+                fmt::format(fmt::bg(fmt::rgb(0x00, 0x74, 0xD9)), "  "), /* 1 blue */
+                fmt::format(fmt::bg(fmt::rgb(0xFF, 0x41, 0x36)), "  "), /* 2 red */
+                fmt::format(fmt::bg(fmt::rgb(0x2E, 0xCC, 0x40)), "  "), /* 3 green */
+                fmt::format(fmt::bg(fmt::rgb(0xFF, 0xDC, 0x00)), "  "), /* 4 yellow */
+                fmt::format(fmt::bg(fmt::rgb(0xAA, 0xAA, 0xAA)), "  "), /* 5 grey */
+                fmt::format(fmt::bg(fmt::rgb(0xF0, 0x12, 0xBE)), "  "), /* 6 fuschia */
+                fmt::format(fmt::bg(fmt::rgb(0xFF, 0x85, 0x1B)), "  "), /* 7 orange */
+                fmt::format(fmt::bg(fmt::rgb(0x7F, 0xDB, 0xFF)), "  "), /* 8 teal */
+                fmt::format(fmt::bg(fmt::rgb(0x87, 0x0C, 0x25)), "  ")  /* 9 brown */
+            });
+
+        return colors[color];
     }
 
     void printInputHybridGrid()
     {
         cells::hybrid::arc::Grid& grid = inputHybridGrid();
-        CellI& pixelList               = grid[kb.ids.pixels];
         ftxui::Elements boardLines;
         for (int y = 0; y < grid.height(); ++y) {
-            ftxui::Elements arcSetInputLine;
+            std::stringstream ss;
             for (int x = 0; x < grid.width(); ++x) {
                 hybrid::arc::Pixel& pixel = grid.getPixel(x, y);
-                arcSetInputLine.push_back(colorTile(infocell::App::arcColors[pixel.color()]));
+                ss << colorTile(pixel.color());
             }
-            boardLines.push_back(hbox(arcSetInputLine));
+            TRACE(grid, ss.str());
         }
-
-        ftxui::Element board = vbox(boardLines);
-
-        auto document = ftxui::hbox(board) | ftxui::border;
-        auto screen          = ftxui::Screen::Create(
-            ftxui::Dimension::Fit(document), // Width
-            ftxui::Dimension::Fit(document)  // Height
-        );
-        ftxui::Render(screen, document);
-        screen.Print();
-        std::cout << "\n";
     }
 
     void printShapeRelations()
