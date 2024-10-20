@@ -8,6 +8,10 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "installDir": "${sourceDir}/install/${presetName}",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",
@@ -48,10 +52,6 @@
       "description": "Target Windows (64-bit) with the Visual Studio development environment. (Debug)",
       "inherits": "windows-base",
       "binaryDir": "${sourceDir}/build/Debug",
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
-      },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
@@ -60,7 +60,7 @@
       "name": "WinRelease",
       "displayName": "Release",
       "description": "Target Windows (64-bit) with the Visual Studio development environment. (Release)",
-      "inherits": "WinDebug",
+      "inherits": "windows-base",
       "binaryDir": "${sourceDir}/build/Release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
@@ -70,7 +70,7 @@
       "name": "WinRelWithDebInfo",
       "displayName": "RelWithDebInfo",
       "description": "Target Windows (64-bit) with the Visual Studio development environment. (RelWithDebInfo)",
-      "inherits": "WinDebug",
+      "inherits": "windows-base",
       "binaryDir": "${sourceDir}/build/RelWithDebInfo",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo"
