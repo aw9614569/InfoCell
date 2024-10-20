@@ -3,7 +3,7 @@
 #include <sstream>
 #include <vector>
 
-namespace synth {
+namespace infocell {
 
 class Rule;
 class RuleValue;
@@ -142,4 +142,4 @@ private:
     std::vector<TRuleValue> m_values;
 };
 
-} // namespace synth
+} // namespace infocell

@@ -1,4 +1,4 @@
-Compiling synth
+Compiling InfoCell
 
 Dependencies are in Conan ( https://conan.io/ )
 
@@ -10,11 +10,11 @@ Also sometimes you need a conan profile refresh
 
 On Windows:
   in "..\ARC\conan\Debug"
-  conan install ..\..\synth --settings=build_type=Debug --build=missing -of .
+  conan install ..\..\InfoCell --settings=build_type=Debug --build=missing -of .
 
   in "..\ARC\conan\Release"
-  conan install ..\..\synth --settings=build_type=Release -of .
+  conan install ..\..\InfoCell --settings=build_type=Release -of .
 
 On Linux:
   in ~/devel/conan/Release
-  conan install ../../synth/ --settings=build_type=Release -of .
+  conan install ../../InfoCell/ --settings=build_type=Release -of .

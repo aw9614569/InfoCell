@@ -2,7 +2,7 @@
 #include "Brain.h"
 #include "Arc.h"
 
-namespace synth {
+namespace infocell {
 namespace cells {
 namespace hybrid {
 namespace arc {
@@ -360,4 +360,4 @@ void Shaper::processAdjacentPixel(CellI& direction, CellI& p_shape, Set& checkPi
 } // namespace arc
 } // namespace hybrid
 } // namespace cells
-} // namespace synth
+} // namespace infocell

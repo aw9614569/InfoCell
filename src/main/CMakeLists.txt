@@ -1,6 +1,6 @@
-add_executable(synth main.cc)
+add_executable(infocell main.cc)
 
-target_link_libraries(synth
+target_link_libraries(infocell
 PRIVATE
     applib
 )

@@ -3,7 +3,7 @@
 
 #include "Rule.h"
 
-namespace synth {
+namespace infocell {
 
 SlotType One      = SlotType::One;
 SlotType OneMore  = SlotType::OneMore;
@@ -227,4 +227,4 @@ std::ostream& operator<<(std::ostream& p_os, const RuleType& p_type)
     return p_os;
 }
 
-} // namespace synth
+} // namespace infocell

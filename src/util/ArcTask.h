@@ -4,7 +4,7 @@
 #include "app/Picture.h"
 #include "cells/Brain.h"
 
-namespace synth {
+namespace infocell {
 namespace cells {
 namespace brain {
 class Brain;
@@ -81,4 +81,4 @@ public:
     std::map<std::string, ArcPrizeTask> m_tasks;
 };
 
-} // namespace synth
+} // namespace infocell

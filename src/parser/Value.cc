@@ -1,7 +1,7 @@
 #include <parser/Rule.h>
 #include "Value.h"
 
-namespace synth {
+namespace infocell {
 
 // =====================================================================================================================
 RuleValue::~RuleValue()
@@ -73,4 +73,4 @@ std::string BinaryOpValue::getValueAsString() const
     return ret.str();
 }
 
-} // namespace synth
+} // namespace infocell

@@ -13,10 +13,10 @@
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include "Log.h"
 
-using namespace synth;
-using namespace synth::cells;
+using namespace infocell;
+using namespace infocell::cells;
 using nlohmann::json;
-using synth::cells::test::CellTest;
+using infocell::cells::test::CellTest;
 
 static spdlog::logger* s_logger = nullptr;
 
@@ -32,14 +32,14 @@ public:
 
     EdgeTester() :
         CellTest([]() {
-            synth::cells::brain::Brain::Logger::createLogger("edge");
-            synth::cells::brain::Brain::Logger::createLogger("shapeRelations");
-            synth::cells::brain::Brain::Logger::createLogger("shapeIdGrid");
+            infocell::cells::brain::Brain::Logger::createLogger("edge");
+            infocell::cells::brain::Brain::Logger::createLogger("shapeRelations");
+            infocell::cells::brain::Brain::Logger::createLogger("shapeIdGrid");
 
             spdlog::get("compileStruct")->set_level(spdlog::level::off);
             spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
             spdlog::get("edge")->set_level(spdlog::level::off);
-            spdlog::get("shapeIdGrid")->set_level(spdlog::level::trace);
+            spdlog::get("shapeIdGrid")->set_level(spdlog::level::off);
         }),
         ShaperStruct(getStruct("arc::Shaper")),
         ShapeStruct(getStruct("arc::Shape")),
@@ -118,7 +118,7 @@ public:
             ftxui::Elements arcSetInputLine;
             for (int x = 0; x < grid.width(); ++x) {
                 hybrid::arc::Pixel& pixel = grid.getPixel(x, y);
-                arcSetInputLine.push_back(colorTile(synth::App::arcColors[pixel.color()]));
+                arcSetInputLine.push_back(colorTile(infocell::App::arcColors[pixel.color()]));
             }
             boardLines.push_back(hbox(arcSetInputLine));
         }
@@ -2132,6 +2132,30 @@ TEST_F(EdgeTester, EdgeTestWithArc_00d62c1b_Train5Input)
                   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]])");
 }
 
+TEST_F(EdgeTester, EdgeTestWithArc_00d62c1b_Train5Output)
+{
+    testEdges(R"([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,3,3,3,3,4,3,3,0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,3,4,3,0,0,0,0,0,0,0,3,0],
+                  [0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,3,4,4,4,4,4,4,3,0,0,0,0],
+                  [0,0,0,0,3,0,0,0,3,4,4,4,4,4,4,3,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,3,4,4,4,4,4,4,3,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,3,4,4,4,4,4,4,3,0,0,0,0],
+                  [0,0,3,0,0,0,0,0,3,3,3,3,3,3,3,3,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,3,3,3,0,0,0,0,3,0,3,0,0],
+                  [0,0,0,0,0,0,3,3,4,4,3,0,0,3,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,3,4,4,3,3,0,0,3,0,0,3,0,0],
+                  [0,0,0,0,0,0,0,3,3,3,3,0,3,0,0,3,3,3,0,0],
+                  [0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,3,4,3,0,0],
+                  [0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,3,3,3,0,0],
+                  [0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]])");
+}
+
 TEST_F(EdgeTester, EdgeTestWithArc_0b148d64_minified_Train0Input)
 {
     testEdges(R"([[8,8,8,8,8,0,8,8,8,8,0],
@@ -2553,8 +2577,8 @@ TEST_F(EdgeTester, EdgeTestWithArc_4be741c5_Train3Output)
 
 TEST_F(EdgeTester, DISABLED_EdgeTestWithAllArcTask)
 {
-    TaskSet taskSet(kb, SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
-//    TaskSet taskSet(kb, SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_EVALUATION_CHALLENGES_FILENAME);
+    TaskSet taskSet(kb, INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
+//    TaskSet taskSet(kb, INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_EVALUATION_CHALLENGES_FILENAME);
     for (auto& task : taskSet.m_tasks) {
         std::cout << "id: " << task.first << ", examples num:" << static_cast<List&>(task.second.m_cellExamplesList).size() << ", tests num:" << static_cast<List&>(task.second.m_cellTestsList).size() << std::endl;
         std::cout << "   examples:" << std::endl;
@@ -2726,12 +2750,10 @@ If black Pixel is categorized as background, then
      - Pixel { yellow, x=3, y=2 }
      - Pixel { yellow, x=1, y=4 }
      - Pixel { yellow, x=3, y=4 }
-     - Shape {
-         - Pixel { orange, x=6, y=5 }
-         - Pixel { orange, x=5, y=6 }
-         - Pixel { orange, x=7, y=6 }
-         - Pixel { orange, x=6, y=7 }
-       }
+     - Pixel { orange, x=6, y=5 }
+     - Pixel { orange, x=5, y=6 }
+     - Pixel { orange, x=7, y=6 }
+     - Pixel { orange, x=6, y=7 }
 
  The Pixel { red, x=2, y=3 } and Pixel { blue, x=6, y=6 } are in the same position, so only extra pixels on the screen. Orange can be interpreted as shape also.
 

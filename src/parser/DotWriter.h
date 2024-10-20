@@ -2,7 +2,7 @@
 #include <set>
 #include <sstream>
 
-namespace synth {
+namespace infocell {
 
 class Parser;
 class RuleState;
@@ -20,4 +20,4 @@ private:
     TPrintedStates m_printedStates;
 };
 
-} // namespace synth
+} // namespace infocell

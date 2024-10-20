@@ -6,7 +6,7 @@
 
 #include "RuleState.h"
 
-namespace synth {
+namespace infocell {
 
 unsigned RuleState::s_id = 0;
 
@@ -688,7 +688,7 @@ void TermRuleState::dotWriterVisitor(DotWriter& p_writer) const
 }
 
 // =====================================================================================================================
-std::ostream& operator<<(std::ostream& p_os, const synth::RuleStates p_state)
+std::ostream& operator<<(std::ostream& p_os, const infocell::RuleStates p_state)
 {
     switch (p_state) {
     case RuleStates::Growing:
@@ -711,4 +711,4 @@ std::ostream& operator<<(std::ostream& p_os, const synth::RuleStates p_state)
     return p_os;
 }
 
-} // namespace synth
+} // namespace infocell

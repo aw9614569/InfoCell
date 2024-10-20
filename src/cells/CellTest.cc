@@ -58,10 +58,10 @@ struct Add
 
 namespace fs = std::filesystem;
 using nlohmann::json;
-using namespace synth;
-using namespace synth::cells;
+using namespace infocell;
+using namespace infocell::cells;
 
-using synth::cells::test::CellTest;
+using infocell::cells::test::CellTest;
 
 // TODO
 // inline methods
@@ -1225,7 +1225,7 @@ static ftxui::Element renderJsonBoard(cells::hybrid::arc::Grid& grid)
         ftxui::Elements arcSetInputLine;
         for (int x = 0; x < grid.width(); ++x) {
             auto& pixel = grid.getPixel(x, y);
-            const ftxui::Color& ftxColor = synth::App::arcColors[pixel.color()];
+            const ftxui::Color& ftxColor = infocell::App::arcColors[pixel.color()];
             arcSetInputLine.push_back(colorTile(ftxColor));
         }
         boardLines.push_back(hbox(arcSetInputLine));
@@ -1254,7 +1254,7 @@ static ftxui::Element renderShape(CellI& shape)
     int shapePixelX         = static_cast<Number&>((*currentPixelItem)["value"]["x"]).value();
     int shapePixelY         = static_cast<Number&>((*currentPixelItem)["value"]["y"]).value();
     int shapeColorNum       = static_cast<Number&>(shape["color"]).value();
-    const ftxui::Color& shapeColor = synth::App::arcColors[shapeColorNum];
+    const ftxui::Color& shapeColor = infocell::App::arcColors[shapeColorNum];
     ftxui::Elements boardLines;
     for (int y = 0; y < height; ++y) {
         ftxui::Elements arcSetInputLine;
@@ -1282,7 +1282,7 @@ static void printVectorShape(CellI& shape)
 {
     std::map<int, std::map<int, ftxui::Color>> board;
     int shapeColorNum   = static_cast<Number&>(shape["color"]).value();
-    const ftxui::Color& shapeColor = synth::App::arcColors[shapeColorNum];
+    const ftxui::Color& shapeColor = infocell::App::arcColors[shapeColorNum];
     int x       = static_cast<Number&>(shape["firstPixel"]["x"]).value();
     int y       = static_cast<Number&>(shape["firstPixel"]["y"]).value();
     board[x][y] = shapeColor;
@@ -1472,7 +1472,7 @@ TEST_F(CellTest, ShaperTest)
 TEST_F(CellTest, DISABLED_ArcTaskTest)
 {
     auto& shaperStruct                   = getStruct("arc::Shaper");
-    static const std::string arcFilePath = SYNTH_ORIGARC_FILEPATH "007bbfb7.json";
+    static const std::string arcFilePath = INFOCELL_ORIGARC_FILEPATH "007bbfb7.json";
     auto jsonTask                        = json::parse(std::ifstream(arcFilePath));
     auto document                        = renderJsonBoard(jsonTask["/test/0/input"_json_pointer]);
     auto screen                          = ftxui::Screen::Create(
@@ -1517,7 +1517,7 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrize)
         printShapeList(shaper["shapes"]);
     };
 
-    static const std::string arcFilePath = SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
+    static const std::string arcFilePath = INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
     auto allTask                         = json::parse(std::ifstream(arcFilePath));
 
     examineTask(allTask, "0ca9ddb6", "/test/0/input", { "challenge" });
@@ -1527,20 +1527,20 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrize)
 
 std::string getArcColorName(CellI& hybridColor)
 {
-    static std::map<synth::arc::Colors, std::string> arcColorNames = {
-        { synth::arc::Colors::black, "black" },
-        { synth::arc::Colors::blue, "blue" },
-        { synth::arc::Colors::red, "red" },
-        { synth::arc::Colors::green, "green" },
-        { synth::arc::Colors::yellow, "yellow" },
-        { synth::arc::Colors::grey, "grey" },
-        { synth::arc::Colors::fuschia, "fuschia" },
-        { synth::arc::Colors::orange, "orange" },
-        { synth::arc::Colors::teal, "teal" },
-        { synth::arc::Colors::brown, "brown" }
+    static std::map<infocell::arc::Colors, std::string> arcColorNames = {
+        { infocell::arc::Colors::black, "black" },
+        { infocell::arc::Colors::blue, "blue" },
+        { infocell::arc::Colors::red, "red" },
+        { infocell::arc::Colors::green, "green" },
+        { infocell::arc::Colors::yellow, "yellow" },
+        { infocell::arc::Colors::grey, "grey" },
+        { infocell::arc::Colors::fuschia, "fuschia" },
+        { infocell::arc::Colors::orange, "orange" },
+        { infocell::arc::Colors::teal, "teal" },
+        { infocell::arc::Colors::brown, "brown" }
     };
 
-    synth::arc::Colors colorNum = static_cast<synth::arc::Colors>(static_cast<Number&>(hybridColor).value());
+    infocell::arc::Colors colorNum = static_cast<infocell::arc::Colors>(static_cast<Number&>(hybridColor).value());
 
     return arcColorNames.find(colorNum)->second;
 }
@@ -1628,7 +1628,7 @@ TEST_F(CellTest, DISABLE_ArcTaskFromArcPrizeExamineTrainPair)
         }
     };
 
-    static const std::string arcFilePath = SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
+    static const std::string arcFilePath = INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
     auto allTask                         = json::parse(std::ifstream(arcFilePath));
 
     examineTrainPair(allTask, "0ca9ddb6", 0);
@@ -1636,8 +1636,8 @@ TEST_F(CellTest, DISABLE_ArcTaskFromArcPrizeExamineTrainPair)
 
 TEST_F(CellTest, LoadAllArcTask)
 {
-    static const std::string arcFilePath = SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
-    TaskSet taskSet(kb, SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
+    static const std::string arcFilePath = INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
+    TaskSet taskSet(kb, INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
     for (auto& task : taskSet.m_tasks) {
         std::cout <<
             "id: " << task.first <<
@@ -1658,8 +1658,8 @@ TEST_F(CellTest, LoadAllArcTask)
 
 TEST_F(CellTest, LoadThoseArcTaskWhereInputSizeEqOutputSize)
 {
-    static const std::string arcFilePath = SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
-    TaskSet taskSet(kb, SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
+    static const std::string arcFilePath = INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
+    TaskSet taskSet(kb, INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
     for (auto& task : taskSet.m_tasks) {
         bool allSameSize = false;
         Visitor::visitList(task.second.m_cellExamplesList, [&allSameSize](CellI& example, int i, bool& stop) {
@@ -1824,7 +1824,7 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
 #endif
     };
 
-    static const std::string arcFilePath = SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
+    static const std::string arcFilePath = INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
     auto allTask                         = json::parse(std::ifstream(arcFilePath));
 
     examineTrainPair(allTask, "0ca9ddb6", 0);
@@ -1898,7 +1898,7 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrizeExamineAllTrainPair)
         }
     };
 
-    static const std::string arcFilePath = SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
+    static const std::string arcFilePath = INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
     auto allTask                         = json::parse(std::ifstream(arcFilePath));
 
     examineTrainPair(allTask, 0);

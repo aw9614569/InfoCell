@@ -2,7 +2,7 @@
 #include <fstream>
 
 #include "Parser.h"
-namespace synth {
+namespace infocell {
 
 // =====================================================================================================================
 Parser::Parser(const Grammar& p_grammar, const TRule& p_startRule, const std::string& p_text, bool p_debug) :
@@ -190,4 +190,4 @@ void Parser::printResultStates() const
               << std::endl;
 }
 
-} // namespace synth
+} // namespace infocell

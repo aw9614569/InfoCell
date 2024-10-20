@@ -3,7 +3,7 @@
 
 #include "Brain.h"
 
-namespace synth {
+namespace infocell {
 namespace cells {
 
 class CellStructPrinter : public Visitor
@@ -32,4 +32,4 @@ protected:
 };
 
 } // namespace cells
-} // namespace synth
+} // namespace infocell

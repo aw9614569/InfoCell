@@ -1,7 +1,7 @@
 ﻿#include <fstream>
 #include "Logging.h"
 
-namespace synth {
+namespace infocell {
 Logger* loggerPtr = nullptr;
 
 LoggerStream Logger::log(LogLevel level)
@@ -14,7 +14,7 @@ LoggerStream Logger::logBoard(LogLevel level)
     return LoggerStream(*this, level, BOARD);
 }
 
-const std::string logFileName = "F:\\Devel\\ARC\\synth\\build\\log\\logfile.txt";
+const std::string logFileName = "F:\\Devel\\ARC\\infocell\\build\\log\\logfile.txt";
 
 void Logger::log(LogLevel level, LogType type, const std::string& message)
 {
@@ -35,4 +35,4 @@ LoggerStream::~LoggerStream()
         logger.log(level, type, message);
 }
 
-} // namespace synth
+} // namespace infocell

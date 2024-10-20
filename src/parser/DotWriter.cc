@@ -6,7 +6,7 @@
 
 #include "DotWriter.h"
 
-namespace synth {
+namespace infocell {
 
 // =====================================================================================================================
 DotWriter::DotWriter(const Parser* p_parser)
@@ -53,4 +53,4 @@ bool DotWriter::IsPrinted(const RuleState* p_state) const
     return false;
 }
 
-} // namespace synth
+} // namespace infocell

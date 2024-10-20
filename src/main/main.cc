@@ -2,7 +2,7 @@
 
 int main(int argc, char* argv[])
 {
-    synth::App app;
+    infocell::App app;
     app.init(argc, argv);
     app.run();
 

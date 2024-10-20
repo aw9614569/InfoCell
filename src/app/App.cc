@@ -19,7 +19,7 @@ namespace fs = std::filesystem;
 using namespace nlohmann;
 using namespace ftxui;
 
-namespace synth {
+namespace infocell {
 
 const std::array<ftxui::Color, 11> App::arcColors = {
     Color(0x00, 0x00, 0x00), /* black */
@@ -38,7 +38,7 @@ const std::array<ftxui::Color, 11> App::arcColors = {
 void App::init(int argc, char* argv[])
 {
     if (argc == 1) {
-        m_arcFilePath = SYNTH_ORIGARC_FILEPATH;
+        m_arcFilePath = INFOCELL_ORIGARC_FILEPATH;
         // m_arcFilePath = "E:\\Devel\\ARC\\ARC\\data\\evaluation\\";
         // m_arcFilePath = "E:\\Devel\\ARC\\pqa-dataset\\closure-filling\\";
         // m_arcFilePath = "E:\\Devel\\ARC\\pqa-dataset\\proximity-identification\\";
@@ -323,4 +323,4 @@ void App::doUnitTests()
     UnitTester unitTester(solverLogger);
 }
 
-} // namespace synth
+} // namespace infocell

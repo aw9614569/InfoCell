@@ -4,7 +4,7 @@
 #include <tuple>
 #include <vector>
 
-namespace synth {
+namespace infocell {
 namespace input {
 
 // ============================================================================
@@ -72,4 +72,4 @@ private:
 };
 
 } // namespace input
-} // namespace synth
+} // namespace infocell

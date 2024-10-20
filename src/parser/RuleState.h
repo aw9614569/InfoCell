@@ -9,7 +9,7 @@
 #include <parser/Value.h>
 #include <parser/DotWriter.h>
 
-namespace synth {
+namespace infocell {
 
 class Parser;
 class RuleState;
@@ -300,6 +300,6 @@ private:
     SharedRuleState m_matchedRule;
 };
 
-std::ostream& operator<<(std::ostream& p_os, const synth::RuleStates p_state);
+std::ostream& operator<<(std::ostream& p_os, const infocell::RuleStates p_state);
 
-} // namespace synth
+} // namespace infocell

@@ -6,7 +6,7 @@
 #include "Brain.h"
 #include "fsvgui/dom/elements.h"
 
-namespace synth {
+namespace infocell {
 namespace cells {
 namespace svg {
 
@@ -47,4 +47,4 @@ protected:
 
 } // namespace svg
 } // namespace cells
-} // namespace synth
+} // namespace infocell

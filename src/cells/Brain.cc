@@ -6,7 +6,7 @@
 #include <boost/algorithm/string/regex.hpp>
 #include <sstream>
 
-namespace synth {
+namespace infocell {
 namespace cells {
 namespace brain {
 
@@ -6560,4 +6560,4 @@ void Brain::Logger::createLogger(const std::string& name)
 
 } // namespace brain
 } // namespace cells
-} // namespace synth
+} // namespace infocell

@@ -7,7 +7,7 @@
 
 #include <set>
 
-namespace synth {
+namespace infocell {
 
 enum class RotationDir
 {
@@ -466,4 +466,4 @@ private:
     const ArcTask& m_arcTask;
 };
 
-} // namespace synth
+} // namespace infocell

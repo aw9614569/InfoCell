@@ -10,7 +10,7 @@
 
 #include "app/Picture.h"
 
-namespace synth {
+namespace infocell {
 namespace cells {
 namespace brain {
 class Brain;
@@ -661,4 +661,4 @@ public:
 bool tryVisitWith(CellI& cell, Visitor& visitor);
 
 } // namespace cells
-} // namespace synth
+} // namespace infocell

@@ -3,7 +3,7 @@
 #include "ValuePrinter.h"
 #include "Brain.h"
 
-namespace synth {
+namespace infocell {
 namespace cells {
 
 void CellValuePrinter::visit(Object& object)
@@ -805,4 +805,4 @@ std::string CellValuePrinter::print() const
 }
 
 } // namespace cells
-} // namespace synth
+} // namespace infocell

@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace synth {
+namespace infocell {
 
 class Grammar;
 class Parser;
@@ -196,4 +196,4 @@ public:
     virtual TRuleValue createRuleValue() const;
 };
 
-} // namespace synth
+} // namespace infocell

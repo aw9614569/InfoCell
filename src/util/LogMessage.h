@@ -1,6 +1,6 @@
 #include <string>
 
-namespace synth {
+namespace infocell {
 
 enum LogLevel
 {
@@ -25,4 +25,4 @@ public:
     std::string text;
 };
 
-} // namespace synth
+} // namespace infocell

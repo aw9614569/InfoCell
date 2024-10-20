@@ -1,15 +1,15 @@
 #pragma once
 
 #include "Colors.h"
-#include "util/Logging.h"
 #include "ftxui/component/component.hpp" // for Slider
+#include "util/Logging.h"
 
 #include <nlohmann/json.hpp>
-#include <vector>
-#include <string>
 #include <sstream>
+#include <string>
+#include <vector>
 
-namespace synth {
+namespace infocell {
 
 class App
 {
@@ -41,4 +41,4 @@ private:
     int m_previusSelectedArcFileIndex = 0;
 };
 
-} // namespace synth
+} // namespace infocell

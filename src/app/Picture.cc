@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace synth {
+namespace infocell {
 namespace input {
 
 const std::array<Color, 10> arcColors = {
@@ -85,4 +85,4 @@ const std::vector<Color>& Grid::pixels() const
 }
 
 } // namespace input
-} // namespace synth
+} // namespace infocell

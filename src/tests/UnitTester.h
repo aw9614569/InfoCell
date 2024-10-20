@@ -2,7 +2,7 @@
 
 #include "util/Logging.h"
 
-namespace synth {
+namespace infocell {
 
 class UnitTester
 {
@@ -14,4 +14,4 @@ public:
     Logger& logger;
 };
 
-} // namespace synth
+} // namespace infocell

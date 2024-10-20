@@ -1,6 +1,6 @@
 #pragma once
 
-namespace synth {
+namespace infocell {
 namespace arc {
 enum class Colors
 {
@@ -18,4 +18,4 @@ enum class Colors
 };
 
 } // namespace arc
-} // namespace synth
+} // namespace infocell

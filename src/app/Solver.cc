@@ -4,7 +4,7 @@
 #include <set>
 
 
-namespace synth {
+namespace infocell {
 
 const std::array<input::Color, 10> cellColors = {
     input::Color(0x00, 0x00, 0x00), /* black */
@@ -942,4 +942,4 @@ Valahogy az algoritmusnak rá kellene jönnie, hogy azonos színű összekapcsol
 
 */
 
-} // namespace synth
+} // namespace infocell

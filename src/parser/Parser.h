@@ -4,7 +4,7 @@
 #include <parser/Grammar.h>
 #include <parser/RuleState.h>
 
-namespace synth {
+namespace infocell {
 
 class Parser
 {
@@ -109,4 +109,4 @@ private:
     friend class OrState;
 };
 
-} // namespace synth
+} // namespace infocell

@@ -10,7 +10,7 @@
 #include <utf8.h>
 
 
-namespace synth {
+namespace infocell {
 namespace cells {
 using InitPhase = brain::Brain::InitPhase;
 #pragma region CellI
@@ -2362,30 +2362,30 @@ const int Pixel::color() const
 }
 #pragma endregion
 #pragma region Picture
-int getArcColorId(const synth::input::Color& color)
+int getArcColorId(const input::Color& color)
 {
-    static synth::input::Color black(0x00, 0x00, 0x00);
-    static synth::input::Color blue(0x00, 0x74, 0xD9);
-    static synth::input::Color red(0xFF, 0x41, 0x36);
-    static synth::input::Color green(0x2E, 0xCC, 0x40);
-    static synth::input::Color yellow(0xFF, 0xDC, 0x00);
-    static synth::input::Color grey(0xAA, 0xAA, 0xAA);
-    static synth::input::Color fuschia(0xF0, 0x12, 0xBE);
-    static synth::input::Color orange(0xFF, 0x85, 0x1B);
-    static synth::input::Color teal(0x7F, 0xDB, 0xFF);
-    static synth::input::Color brown(0x87, 0x0C, 0x25);
+    static input::Color black(0x00, 0x00, 0x00);
+    static input::Color blue(0x00, 0x74, 0xD9);
+    static input::Color red(0xFF, 0x41, 0x36);
+    static input::Color green(0x2E, 0xCC, 0x40);
+    static input::Color yellow(0xFF, 0xDC, 0x00);
+    static input::Color grey(0xAA, 0xAA, 0xAA);
+    static input::Color fuschia(0xF0, 0x12, 0xBE);
+    static input::Color orange(0xFF, 0x85, 0x1B);
+    static input::Color teal(0x7F, 0xDB, 0xFF);
+    static input::Color brown(0x87, 0x0C, 0x25);
 
-    static std::map<synth::input::Color, synth::arc::Colors> arcColorNames = {
-        { black, synth::arc::Colors::black },
-        { blue, synth::arc::Colors::blue },
-        { red, synth::arc::Colors::red },
-        { green, synth::arc::Colors::green },
-        { yellow, synth::arc::Colors::yellow },
-        { grey, synth::arc::Colors::grey },
-        { fuschia, synth::arc::Colors::fuschia },
-        { orange, synth::arc::Colors::orange },
-        { teal, synth::arc::Colors::teal },
-        { brown, synth::arc::Colors::brown }
+    static std::map<input::Color, infocell::arc::Colors> arcColorNames = {
+        { black, infocell::arc::Colors::black },
+        { blue, infocell::arc::Colors::blue },
+        { red, infocell::arc::Colors::red },
+        { green, infocell::arc::Colors::green },
+        { yellow, infocell::arc::Colors::yellow },
+        { grey, infocell::arc::Colors::grey },
+        { fuschia, infocell::arc::Colors::fuschia },
+        { orange, infocell::arc::Colors::orange },
+        { teal, infocell::arc::Colors::teal },
+        { brown, infocell::arc::Colors::brown }
     };
 
     return static_cast<int>(arcColorNames.find({ color.red(), color.green(), color.blue() })->second);
@@ -2616,4 +2616,4 @@ bool tryVisitWith(CellI& cell, Visitor& visitor)
 }
 
 } // namespace cells
-} // namespace synth
+} // namespace infocell

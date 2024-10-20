@@ -6,9 +6,9 @@
 #include <fstream>
 
 using namespace nlohmann;
-using namespace synth::input;
+using namespace infocell::input;
 
-namespace synth {
+namespace infocell {
 
 static const std::array<Color, 10> cellColors = {
     Color(0x00, 0x00, 0x00), /* black */
@@ -124,4 +124,4 @@ TaskSet::TaskSet(cells::brain::Brain& kb, const std::string& filePath)
     }
 }
 
-} // namespace synth
+} // namespace infocell

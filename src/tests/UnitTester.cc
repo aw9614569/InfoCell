@@ -8,7 +8,7 @@
 #include <set>
 
 
-namespace synth {
+namespace infocell {
 
 UnitTester::UnitTester(Logger& logger) :
     logger(logger)
@@ -339,4 +339,4 @@ void UnitTester::start()
     }
 }
 
-} // namespace synth
+} // namespace infocell

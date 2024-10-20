@@ -2,7 +2,7 @@
 #include <fmt/core.h>
 #include "Cells.h"
 
-namespace synth {
+namespace infocell {
 namespace cells {
 namespace brain {
 
@@ -1507,4 +1507,4 @@ MapType& Ast::Items<MapType, TAst>::items()
 
 } // namespace brain
 } // namespace cells
-} // namespace synth
+} // namespace infocell

@@ -1,8 +1,8 @@
 ﻿#include "CellTestBase.h"
 
-using namespace synth::cells;
+using namespace infocell::cells;
 
-namespace synth {
+namespace infocell {
 namespace cells {
 namespace test {
 
@@ -90,4 +90,4 @@ std::unique_ptr<brain::Brain> CellTest::m_kb;
 
 } // namespace test
 } // namespace cells
-} // namespace synth
+} // namespace infocell

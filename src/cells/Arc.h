@@ -1,7 +1,7 @@
 #include "Brain.h"
 #include "Cells.h"
 
-namespace synth {
+namespace infocell {
 namespace cells {
 namespace hybrid {
 namespace arc {
@@ -64,4 +64,4 @@ protected:
 } // namespace arc
 } // namespace hybrid
 } // namespace cells
-} // namespace synth
+} // namespace infocell

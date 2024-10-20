@@ -6,7 +6,7 @@
 #include "StructPrinter.h"
 #include "ValuePrinter.h"
 
-namespace synth {
+namespace infocell {
 namespace cells {
 namespace test {
 
@@ -58,4 +58,4 @@ protected:
 
 } // namespace test
 } // namespace cells
-} // namespace synth
+} // namespace infocell

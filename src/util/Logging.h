@@ -6,7 +6,7 @@
 
 #include "LogMessage.h"
 
-namespace synth {
+namespace infocell {
 
 class Logger;
 class LoggerStream
@@ -50,4 +50,4 @@ public:
 
 extern Logger* loggerPtr;
 
-} // namespace synth
+} // namespace infocell

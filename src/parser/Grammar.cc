@@ -1,7 +1,7 @@
 #include <parser/Rule.h>
 #include "Grammar.h"
 
-namespace synth {
+namespace infocell {
 
 // =====================================================================================================================
 Grammar::Grammar(const std::string& p_name) :
@@ -93,4 +93,4 @@ const Rule* Grammar::GetStringRule(const char* p_str)
     return strRule;
 }
 
-} // namespace synth
+} // namespace infocell

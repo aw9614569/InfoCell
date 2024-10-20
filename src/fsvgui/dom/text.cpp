@@ -142,8 +142,8 @@ std::shared_ptr<Text> Text::fontColor(Color color)
 
 
 std::map<std::string, const std::string> Text::m_fontPaths = {
-    { "Arial", SYNTH_TTF_FONT_PATH "arial.ttf" },
-    { "Times New Roman", SYNTH_TTF_FONT_PATH "times.ttf" }
+    { "Arial", INFOCELL_TTF_FONT_PATH "arial.ttf" },
+    { "Times New Roman", INFOCELL_TTF_FONT_PATH "times.ttf" }
 };
 
 class VText : public Node

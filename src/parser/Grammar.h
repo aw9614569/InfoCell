@@ -7,7 +7,7 @@
 
 #include <parser/Rule.h>
 
-namespace synth {
+namespace infocell {
 
 class Grammar
 {
@@ -79,4 +79,4 @@ protected:
     friend class Rule;
 };
 
-} // namespace synth
+} // namespace infocell

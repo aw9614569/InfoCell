@@ -6,7 +6,7 @@
 
 using namespace fsvgui;
 
-namespace synth {
+namespace infocell {
 namespace cells {
 namespace svg {
 
@@ -193,4 +193,4 @@ Screen Printer::processResult()
 
 } // namespace svg
 } // namespace cells
-} // namespace synth
+} // namespace infocell
