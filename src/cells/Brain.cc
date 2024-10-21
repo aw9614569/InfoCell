@@ -5785,19 +5785,25 @@ void Brain::createArcSolver()
     auto& ShapeEdgeNodeStruct
         = arcScope.add<Struct>("ShapeEdgeNode")
               .members(
+                  member("edge", "ShapeEdge"),
+//                  member("section", "ShapeEdgeSection"),
                   member("from", "ShapePoint"),
                   member("direction", "Directions"),
-                  member("rightSide", "ShapeEdge"),
-                  member("leftSide", "ShapeEdge"));
+                  member("next", "ShapeEdgeNode"),
+                  member("previous", "ShapeEdgeNode"));
 
     // struct ShapeEdge
     auto& ShapeEdgeJointStruct
         = arcScope.add<Struct>("ShapeEdgeJoint")
               .members(
-                  member("up", "ShapeEdgeNode"),
-                  member("down", "ShapeEdgeNode"),
-                  member("left", "ShapeEdgeNode"),
-                  member("right", "ShapeEdgeNode"));
+                  member("upLeft", "ShapeEdgeNode"),
+                  member("upRight", "ShapeEdgeNode"),
+                  member("downLeft", "ShapeEdgeNode"),
+                  member("downRight", "ShapeEdgeNode"),
+                  member("leftUp", "ShapeEdgeNode"),
+                  member("leftDown", "ShapeEdgeNode"),
+                  member("rightUp", "ShapeEdgeNode"),
+                  member("rightDown", "ShapeEdgeNode"));
 
     // struct ShapePoint
     auto& shapePointStruct

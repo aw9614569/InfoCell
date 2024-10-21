@@ -89,10 +89,9 @@ public:
         calculateEdgesForShapes();
         validateEdgePoints();
         drawSvgFromShapePointEdgeJoints();
-        sortEdges();
         printShapeIdGrid();
         printShapeIdGridAsJson();
-            //        printEdges();
+//        printEdges();
         printShapeRelations();
     }
 
@@ -496,76 +495,133 @@ public:
                 svgFile << fmt::format("    <rect x=\"{}\" y=\"{}\" width=\"20\" height=\"20\" fill=\"#ffe6cc\" stroke=\"#d79b00\"/>\n", pointX * 120, pointY * 120);
                 svgFile << fmt::format("    <text x=\"{}\" y=\"{}\" class=\"pointCoordinateText\">({}, {})</text>\n", 1 + pointX * 120, 8 + pointY * 120, pointX, pointY);
 
-                if (edgeJoint.has("right")) {
-                    svgFile << fmt::format("      <!-- edgeJoint right -->\n");
-                    CellI& rightEdgeNode = edgeJoint["right"];
-                    if (rightEdgeNode.has("rightSide")) {
-                        int color = static_cast<Number&>(rightEdgeNode["rightSide"]["shape"]["color"]).value();
-                        svgFile << fmt::format("      <!-- rightSide -->\n");
-                        svgFile << fmt::format("      <text x=\"{}\" y=\"{}\" fill=\"{}\" class=\"arrowText\">{}</text>\n", 30 + pointX * 120, 18 + pointY * 120, arcColors[color], rightEdgeNode["rightSide"]["id"].label());
-                        svgFile << fmt::format("      <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", 20 + pointX * 120, 20 + pointY * 120, 50 + pointX * 120, 20 + pointY * 120, arcColors[color]);
+                auto drawArrow = [this, &svgFile](int pointX, int pointY, CellI& edgeJoint, const std::string& edgeJointSlotName) {
+                    const int arrowLineLength = 30;
+                    const int arrowLength = 3;
+
+                    CellI& edgeNode = edgeJoint[edgeJointSlotName];
+                    CellI& direction = edgeNode["direction"];
+                    int color        = static_cast<Number&>(edgeNode["edge"]["shape"]["color"]).value();
+                    std::string debugText;
+
+                    int startX    = -1;
+                    int startY    = -1;
+                    int lineFromX = -1;
+                    int lineFromY = -1;
+                    int lineToX   = -1;
+                    int lineToY   = -1;
+
+                    int textFromX = -1;
+                    int textFromY = -1;
+
+                    if (edgeJointSlotName == "rightDown") {
+                        debugText = "right down";
+                        textFromX = 30 + pointX * 120;
+                        textFromY = 18 + pointY * 120;
+                        lineFromX = 20 + pointX * 120;
+                        lineFromY = 20 + pointY * 120;
+                        lineToX   = lineFromX + arrowLineLength;
+                        lineToY   = lineFromY;
+                    } else if (edgeJointSlotName == "rightUp") {
+                        debugText = "right up";
+                        textFromX = 30 + pointX * 120;
+                        textFromY = -2 + pointY * 120;
+                        lineFromX = 20 + pointX * 120;
+                        lineFromY = pointY * 120;
+                        lineToX   = lineFromX + arrowLineLength;
+                        lineToY   = lineFromY;
+                    } else if (edgeJointSlotName == "leftDown") {
+                        debugText = "left down";
+                        textFromX = -20 + pointX * 120;
+                        textFromY = 18 + pointY * 120;
+                        lineFromX = -30 + pointX * 120;
+                        lineFromY = 20 + pointY * 120;
+                        lineToX   = lineFromX + arrowLineLength;
+                        lineToY   = lineFromY;
+                    } else if (edgeJointSlotName == "leftUp") {
+                        debugText = "left up";
+                        textFromX = -20 + pointX * 120;
+                        textFromY = -2 + pointY * 120;
+                        lineFromX = -30 + pointX * 120;
+                        lineFromY = pointY * 120;
+                        lineToX   = lineFromX + arrowLineLength;
+                        lineToY   = lineFromY;
+                    } else if (edgeJointSlotName == "downLeft") {
+                        debugText = "down left";
+                        startX    = pointX * 120;
+                        startY    = 20 + pointY * 120;
+                        textFromX = 15;
+                        textFromY = -2;
+                        lineFromX = 0;
+                        lineFromY = 0;
+                        lineToX   = arrowLineLength;
+                        lineToY   = 0;
+                    } else if (edgeJointSlotName == "downRight") {
+                        debugText = "down right";
+                        startX    = 20 + pointX * 120;
+                        startY    = 20 + pointY * 120;
+                        textFromX = 15;
+                        textFromY = -2;
+                        lineFromX = 0;
+                        lineFromY = 0;
+                        lineToX   = arrowLineLength;
+                        lineToY   = 0;
+                    } else if (edgeJointSlotName == "upLeft") {
+                        debugText = "up left";
+                        startX    = pointX * 120;
+                        startY    = -30 + pointY * 120;
+                        textFromX = 10;
+                        textFromY = -2;
+                        lineFromX = 0;
+                        lineFromY = 0;
+                        lineToX   = arrowLineLength;
+                        lineToY   = 0;
+                    } else if (edgeJointSlotName == "upRight") {
+                        debugText = "up right";
+                        startX    = 20 + pointX * 120;
+                        startY    = -30 + pointY * 120;
+                        textFromX = 10;
+                        textFromY = -2;
+                        lineFromX = 0;
+                        lineFromY = 0;
+                        lineToX   = arrowLineLength;
+                        lineToY   = 0;
                     }
-                    if (rightEdgeNode.has("leftSide")) {
-                        int color = static_cast<Number&>(rightEdgeNode["leftSide"]["shape"]["color"]).value();
-                        svgFile << fmt::format("      <!-- leftSide -->\n");
-                        svgFile << fmt::format("      <text x=\"{}\" y=\"{}\" fill=\"{}\" class=\"arrowText\">{}</text>\n", 30 + pointX * 120, -2 + pointY * 120, arcColors[color], rightEdgeNode["leftSide"]["id"].label());
-                        svgFile << fmt::format("      <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", 20 + pointX * 120, pointY * 120, 50 + pointX * 120, pointY * 120, arcColors[color]);
+                    if (&direction == &DirectionLeftEV && (edgeJointSlotName == "rightDown" || edgeJointSlotName == "rightUp")) {
+                        lineFromX += arrowLength;
+                        lineToX += arrowLength;
                     }
-                }
-                if (edgeJoint.has("down")) {
-                    svgFile << fmt::format("      <!-- edgeJoint down -->\n");
-                    CellI& downEdgeNode = edgeJoint["down"];
-                    if (downEdgeNode.has("rightSide")) {
-                        int color = static_cast<Number&>(downEdgeNode["rightSide"]["shape"]["color"]).value();
-                        svgFile << fmt::format("      <!-- rightSide -->\n");
-                        svgFile << fmt::format("      <g transform=\"translate({} {}) rotate(90)\">\n", pointX * 120, 20 + pointY * 120, 20 + pointX * 120, 50 + pointY * 120, arcColors[color]);
-                        svgFile << fmt::format("        <text x=\"15\" y=\"-2\" fill=\"{}\" class=\"arrowText\">{}</text>\n", arcColors[color], downEdgeNode["rightSide"]["id"].label());
-                        svgFile << fmt::format("        <line x1=\"0\" y1=\"0\" x2=\"30\" y2=\"0\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", arcColors[color]);
+                    if (&direction == &DirectionRightEV && (edgeJointSlotName == "leftDown" || edgeJointSlotName == "leftUp")) {
+                        lineFromX -= arrowLength;
+                        lineToX -= arrowLength;
+                    }
+                    if (&direction == &DirectionUpEV && (edgeJointSlotName == "downLeft" || edgeJointSlotName == "downRight")) {
+                        lineFromX += 3;
+                        lineToX += 3;
+                    }
+                    if (&direction == &DirectionDownEV && (edgeJointSlotName == "upLeft" || edgeJointSlotName == "upRight")) {
+                        lineFromX -= 3;
+                        lineToX -= 3;
+                    }
+                    if (&direction == &DirectionLeftEV || &direction == &DirectionUpEV) {
+                        std::swap(lineFromX, lineToX);
+                        std::swap(lineFromY, lineToY);
+                    }
+                    svgFile << fmt::format("      <!-- edgeJoint {} -->\n", debugText);
+                    if (&direction == &DirectionRightEV || &direction == &DirectionLeftEV) {
+                        svgFile << fmt::format("      <text x=\"{}\" y=\"{}\" fill=\"{}\" class=\"arrowText\">{}</text>\n", textFromX, textFromY, arcColors[color], edgeNode["edge"]["id"].label());
+                        svgFile << fmt::format("      <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", lineFromX, lineFromY, lineToX, lineToY, arcColors[color]);
+                    } else {
+                        svgFile << fmt::format("      <g transform=\"translate({} {}) rotate(90)\">\n", startX, startY);
+                        svgFile << fmt::format("        <text x=\"{}\" y=\"{}\" fill=\"{}\" class=\"arrowText\">{}</text>\n", textFromX, textFromY, arcColors[color], edgeNode["edge"]["id"].label());
+                        svgFile << fmt::format("        <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", lineFromX, lineFromY, lineToX, lineToY, arcColors[color]);
                         svgFile << fmt::format("      </g>\n");
                     }
-                    if (downEdgeNode.has("leftSide")) {
-                        int color = static_cast<Number&>(downEdgeNode["leftSide"]["shape"]["color"]).value();
-                        svgFile << fmt::format("      <!-- leftSide -->\n");
-                        svgFile << fmt::format("      <g transform=\"translate({} {}) rotate(90)\">\n", 20 + pointX * 120, 20 + pointY * 120, 20 + pointX * 120, 50 + pointY * 120, arcColors[color]);
-                        svgFile << fmt::format("        <text x=\"15\" y=\"-2\" fill=\"{}\" class=\"arrowText\">{}</text>\n", arcColors[color], downEdgeNode["leftSide"]["id"].label());
-                        svgFile << fmt::format("        <line x1=\"0\" y1=\"0\" x2=\"30\" y2=\"0\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", arcColors[color]);
-                        svgFile << fmt::format("      </g>\n");
-                    }
-                }
-                if (edgeJoint.has("left")) {
-                    CellI& leftEdgeNode = edgeJoint["left"];
-                    svgFile << fmt::format("      <!-- edgeJoint left -->\n");
-                    if (leftEdgeNode.has("rightSide")) {
-                        int color = static_cast<Number&>(leftEdgeNode["rightSide"]["shape"]["color"]).value();
-                        svgFile << fmt::format("      <!-- rightSide -->\n");
-                        svgFile << fmt::format("      <text x=\"{}\" y=\"{}\" fill=\"{}\" class=\"arrowText\">{}</text>\n", -20 + pointX * 120, 18 + pointY * 120, arcColors[color], leftEdgeNode["rightSide"]["id"].label());
-                        svgFile << fmt::format("      <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", -30 + pointX * 120, 20 + pointY * 120, pointX * 120, 20 + pointY * 120, arcColors[color]);
-                    }
-                    if (leftEdgeNode.has("leftSide")) {
-                        int color = static_cast<Number&>(leftEdgeNode["leftSide"]["shape"]["color"]).value();
-                        svgFile << fmt::format("      <!-- leftSide -->\n");
-                        svgFile << fmt::format("      <text x=\"{}\" y=\"{}\" fill=\"{}\" class=\"arrowText\">{}</text>\n", -20 + pointX * 120, -2 + pointY * 120, arcColors[color], leftEdgeNode["leftSide"]["id"].label());
-                        svgFile << fmt::format("      <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", -30 + pointX * 120, pointY * 120, pointX * 120, pointY * 120, arcColors[color]);
-                    }
-                }
-                if (edgeJoint.has("up")) {
-                    svgFile << fmt::format("      <!-- edgeJoint up -->\n");
-                    CellI& upEdgeNode = edgeJoint["up"];
-                    if (upEdgeNode.has("rightSide")) {
-                        int color = static_cast<Number&>(upEdgeNode["rightSide"]["shape"]["color"]).value();
-                        svgFile << fmt::format("      <!-- rightSide -->\n");
-                        svgFile << fmt::format("      <g transform=\"translate({} {}) rotate(90)\">\n", pointX * 120, -30 + pointY * 120, arcColors[color]);
-                        svgFile << fmt::format("        <text x=\"10\" y=\"-2\" fill=\"{}\" class=\"arrowText\">{}</text>\n", arcColors[color], upEdgeNode["rightSide"]["id"].label());
-                        svgFile << fmt::format("        <line x1=\"0\" y1=\"0\" x2=\"30\" y2=\"0\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", arcColors[color]);
-                        svgFile << fmt::format("      </g>\n");
-                    }
-                    if (upEdgeNode.has("leftSide")) {
-                        int color = static_cast<Number&>(upEdgeNode["leftSide"]["shape"]["color"]).value();
-                        svgFile << fmt::format("      <!-- leftSide -->\n");
-                        svgFile << fmt::format("      <g transform=\"translate({} {}) rotate(90)\">\n", 20 + pointX * 120, -30 + pointY * 120, arcColors[color]);
-                        svgFile << fmt::format("        <text x=\"10\" y=\"-2\" fill=\"{}\" class=\"arrowText\">{}</text>\n", arcColors[color], upEdgeNode["leftSide"]["id"].label());
-                        svgFile << fmt::format("        <line x1=\"0\" y1=\"0\" x2=\"30\" y2=\"0\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", arcColors[color]);
-                        svgFile << fmt::format("      </g>\n");
+                };
+
+                for (const auto& direction : { "rightDown", "rightUp", "leftDown", "leftUp", "downLeft", "downRight", "upLeft", "upRight" }) {
+                    if (edgeJoint.has(direction)) {
+                        drawArrow(pointX, pointY, edgeJoint, direction);
                     }
                 }
             }
@@ -858,7 +914,7 @@ For leftToRight direction edge from point middle
  0🡯 0🡮   0🡯 0🡮   0🡯 0🡮   0🡯 0🡮  1🡯 0🡮   1🡯 0🡮   1🡯 0🡮   1🡯 0🡮   0🡯 1🡮  0🡯 1🡮   0🡯 1🡮   0🡯 1🡮   1🡯 1🡮   1🡯 1🡮  1🡯 1🡮   1🡯 1🡮
  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐
  │  │  │  │██│  │  │  │██│  │██│██│  │  │  │  │██│  │  │  │██│  │██│██│  │  │  │  │██│  │  │  │██│  │██│██│  │  │  │  │██│  │  │  │██│  │██│██│
- ├──●─►:  ├──●─►:  ├──●─►:  ├──●─►:  ├──●─►:  ├──●─►:  ├──●─►:  ├──●─►:  ├──●─►:  ├──●─►:  ├──●─►:  ├──●─►:  ├──●─►:  ├──●─►:  ├──●─►:  ├──●─►:
+ ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►
  │  │  │  │  │  │  │  │  │  │  │  │  │██│  │  │██│  │  │██│  │  │██│  │  │  │██│  │  │██│  │  │██│  │  │██│  │██│██│  │██│██│  │██│██│  │██│██│
  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘
 #endif
@@ -898,6 +954,7 @@ For leftToRight direction edge from point middle
                     edges.add(newEdge["id"], newEdge);
 
                     CellI* currentShapePointPtr = &shapePoint;
+                    CellI* previousEdgeNodePtr  = nullptr;
                     bool firstIteration         = true;
 
                     while ((currentShapePointPtr != &shapePoint) || firstIteration) {
@@ -909,32 +966,32 @@ For leftToRight direction edge from point middle
                             bool hasDownRight = shapePoint.has("downRightPixel") && (&shapePoint["downRightPixel"]["shape"] == &currentShape); // 🡮
 
                             if (hasUpRight && hasDownRight) {
-                                // .--^--.
-                                // |  |XX|
-                                // .-->--.
-                                // |XX|XX|
-                                // .--.--.
+                                // ┌──▲──┐
+                                // │  │██│
+                                // ∙──►──┤
+                                // │██│██│
+                                // └──┴──┘
                                 processingDirectionPtr = &DirectionUpEV;
                             } else if (hasUpRight && !hasDownRight) {
-                                // .--^--.
-                                // |  |XX|
-                                // .-->--.
-                                // |XX|  |
-                                // .--.--.
+                                // ┌──▲──┐
+                                // │  │██│
+                                // ∙──►──┤
+                                // │██│  │
+                                // └──┴──┘
                                 processingDirectionPtr = &DirectionUpEV;
                             } else if (!hasUpRight && hasDownRight) {
-                                // .--.--.
-                                // |  |  |
-                                // .-->-->
-                                // |XX|XX|
-                                // .--.--.
+                                // ┌──┬──┐
+                                // │  │  │
+                                // ∙──►──►
+                                // │██│██│
+                                // └──┴──┘
                                 processingDirectionPtr = &DirectionRightEV;
                             } else if (!hasUpRight && !hasDownRight) {
-                                // .--.--.
-                                // |  |  |
-                                // .-->--.
-                                // |XX|  |
-                                // .--v--.
+                                // ┌──┬──┐
+                                // │  │  │
+                                // ∙──►──┤
+                                // │██│  │
+                                // └──▼──┘
                                 processingDirectionPtr = &DirectionDownEV;
                             }
                         } else if (processingDirectionPtr == &DirectionLeftEV) {
@@ -942,32 +999,32 @@ For leftToRight direction edge from point middle
                             bool hasDownLeft = shapePoint.has("downLeftPixel") && (&shapePoint["downLeftPixel"]["shape"] == &currentShape); // 🡯
 
                             if (hasUpLeft && hasDownLeft) {
-                                // .--.--.
-                                // |XX|XX|
-                                // .--<--.
-                                // |XX|  |
-                                // .--v--.
+                                // ┌──┬──┐
+                                // │██│██│
+                                // ├──◄──∙
+                                // │██│  │
+                                // └──▼──┘
                                 processingDirectionPtr = &DirectionDownEV;
                             } else if (hasUpLeft && !hasDownLeft) {
-                                // .--.--.
-                                // |XX|XX|
-                                // <--<--.
-                                // |  |  |
-                                // .--.--.
+                                // ┌──┬──┐
+                                // │██│██│
+                                // ◄──◄──∙
+                                // │  │  │
+                                // └──┴──┘
                                 processingDirectionPtr = &DirectionLeftEV;
                             } else if (!hasUpLeft && hasDownLeft) {
-                                // .--.--.
-                                // |  |XX|
-                                // .--<--.
-                                // |XX|  |
-                                // .--v--.
+                                // ┌──┬──┐
+                                // │  │██│
+                                // ├──◄──∙
+                                // │██│  │
+                                // └──▼──┘
                                 processingDirectionPtr = &DirectionDownEV;
                             } else if (!hasUpLeft && !hasDownLeft) {
-                                // .--^--.
-                                // |  |XX|
-                                // .--<--.
-                                // |  |  |
-                                // .--.--.
+                                // ┌──▲──┐
+                                // │  │██│
+                                // ├──◄──∙
+                                // │  │  │
+                                // └──┴──┘
                                 processingDirectionPtr = &DirectionUpEV;
                             }
                         } else if (processingDirectionPtr == &DirectionUpEV) {
@@ -975,32 +1032,32 @@ For leftToRight direction edge from point middle
                             bool hasUpRight = shapePoint.has("upRightPixel") && (&shapePoint["upRightPixel"]["shape"] == &currentShape); // 🡭
 
                             if (hasUpLeft && hasUpRight) {
-                                // .--.--.
-                                // |XX|XX|
-                                // <--^--.
-                                // |  |XX|
-                                // .--.--.
+                                // ┌──┬──┐
+                                // │██│██│
+                                // ◄──▲──┤
+                                // │  │██│
+                                // └──∙──┘
                                 processingDirectionPtr = &DirectionLeftEV;
                             } else if (hasUpLeft && !hasUpRight) {
-                                // .--.--.
-                                // |XX|  |
-                                // <--^--.
-                                // |  |XX|
-                                // .--.--.
+                                // ┌──┬──┐
+                                // │██│  │
+                                // ◄──▲──┤
+                                // │  │██│
+                                // └──∙──┘
                                 processingDirectionPtr = &DirectionLeftEV;
                             } else if (!hasUpLeft && hasUpRight) {
-                                // .--^--.
-                                // |  |XX|
-                                // .--^--.
-                                // |  |XX|
-                                // .--.--.
+                                // ┌──▲──┐
+                                // │  │██│
+                                // ├──▲──┤
+                                // │  │██│
+                                // └──∙──┘
                                 processingDirectionPtr = &DirectionUpEV;
                             } else if (!hasUpLeft && !hasUpRight) {
-                                // .--.--.
-                                // |  |  |
-                                // .--^-->
-                                // |  |XX|
-                                // .--.--.
+                                // ┌──┬──┐
+                                // │  │  │
+                                // ├──▲──►
+                                // │  │██│
+                                // └──∙──┘
                                 processingDirectionPtr = &DirectionRightEV;
                             }
                         } else if (processingDirectionPtr == &DirectionDownEV) {
@@ -1008,25 +1065,25 @@ For leftToRight direction edge from point middle
                             bool hasDownRight = shapePoint.has("downRightPixel") && (&shapePoint["downRightPixel"]["shape"] == &currentShape); // 🡮
 
                             if (hasDownLeft && hasDownRight) {
-                                // .--.--.
-                                // |XX|  |
-                                // .--v-->
-                                // |XX|XX|
-                                // .--.--.
+                                // ┌──∙──┐
+                                // │██│  │
+                                // ├──▼──►
+                                // │██│██│
+                                // └──┴──┘
                                 processingDirectionPtr = &DirectionRightEV;
                             } else if (hasDownLeft && !hasDownRight) {
-                                // .--.--.
-                                // |XX|  |
-                                // .--v--.
-                                // |XX|  |
-                                // .--v--.
+                                // ┌──∙──┐
+                                // │██│  │
+                                // ├──▼──┤
+                                // │██│  │
+                                // └──▼──┘
                                 processingDirectionPtr = &DirectionDownEV;
                             } else if (!hasDownLeft && hasDownRight) {
-                                // .--.--.
-                                // |XX|  |
-                                // .--v-->
-                                // |  |XX|
-                                // .--.--.
+                                // ┌──∙──┐
+                                // │██│  │
+                                // ├──▼──►
+                                // │  │██│
+                                // └──┴──┘
                                 processingDirectionPtr = &DirectionRightEV;
                             } else if (!hasDownLeft && !hasDownRight) {
                                 // .--.--.
@@ -1034,29 +1091,35 @@ For leftToRight direction edge from point middle
                                 // <--v--.
                                 // |  |  |
                                 // .--.--.
+                                // ┌──∙──┐
+                                // │██│  │
+                                // ◄──▼──┤
+                                // │  │  │
+                                // └──┴──┘
                                 processingDirectionPtr = &DirectionLeftEV;
                             }
                         }
-                        const char* toDirectionStr = "";
+                        const char* toDirectionStr             = "";
+                        const char* toEdgeDirectionStr         = "";
+                        const char* toOppositeEdgeDirectionStr = "";
                         if (processingDirectionPtr == &DirectionRightEV) {
-                            toDirectionStr = "right";
+                            toDirectionStr             = "right";
+                            toEdgeDirectionStr         = "rightDown";
+                            toOppositeEdgeDirectionStr = "leftDown";
                         } else if (processingDirectionPtr == &DirectionLeftEV) {
-                            toDirectionStr = "left";
+                            toDirectionStr             = "left";
+                            toEdgeDirectionStr         = "leftUp";
+                            toOppositeEdgeDirectionStr = "rightUp";
                         } else if (processingDirectionPtr == &DirectionUpEV) {
-                            toDirectionStr = "up";
+                            toDirectionStr             = "up";
+                            toEdgeDirectionStr         = "upRight";
+                            toOppositeEdgeDirectionStr = "downRight";
                         } else if (processingDirectionPtr == &DirectionDownEV) {
-                            toDirectionStr = "down";
+                            toDirectionStr             = "down";
+                            toEdgeDirectionStr         = "downLeft";
+                            toOppositeEdgeDirectionStr = "upLeft";
                         }
-                        const char* oppositeDirectionStr = "";
-                        if (processingDirectionPtr == &DirectionRightEV) {
-                            oppositeDirectionStr = "left";
-                        } else if (processingDirectionPtr == &DirectionLeftEV) {
-                            oppositeDirectionStr = "right";
-                        } else if (processingDirectionPtr == &DirectionUpEV) {
-                            oppositeDirectionStr = "down";
-                        } else if (processingDirectionPtr == &DirectionDownEV) {
-                            oppositeDirectionStr = "up";
-                        }
+
                         CellI& toShapePoint = shapePoint[toDirectionStr];
 
                         // from joint
@@ -1070,39 +1133,22 @@ For leftToRight direction edge from point middle
                         CellI& fromEdgeJoint = *fromEdgeJointPtr;
 
                         CellI* edgeNodePtr      = nullptr;
-                        if (fromEdgeJoint.has(toDirectionStr)) {
-                            CellI& oldEdgeNode = fromEdgeJoint[toDirectionStr];
-                            if (processingDirectionPtr == &DirectionRightEV || processingDirectionPtr == &DirectionDownEV) {
-                                if (oldEdgeNode.has("rightSide")) {
-                                    ERROR(edge, "Edge processing error> oldEdgeNode.has(\"rightSide\")");
-                                    throw "Edge processing error";
-                                }
-                            } else if (processingDirectionPtr == &DirectionLeftEV || processingDirectionPtr == &DirectionUpEV) {
-                                if (oldEdgeNode.has("leftSide")) {
-                                    ERROR(edge, "Edge processing error> oldEdgeNode.has(\"leftSide\")");
-                                    throw "Edge processing error";
-                                }
-                            }
-                            edgeNodePtr = &oldEdgeNode;
+                        if (fromEdgeJoint.has(toEdgeDirectionStr)) {
+                            ERROR(edge, "Edge processing error: edgeNode already exists!");
+                            throw "Edge processing error";
                         } else {
                             CellI& newEdgeNode = *new Object(kb, ShapeEdgeNodeStruct);
-                            if (processingDirectionPtr == &DirectionRightEV || processingDirectionPtr == &DirectionDownEV) {
-                                newEdgeNode.set("from", shapePoint);
-                                newEdgeNode.set("direction", *processingDirectionPtr);
-                                newEdgeNode.set("rightSide", newEdge);
-                            } else {
-                                newEdgeNode.set("from", toShapePoint);
-                                newEdgeNode.set("direction", processingDirectionPtr == &DirectionLeftEV ? DirectionRightEV : DirectionDownEV);
-                                newEdgeNode.set("leftSide", newEdge);
+                            newEdgeNode.set("edge", newEdge);
+                            newEdgeNode.set("from", shapePoint);
+                            newEdgeNode.set("direction", *processingDirectionPtr);
+                            if (previousEdgeNodePtr) {
+                                CellI& previousEdgeNode = *previousEdgeNodePtr;
+                                previousEdgeNode.set("next", newEdgeNode);
+                                newEdgeNode.set("previous", previousEdgeNode);
                             }
                             edgeNodePtr = &newEdgeNode;
                         }
                         CellI& edgeNode = *edgeNodePtr;
-                        if (processingDirectionPtr == &DirectionRightEV || processingDirectionPtr == &DirectionDownEV) {
-                            edgeNode.set("rightSide", newEdge);
-                        } else {
-                            edgeNode.set("leftSide", newEdge);
-                        }
 
                         edgeNodes.add(edgeNode);
 
@@ -1118,8 +1164,8 @@ For leftToRight direction edge from point middle
                         CellI& toEdgeJoint = *toEdgeJointPtr;
                         currentShapePointPtr = &toShapePoint;
 
-                        fromEdgeJoint.set(toDirectionStr, edgeNode);
-                        toEdgeJoint.set(oppositeDirectionStr, edgeNode);
+                        fromEdgeJoint.set(toEdgeDirectionStr, edgeNode);
+                        toEdgeJoint.set(toOppositeEdgeDirectionStr, edgeNode);
                     }
 
                     processingMode = ProcessingMode::Searching;
@@ -1140,6 +1186,7 @@ For leftToRight direction edge from point middle
                     edges.add(newEdge["id"], newEdge);
 
                     CellI* currentShapePointPtr = &shapePoint;
+                    CellI* previousEdgeNodePtr  = nullptr;
                     bool firstIteration         = true;
 
                     while ((currentShapePointPtr != &shapePoint) || firstIteration) {
@@ -1151,42 +1198,47 @@ For leftToRight direction edge from point middle
                             bool hasDownRight = shapePoint.has("downRightPixel") && (&shapePoint["downRightPixel"]["shape"] == &currentShape); // 🡮
 
                             if (hasUpRight && hasDownRight) {
-                                // .--.--.
-                                // |XX|XX|
-                                // .-->--.
-                                // |  |XX|
-                                // .--v--.
+                                // ┌──┬──┐
+                                // │██│██│
+                                // ∙──►──┤
+                                // │  │██│
+                                // └──▼──┘
                                 processingDirectionPtr = &DirectionDownEV;
                             } else if (hasUpRight && !hasDownRight) {
-                                // .--.--.
-                                // |XX|XX|
-                                // .-->-->
-                                // |  |  |
-                                // .--.--.
+                                // ┌──┬──┐
+                                // │██│██│
+                                // ∙──►──►
+                                // │  │  │
+                                // └──┴──┘
                                 processingDirectionPtr = &DirectionRightEV;
                             } else if (!hasUpRight && hasDownRight) {
-                                // .--^--.
-                                // |XX|  |
-                                // .-->--.
-                                // |  |XX|
-                                // .--.--.
+                                // ┌──▲──┐
+                                // │██│  │
+                                // ∙──►──┤
+                                // │  │██│
+                                // └──┴──┘
                                 processingDirectionPtr = &DirectionUpEV;
                                 if (shapePoint.has("edgeJoint")) {
-                                    CellI& fromEdgeJointPtr = shapePoint["edgeJoint"];
-                                    if (shapePoint["edgeJoint"].has("up") && shapePoint["edgeJoint"].has("right")) {
-                                        CellI& upEdgeNode   = shapePoint["edgeJoint"]["up"];
-                                        CellI& rightEdgeNode = shapePoint["edgeJoint"]["right"];
-                                        if (upEdgeNode.has("rightSide") && (&upEdgeNode["rightSide"]["kind"] == &ExternalEdgeEV) && rightEdgeNode.has("rightSide") && (&rightEdgeNode["rightSide"]["kind"] == &ExternalEdgeEV)) {
+                                    CellI& edgeJoint = shapePoint["edgeJoint"];
+                                    if (edgeJoint.has("upLeft") && edgeJoint.has("rightDown")) {
+                                        CellI& upEdgeNode   = edgeJoint["upLeft"];
+                                        CellI& rightEdgeNode = edgeJoint["rightDown"];
+                                        if ((&upEdgeNode["edge"]["kind"] == &ExternalEdgeEV) && (&rightEdgeNode["edge"]["kind"] == &ExternalEdgeEV)) {
+                                            // ┌──┬──┐
+                                            // │██e  │
+                                            // ∙──►e─┤
+                                            // │  │██│
+                                            // └──▼──┘
                                             processingDirectionPtr = &DirectionDownEV;
                                         }
                                     }
                                 }
                             } else if (!hasUpRight && !hasDownRight) {
-                                // .--^--.
-                                // |XX|  |
-                                // .-->--.
-                                // |  |  |
-                                // .--.--.
+                                // ┌──▲──┐
+                                // │██│  │
+                                // ∙──►──┤
+                                // │  │  │
+                                // └──┴──┘
                                 processingDirectionPtr = &DirectionUpEV;
                             }
                         } else if (processingDirectionPtr == &DirectionLeftEV) {
@@ -1194,42 +1246,47 @@ For leftToRight direction edge from point middle
                             bool hasDownLeft = shapePoint.has("downLeftPixel") && (&shapePoint["downLeftPixel"]["shape"] == &currentShape); // 🡯
 
                             if (hasUpLeft && hasDownLeft) {
-                                // .--^--.
-                                // |XX|  |
-                                // .--<--.
-                                // |XX|XX|
-                                // .--.--.
+                                // ┌──▲──┐
+                                // │██│  │
+                                // ├──◄──∙
+                                // │██│██│
+                                // └──┴──┘
                                 processingDirectionPtr = &DirectionUpEV;
                             } else if (hasUpLeft && !hasDownLeft) {
-                                // .--.--.
-                                // |XX|  |
-                                // .--<--.
-                                // |  |XX|
-                                // .--v--.
+                                // ┌──┬──┐
+                                // │██│  │
+                                // ├──◄──∙
+                                // │  │██│
+                                // └──▼──┘
                                 processingDirectionPtr = &DirectionDownEV;
                                 if (shapePoint.has("edgeJoint")) {
-                                    CellI& fromEdgeJointPtr = shapePoint["edgeJoint"];
-                                    if (shapePoint["edgeJoint"].has("down") && shapePoint["edgeJoint"].has("left")) {
-                                        CellI& downEdgeNode  = shapePoint["edgeJoint"]["down"];
-                                        CellI& leftEdgeNode = shapePoint["edgeJoint"]["left"];
-                                        if (downEdgeNode.has("leftSide") && (&downEdgeNode["leftSide"]["kind"] == &ExternalEdgeEV) && leftEdgeNode.has("leftSide") && (&leftEdgeNode["leftSide"]["kind"] == &ExternalEdgeEV)) {
+                                    CellI& edgeJoint = shapePoint["edgeJoint"];
+                                    if (edgeJoint.has("leftUp") && edgeJoint.has("downRight")) {
+                                        CellI& downEdgeNode  = edgeJoint["downRight"];
+                                        CellI& leftEdgeNode = edgeJoint["leftUp"];
+                                        if ((&downEdgeNode["edge"]["kind"] == &ExternalEdgeEV) && (&leftEdgeNode["edge"]["kind"] == &ExternalEdgeEV)) {
+                                            // ┌──▲──┐
+                                            // │██│  │
+                                            // ├─e◄──∙
+                                            // │  e██│
+                                            // └──┴──┘
                                             processingDirectionPtr = &DirectionUpEV;
                                         }
                                     }
                                 }
                             } else if (!hasUpLeft && hasDownLeft) {
-                                // .--.--.
-                                // |  |  |
-                                // <--<--.
-                                // |XX|XX|
-                                // .--.--.
+                                // ┌──┬──┐
+                                // │  │  │
+                                // ◄──◄──∙
+                                // │██│██│
+                                // └──┴──┘
                                 processingDirectionPtr = &DirectionLeftEV;
                             } else if (!hasUpLeft && !hasDownLeft) {
-                                // .--.--.
-                                // |  |  |
-                                // .--<--.
-                                // |  |XX|
-                                // .--v--.
+                                // ┌──┬──┐
+                                // │  │  │
+                                // ├──◄──∙
+                                // │  │██│
+                                // └──▼──┘
                                 processingDirectionPtr = &DirectionDownEV;
                             }
                         } else if (processingDirectionPtr == &DirectionUpEV) {
@@ -1237,42 +1294,47 @@ For leftToRight direction edge from point middle
                             bool hasUpRight = shapePoint.has("upRightPixel") && (&shapePoint["upRightPixel"]["shape"] == &currentShape); // 🡭
 
                             if (hasUpLeft && hasUpRight) {
-                                // .--.--.
-                                // |XX|XX|
-                                // .--^-->
-                                // |XX|  |
-                                // .--.--.
+                                // ┌──┬──┐
+                                // │██│██│
+                                // ├──▲──►
+                                // │██│  │
+                                // └──∙──┘
                                 processingDirectionPtr = &DirectionRightEV;
                             } else if (hasUpLeft && !hasUpRight) {
-                                // .--^--.
-                                // |XX|  |
-                                // .--^--.
-                                // |XX|  |
-                                // .--.--.
+                                // ┌──▲──┐
+                                // │██│  │
+                                // ├──▲──┤
+                                // │██│  │
+                                // └──∙──┘
                                 processingDirectionPtr = &DirectionUpEV;
                             } else if (!hasUpLeft && hasUpRight) {
-                                // .--.--.
-                                // |  |XX|
-                                // <--^--.
-                                // |XX|  |
-                                // .--.--.
+                                // ┌──┬──┐
+                                // │  │██│
+                                // ◄──▲──┤
+                                // │██│  │
+                                // └──∙──┘
                                 processingDirectionPtr = &DirectionLeftEV;
                                 if (shapePoint.has("edgeJoint")) {
-                                    CellI& fromEdgeJointPtr = shapePoint["edgeJoint"];
-                                    if (shapePoint["edgeJoint"].has("up") && shapePoint["edgeJoint"].has("left")) {
-                                        CellI& upEdgeNode    = shapePoint["edgeJoint"]["up"];
-                                        CellI& leftEdgeNode = shapePoint["edgeJoint"]["left"];
-                                        if (upEdgeNode.has("leftSide") && (&upEdgeNode["leftSide"]["kind"] == &ExternalEdgeEV) && leftEdgeNode.has("rightSide") && (&leftEdgeNode["rightSide"]["kind"] == &ExternalEdgeEV)) {
+                                    CellI& edgeJoint = shapePoint["edgeJoint"];
+                                    if (edgeJoint.has("leftDown") && edgeJoint.has("upRight")) {
+                                        CellI& upEdgeNode   = edgeJoint["upRight"];
+                                        CellI& leftEdgeNode = edgeJoint["leftDown"];
+                                        if ((&upEdgeNode["edge"]["kind"] == &ExternalEdgeEV) && (&leftEdgeNode["edge"]["kind"] == &ExternalEdgeEV)) {
+                                            // ┌──┬──┐
+                                            // │  e██│
+                                            // ├─e▲──►
+                                            // │██│  │
+                                            // └──∙──┘
                                             processingDirectionPtr = &DirectionRightEV;
                                         }
                                     }
                                 }
                             } else if (!hasUpLeft && !hasUpRight) {
-                                // .--.--.
-                                // |  |  |
-                                // <--^--.
-                                // |XX|  |
-                                // .--.--.
+                                // ┌──┬──┐
+                                // │  │  │
+                                // ◄──▲──┤
+                                // │██│  │
+                                // └──∙──┘
                                 processingDirectionPtr = &DirectionLeftEV;
                             }
                         } else if (processingDirectionPtr == &DirectionDownEV) {
@@ -1280,64 +1342,69 @@ For leftToRight direction edge from point middle
                             bool hasDownRight = shapePoint.has("downRightPixel") && (&shapePoint["downRightPixel"]["shape"] == &currentShape); // 🡮
 
                             if (hasDownLeft && hasDownRight) {
-                                // .--.--.
-                                // |  |XX|
-                                // <--v--.
-                                // |XX|XX|
-                                // .--.--.
+                                // ┌──∙──┐
+                                // │  │██│
+                                // ◄──▼──┤
+                                // │██│██│
+                                // └──┴──┘
                                 processingDirectionPtr = &DirectionLeftEV;
                             } else if (hasDownLeft && !hasDownRight) {
-                                // .--.--.
-                                // |  |XX|
-                                // .--v-->
-                                // |XX|  |
-                                // .--.--.
+                                // ┌──∙──┐
+                                // │  │██│
+                                // ├──▼──►
+                                // │██│  │
+                                // └──┴──┘
                                 processingDirectionPtr = &DirectionRightEV;
                                 if (shapePoint.has("edgeJoint")) {
-                                    CellI& fromEdgeJointPtr = shapePoint["edgeJoint"];
-                                    if (shapePoint["edgeJoint"].has("down") && shapePoint["edgeJoint"].has("right")) {
-                                        CellI& downEdgeNode  = shapePoint["edgeJoint"]["down"];
-                                        CellI& rightEdgeNode = shapePoint["edgeJoint"]["right"];
-                                        if (downEdgeNode.has("rightSide") && (&downEdgeNode["rightSide"]["kind"] == &ExternalEdgeEV) && rightEdgeNode.has("leftSide") && (&rightEdgeNode["leftSide"]["kind"] == &ExternalEdgeEV)) {
+                                    CellI& edgeJoint = shapePoint["edgeJoint"];
+                                    if (edgeJoint.has("rightUp") && edgeJoint.has("downLeft")) {
+                                        CellI& downEdgeNode  = edgeJoint["downLeft"];
+                                        CellI& rightEdgeNode = edgeJoint["rightUp"];
+                                        if ((&downEdgeNode["edge"]["kind"] == &ExternalEdgeEV) && (&rightEdgeNode["edge"]["kind"] == &ExternalEdgeEV)) {
+                                            // ┌──∙──┐
+                                            // │  │██│
+                                            // ◄──▼e─┤
+                                            // │██e  │
+                                            // └──┴──┘
                                             processingDirectionPtr = &DirectionLeftEV;
                                         }
                                     }
                                 }
                             } else if (!hasDownLeft && hasDownRight) {
-                                // .--.--.
-                                // |  |XX|
-                                // .--v--.
-                                // |  |XX|
-                                // .--v--.
+                                // ┌──∙──┐
+                                // │  │██│
+                                // ├──▼──┤
+                                // │  │██│
+                                // └──▼──┘
                                 processingDirectionPtr = &DirectionDownEV;
                             } else if (!hasDownLeft && !hasDownRight) {
-                                // .--.--.
-                                // |  |XX|
-                                // .--v-->
-                                // |  |  |
-                                // .--.--.
+                                // ┌──∙──┐
+                                // │  │██│
+                                // ├──▼──►
+                                // │  │  │
+                                // └──┴──┘
                                 processingDirectionPtr = &DirectionRightEV;
                             }
                         }
-                        const char* toDirectionStr = "";
+                        const char* toDirectionStr             = "";
+                        const char* toEdgeDirectionStr         = "";
+                        const char* toOppositeEdgeDirectionStr = "";
                         if (processingDirectionPtr == &DirectionRightEV) {
-                            toDirectionStr = "right";
+                            toDirectionStr             = "right";
+                            toEdgeDirectionStr         = "rightUp";
+                            toOppositeEdgeDirectionStr = "leftUp";
                         } else if (processingDirectionPtr == &DirectionLeftEV) {
-                            toDirectionStr = "left";
+                            toDirectionStr             = "left";
+                            toEdgeDirectionStr         = "leftDown";
+                            toOppositeEdgeDirectionStr = "rightDown";
                         } else if (processingDirectionPtr == &DirectionUpEV) {
-                            toDirectionStr = "up";
+                            toDirectionStr             = "up";
+                            toEdgeDirectionStr         = "upLeft";
+                            toOppositeEdgeDirectionStr = "downLeft";
                         } else if (processingDirectionPtr == &DirectionDownEV) {
-                            toDirectionStr = "down";
-                        }
-                        const char* oppositeDirectionStr = "";
-                        if (processingDirectionPtr == &DirectionRightEV) {
-                            oppositeDirectionStr = "left";
-                        } else if (processingDirectionPtr == &DirectionLeftEV) {
-                            oppositeDirectionStr = "right";
-                        } else if (processingDirectionPtr == &DirectionUpEV) {
-                            oppositeDirectionStr = "down";
-                        } else if (processingDirectionPtr == &DirectionDownEV) {
-                            oppositeDirectionStr = "up";
+                            toDirectionStr             = "down";
+                            toEdgeDirectionStr         = "downRight";
+                            toOppositeEdgeDirectionStr = "upRight";
                         }
                         CellI& toShapePoint = shapePoint[toDirectionStr];
 
@@ -1352,39 +1419,22 @@ For leftToRight direction edge from point middle
                         CellI& fromEdgeJoint = *fromEdgeJointPtr;
 
                         CellI* edgeNodePtr = nullptr;
-                        if (fromEdgeJoint.has(toDirectionStr)) {
-                            CellI& oldEdgeNode = fromEdgeJoint[toDirectionStr];
-                            if (processingDirectionPtr == &DirectionRightEV || processingDirectionPtr == &DirectionDownEV) {
-                                if (oldEdgeNode.has("leftSide")) {
-                                    ERROR(edge, "Edge processing error> oldEdgeNode.has(\"leftSide\")");
-                                    throw "Edge processing error";
-                                }
-                            } else if (processingDirectionPtr == &DirectionLeftEV || processingDirectionPtr == &DirectionUpEV) {
-                                if (oldEdgeNode.has("rightSide")) {
-                                    ERROR(edge, "Edge processing error> oldEdgeNode.has(\"rightSide\")");
-                                    throw "Edge processing error";
-                                }
-                            }
-                            edgeNodePtr = &oldEdgeNode;
+                        if (fromEdgeJoint.has(toEdgeDirectionStr)) {
+                            ERROR(edge, "Edge processing error: edgeNode already exists!");
+                            throw "Edge processing error";
                         } else {
                             CellI& newEdgeNode = *new Object(kb, ShapeEdgeNodeStruct);
-                            if (processingDirectionPtr == &DirectionRightEV || processingDirectionPtr == &DirectionDownEV) {
-                                newEdgeNode.set("from", shapePoint);
-                                newEdgeNode.set("direction", *processingDirectionPtr);
-                                newEdgeNode.set("leftSide", newEdge);
-                            } else {
-                                newEdgeNode.set("from", toShapePoint);
-                                newEdgeNode.set("direction", processingDirectionPtr == &DirectionLeftEV ? DirectionRightEV : DirectionDownEV);
-                                newEdgeNode.set("rightSide", newEdge);
+                            newEdgeNode.set("edge", newEdge);
+                            newEdgeNode.set("from", shapePoint);
+                            newEdgeNode.set("direction", *processingDirectionPtr);
+                            if (previousEdgeNodePtr) {
+                                CellI& previousEdgeNode = *previousEdgeNodePtr;
+                                previousEdgeNode.set("next", newEdgeNode);
+                                newEdgeNode.set("previous", previousEdgeNode);
                             }
                             edgeNodePtr = &newEdgeNode;
                         }
                         CellI& edgeNode = *edgeNodePtr;
-                        if (processingDirectionPtr == &DirectionRightEV || processingDirectionPtr == &DirectionDownEV) {
-                            edgeNode.set("leftSide", newEdge);
-                        } else {
-                            edgeNode.set("rightSide", newEdge);
-                        }
 
                         edgeNodes.add(edgeNode);
 
@@ -1400,8 +1450,8 @@ For leftToRight direction edge from point middle
                         CellI& toEdgeJoint   = *toEdgeJointPtr;
                         currentShapePointPtr = &toShapePoint;
 
-                        fromEdgeJoint.set(toDirectionStr, edgeNode);
-                        toEdgeJoint.set(oppositeDirectionStr, edgeNode);
+                        fromEdgeJoint.set(toEdgeDirectionStr, edgeNode);
+                        toEdgeJoint.set(toOppositeEdgeDirectionStr, edgeNode);
                     }
                     currentListItemPtr = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
                     processingMode = ProcessingMode::Searching;
@@ -1412,38 +1462,29 @@ For leftToRight direction edge from point middle
                     if (hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) {
                         // 1🡬 1🡭
                         // 1🡯 0🡮
-                        // .--.--.
-                        // |XX|XX|
-                        // .--o->.
-                        // |XX|  |
-                        // .--.--.
-                        if (shapePoint.has("edgeJoint")) {
-                            CellI& fromEdgeJointPtr = shapePoint["edgeJoint"];
-                            if (shapePoint["edgeJoint"].has("right")) {
-                                CellI& edgeNode = shapePoint["edgeJoint"]["right"];
-                                if (edgeNode.missing("leftSide")) {
-                                    isUnprocessedEdge = true;
-                                }
-                            } else {
-                                isUnprocessedEdge = true;
-                            }
-                        } else {
-                            isUnprocessedEdge = true;
+                        // ┌──┬──┐
+                        // │██│██│
+                        // ├──∙──►
+                        // │██│  │
+                        // └──┴──┘
+                        isUnprocessedEdge = true;
+                        if (shapePoint.has("edgeJoint") && shapePoint["edgeJoint"].has("rightUp")) {
+                            isUnprocessedEdge = false;
                         }
                     } else if (!hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) {
                         // 0🡬 1🡭
                         // 1🡯 0🡮
-                        // .--A--.
-                        // |  |XX|
-                        // B--o-->
-                        // |XX|  |
-                        // .--.--.
+                        // ┌──┬──┐
+                        // │  e██│
+                        // ├─e∙──►
+                        // │██│  │
+                        // └──┴──┘
                         if (shapePoint.has("edgeJoint")) {
-                            CellI& fromEdgeJointPtr = shapePoint["edgeJoint"];
-                            if (shapePoint["edgeJoint"].has("left") && shapePoint["edgeJoint"].has("up") && shapePoint["edgeJoint"].missing("right")) {
-                                CellI& upEdgeNode   = shapePoint["edgeJoint"]["up"];
-                                CellI& leftEdgeNode = shapePoint["edgeJoint"]["left"];
-                                if (upEdgeNode.has("leftSide") && (&upEdgeNode["leftSide"]["kind"] == &ExternalEdgeEV) && leftEdgeNode.has("rightSide") && (&leftEdgeNode["rightSide"]["kind"] == &ExternalEdgeEV)) {
+                            CellI& edgeJoint = shapePoint["edgeJoint"];
+                            if (edgeJoint.has("leftDown") && edgeJoint.has("upRight")) {
+                                CellI& upEdgeNode   = edgeJoint["upRight"];
+                                CellI& leftEdgeNode = edgeJoint["leftDown"];
+                                if ((&upEdgeNode["edge"]["kind"] == &ExternalEdgeEV) && (&leftEdgeNode["edge"]["kind"] == &ExternalEdgeEV)) {
                                     isUnprocessedEdge = true;
                                 }
                             }
@@ -1475,55 +1516,26 @@ For leftToRight direction edge from point middle
             if (hasEdgeJoint) {
                 CellI& edgeJoint = currentShapePoint["edgeJoint"];
                 if (currentShapePoint.missing("up")) {
-                    EXPECT_TRUE(edgeJoint.missing("up"));
-                    if (edgeJoint.has("right")) {
-                        CellI& edgeNode = edgeJoint["right"];
-                        EXPECT_TRUE(edgeNode.missing("leftSide"));
-                    }
-                    if (edgeJoint.has("left")) {
-                        CellI& edgeNode = edgeJoint["left"];
-                        EXPECT_TRUE(edgeNode.missing("leftSide"));
-                    }
+                    EXPECT_TRUE(edgeJoint.missing("upLeft"));
+                    EXPECT_TRUE(edgeJoint.missing("upRight"));
                 }
                 if (currentShapePoint.missing("down")) {
-                    EXPECT_TRUE(edgeJoint.missing("down"));
-                    if (edgeJoint.has("right")) {
-                        CellI& edgeNode = edgeJoint["right"];
-                        EXPECT_TRUE(edgeNode.missing("rightSide"));
-                    }
-                    if (edgeJoint.has("left")) {
-                        CellI& edgeNode = edgeJoint["left"];
-                        EXPECT_TRUE(edgeNode.missing("rightSide"));
-                    }
+                    EXPECT_TRUE(edgeJoint.missing("downLeft"));
+                    EXPECT_TRUE(edgeJoint.missing("downRight"));
                 }
                 if (currentShapePoint.missing("left")) {
-                    EXPECT_TRUE(edgeJoint.missing("left"));
-                    if (edgeJoint.has("up")) {
-                        CellI& edgeNode = edgeJoint["up"];
-                        EXPECT_TRUE(edgeNode.missing("rightSide"));
-                    }
-                    if (edgeJoint.has("down")) {
-                        CellI& edgeNode = edgeJoint["down"];
-                        EXPECT_TRUE(edgeNode.missing("rightSide"));
-                    }
+                    EXPECT_TRUE(edgeJoint.missing("leftUp"));
+                    EXPECT_TRUE(edgeJoint.missing("leftDown"));
                 }
                 if (currentShapePoint.missing("right")) {
-                    EXPECT_TRUE(edgeJoint.missing("right"));
-                    if (edgeJoint.has("up")) {
-                        CellI& edgeNode = edgeJoint["up"];
-                        EXPECT_TRUE(edgeNode.missing("leftSide"));
-                    }
-                    if (edgeJoint.has("down")) {
-                        CellI& edgeNode = edgeJoint["down"];
-                        EXPECT_TRUE(edgeNode.missing("leftSide"));
-                    }
+                    EXPECT_TRUE(edgeJoint.missing("rightUp"));
+                    EXPECT_TRUE(edgeJoint.missing("rightDown"));
                 }
                 if (currentShapePoint.has("up") && currentShapePoint.has("down") && currentShapePoint.has("left") && currentShapePoint.has("right")) {
-                    for (const auto& direction : { "up", "down", "left", "right" }) {
-                        if (edgeJoint.has(direction)) {
-                            CellI& egeNode = edgeJoint[direction];
-                            EXPECT_TRUE(egeNode.has("rightSide"));
-                            EXPECT_TRUE(egeNode.has("leftSide"));
+                    for (const auto& directionPair : { std::pair("rightDown", "rightUp"), std::pair("leftDown", "leftUp"), std::pair("downLeft", "downRight"), std::pair("upLeft", "upRight") }) {
+                        if (edgeJoint.has(directionPair.first) || edgeJoint.has(directionPair.second)) {
+                            EXPECT_TRUE(edgeJoint.has(directionPair.first));
+                            EXPECT_TRUE(edgeJoint.has(directionPair.second));
                         }
                     }
                 }
@@ -1708,157 +1720,6 @@ For leftToRight direction edge from point middle
             ss.str("");
         }
         TRACE(shapeIdGrid, "]");
-    }
-
-    void sortEdges()
-    {
-        CellI* firstColumnPointPtr  = &(*firstShapePixelPtr())["upLeftPoint"];
-        CellI* currentShapePointPtr = firstColumnPointPtr;
-        CellI* lastShapeEdgeInLine  = nullptr;
-        List internalEdges(kb, ShapeEdgeStruct);
-        List::Item* lastInternalEdgeItem = nullptr;
-        enum class ProcessingDirection
-        {
-            LeftToRight,
-            UpToDown
-        };
-
-        ProcessingDirection processingDirection = ProcessingDirection::LeftToRight;
-
-        while (currentShapePointPtr) {
-            CellI& currentShapePoint = *currentShapePointPtr;
-            const int x              = static_cast<Number&>(currentShapePoint["x"]).value();
-            const int y              = static_cast<Number&>(currentShapePoint["y"]).value();
-            switch (processingDirection) {
-            case ProcessingDirection::LeftToRight: {
-                if (currentShapePoint.has("edgeJoint") && currentShapePoint["edgeJoint"].has("right")) {
-                    CellI& edgeJoint       = currentShapePoint["edgeJoint"];
-                    CellI& edgeNodeAtRight = edgeJoint["right"];
-                    if (edgeNodeAtRight.has("leftSide")) {
-                        CellI& shapeEdge           = edgeNodeAtRight["leftSide"];
-                        CellI* orderedEdgeNodesPtr = nullptr;
-                        if (shapeEdge.missing("orderedEdgeNodes")) {
-                            List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
-                            shapeEdge.set("orderedEdgeNodes", edgeNodes);
-                            orderedEdgeNodesPtr = &edgeNodes;
-                        } else {
-                            orderedEdgeNodesPtr = &shapeEdge["orderedEdgeNodes"];
-                        }
-                        List& orderedEdgeNodes = static_cast<List&>(*orderedEdgeNodesPtr);
-                        orderedEdgeNodes.add(edgeNodeAtRight);
-                    }
-                    if (edgeNodeAtRight.has("rightSide")) {
-                        CellI& shapeEdge = edgeNodeAtRight["rightSide"];
-                        CellI* orderedEdgeNodesPtr = nullptr;
-                        if (shapeEdge.missing("orderedEdgeNodes")) {
-                            List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
-                            shapeEdge.set("orderedEdgeNodes", edgeNodes);
-                            orderedEdgeNodesPtr = &edgeNodes;
-                        } else {
-                            orderedEdgeNodesPtr = &shapeEdge["orderedEdgeNodes"];
-                        }
-                        List& orderedEdgeNodes = static_cast<List&>(*orderedEdgeNodesPtr);
-                        orderedEdgeNodes.add(edgeNodeAtRight);
-                    }
-                }
-            } break;
-            case ProcessingDirection::UpToDown: {
-                if (currentShapePoint.has("edgeJoint") && currentShapePoint["edgeJoint"].has("down")) {
-                    CellI& edgeJoint = currentShapePoint["edgeJoint"];
-                    if (edgeJoint.has("down")) {
-                        CellI& edgeNodeAtDown = edgeJoint["down"];
-                        if (edgeNodeAtDown.has("rightSide")) {
-                            CellI& shapeEdge           = edgeNodeAtDown["rightSide"];
-                            if (&shapeEdge["kind"] == &InternalEdgeEV) {
-                                // entering an internal edge
-                                lastInternalEdgeItem = internalEdges.add(shapeEdge);
-                            }
-                            CellI* orderedEdgeNodesPtr = nullptr;
-                            if (shapeEdge.missing("orderedEdgeNodes")) {
-                                List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
-                                shapeEdge.set("orderedEdgeNodes", edgeNodes);
-                                orderedEdgeNodesPtr = &edgeNodes;
-                            } else {
-                                orderedEdgeNodesPtr = &shapeEdge["orderedEdgeNodes"];
-                            }
-                            List& orderedEdgeNodes = static_cast<List&>(*orderedEdgeNodesPtr);
-                            orderedEdgeNodes.add(edgeNodeAtDown);
-                        }
-                        if (edgeNodeAtDown.has("leftSide")) {
-                            CellI& shapeEdge           = edgeNodeAtDown["leftSide"];
-                            if (&shapeEdge["kind"] == &InternalEdgeEV) {
-                                // leaving an internal edge
-                                internalEdges.remove(lastInternalEdgeItem);
-                                if (!internalEdges.empty()) {
-                                    lastInternalEdgeItem = &static_cast<List::Item&>(internalEdges["last"]);
-                                }
-                            }
-                            lastShapeEdgeInLine        = &shapeEdge;
-                            CellI* orderedEdgeNodesPtr = nullptr;
-                            if (shapeEdge.missing("orderedEdgeNodes")) {
-                                List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
-                                shapeEdge.set("orderedEdgeNodes", edgeNodes);
-                                orderedEdgeNodesPtr = &edgeNodes;
-                            } else {
-                                orderedEdgeNodesPtr = &shapeEdge["orderedEdgeNodes"];
-                            }
-                            List& orderedEdgeNodes = static_cast<List&>(*orderedEdgeNodesPtr);
-                            orderedEdgeNodes.add(edgeNodeAtDown);
-                        }
-                    }
-                }
-                if (currentShapePoint.has("downRightPixel")) {
-                    CellI* edgePixelListPtr = nullptr;
-                    CellI& shapeEdge        = *lastShapeEdgeInLine;
-                    if (shapeEdge.missing("shapePixels")) {
-                        List& edgeNodes = *new List(kb, ShapePixelStruct);
-                        shapeEdge.set("shapePixels", edgeNodes);
-                        edgePixelListPtr = &edgeNodes;
-                    } else {
-                        edgePixelListPtr = &shapeEdge["shapePixels"];
-                    }
-                    List& edgePixelList = static_cast<List&>(*edgePixelListPtr);
-                    CellI& shapePixel   = currentShapePoint["downRightPixel"];
-                    edgePixelList.add(shapePixel);
-                    if (!internalEdges.empty()) {
-                        CellI& lastInternalEdge = internalEdges["last"]["value"];
-                        CellI* shapeSetPtr = nullptr;
-                        if (lastInternalEdge.missing("shapes")) {
-                            Set& newShapesSet = *new Set(kb, ShapeStruct);
-                            lastInternalEdge.set("shapes", newShapesSet);
-                            shapeSetPtr = &newShapesSet;
-                        } else {
-                            shapeSetPtr = &lastInternalEdge["shapes"];
-                        }
-                        Set& shapesSet = static_cast<Set&>(*shapeSetPtr);
-                        CellI& shape   = shapePixel["shape"];
-                        if (!shapesSet.contains(shape)) {
-                            shapesSet.add(shapePixel["shape"]);
-                        }
-                    }
-                }
-            }
-            }
-
-
-            if (currentShapePoint.has("right")) {
-                currentShapePointPtr = &currentShapePoint["right"];
-            } else if (currentShapePoint.has("down")) {
-                switch (processingDirection) {
-                case ProcessingDirection::LeftToRight:
-                    processingDirection  = ProcessingDirection::UpToDown;
-                    currentShapePointPtr = firstColumnPointPtr;
-                    break;
-                case ProcessingDirection::UpToDown:
-                    processingDirection  = ProcessingDirection::LeftToRight;
-                    currentShapePointPtr = &(*firstColumnPointPtr)["down"];
-                    firstColumnPointPtr  = currentShapePointPtr;
-                    break;
-                }
-            } else {
-                currentShapePointPtr = nullptr;
-            }
-        }
     }
 
     void printEdges()
@@ -2199,15 +2060,6 @@ TEST_F(EdgeTester, EdgeTestMinimal)
     Map& shapeEdges     = static_cast<Map&>(shape["edges"]);
     CellI& externalEdge = shapeEdges.getValue(_1_);
 
-    DEBUG(edge, "Before sort: ");
-    Visitor::visitList(externalEdge["edgeNodes"], [this](CellI& edgeNode, int, bool&) {
-        TRACE(edge, fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|"));
-    });
-    DEBUG(edge, "After sort: ");
-    Visitor::visitList(externalEdge["orderedEdgeNodes"], [this](CellI& edgeNode, int, bool&) {
-        TRACE(edge, fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|"));
-    });
-
     CellI* firstColumnPointPtr  = &(*firstShapePixelPtr())["upLeftPoint"];
     CellI* currentShapePointPtr = firstColumnPointPtr;
     CellI* previousShapePointPtr = nullptr;
@@ -2215,68 +2067,72 @@ TEST_F(EdgeTester, EdgeTestMinimal)
     EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
     EXPECT_EQ(&(*currentShapePointPtr)["x"], &_0_);
     EXPECT_EQ(&(*currentShapePointPtr)["y"], &_0_);
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("up"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("down"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["down"].has("rightSide"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["down"].has("leftSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["down"]["leftSide"]["shape"]["id"], &_1_);
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("left"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("right"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["right"].has("rightSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["rightSide"]["shape"]["id"], &_1_);
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["right"].has("leftSide"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upLeft"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upRight"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("downRight"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downLeft"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["downRight"]["edge"]["shape"]["id"], &_1_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftUp"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftDown"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightUp"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("rightDown"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightDown"]["edge"]["shape"]["id"], &_1_);
 
     previousShapePointPtr = currentShapePointPtr;
     currentShapePointPtr = &(*currentShapePointPtr)["right"];
     EXPECT_EQ(&(*currentShapePointPtr)["x"], &_1_);
     EXPECT_EQ(&(*currentShapePointPtr)["y"], &_0_);
     EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("up"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("down"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["down"].has("rightSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["down"]["rightSide"]["shape"]["id"], &_1_);
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["down"].has("leftSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["down"]["leftSide"]["shape"]["id"], &_2_);
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("left"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["from"], previousShapePointPtr);
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["direction"], &DirectionRightEV);
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["left"].has("rightSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["rightSide"]["shape"]["id"], &_1_);
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["left"].has("leftSide"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("right"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["from"], currentShapePointPtr);
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["direction"], &DirectionRightEV);
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["right"].has("rightSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["rightSide"]["shape"]["id"], &_2_);
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["right"].has("leftSide"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upLeft"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upRight"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("downLeft"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["downLeft"]["edge"]["shape"]["id"], &_1_);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("downRight"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["downRight"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftUp"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("leftDown"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["leftDown"]["from"], previousShapePointPtr);
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["leftDown"]["direction"], &DirectionRightEV);
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["leftDown"]["edge"]["shape"]["id"], &_1_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightUp"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("rightDown"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightDown"]["from"], currentShapePointPtr);
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightDown"]["direction"], &DirectionRightEV);
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightDown"]["edge"]["shape"]["id"], &_2_);
 
     previousShapePointPtr = currentShapePointPtr;
     currentShapePointPtr  = &(*currentShapePointPtr)["right"];
     EXPECT_EQ(&(*currentShapePointPtr)["x"], &_2_);
     EXPECT_EQ(&(*currentShapePointPtr)["y"], &_0_);
     EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("up"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("down"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("left"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["left"].has("rightSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["rightSide"]["shape"]["id"], &_2_);
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("right"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["right"].has("rightSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["rightSide"]["shape"]["id"], &_2_);
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["right"].has("leftSide"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upLeft"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upRight"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downLeft"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downRight"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftUp"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("leftDown"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["leftDown"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightUp"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("rightDown"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightDown"]["from"], currentShapePointPtr);
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightDown"]["direction"], &DirectionRightEV);
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightDown"]["edge"]["shape"]["id"], &_2_);
 
     previousShapePointPtr = currentShapePointPtr;
     currentShapePointPtr  = &(*currentShapePointPtr)["right"];
     EXPECT_EQ(&(*currentShapePointPtr)["x"], &_3_);
     EXPECT_EQ(&(*currentShapePointPtr)["y"], &_0_);
     EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("up"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("down"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["down"].has("rightSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["down"]["rightSide"]["shape"]["id"], &_2_);
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["down"].has("leftSide"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("left"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("right"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upLeft"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upRight"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("downLeft"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["downLeft"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downRight"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftUp"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("leftDown"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["leftDown"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightUp"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightDown"));
 
     previousShapePointPtr = nullptr;
     currentShapePointPtr  = &(*firstColumnPointPtr)["down"];
@@ -2284,38 +2140,36 @@ TEST_F(EdgeTester, EdgeTestMinimal)
     EXPECT_EQ(&(*currentShapePointPtr)["x"], &_0_);
     EXPECT_EQ(&(*currentShapePointPtr)["y"], &_1_);
     EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("up"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["up"].has("rightSide"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["up"].has("leftSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["up"]["leftSide"]["shape"]["id"], &_1_);
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("down"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["down"].has("rightSide"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["down"].has("leftSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["down"]["leftSide"]["shape"]["id"], &_2_);
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("left"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("right"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["right"].has("rightSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["rightSide"]["shape"]["id"], &_2_);
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["right"].has("leftSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["leftSide"]["shape"]["id"], &_1_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upLeft"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("upRight"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["upRight"]["edge"]["shape"]["id"], &_1_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downLeft"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("downRight"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["downRight"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftUp"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftDown"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("rightUp"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightUp"]["edge"]["shape"]["id"], &_1_);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("rightDown"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightDown"]["edge"]["shape"]["id"], &_2_);
 
     previousShapePointPtr = currentShapePointPtr;
     currentShapePointPtr  = &(*currentShapePointPtr)["right"];
     EXPECT_EQ(&(*currentShapePointPtr)["x"], &_1_);
     EXPECT_EQ(&(*currentShapePointPtr)["y"], &_1_);
     EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("up"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["up"].has("rightSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["up"]["rightSide"]["shape"]["id"], &_1_);
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["up"].has("leftSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["up"]["leftSide"]["shape"]["id"], &_2_);
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("down"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("left"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["left"].has("rightSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["rightSide"]["shape"]["id"], &_2_);
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["left"].has("leftSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["leftSide"]["shape"]["id"], &_1_);
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("right"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("upLeft"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["upLeft"]["edge"]["shape"]["id"], &_1_);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("upRight"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["upRight"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downLeft"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downRight"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("leftUp"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["leftUp"]["edge"]["shape"]["id"], &_1_);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("leftDown"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["leftDown"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightUp"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightDown"));
 
     previousShapePointPtr = currentShapePointPtr;
     currentShapePointPtr  = &(*currentShapePointPtr)["right"];
@@ -2328,32 +2182,32 @@ TEST_F(EdgeTester, EdgeTestMinimal)
     EXPECT_EQ(&(*currentShapePointPtr)["x"], &_3_);
     EXPECT_EQ(&(*currentShapePointPtr)["y"], &_1_);
     EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("up"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["up"].has("rightSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["up"]["rightSide"]["shape"]["id"], &_2_);
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("down"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["down"].has("rightSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["down"]["rightSide"]["shape"]["id"], &_2_);
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["down"].has("leftSide"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("left"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("right"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("upLeft"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["upLeft"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upRight"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("downLeft"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["downLeft"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downRight"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftUp"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftDown"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightUp"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightDown"));
 
     previousShapePointPtr = nullptr;
     currentShapePointPtr  = &(*firstColumnPointPtr)["down"];
     firstColumnPointPtr   = currentShapePointPtr;
     EXPECT_EQ(&(*currentShapePointPtr)["x"], &_0_);
     EXPECT_EQ(&(*currentShapePointPtr)["y"], &_2_);
-    EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("up"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["up"].has("rightSide"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["up"].has("leftSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["up"]["leftSide"]["shape"]["id"], &_2_);
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("down"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["down"].has("rightSide"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["down"].has("leftSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["down"]["leftSide"]["shape"]["id"], &_2_);
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("left"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("right"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upLeft"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("upRight"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["upRight"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downLeft"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("downRight"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["downRight"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftUp"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftDown"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightUp"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightDown"));
 
     previousShapePointPtr = currentShapePointPtr;
     currentShapePointPtr  = &(*currentShapePointPtr)["right"];
@@ -2372,79 +2226,80 @@ TEST_F(EdgeTester, EdgeTestMinimal)
     EXPECT_EQ(&(*currentShapePointPtr)["x"], &_3_);
     EXPECT_EQ(&(*currentShapePointPtr)["y"], &_2_);
     EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("up"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["up"].has("rightSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["up"]["rightSide"]["shape"]["id"], &_2_);
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("down"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["down"].has("rightSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["down"]["rightSide"]["shape"]["id"], &_2_);
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["down"].has("leftSide"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("left"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("right"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("upLeft"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["upLeft"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upRight"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("downLeft"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["downLeft"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downRight"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftUp"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftDown"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightUp"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightDown"));
 
     previousShapePointPtr = nullptr;
     currentShapePointPtr  = &(*firstColumnPointPtr)["down"];
     firstColumnPointPtr   = currentShapePointPtr;
     EXPECT_EQ(&(*currentShapePointPtr)["x"], &_0_);
     EXPECT_EQ(&(*currentShapePointPtr)["y"], &_3_);
-    EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("up"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["up"].has("rightSide"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["up"].has("leftSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["up"]["leftSide"]["shape"]["id"], &_2_);
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("down"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("left"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("right"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["right"].has("rightSide"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["right"].has("leftSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["leftSide"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upLeft"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("upRight"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["upRight"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downLeft"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downRight"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftUp"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftDown"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("rightUp"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightUp"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightDown"));
 
     previousShapePointPtr = currentShapePointPtr;
     currentShapePointPtr  = &(*currentShapePointPtr)["right"];
     EXPECT_EQ(&(*currentShapePointPtr)["x"], &_1_);
     EXPECT_EQ(&(*currentShapePointPtr)["y"], &_3_);
     EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("up"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("down"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("left"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["left"].has("rightSide"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["left"].has("leftSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["leftSide"]["shape"]["id"], &_2_);
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("right"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["right"].has("rightSide"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["right"].has("leftSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["leftSide"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upLeft"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upRight"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downLeft"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downRight"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("leftUp"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["leftUp"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftDown"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("rightUp"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightUp"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightDown"));
 
     previousShapePointPtr = currentShapePointPtr;
     currentShapePointPtr  = &(*currentShapePointPtr)["right"];
     EXPECT_EQ(&(*currentShapePointPtr)["x"], &_2_);
     EXPECT_EQ(&(*currentShapePointPtr)["y"], &_3_);
     EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("up"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("down"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("left"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["left"].has("rightSide"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["left"].has("leftSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["leftSide"]["shape"]["id"], &_2_);
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("right"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["right"].has("rightSide"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["right"].has("leftSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["leftSide"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upLeft"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upRight"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downLeft"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downRight"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("leftUp"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["leftUp"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftDown"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("rightUp"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightUp"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightDown"));
 
     previousShapePointPtr = currentShapePointPtr;
     currentShapePointPtr  = &(*currentShapePointPtr)["right"];
     EXPECT_EQ(&(*currentShapePointPtr)["x"], &_3_);
     EXPECT_EQ(&(*currentShapePointPtr)["y"], &_3_);
     EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("up"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["up"].has("rightSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["up"]["rightSide"]["shape"]["id"], &_2_);
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("down"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("left"));
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["left"].has("rightSide"));
-    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["left"].has("leftSide"));
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["leftSide"]["shape"]["id"], &_2_);
-    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("right"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("upLeft"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["upLeft"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("upRight"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downLeft"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("downRight"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("leftUp"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["leftUp"]["edge"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftDown"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightUp"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightDown"));
 
     expectedShapeIds(R"([
                           [1, 2, 2],
@@ -2465,15 +2320,6 @@ TEST_F(EdgeTester, EdgeTest)
     Map& shapeEdges = static_cast<Map&>(shape["edges"]);
     CellI& internalEdge = shapeEdges.getValue(_2_);
     List& edgeNodes     = static_cast<List&>(internalEdge["edgeNodes"]);
-    DEBUG(edge, "Before sort: ");
-    Visitor::visitList(internalEdge["edgeNodes"], [this](CellI& edgeNode, int, bool&) {
-        TRACE(edge, fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|"));
-    });
-    DEBUG(edge, "After sort: ");
-    Visitor::visitList(internalEdge["orderedEdgeNodes"], [this](CellI& edgeNode, int, bool&) {
-        TRACE(edge, fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|"));
-    });
-
     expectedShapeIds(R"([
                           [1, 1, 1, 1, 1],
                           [1, 2, 1, 3, 1],
