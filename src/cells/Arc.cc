@@ -13,10 +13,12 @@ Shape::Shape(brain::Brain& kb, Number& id, Number& color, Number& width, Number&
     m_color(color),
     m_width(width),
     m_height(height),
-    m_lastEdgeId(&kb.pools.numbers.get(1)),
+    m_lastEdgeId(&kb.pools.numbers.get(0)),
     m_hybridPixels(kb, kb.std.Pixel),
     m_pixels(kb, PixelStruct)
 {
+    static CellI& ShapeEdgeStruct = kb.getStruct("arc::ShapeEdge");
+    m_edges                       = new Map(kb, kb.std.Number, ShapeEdgeStruct);
 }
 
 bool Shape::has(CellI& role)
