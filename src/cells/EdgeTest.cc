@@ -89,9 +89,9 @@ public:
         sortShapePoints();
 //        printAllShapePoints();
         calculateEdgesForShapes();
-        sortEdges();
+        processEdgeNodes();
         validateEdgePoints();
-        drawSvgFromShapePointEdgeJoints();
+//        drawSvgFromShapePointEdgeJoints();
         printShapeIdGrid();
         printShapeIdGridAsJson();
 //        printEdges();
@@ -1549,7 +1549,7 @@ For leftToRight direction edge from point middle
         }); // visit shapePoints
     }
 
-    void sortEdges()
+    void processEdgeNodes()
     {
         CellI* firstColumnPointPtr = &(*firstShapePixelPtr())["upLeftPoint"];
         CellI* shapePointPtr       = firstColumnPointPtr;
@@ -1566,51 +1566,39 @@ For leftToRight direction edge from point middle
 
         auto setExternalShape = [this](CellI& shapeEdgeNode) {
             CellI& shapePoint        = shapeEdgeNode["from"];
-            CellI* externalShapePtr  = nullptr;
-            CellI* externalDirection = nullptr;
-            if (&shapeEdgeNode["edge"]["kind"] == &ExternalEdgeEV) {
-                externalDirection = &DirectionLeftEV;
-            } else {
-                externalDirection = &DirectionRightEV;
-            }
+            CellI* externalDirection = &shapeEdgeNode["edge"]["kind"] == &ExternalEdgeEV ? &DirectionLeftEV : &DirectionRightEV;
 
             // rotate 🡪 == clockwise
             // rotate 🡨 == counterclockwise
+            const char* shapePixelDirection = nullptr;
             if (&shapeEdgeNode["direction"] == &DirectionRightEV) {
                 if (externalDirection == &DirectionLeftEV) {
-                    // 🡪 rotate 🡨 = 🡭
-                    externalShapePtr = shapePoint.has("upRightPixel") ? &shapePoint["upRightPixel"]["shape"] : nullptr;
+                    shapePixelDirection = "upRightPixel"; // 🡪 rotate 🡨 = 🡭
                 } else {
-                    // 🡪 rotate 🡪 = 🡮
-                    externalShapePtr = shapePoint.has("downRightPixel") ? &shapePoint["downRightPixel"]["shape"] : nullptr;
+                    shapePixelDirection = "downRightPixel"; // 🡪 rotate 🡪 = 🡮
                 }
             } else if (&shapeEdgeNode["direction"] == &DirectionLeftEV) {
                 if (externalDirection == &DirectionLeftEV) {
-                    // 🡨 rotate 🡨 = 🡯
-                    externalShapePtr = shapePoint.has("downLeftPixel") ? &shapePoint["downLeftPixel"]["shape"] : nullptr;
+                    shapePixelDirection = "downLeftPixel"; // 🡨 rotate 🡨 = 🡯
                 } else {
-                    // 🡨 rotate 🡪 = 🡬
-                    externalShapePtr = shapePoint.has("upLeftPixel") ? &shapePoint["upLeftPixel"]["shape"] : nullptr;
+                    shapePixelDirection = "upLeftPixel"; // 🡨 rotate 🡪 = 🡬
                 }
             } else if (&shapeEdgeNode["direction"] == &DirectionUpEV) {
                 if (externalDirection == &DirectionLeftEV) {
-                    // 🡩 rotate 🡨 = 🡬
-                    externalShapePtr = shapePoint.has("upLeftPixel") ? &shapePoint["upLeftPixel"]["shape"] : nullptr;
+                    shapePixelDirection = "upLeftPixel"; // 🡩 rotate 🡨 = 🡬
                 } else {
-                    // 🡩 rotate 🡪 = 🡭
-                    externalShapePtr = shapePoint.has("upRightPixel") ? &shapePoint["upRightPixel"]["shape"] : nullptr;
+                    shapePixelDirection = "upRightPixel"; // 🡩 rotate 🡪 = 🡭
                 }
             } else if (&shapeEdgeNode["direction"] == &DirectionDownEV) {
                 if (externalDirection == &DirectionLeftEV) {
-                    // 🡫 rotate 🡨 = 🡮
-                    externalShapePtr = shapePoint.has("downRightPixel") ? &shapePoint["downRightPixel"]["shape"] : nullptr;
+                    shapePixelDirection = "downRightPixel"; // 🡫 rotate 🡨 = 🡮
                 } else {
-                    // 🡫 rotate 🡪 = 🡯
-                    externalShapePtr = shapePoint.has("downLeftPixel") ? &shapePoint["downLeftPixel"]["shape"] : nullptr;
+                    shapePixelDirection = "downLeftPixel"; // 🡫 rotate 🡪 = 🡯
                 }
             }
-            if (externalShapePtr) {
-                shapeEdgeNode.set("externalShape", *externalShapePtr);
+            if (shapePoint.has(shapePixelDirection)) {
+                CellI& externalShape = shapePoint[shapePixelDirection]["shape"];
+                shapeEdgeNode.set("externalShape", externalShape);
             }
         };
 
@@ -1624,12 +1612,10 @@ For leftToRight direction edge from point middle
                 switch (processingDirection) {
                 case ProcessingDirection::LeftToRight: {
                     if (edgeJoint.has("rightUp")) {
-                        CellI& shapeEdgeNode = edgeJoint["rightUp"];
-                        setExternalShape(shapeEdgeNode);
+                        setExternalShape(edgeJoint["rightUp"]);
                     }
                     if (edgeJoint.has("rightDown")) {
-                        CellI& shapeEdgeNode = edgeJoint["rightDown"];
-                        setExternalShape(shapeEdgeNode);
+                        setExternalShape(edgeJoint["rightDown"]);
                     }
                 } break;
                 case ProcessingDirection::UpToDown: {
@@ -1689,6 +1675,7 @@ For leftToRight direction edge from point middle
                 } // switch
             }
 
+            // stepping
             if (shapePoint.has("right")) {
                 shapePointPtr = &shapePoint["right"];
             } else if (shapePoint.has("down")) {
@@ -1746,6 +1733,10 @@ For leftToRight direction edge from point middle
                         if (edgeJoint.has(directionPair.first) || edgeJoint.has(directionPair.second)) {
                             EXPECT_TRUE(edgeJoint.has(directionPair.first));
                             EXPECT_TRUE(edgeJoint.has(directionPair.second));
+                            CellI& edgeNodeFirst = edgeJoint[directionPair.first];
+                            CellI& edgeNodeSecond = edgeJoint[directionPair.second];
+                            EXPECT_EQ(&edgeNodeFirst["externalShape"], &edgeNodeSecond["edge"]["shape"]);
+                            EXPECT_EQ(&edgeNodeSecond["externalShape"], &edgeNodeFirst["edge"]["shape"]);
                         }
                     }
                 }
