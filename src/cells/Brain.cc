@@ -5778,7 +5778,6 @@ void Brain::createArcSolver()
                   member("kind", "ShapeEdgeKind"),
                   member("shapes", tt_("std::Set", "valueType", "Shape")),
                   member("shapePixels", tt_("std::List", "valueType", "ShapePixel")),
-                  member("orderedEdgeNodes", tt_("std::List", "valueType", "ShapeEdgeNode")),
                   member("edgeNodes", tt_("std::List", "valueType", "ShapeEdgeNode")));
 
     // struct ShapeEdgeNode

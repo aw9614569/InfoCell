@@ -968,12 +968,10 @@ For leftToRight direction edge from point middle
                     // create new edge
                     CellI& newEdge  = *new Object(kb, ShapeEdgeStruct);
                     List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
-                    List& orderedEdgeNodes = *new List(kb, ShapeEdgeNodeStruct);
                     CellI& newEdgeId = kb.pools.numbers.get(static_cast<Number&>(currentShape["lastEdgeId"]).value() + 1);
                     currentShape.set("lastEdgeId", newEdgeId);
                     newEdge.set("shape", currentShape);
                     newEdge.set("edgeNodes", edgeNodes);
-                    newEdge.set("orderedEdgeNodes", edgeNodes);
                     newEdge.set("id", newEdgeId);
 
                     Map& edges = static_cast<Map&>(currentShape["edges"]);
@@ -1614,8 +1612,6 @@ For leftToRight direction edge from point middle
             if (externalShapePtr) {
                 shapeEdgeNode.set("externalShape", *externalShapePtr);
             }
-            List& orderedEdgeNodes = static_cast<List&>(shapeEdgeNode["edge"]["orderedEdgeNodes"]);
-            orderedEdgeNodes.add(shapeEdgeNode);
         };
 
         while (shapePointPtr) {
