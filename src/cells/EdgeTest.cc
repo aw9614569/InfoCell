@@ -41,8 +41,8 @@ public:
             spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
             spdlog::get("edge")->set_level(spdlog::level::off);
             spdlog::get("shapeIdGrid")->set_level(spdlog::level::off);
-            spdlog::get("grid")->set_level(spdlog::level::trace);
-            spdlog::get("shapeRelations")->set_level(spdlog::level::trace);
+            spdlog::get("grid")->set_level(spdlog::level::info);
+            spdlog::get("shapeRelations")->set_level(spdlog::level::info);
         }),
         ShaperStruct(getStruct("arc::Shaper")),
         ShapeStruct(getStruct("arc::Shape")),
@@ -89,12 +89,14 @@ public:
         sortShapePoints();
 //        printAllShapePoints();
         calculateEdgesForShapes();
+        sortEdges();
         validateEdgePoints();
-//        drawSvgFromShapePointEdgeJoints();
+        drawSvgFromShapePointEdgeJoints();
         printShapeIdGrid();
         printShapeIdGridAsJson();
 //        printEdges();
         printShapeRelations();
+        findPossibleBackgroundWithShapes();
     }
 
     void setInputGrid(const std::string& jsonStr)
@@ -610,12 +612,16 @@ public:
                         std::swap(lineFromY, lineToY);
                     }
                     svgFile << fmt::format("      <!-- edgeJoint {} -->\n", debugText);
+                    std::string externalShapeId;
+                    if (edgeNode.has("externalShape")) {
+                        externalShapeId = fmt::format("({})", edgeNode["externalShape"]["id"].label());
+                    }
                     if (&direction == &DirectionRightEV || &direction == &DirectionLeftEV) {
-                        svgFile << fmt::format("      <text x=\"{}\" y=\"{}\" fill=\"{}\" class=\"arrowText\">{}</text>\n", textFromX, textFromY, arcColors[color], edgeNode["edge"]["id"].label());
+                        svgFile << fmt::format("      <text x=\"{}\" y=\"{}\" fill=\"{}\" class=\"arrowText\">{}{}</text>\n", textFromX, textFromY, arcColors[color], edgeNode["edge"]["id"].label(), externalShapeId);
                         svgFile << fmt::format("      <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", lineFromX, lineFromY, lineToX, lineToY, arcColors[color]);
                     } else {
                         svgFile << fmt::format("      <g transform=\"translate({} {}) rotate(90)\">\n", startX, startY);
-                        svgFile << fmt::format("        <text x=\"{}\" y=\"{}\" fill=\"{}\" class=\"arrowText\">{}</text>\n", textFromX, textFromY, arcColors[color], edgeNode["edge"]["id"].label());
+                        svgFile << fmt::format("        <text x=\"{}\" y=\"{}\" fill=\"{}\" class=\"arrowText\">{}{}</text>\n", textFromX, textFromY, arcColors[color], edgeNode["edge"]["id"].label(), externalShapeId);
                         svgFile << fmt::format("        <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", lineFromX, lineFromY, lineToX, lineToY, arcColors[color]);
                         svgFile << fmt::format("      </g>\n");
                     }
@@ -953,7 +959,6 @@ For leftToRight direction edge from point middle
                 int caseNum = 1 + (int)hasUpLeft + ((int)hasUpRight * 2) + ((int)hasDownLeft * 4) + ((int)hasDownRight * 8);
                 if (caseNum == 1) {
                     ERROR(edge, "Invalid pixel state");
-                    throw "Invalid pixel state";
                 }
 
                 switch (processingMode) {
@@ -963,10 +968,12 @@ For leftToRight direction edge from point middle
                     // create new edge
                     CellI& newEdge  = *new Object(kb, ShapeEdgeStruct);
                     List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
+                    List& orderedEdgeNodes = *new List(kb, ShapeEdgeNodeStruct);
                     CellI& newEdgeId = kb.pools.numbers.get(static_cast<Number&>(currentShape["lastEdgeId"]).value() + 1);
                     currentShape.set("lastEdgeId", newEdgeId);
                     newEdge.set("shape", currentShape);
                     newEdge.set("edgeNodes", edgeNodes);
+                    newEdge.set("orderedEdgeNodes", edgeNodes);
                     newEdge.set("id", newEdgeId);
 
                     Map& edges = static_cast<Map&>(currentShape["edges"]);
@@ -998,7 +1005,6 @@ For leftToRight direction edge from point middle
                             // │  │xx│
                             // └──┴──┘
                             ERROR(edge, "External edge detection error!");
-                            throw "Edge detection error!";
                         }
                         if (hasUpRight && hasDownRight) {
                             // ┌──▲──┐
@@ -1037,7 +1043,6 @@ For leftToRight direction edge from point middle
                             // │xx│██│
                             // └──┴──┘
                             ERROR(edge, "External edge detection error!");
-                            throw "Edge detection error!";
                         }
                         if (hasUpLeft && hasDownLeft) {
                             // ┌──┬──┐
@@ -1076,7 +1081,6 @@ For leftToRight direction edge from point middle
                             // │██│  │
                             // └──∙──┘
                             ERROR(edge, "External edge detection error!");
-                            throw "Edge detection error!";
                         }
                         if (hasUpLeft && hasUpRight) {
                             // ┌──┬──┐
@@ -1115,7 +1119,6 @@ For leftToRight direction edge from point middle
                             // │xx│xx│
                             // └──┴──┘
                             ERROR(edge, "External edge detection error!");
-                            throw "Edge detection error!";
                         }
                         if (hasDownLeft && hasDownRight) {
                             // ┌──∙──┐
@@ -1189,7 +1192,6 @@ For leftToRight direction edge from point middle
                                 processingDirectionPtr = &DirectionRightEV;
                             } else {
                                 ERROR(edge, "Internal edge detection error! S{}({},{})", currentShape["id"].label(), pointX, pointY);
-                                throw "Edge detection error!";
                             }
                         } else {
                             if (hasUpRight && hasDownRight) {
@@ -1253,7 +1255,6 @@ For leftToRight direction edge from point middle
                                 processingDirectionPtr = &DirectionLeftEV;
                             } else {
                                 ERROR(edge, "Internal edge detection error! S{}({},{})", currentShape["id"].label(), pointX, pointY);
-                                throw "Edge detection error!";
                             }
                         } else {
                             if (hasUpLeft && hasDownLeft) {
@@ -1317,7 +1318,6 @@ For leftToRight direction edge from point middle
                                 processingDirectionPtr = &DirectionUpEV;
                             } else {
                                 ERROR(edge, "Internal edge detection error! S{}({},{})", currentShape["id"].label(), pointX, pointY);
-                                throw "Edge detection error!";
                             }
                         } else {
                             if (hasUpLeft && hasUpRight) {
@@ -1381,7 +1381,6 @@ For leftToRight direction edge from point middle
                                 processingDirectionPtr = &DirectionDownEV;
                             } else {
                                 ERROR(edge, "Internal edge detection error! S{}({},{})", currentShape["id"].label(), pointX, pointY);
-                                throw "Edge detection error!";
                             }
                         } else {
                             if (hasDownLeft && hasDownRight) {
@@ -1467,7 +1466,6 @@ For leftToRight direction edge from point middle
                     CellI& fromEdgeJoint = *fromEdgeJointPtr;
                     if (fromEdgeJoint.has(toEdgeDirectionStr)) {
                         ERROR(edge, "Edge processing error: edgeNode already exists!");
-                        throw "Edge processing error";
                     }
 
                     // to joint
@@ -1482,7 +1480,6 @@ For leftToRight direction edge from point middle
                     CellI& toEdgeJoint = *toEdgeJointPtr;
                     if (toEdgeJoint.has(toOppositeEdgeDirectionStr)) {
                         ERROR(edge, "Edge processing error: edgeNode already exists!");
-                        throw "Edge processing error";
                     }
 
                     // new edge node
@@ -1552,6 +1549,168 @@ For leftToRight direction edge from point middle
                 } // switch processinMode
             } // while has more shapePoints
         }); // visit shapePoints
+    }
+
+    void sortEdges()
+    {
+        CellI* firstColumnPointPtr = &(*firstShapePixelPtr())["upLeftPoint"];
+        CellI* shapePointPtr       = firstColumnPointPtr;
+        CellI* lastShapeEdgeInLine = nullptr;
+        List internalEdges(kb, ShapeEdgeStruct);
+        List::Item* lastInternalEdgeItem = nullptr;
+        enum class ProcessingDirection
+        {
+            LeftToRight,
+            UpToDown
+        };
+
+        ProcessingDirection processingDirection = ProcessingDirection::LeftToRight;
+
+        auto setExternalShape = [this](CellI& shapeEdgeNode) {
+            CellI& shapePoint        = shapeEdgeNode["from"];
+            CellI* externalShapePtr  = nullptr;
+            CellI* externalDirection = nullptr;
+            if (&shapeEdgeNode["edge"]["kind"] == &ExternalEdgeEV) {
+                externalDirection = &DirectionLeftEV;
+            } else {
+                externalDirection = &DirectionRightEV;
+            }
+
+            // rotate 🡪 == clockwise
+            // rotate 🡨 == counterclockwise
+            if (&shapeEdgeNode["direction"] == &DirectionRightEV) {
+                if (externalDirection == &DirectionLeftEV) {
+                    // 🡪 rotate 🡨 = 🡭
+                    externalShapePtr = shapePoint.has("upRightPixel") ? &shapePoint["upRightPixel"]["shape"] : nullptr;
+                } else {
+                    // 🡪 rotate 🡪 = 🡮
+                    externalShapePtr = shapePoint.has("downRightPixel") ? &shapePoint["downRightPixel"]["shape"] : nullptr;
+                }
+            } else if (&shapeEdgeNode["direction"] == &DirectionLeftEV) {
+                if (externalDirection == &DirectionLeftEV) {
+                    // 🡨 rotate 🡨 = 🡯
+                    externalShapePtr = shapePoint.has("downLeftPixel") ? &shapePoint["downLeftPixel"]["shape"] : nullptr;
+                } else {
+                    // 🡨 rotate 🡪 = 🡬
+                    externalShapePtr = shapePoint.has("upLeftPixel") ? &shapePoint["upLeftPixel"]["shape"] : nullptr;
+                }
+            } else if (&shapeEdgeNode["direction"] == &DirectionUpEV) {
+                if (externalDirection == &DirectionLeftEV) {
+                    // 🡩 rotate 🡨 = 🡬
+                    externalShapePtr = shapePoint.has("upLeftPixel") ? &shapePoint["upLeftPixel"]["shape"] : nullptr;
+                } else {
+                    // 🡩 rotate 🡪 = 🡭
+                    externalShapePtr = shapePoint.has("upRightPixel") ? &shapePoint["upRightPixel"]["shape"] : nullptr;
+                }
+            } else if (&shapeEdgeNode["direction"] == &DirectionDownEV) {
+                if (externalDirection == &DirectionLeftEV) {
+                    // 🡫 rotate 🡨 = 🡮
+                    externalShapePtr = shapePoint.has("downRightPixel") ? &shapePoint["downRightPixel"]["shape"] : nullptr;
+                } else {
+                    // 🡫 rotate 🡪 = 🡯
+                    externalShapePtr = shapePoint.has("downLeftPixel") ? &shapePoint["downLeftPixel"]["shape"] : nullptr;
+                }
+            }
+            if (externalShapePtr) {
+                shapeEdgeNode.set("externalShape", *externalShapePtr);
+            }
+            List& orderedEdgeNodes = static_cast<List&>(shapeEdgeNode["edge"]["orderedEdgeNodes"]);
+            orderedEdgeNodes.add(shapeEdgeNode);
+        };
+
+        while (shapePointPtr) {
+            CellI& shapePoint = *shapePointPtr;
+            const int x       = static_cast<Number&>(shapePoint["x"]).value();
+            const int y       = static_cast<Number&>(shapePoint["y"]).value();
+
+            if (shapePoint.has("edgeJoint")) {
+                CellI& edgeJoint = shapePoint["edgeJoint"];
+                switch (processingDirection) {
+                case ProcessingDirection::LeftToRight: {
+                    if (edgeJoint.has("rightUp")) {
+                        CellI& shapeEdgeNode = edgeJoint["rightUp"];
+                        setExternalShape(shapeEdgeNode);
+                    }
+                    if (edgeJoint.has("rightDown")) {
+                        CellI& shapeEdgeNode = edgeJoint["rightDown"];
+                        setExternalShape(shapeEdgeNode);
+                    }
+                } break;
+                case ProcessingDirection::UpToDown: {
+                    if (edgeJoint.has("downLeft")) {
+                        CellI& shapeEdgeNode = edgeJoint["downLeft"];
+                        setExternalShape(shapeEdgeNode);
+                        CellI& shapeEdge = shapeEdgeNode["edge"];
+                        if (&shapeEdge["kind"] == &InternalEdgeEV) {
+                            // entering an internal edge
+                            lastInternalEdgeItem = internalEdges.add(shapeEdge);
+                        }
+                    }
+                    if (edgeJoint.has("downRight")) {
+                        CellI& shapeEdgeNode = edgeJoint["downRight"];
+                        setExternalShape(shapeEdgeNode);
+                        CellI& shapeEdge = shapeEdgeNode["edge"];
+                        if (&shapeEdge["kind"] == &InternalEdgeEV) {
+                            // leaving an internal edge
+                            internalEdges.remove(lastInternalEdgeItem);
+                            if (!internalEdges.empty()) {
+                                lastInternalEdgeItem = &static_cast<List::Item&>(internalEdges["last"]);
+                            }
+                        }
+                        lastShapeEdgeInLine = &shapeEdge;
+                    }
+                    if (shapePoint.has("downRightPixel")) {
+                        CellI* edgePixelListPtr = nullptr;
+                        CellI& shapeEdge        = *lastShapeEdgeInLine;
+                        if (shapeEdge.missing("shapePixels")) {
+                            List& edgeNodes = *new List(kb, ShapePixelStruct);
+                            shapeEdge.set("shapePixels", edgeNodes);
+                            edgePixelListPtr = &edgeNodes;
+                        } else {
+                            edgePixelListPtr = &shapeEdge["shapePixels"];
+                        }
+                        List& edgePixelList = static_cast<List&>(*edgePixelListPtr);
+                        CellI& shapePixel   = shapePoint["downRightPixel"];
+                        edgePixelList.add(shapePixel);
+                        if (!internalEdges.empty()) {
+                            CellI& lastInternalEdge = internalEdges["last"]["value"];
+                            CellI* shapeSetPtr      = nullptr;
+                            if (lastInternalEdge.missing("shapes")) {
+                                Set& newShapesSet = *new Set(kb, ShapeStruct);
+                                lastInternalEdge.set("shapes", newShapesSet);
+                                shapeSetPtr = &newShapesSet;
+                            } else {
+                                shapeSetPtr = &lastInternalEdge["shapes"];
+                            }
+                            Set& shapesSet = static_cast<Set&>(*shapeSetPtr);
+                            CellI& shape   = shapePixel["shape"];
+                            if (!shapesSet.contains(shape)) {
+                                shapesSet.add(shapePixel["shape"]);
+                            }
+                        }
+                    }
+                } // case
+                } // switch
+            }
+
+            if (shapePoint.has("right")) {
+                shapePointPtr = &shapePoint["right"];
+            } else if (shapePoint.has("down")) {
+                switch (processingDirection) {
+                case ProcessingDirection::LeftToRight:
+                    processingDirection  = ProcessingDirection::UpToDown;
+                    shapePointPtr = firstColumnPointPtr;
+                    break;
+                case ProcessingDirection::UpToDown:
+                    processingDirection  = ProcessingDirection::LeftToRight;
+                    shapePointPtr = &(*firstColumnPointPtr)["down"];
+                    firstColumnPointPtr  = shapePointPtr;
+                    break;
+                }
+            } else {
+                shapePointPtr = nullptr;
+            }
+        }
     }
 
     void validateEdgePoints()
@@ -1993,6 +2152,43 @@ For leftToRight direction edge from point middle
         }
     }
 
+    void findPossibleBackgroundWithShapes()
+    {
+        DEBUG(shapeRelations, "findPossibleBackgroundWithShapes");
+
+        List& shapesList = static_cast<List&>(shaper()["shapes"]);
+        int shapesCount  = shapesList.size();
+        if (shapesCount < 2) {
+            TRACE(shapeRelations, "  there isn't enough shape");
+            return;
+        }
+        const int targetContainedShapeCount = shapesCount - 1;
+        CellI* backgroundShapePtr     = nullptr;
+        Visitor::visitList(shapesList, [this, targetContainedShapeCount, &backgroundShapePtr](CellI& shape, int, bool&) {
+            Map& edgesMap  = static_cast<Map&>(shape["edges"]);
+            int edgesCount = edgesMap.size();
+            if (edgesCount > 1) {
+                int containedShapeCount = 0;
+                Visitor::visitList(shape["edges"]["list"], [this, &containedShapeCount](CellI& edge, int, bool&) {
+                    if (!(&edge["kind"] == &InternalEdgeEV && edge.has("shapes"))) {
+                        return;
+                    }
+                    Visitor::visitList(edge["shapes"]["index"]["struct"]["slots"]["list"], [this, &containedShapeCount](CellI& slot, int, bool&) {
+                        CellI& shape = slot["slotRole"];
+                        containedShapeCount++;
+                    });
+                });
+                if (targetContainedShapeCount == containedShapeCount) {
+                    backgroundShapePtr = &shape;
+                }
+            }
+        });
+        if (backgroundShapePtr) {
+            CellI& backgroundShape = *backgroundShapePtr;
+            INFO(shapeRelations, "    shape id {} can be a background as it contains all other shapes!", backgroundShape["id"].label());
+        }
+    }
+
     CellI& ShaperStruct;
     CellI& ShapeStruct;
     CellI& ShapePointStruct;
@@ -2202,7 +2398,7 @@ TEST_F(EdgeTester, EdgeTestWithArc_00d62c1b_Train5Output)
                   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]])");
 }
 
-TEST_F(EdgeTester, EdgeTestWithArc_0b148d64_minified_Train0Input)
+TEST_F(EdgeTester, EdgeTestWithArc_0b148d64_minified_Train1Input)
 {
     testEdges(R"([[8,8,8,8,8,0,8,8,8,8,0],
                   [8,0,0,8,0,8,0,8,8,8,0],
@@ -2611,16 +2807,16 @@ TEST_F(EdgeTester, DISABLED_EdgeTestWithAllArcTask)
     TaskSet taskSet(kb, INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
 //    TaskSet taskSet(kb, INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_EVALUATION_CHALLENGES_FILENAME);
     for (auto& task : taskSet.m_tasks) {
-        TRACE(grid, fmt::format("id: {}, examples num: {}, tests num: {}", task.first, static_cast<List&>(task.second.m_cellExamplesList).size(), static_cast<List&>(task.second.m_cellTestsList).size()));
+        INFO(grid, fmt::format("id: {}, examples num: {}, tests num: {}", task.first, static_cast<List&>(task.second.m_cellExamplesList).size(), static_cast<List&>(task.second.m_cellTestsList).size()));
         TRACE(grid, "   examples:");
         Visitor::visitList(task.second.m_cellExamplesList, [this, &task](CellI& example, int i, bool&) {
             const int humanIndex = i + 1;
-            TRACE(grid, fmt::format("id: {}, example input: {}", task.first, humanIndex));
+            INFO(grid, fmt::format("id: {}, example input: {}", task.first, humanIndex));
             TRACE(grid, fmt::format("id: {}, example input: {}", task.first, humanIndex));
             TRACE(grid, fmt::format("id: {}, example input: {}", task.first, humanIndex));
             setOutputSVGName(fmt::format("EdgeTestWithArc_{}_{}{}{}", task.first, "Train", humanIndex, "Input"));
             testEdges(static_cast<hybrid::arc::Grid&>(example["input"]));
-            TRACE(grid, fmt::format("id: {}, example output: {}", task.first, humanIndex));
+            INFO(grid, fmt::format("id: {}, example output: {}", task.first, humanIndex));
             TRACE(grid, fmt::format("id: {}, example output: {}", task.first, humanIndex));
             TRACE(grid, fmt::format("id: {}, example output: {}", task.first, humanIndex));
             setOutputSVGName(fmt::format("EdgeTestWithArc_{}_{}{}{}", task.first, "Train", humanIndex, "Output"));
@@ -2630,7 +2826,7 @@ TEST_F(EdgeTester, DISABLED_EdgeTestWithAllArcTask)
         TRACE(grid, "   tests:");
         Visitor::visitList(task.second.m_cellTestsList, [this, &task](CellI& example, int i, bool&) {
             const int humanIndex = i + 1;
-            TRACE(grid, fmt::format("id: {}, test input: {}", task.first, humanIndex));
+            INFO(grid, fmt::format("id: {}, test input: {}", task.first, humanIndex));
             setOutputSVGName(fmt::format("EdgeTestWithArc_{}_{}{}{}", task.first, "Test", humanIndex, "Input"));
             testEdges(static_cast<hybrid::arc::Grid&>(example["input"]));
         });

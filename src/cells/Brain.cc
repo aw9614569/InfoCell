@@ -5789,6 +5789,7 @@ void Brain::createArcSolver()
 //                  member("section", "ShapeEdgeSection"),
                   member("from", "ShapePoint"),
                   member("direction", "Directions"),
+                  member("externalShape", "Shape"),
                   member("next", "ShapeEdgeNode"),
                   member("previous", "ShapeEdgeNode"));
 
