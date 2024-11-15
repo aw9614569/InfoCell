@@ -55,6 +55,7 @@ protected:
     Number& m_width;
     Number& m_height;
     cells::hybrid::arc::Grid& m_grid;
+    List* m_frameEdgeNodes = nullptr;
     Map m_shapePixels;
     List m_shapes;
     Map m_shapeMap;

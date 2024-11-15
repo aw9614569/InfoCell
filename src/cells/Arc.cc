@@ -174,6 +174,8 @@ Shaper::Shaper(brain::Brain& kb, cells::hybrid::arc::Grid& grid, CellI& ShapeStr
     m_shapeMap(kb, kb.std.Number, ShapeStruct),
     m_inputPixels(kb, kb.std.Pixel)
 {
+    static CellI& ShapeEdgeNodeStruct = kb.getStruct("arc::ShapeEdgeNode");
+    m_frameEdgeNodes                  = new List(kb, ShapeEdgeNodeStruct);
     processInputPixels();
 }
 

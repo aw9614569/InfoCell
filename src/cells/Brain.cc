@@ -5921,6 +5921,7 @@ void Brain::createArcSolver()
                   member("width", _(std.Number)),
                   member("height", _(std.Number)),
                   member("grid", _(std.Grid)),
+                  member("frameEdgeNodes", tt_("std::List", "valueType", "ShapeEdgeNode")),
                   member("shapePixels", st_("tableType")),
                   member("shapes", tt_("std::List", "valueType", "Shape")),
                   member("shapeMap", tt_("std::Map", "keyType", _(std.Number), "valueType", "Shape")),
