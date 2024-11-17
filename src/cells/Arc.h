@@ -6,6 +6,24 @@ namespace cells {
 namespace hybrid {
 namespace arc {
 
+class EdgeRelation
+{
+public:
+    bool isUnrelated() const
+    {
+        return !m_exactMatch && !m_isRotated && !m_isMirrored;
+    }
+
+    bool m_exactMatch      = false;
+    bool m_isRotated       = false;
+    CellI* m_rotationDir   = nullptr;
+    bool m_isMirrored      = false;
+    CellI* m_mirrorAxisDir = nullptr;
+};
+
+// compare two ShapeEdge
+EdgeRelation compareEdges(CellI& lhs, CellI& rhs);
+
 class Shape : public CellI
 {
 public:
@@ -60,6 +78,10 @@ protected:
     List m_shapes;
     Map m_shapeMap;
     Set m_inputPixels;
+    CellI* m_upLeftPoint = nullptr;
+    CellI* m_upRightPoint = nullptr;
+    CellI* m_downLeftPoint = nullptr;
+    CellI* m_downRightPoint = nullptr;
 };
 
 } // namespace arc

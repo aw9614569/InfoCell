@@ -32,6 +32,7 @@ public:
     EdgeTester() :
         CellTest([]() {
             infocell::cells::brain::Brain::Logger::createLogger("edge");
+            infocell::cells::brain::Brain::Logger::createLogger("shapeCorners");
             infocell::cells::brain::Brain::Logger::createLogger("shapeRelations");
             infocell::cells::brain::Brain::Logger::createLogger("shapeIdGrid");
             infocell::cells::brain::Brain::Logger::createLogger("grid");
@@ -40,7 +41,8 @@ public:
             spdlog::get("compileStruct")->set_level(spdlog::level::off);
             spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
             spdlog::get("edge")->set_level(spdlog::level::off);
-            spdlog::get("shapeIdGrid")->set_level(spdlog::level::off);
+            spdlog::get("shapeCorners")->set_level(spdlog::level::trace);
+            spdlog::get("shapeIdGrid")->set_level(spdlog::level::trace);
             spdlog::get("grid")->set_level(spdlog::level::trace);
             spdlog::get("shapeRelations")->set_level(spdlog::level::trace);
         }),
@@ -56,7 +58,10 @@ public:
         DirectionUpEV(getVariable("arc::Directions::up")),
         DirectionDownEV(getVariable("arc::Directions::down")),
         DirectionLeftEV(getVariable("arc::Directions::left")),
-        DirectionRightEV(getVariable("arc::Directions::right"))
+        DirectionRightEV(getVariable("arc::Directions::right")),
+        Degree_90(getVariable("arc::RotationDir::Degree_90")),
+        Degree_180(getVariable("arc::RotationDir::Degree_180")),
+        Degree_270(getVariable("arc::RotationDir::Degree_270"))
     {
         auto& TableRowStruct = getStruct(kb.templateId("std::Map", ids.keyType, kb.std.Number, ids.valueType, ShapeStruct));
         auto& TableStruct    = getStruct(kb.templateId("std::Map", ids.keyType, kb.std.Number, ids.valueType, TableRowStruct));
@@ -97,6 +102,18 @@ public:
 //        printEdges();
         printShapeRelations();
         findPossibleBackgroundWithShapes();
+    }
+
+    void processFrame(const std::string& frameJsonStr)
+    {
+        setInputGrid(frameJsonStr);
+        printInputHybridGrid();
+        shaperProcess();
+        sortShapePixelsAndCreateShapePoints();
+        sortShapePoints();
+        calculateEdgesForShapes();
+        processEdgeNodes();
+        printShapeIdGrid();
     }
 
     void setInputGrid(const std::string& jsonStr)
@@ -321,6 +338,19 @@ public:
                 List& shapePixelList = static_cast<List&>(currentShape["shapePixels"]);
                 shapePixelList.add(shapePixel);
 
+                // set corners
+                if (x == 0 && y == 0) {
+                    shaper().set("upLeftPoint", shapePixel["upLeftPoint"]);
+//                    TRACE(shapeCorners, "upRightPoint: ({}, {})", pointX, pointY);
+                } else if (x == inputHybridGrid().width() - 1 && y == 0) {
+                    shaper().set("upRightPoint", shapePixel["upRightPoint"]);
+                } else if (x == 0 && y == inputHybridGrid().height() - 1) {
+                    shaper().set("downLeftPoint", shapePixel["downLeftPoint"]);
+                } else if (x == inputHybridGrid().width() - 1 && y == inputHybridGrid().height() - 1) {
+                    shaper().set("downRightPoint", shapePixel["downRightPoint"]);
+                }
+
+                // stepping
                 if (pixel.missing("left")) {
                     // first column
                     previousUpPixel = &shapePixel;
@@ -1500,6 +1530,9 @@ For leftToRight direction edge from point middle
                     if (currentShapePointPtr != firstShapePointPtr) {
                         processingMode = (processingMode == ProcessingMode::ExternalEdgeStep) ? ProcessingMode::ExternalEdgeDetect : ProcessingMode::InternalEdgeDetect;
                     } else {
+                        CellI& firstEdgeNode = edgeNodes["first"]["value"];
+                        firstEdgeNode.set("previous", newEdgeNode);
+                        newEdgeNode.set("next", firstEdgeNode);
                         processingMode       = ProcessingMode::Searching;
                         currentListItemPtr   = previousListItemPtr;
                         currentShapePointPtr = nullptr;
@@ -1615,7 +1648,11 @@ For leftToRight direction edge from point middle
                         setExternalShape(edgeJoint["rightUp"]);
                     }
                     if (edgeJoint.has("rightDown")) {
-                        setExternalShape(edgeJoint["rightDown"]);
+                        CellI& rightDownNode = edgeJoint["rightDown"];
+                        setExternalShape(rightDownNode);
+                        if (rightDownNode["edge"].missing("upLeftNode")) {
+                            rightDownNode["edge"].set("upLeftNode", rightDownNode);
+                        }
                     }
                 } break;
                 case ProcessingDirection::UpToDown: {
@@ -1690,6 +1727,127 @@ For leftToRight direction edge from point middle
                     firstColumnPointPtr  = shapePointPtr;
                     break;
                 }
+            } else {
+                shapePointPtr = nullptr;
+            }
+        }
+        findCornersUpRight();
+        findCornersDownLeft();
+        findCornersDownRight();
+    }
+
+    void findCornersUpLeft()
+    {
+        CellI* firstColumnPointPtr = &shaper()["upLeftPoint"];
+        CellI* shapePointPtr       = firstColumnPointPtr;
+        while (shapePointPtr) {
+            CellI& shapePoint = *shapePointPtr;
+
+            if (shapePoint.has("edgeJoint")) {
+                CellI& edgeJoint = shapePoint["edgeJoint"];
+                if (edgeJoint.has("rightDown")) {
+                    CellI& node = edgeJoint["rightDown"];
+                    if (node["edge"].missing("upLeftNode")) {
+                        node["edge"].set("upLeftNode", node);
+                    }
+                }
+            }
+
+            // stepping
+            if (shapePoint.has("right")) {
+                shapePointPtr = &shapePoint["right"];
+            } else if (shapePoint.has("down")) {
+                shapePointPtr = &(*firstColumnPointPtr)["down"];
+                firstColumnPointPtr = shapePointPtr;
+            } else {
+                shapePointPtr = nullptr;
+            }
+        }
+    }
+
+    void findCornersUpRight()
+    {
+        DEBUG(shapeCorners, "findCornersUpRight");
+
+        CellI* lastColumnPointPtr = &shaper()["upRightPoint"];
+        CellI* shapePointPtr      = lastColumnPointPtr;
+        while (shapePointPtr) {
+            CellI& shapePoint = *shapePointPtr;
+//            TRACE(shapeCorners, "({}, {})", shapePoint["x"].label(), shapePoint["y"].label());
+            if (shapePoint.has("edgeJoint")) {
+                CellI& edgeJoint = shapePoint["edgeJoint"];
+                if (edgeJoint.has("downLeft")) {
+                    CellI& node = edgeJoint["downLeft"];
+                    if (node["edge"].missing("upRightNode")) {
+                        node["edge"].set("upRightNode", node);
+                        TRACE(shapeCorners, "upRight: {}({}, {})", node["edge"]["shape"]["id"].label(), node["from"]["x"].label(), node["from"]["y"].label());
+                    }
+                }
+            }
+
+            // stepping
+            if (shapePoint.has("down")) {
+                shapePointPtr = &shapePoint["down"];
+            } else if (shapePoint.has("left")) {
+                shapePointPtr      = &(*lastColumnPointPtr)["left"];
+                lastColumnPointPtr = shapePointPtr;
+            } else {
+                shapePointPtr = nullptr;
+            }
+        }
+    }
+
+    void findCornersDownLeft()
+    {
+        CellI* firstColumnPointPtr = &shaper()["downLeftPoint"];
+        CellI* shapePointPtr       = firstColumnPointPtr;
+        while (shapePointPtr) {
+            CellI& shapePoint = *shapePointPtr;
+
+            if (shapePoint.has("edgeJoint")) {
+                CellI& edgeJoint = shapePoint["edgeJoint"];
+                if (edgeJoint.has("upRight")) {
+                    CellI& node = edgeJoint["upRight"];
+                    if (node["edge"].missing("downLeftNode")) {
+                        node["edge"].set("downLeftNode", node);
+                    }
+                }
+            }
+
+            // stepping
+            if (shapePoint.has("up")) {
+                shapePointPtr = &shapePoint["up"];
+            } else if (shapePoint.has("right")) {
+                shapePointPtr       = &(*firstColumnPointPtr)["right"];
+                firstColumnPointPtr = shapePointPtr;
+            } else {
+                shapePointPtr = nullptr;
+            }
+        }
+    }
+
+    void findCornersDownRight()
+    {
+        CellI* lastColumnPointPtr = &shaper()["downRightPoint"];
+        CellI* shapePointPtr      = lastColumnPointPtr;
+        while (shapePointPtr) {
+            CellI& shapePoint = *shapePointPtr;
+            if (shapePoint.has("edgeJoint")) {
+                CellI& edgeJoint = shapePoint["edgeJoint"];
+                if (edgeJoint.has("leftUp")) {
+                    CellI& node = edgeJoint["leftUp"];
+                    if (node["edge"].missing("downRightNode")) {
+                        node["edge"].set("downRightNode", node);
+                    }
+                }
+            }
+
+            // stepping
+            if (shapePoint.has("left")) {
+                shapePointPtr = &shapePoint["left"];
+            } else if (shapePoint.has("up")) {
+                shapePointPtr      = &(*lastColumnPointPtr)["up"];
+                lastColumnPointPtr = shapePointPtr;
             } else {
                 shapePointPtr = nullptr;
             }
@@ -2266,6 +2424,9 @@ For leftToRight direction edge from point middle
     CellI& DirectionDownEV;
     CellI& DirectionLeftEV;
     CellI& DirectionRightEV;
+    CellI& Degree_90;
+    CellI& Degree_180;
+    CellI& Degree_270;
     std::unique_ptr<input::Grid> m_inputGrid;
     std::unique_ptr<cells::hybrid::arc::Grid> m_inputHybridGrid;
     cells::hybrid::arc::Grid* m_inputHybridGridPtr = nullptr;
@@ -2274,8 +2435,112 @@ For leftToRight direction edge from point middle
     std::string m_outputSVGFileName;
 };
 
+TEST_F(EdgeTester, ShapeCompareExactMatch)
+{
+    const std::string& frame1 = R"([[0,7,7,7],
+                                    [7,7,7,7],
+                                    [0,7,7,7]])";
+
+    const std::string& frame2 = R"([[0,0,7,7,7],
+                                    [0,7,7,7,7],
+                                    [0,0,7,7,7]])";
+    processFrame(frame1);
+    CellI& shape1FirstPixel = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
+    CellI& edge1FirstPixel  = static_cast<Map&>(shape1FirstPixel["edges"]).getValue(_1_);
+
+    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& edge1  = static_cast<Map&>(shape1["edges"]).getValue(_1_);
+
+    processFrame(frame2);
+    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& edge2  = static_cast<Map&>(shape2["edges"]).getValue(_1_);
+
+    EXPECT_TRUE(edge1.has("upLeftNode"));
+    EXPECT_TRUE(edge2.has("upLeftNode"));
+
+    EXPECT_FALSE(cells::hybrid::arc::compareEdges(edge1FirstPixel, edge2).m_exactMatch);
+    EXPECT_TRUE(cells::hybrid::arc::compareEdges(edge1, edge2).m_exactMatch);
+}
+
+TEST_F(EdgeTester, ShapeCompareRotate90)
+{
+    const std::string& frame1 = R"([[0,7,0],
+                                    [7,7,7],
+                                    [7,7,7],
+                                    [7,7,7]])";
+
+    const std::string& frame2 = R"([[0,7,7,7,0],
+                                    [0,7,7,7,7],
+                                    [0,7,7,7,0]])";
+
+    processFrame(frame1);
+    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& edge1  = static_cast<Map&>(shape1["edges"]).getValue(_1_);
+
+    processFrame(frame2);
+    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& edge2  = static_cast<Map&>(shape2["edges"]).getValue(_1_);
+
+    cells::hybrid::arc::EdgeRelation edgeRelation = cells::hybrid::arc::compareEdges(edge1, edge2);
+    EXPECT_FALSE(edgeRelation.m_exactMatch);
+    EXPECT_TRUE(edgeRelation.m_isRotated);
+    EXPECT_EQ(edgeRelation.m_rotationDir, &Degree_90);
+}
+
+TEST_F(EdgeTester, ShapeCompareRotate180)
+{
+    const std::string& frame1 = R"([[0,7,0],
+                                    [7,7,7],
+                                    [7,7,7],
+                                    [7,7,7]])";
+
+    const std::string& frame2 = R"([[7,7,7],
+                                    [7,7,7],
+                                    [7,7,7],
+                                    [0,7,0]])";
+
+    processFrame(frame1);
+    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& edge1  = static_cast<Map&>(shape1["edges"]).getValue(_1_);
+
+    processFrame(frame2);
+    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
+    CellI& edge2  = static_cast<Map&>(shape2["edges"]).getValue(_1_);
+
+    cells::hybrid::arc::EdgeRelation edgeRelation = cells::hybrid::arc::compareEdges(edge1, edge2);
+    EXPECT_FALSE(edgeRelation.m_exactMatch);
+    EXPECT_TRUE(edgeRelation.m_isRotated);
+    EXPECT_EQ(edgeRelation.m_rotationDir, &Degree_180);
+}
+
+TEST_F(EdgeTester, ShapeCompareRotate270)
+{
+    const std::string& frame1 = R"([[0,7,0],
+                                    [7,7,7],
+                                    [7,7,7],
+                                    [7,7,7]])";
+
+    const std::string& frame2 = R"([[0,0,7,7,7],
+                                    [0,7,7,7,7],
+                                    [0,0,7,7,7]])";
+
+    processFrame(frame1);
+    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& edge1  = static_cast<Map&>(shape1["edges"]).getValue(_1_);
+
+    processFrame(frame2);
+    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& edge2  = static_cast<Map&>(shape2["edges"]).getValue(_1_);
+
+    cells::hybrid::arc::EdgeRelation edgeRelation = cells::hybrid::arc::compareEdges(edge1, edge2);
+    EXPECT_FALSE(edgeRelation.m_exactMatch);
+    EXPECT_TRUE(edgeRelation.m_isRotated);
+    EXPECT_EQ(edgeRelation.m_rotationDir, &Degree_270);
+}
+
 TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train1Input)
 {
+    exit(0);
     testEdges(R"([[0,0,0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0,0,0],
@@ -2439,7 +2704,6 @@ TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Test1Input)
 
 TEST_F(EdgeTester, EdgeTestWithArc_2dd70a9a_Test1Input)
 {
-    exit(0);
     testEdges(R"([[8,8,8,8,0,0,0,0,0,8,8,0,0],
                   [8,0,0,0,0,8,2,2,0,0,0,0,0],
                   [0,8,0,0,8,8,0,0,0,0,0,0,0],

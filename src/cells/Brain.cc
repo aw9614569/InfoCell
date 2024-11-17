@@ -5778,6 +5778,10 @@ void Brain::createArcSolver()
                   member("kind", "ShapeEdgeKind"),
                   member("shapes", tt_("std::Set", "valueType", "Shape")),
                   member("shapePixels", tt_("std::List", "valueType", "ShapePixel")),
+                  member("upLeftNode", "ShapeEdgeNode"),
+                  member("upRightNode", "ShapeEdgeNode"),
+                  member("downLeftNode", "ShapeEdgeNode"),
+                  member("downRightNode", "ShapeEdgeNode"),
                   member("edgeNodes", tt_("std::List", "valueType", "ShapeEdgeNode")));
 
     // struct ShapeEdgeNode
@@ -5923,6 +5927,10 @@ void Brain::createArcSolver()
                   member("grid", _(std.Grid)),
                   member("frameEdgeNodes", tt_("std::List", "valueType", "ShapeEdgeNode")),
                   member("shapePixels", st_("tableType")),
+                  member("upLeftPoint", "ShapePoint"),
+                  member("upRightPoint", "ShapePoint"),
+                  member("downLeftPoint", "ShapePoint"),
+                  member("downRightPoint", "ShapePoint"),
                   member("shapes", tt_("std::List", "valueType", "Shape")),
                   member("shapeMap", tt_("std::Map", "keyType", _(std.Number), "valueType", "Shape")),
                   member("inputPixels", tt_("std::Set", "valueType", _(std.Pixel))));

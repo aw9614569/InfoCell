@@ -1,4 +1,4 @@
-#include "Cells.h"
+﻿#include "Cells.h"
 #include "Brain.h"
 #include "Arc.h"
 
@@ -6,6 +6,108 @@ namespace infocell {
 namespace cells {
 namespace hybrid {
 namespace arc {
+
+static CellI& rotateDirection(CellI& direction, CellI& degree)
+{
+}
+
+EdgeRelation compareEdges(CellI& lhs, CellI& rhs)
+{
+    brain::Brain& kb = lhs.kb;
+    static CellI& name_Degree_0        = kb.getVariable("arc::RotationDir::Degree_0");
+    static CellI& name_Degree_90        = kb.getVariable("arc::RotationDir::Degree_90");
+    static CellI& name_Degree_180       = kb.getVariable("arc::RotationDir::Degree_180");
+    static CellI& name_Degree_270       = kb.getVariable("arc::RotationDir::Degree_270");
+    static CellI& name_DirectionUpEV    = kb.getVariable("arc::Directions::up");
+    static CellI& name_DirectionDownEV  = kb.getVariable("arc::Directions::down");
+    static CellI& name_DirectionLeftEV  = kb.getVariable("arc::Directions::left");
+    static CellI& name_DirectionRightEV = kb.getVariable("arc::Directions::right");
+
+    EdgeRelation result;
+    List& lhsEdgeNodes = static_cast<List&>(lhs["edgeNodes"]);
+    List& rhsEdgeNodes = static_cast<List&>(rhs["edgeNodes"]);
+    if (lhsEdgeNodes.size() != rhsEdgeNodes.size()) {
+        return result;
+    }
+    // we expect at least a pixel which has 4 sides
+    if (lhsEdgeNodes.size() < 4) {
+        return result;
+    }
+
+    auto rotateDirection = [](CellI& direction, CellI& degree) -> CellI& {
+        if (&degree == &name_Degree_0) {
+            return direction;
+        } else if (&degree == &name_Degree_90) {
+            if (&direction == &name_DirectionUpEV) {
+                return name_DirectionRightEV;
+            } else if (&direction == &name_DirectionRightEV) {
+                return name_DirectionDownEV;
+            } else if (&direction == &name_DirectionDownEV) {
+                return name_DirectionLeftEV;
+            } else if (&direction == &name_DirectionLeftEV) {
+                return name_DirectionUpEV;
+            }
+        } else if (&degree == &name_Degree_180) {
+            if (&direction == &name_DirectionUpEV) {
+                return name_DirectionDownEV;
+            } else if (&direction == &name_DirectionRightEV) {
+                return name_DirectionLeftEV;
+            } else if (&direction == &name_DirectionDownEV) {
+                return name_DirectionUpEV;
+            } else if (&direction == &name_DirectionLeftEV) {
+                return name_DirectionRightEV;
+            }
+        } else if (&degree == &name_Degree_270) {
+            if (&direction == &name_DirectionUpEV) {
+                return name_DirectionLeftEV;
+            } else if (&direction == &name_DirectionRightEV) {
+                return name_DirectionUpEV;
+            } else if (&direction == &name_DirectionDownEV) {
+                return name_DirectionRightEV;
+            } else if (&direction == &name_DirectionLeftEV) {
+                return name_DirectionDownEV;
+            }
+        }
+        throw "error";
+    };
+
+    for (const auto& directionPair : { std::pair(&name_Degree_0, "upLeftNode"),
+                                       std::pair(&name_Degree_90, "upRightNode"),
+                                       std::pair(&name_Degree_180, "downRightNode"),
+                                       std::pair(&name_Degree_270, "downLeftNode") }) {
+        CellI& direction        = *directionPair.first;
+        const char* firstCorner = directionPair.second;
+        CellI* lhsEdgeNodePtr   = &lhsEdgeNodes[kb.ids.first][kb.ids.value];
+        CellI* rhsEdgeNodePtr   = &rhs[firstCorner];
+        CellI* firstNodePtr     = lhsEdgeNodePtr;
+        bool found              = true;
+        do {
+            CellI& lhsEdgeNode         = *lhsEdgeNodePtr;
+            CellI& rhsEdgeNode         = *rhsEdgeNodePtr;
+            CellI& rotatedLhsDirection = rotateDirection(lhsEdgeNode["direction"], direction);
+            // std::cout << fmt::format("90 ({},{})\n", rhsEdgeNode["from"]["x"].label(), rhsEdgeNode["from"]["y"].label());
+            // std::cout << fmt::format("{} {}->{} {}\n", direction.label(), lhsEdgeNode["direction"].label(), rotatedLhsDirection.label(), rhsEdgeNode["direction"].label());
+            if (&rotatedLhsDirection != &rhsEdgeNode["direction"]) {
+                found = false;
+                break;
+            }
+            lhsEdgeNodePtr = &lhsEdgeNode[kb.ids.next];
+            rhsEdgeNodePtr = &rhsEdgeNode[kb.ids.next];
+        } while (lhsEdgeNodePtr != firstNodePtr);
+
+        if (found) {
+            if (&direction == &name_Degree_0) {
+                result.m_exactMatch = true;
+            } else {
+                result.m_isRotated = true;
+            }
+            result.m_rotationDir = &direction;
+            return result;
+        }
+    }
+
+    return result;
+}
 
 Shape::Shape(brain::Brain& kb, Number& id, Number& color, Number& width, Number& height, CellI& PixelStruct) :
     CellI(kb),
@@ -194,6 +296,10 @@ bool Shaper::has(CellI& role)
     static CellI& name_shapes      = kb.name("shapes");
     static CellI& name_shapeMap    = kb.name("shapeMap");
     static CellI& name_inputPixels = kb.name("inputPixels");
+    static CellI& name_upLeftPoint    = kb.name("upLeftPoint");
+    static CellI& name_upRightPoint   = kb.name("upRightPoint");
+    static CellI& name_downLeftPoint  = kb.name("downLeftPoint");
+    static CellI& name_downRightPoint = kb.name("downRightPoint");
 
     if (&role == &kb.ids.struct_) {
         return true;
@@ -209,6 +315,18 @@ bool Shaper::has(CellI& role)
     }
     if (&role == &name_shapePixels) {
         return true;
+    }
+    if (&role == &name_upLeftPoint) {
+        return m_upLeftPoint;
+    }
+    if (&role == &name_upRightPoint) {
+        return m_upRightPoint;
+    }
+    if (&role == &name_downLeftPoint) {
+        return m_downLeftPoint;
+    }
+    if (&role == &name_downRightPoint) {
+        return m_downRightPoint;
     }
     if (&role == &name_shapes) {
         return true;
@@ -225,12 +343,16 @@ bool Shaper::has(CellI& role)
 
 CellI& Shaper::operator[](CellI& role)
 {
-    static CellI& ShaperStruct = kb.getStruct("arc::Shaper");
-    static CellI& name_grid        = kb.name("grid");
-    static CellI& name_shapePixels = kb.name("shapePixels");
-    static CellI& name_shapes      = kb.name("shapes");
-    static CellI& name_shapeMap    = kb.name("shapeMap");
-    static CellI& name_inputPixels = kb.name("inputPixels");
+    static CellI& ShaperStruct        = kb.getStruct("arc::Shaper");
+    static CellI& name_grid           = kb.name("grid");
+    static CellI& name_shapePixels    = kb.name("shapePixels");
+    static CellI& name_shapes         = kb.name("shapes");
+    static CellI& name_shapeMap       = kb.name("shapeMap");
+    static CellI& name_inputPixels    = kb.name("inputPixels");
+    static CellI& name_upLeftPoint    = kb.name("upLeftPoint");
+    static CellI& name_upRightPoint   = kb.name("upRightPoint");
+    static CellI& name_downLeftPoint  = kb.name("downLeftPoint");
+    static CellI& name_downRightPoint = kb.name("downRightPoint");
 
     if (&role == &kb.ids.struct_) {
         return ShaperStruct;
@@ -247,6 +369,18 @@ CellI& Shaper::operator[](CellI& role)
     if (&role == &name_shapePixels) {
         return m_shapePixels;
     }
+    if (&role == &name_upLeftPoint) {
+        return *m_upLeftPoint;
+    }
+    if (&role == &name_upRightPoint) {
+        return *m_upRightPoint;
+    }
+    if (&role == &name_downLeftPoint) {
+        return *m_downLeftPoint;
+    }
+    if (&role == &name_downRightPoint) {
+        return *m_downRightPoint;
+    }
     if (&role == &name_shapes) {
         return m_shapes;
     }
@@ -262,7 +396,23 @@ CellI& Shaper::operator[](CellI& role)
 
 void Shaper::set(CellI& role, CellI& value)
 {
-    throw "Changing a hybrid shape cell is not possible!";
+    static CellI& name_upLeftPoint    = kb.name("upLeftPoint");
+    static CellI& name_upRightPoint   = kb.name("upRightPoint");
+    static CellI& name_downLeftPoint  = kb.name("downLeftPoint");
+    static CellI& name_downRightPoint = kb.name("downRightPoint");
+
+    if (&role == &name_upLeftPoint) {
+        m_upLeftPoint = &value;
+    }
+    if (&role == &name_upRightPoint) {
+        m_upRightPoint = &value;
+    }
+    if (&role == &name_downLeftPoint) {
+        m_downLeftPoint = &value;
+    }
+    if (&role == &name_downRightPoint) {
+        m_downRightPoint = &value;
+    }
 }
 
 void Shaper::erase(CellI& role)
