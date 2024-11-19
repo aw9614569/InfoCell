@@ -5573,6 +5573,14 @@ void Brain::createArcSolver()
             ev_("downLeft"),  // 🡯
             ev_("left"),      // 🡨
             ev_("upLeft"));   // 🡬
+
+    arcScope.add<Enum>("LineSymmetry")
+        .values(
+            ev_("horizontal"),            // │
+            ev_("vertical"),              // ──
+            ev_("diagonalLowerLeft"),     // /
+            ev_("diagonalUpperLeft"));    // \
+
     auto& colorStruct
         = arcScope.add<Struct>("Color")
               .members(
@@ -5769,6 +5777,24 @@ void Brain::createArcSolver()
             ev_("ExternalEdge"),
             ev_("InternalEdge"));
 
+    // struct ShapeEdgeRotationCorners
+    auto& ShapeEdgeRotationCornersStruct
+        = arcScope.add<Struct>("ShapeEdgeRotationCorners")
+              .members(
+                  member("upLeftNode", "ShapeEdgeNode"),
+                  member("upRightNode", "ShapeEdgeNode"),
+                  member("downLeftNode", "ShapeEdgeNode"),
+                  member("downRightNode", "ShapeEdgeNode"));
+
+    // struct ShapeEdgeMirroringCorners
+    auto& ShapeEdgeMirroringCornersStruct
+        = arcScope.add<Struct>("ShapeEdgeMirroringCorners")
+              .members(
+                  member("upLeftNode", "ShapeEdgeNode"),
+                  member("upRightNode", "ShapeEdgeNode"),
+                  member("downLeftNode", "ShapeEdgeNode"),
+                  member("downRightNode", "ShapeEdgeNode"));
+
     // struct ShapeEdge
     auto& ShapeEdgeStruct
         = arcScope.add<Struct>("ShapeEdge")
@@ -5778,6 +5804,8 @@ void Brain::createArcSolver()
                   member("kind", "ShapeEdgeKind"),
                   member("shapes", tt_("std::Set", "valueType", "Shape")),
                   member("shapePixels", tt_("std::List", "valueType", "ShapePixel")),
+                  member("rotationCorners", "ShapeEdgeRotationCorners"),
+                  member("mirroringCorners", "ShapeEdgeMirroringCorners"),
                   member("upLeftNode", "ShapeEdgeNode"),
                   member("upRightNode", "ShapeEdgeNode"),
                   member("downLeftNode", "ShapeEdgeNode"),

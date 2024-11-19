@@ -11,14 +11,14 @@ class EdgeRelation
 public:
     bool isUnrelated() const
     {
-        return !m_exactMatch && !m_isRotated && !m_isMirrored;
+        return !m_exactMatch && !m_isRotated && !m_isHorizontallyMirrored && !m_isVerticallyMirrored;
     }
 
-    bool m_exactMatch      = false;
-    bool m_isRotated       = false;
-    CellI* m_rotationDir   = nullptr;
-    bool m_isMirrored      = false;
-    CellI* m_mirrorAxisDir = nullptr;
+    bool m_exactMatch             = false;
+    bool m_isRotated              = false;
+    CellI* m_rotationDegree       = nullptr;
+    bool m_isHorizontallyMirrored = false;
+    bool m_isVerticallyMirrored   = false;
 };
 
 // compare two ShapeEdge
