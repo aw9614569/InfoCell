@@ -11,18 +11,25 @@ class EdgeRelation
 public:
     bool isUnrelated() const
     {
-        return !m_exactMatch && !m_isRotated && !m_isHorizontallyMirrored && !m_isVerticallyMirrored;
+        return !m_rotatedWith && !m_isHorizontallyMirrored && !m_isVerticallyMirrored;
     }
 
-    bool m_exactMatch             = false;
-    bool m_isRotated              = false;
-    CellI* m_rotationDegree       = nullptr;
+    CellI* m_rotatedWith          = nullptr;
     bool m_isHorizontallyMirrored = false;
     bool m_isVerticallyMirrored   = false;
 };
 
+class ShapeRelation
+{
+public:
+    std::vector<EdgeRelation> m_edgeRelations; // TODO
+};
+
 // compare two ShapeEdge
 EdgeRelation compareEdges(CellI& lhs, CellI& rhs);
+
+// compare two Shape
+ShapeRelation compareShapes(CellI& lhs, CellI& rhs);
 
 class Shape : public CellI
 {
@@ -46,9 +53,10 @@ public:
     CellI* m_lastEdgeId;
     Set m_hybridPixels;
     List m_pixels;
-    CellI* m_shapePixels = nullptr;
-    CellI* m_shapePoints = nullptr;
-    CellI* m_edges = nullptr;
+    CellI* m_shapePixels   = nullptr;
+    CellI* m_shapePoints   = nullptr;
+    CellI* m_edges         = nullptr;
+    CellI* m_internalEdges = nullptr;
 };
 
 class Shaper : public CellI

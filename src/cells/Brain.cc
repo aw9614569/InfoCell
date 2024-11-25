@@ -1040,9 +1040,31 @@ void Ast::Scope::compileTheResolvedAsts(CellI& programData, CellI& state)
     }
     if (scope.has("structs")) {
         Visitor::visitList(resolvedScope.items<Struct>()[kb.ids.list], [this, &state, &compiledStructs](CellI& struct_, int i, bool& stop) {
-            Struct& astStruct = static_cast<Struct&>(struct_[kb.ids.value]);
-            auto& compiledStruct   = astStruct.compile(state);
-            compiledStructs.add(astStruct.getFullyQualifiedName(), compiledStruct);
+            Struct& astStruct    = static_cast<Struct&>(struct_[kb.ids.value]);
+            auto& compiledStruct = astStruct.compile(state);
+            CellI& structFullName = astStruct.getFullyQualifiedName();
+            if (compiledStruct.has("subTypes")) {
+                CellI& subTypesIndex = compiledStruct["subTypes"][kb.ids.index];
+                Visitor::visitList(subTypesIndex[kb.ids.struct_][kb.ids.slots][kb.ids.list], [this, &structFullName, &subTypesIndex, &compiledStructs](CellI& subType, int i, bool& stop) {
+                    CellI& role = subType["slotRole"];
+                    CellI& value = subTypesIndex[role][kb.ids.value];
+                    List& aliasName = *new List(kb, kb.std.Char);
+                    Visitor::visitList(structFullName, [&aliasName](CellI& character, int i, bool& stop) {
+                        aliasName.add(character);
+                    });
+                    aliasName.add(kb.pools.chars.get(':'));
+                    aliasName.add(kb.pools.chars.get(':'));
+                    Visitor::visitList(role, [&aliasName](CellI& character, int i, bool& stop) {
+                        aliasName.add(character);
+                    });
+                    aliasName.label(structFullName.label() + "::" + role.label());
+                    if (IS_LOG_ENABLED) {
+                        TRACE(compileStruct, "{}: {}\n", aliasName.label(), value.label());
+                    }
+                    compiledStructs.add(aliasName, value);
+                });
+            }
+            compiledStructs.add(structFullName, compiledStruct);
         });
     }
     if (scope.has("enums")) {
@@ -5576,10 +5598,10 @@ void Brain::createArcSolver()
 
     arcScope.add<Enum>("LineSymmetry")
         .values(
-            ev_("horizontal"),            // │
-            ev_("vertical"),              // ──
-            ev_("diagonalLowerLeft"),     // /
-            ev_("diagonalUpperLeft"));    // \
+            ev_("horizontal"),         // │
+            ev_("vertical"),           // ──
+            ev_("diagonalLowerLeft"),  // /
+            ev_("diagonalUpperLeft")); // \
 
     auto& colorStruct
         = arcScope.add<Struct>("Color")
@@ -5790,10 +5812,8 @@ void Brain::createArcSolver()
     auto& ShapeEdgeMirroringCornersStruct
         = arcScope.add<Struct>("ShapeEdgeMirroringCorners")
               .members(
-                  member("upLeftNode", "ShapeEdgeNode"),
                   member("upRightNode", "ShapeEdgeNode"),
-                  member("downLeftNode", "ShapeEdgeNode"),
-                  member("downRightNode", "ShapeEdgeNode"));
+                  member("downLeftNode", "ShapeEdgeNode"));
 
     // struct ShapeEdge
     auto& ShapeEdgeStruct
@@ -5802,6 +5822,8 @@ void Brain::createArcSolver()
                   member("id", _(std.Number)),
                   member("shape", "Shape"),
                   member("kind", "ShapeEdgeKind"),
+                  member("fromExternalX", _(std.Number)),
+                  member("fromExternalY", _(std.Number)),
                   member("shapes", tt_("std::Set", "valueType", "Shape")),
                   member("shapePixels", tt_("std::List", "valueType", "ShapePixel")),
                   member("rotationCorners", "ShapeEdgeRotationCorners"),
@@ -5879,6 +5901,8 @@ void Brain::createArcSolver()
     // struct Shape
     auto& shapeStruct
         = arcScope.add<Struct>("Shape")
+              .subTypes(
+                  param("InternalEdgeLookup", tt_("std::Map", "keyType", _(std.Number), "valueType", tt_("std::Map", "keyType", _(std.Number), "valueType", "ShapeEdge"))))
               .members(
                   member("id", _(std.Number)),
                   member("color", "Color"),
@@ -5886,6 +5910,7 @@ void Brain::createArcSolver()
                   member("height", _(std.Number)),
                   member("lastEdgeId", _(std.Number)),
                   member("edges", tt_("std::Map", "keyType", _(std.Number), "valueType", "ShapeEdge")),
+                  member("internalEdges", st_("InternalEdgeLookup")),
                   member("shapePixels", tt_("std::List", "valueType", "ShapePixel")),
                   member("shapePoints", tt_("std::List", "valueType", "ShapePoint")),
                   member("hybridPixels", tt_("std::Set", "valueType", _(std.Pixel))),

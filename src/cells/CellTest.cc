@@ -68,6 +68,40 @@ using infocell::cells::test::CellTest;
 // type checking
 // remove .label() from CellI
 
+TEST_F(CellTest, Numbers)
+{
+    CellI& digit_0 = kb.pools.digits[0];
+    CellI& digit_1 = kb.pools.digits[1];
+    CellI& digit_2 = kb.pools.digits[2];
+    CellI& digit_3 = kb.pools.digits[3];
+    CellI& digit_4 = kb.pools.digits[4];
+    CellI& digit_5 = kb.pools.digits[5];
+    CellI& digit_6 = kb.pools.digits[6];
+    CellI& digit_7 = kb.pools.digits[7];
+    CellI& digit_8 = kb.pools.digits[8];
+    CellI& digit_9 = kb.pools.digits[9];
+
+    CellI& number_123 = toCellNumber(1234567890);
+    EXPECT_EQ(&number_123[kb.numbers.sign], &kb.numbers.positive);
+    List& number_123_digits = static_cast<List&>(number_123[kb.ids.value]);
+    EXPECT_EQ(number_123_digits.size(), 10);
+    EXPECT_EQ(&number_123_digits["first"]["value"], &digit_1);
+    EXPECT_EQ(&number_123_digits["first"]["next"]["value"], &digit_2);
+    EXPECT_EQ(&number_123_digits["first"]["next"]["next"]["value"], &digit_3);
+    EXPECT_EQ(&number_123_digits["first"]["next"]["next"]["next"]["value"], &digit_4);
+    EXPECT_EQ(&number_123_digits["first"]["next"]["next"]["next"]["next"]["value"], &digit_5);
+    EXPECT_EQ(&number_123_digits["first"]["next"]["next"]["next"]["next"]["next"]["value"], &digit_6);
+    EXPECT_EQ(&number_123_digits["first"]["next"]["next"]["next"]["next"]["next"]["next"]["value"], &digit_7);
+    EXPECT_EQ(&number_123_digits["first"]["next"]["next"]["next"]["next"]["next"]["next"]["next"]["value"], &digit_8);
+    EXPECT_EQ(&number_123_digits["first"]["next"]["next"]["next"]["next"]["next"]["next"]["next"]["next"]["value"], &digit_9);
+    EXPECT_EQ(&number_123_digits["first"]["next"]["next"]["next"]["next"]["next"]["next"]["next"]["next"]["next"]["value"], &digit_0);
+
+    CellI& number_minus_123 = toCellNumber(-123);
+    EXPECT_EQ(&number_minus_123[kb.numbers.sign], &kb.numbers.negative);
+    List& number_minus_123_digits = static_cast<List&>(number_123[kb.ids.value]);
+    // TODO
+}
+
 TEST_F(CellTest, PrintStdCodes)
 {
 #if 1
