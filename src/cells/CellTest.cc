@@ -187,7 +187,7 @@ TEST_F(CellTest, PrintArcCodes)
 {
     auto& VectorStruct = getStruct("arc::Vector");
     auto& ShapeStruct  = getStruct("arc::Shape");
-    auto& ShaperStruct = getStruct("arc::Shaper");
+    auto& FrameStruct = getStruct("arc::Frame");
 
     printMethodInType(VectorStruct, "rotate");
 
@@ -196,12 +196,12 @@ TEST_F(CellTest, PrintArcCodes)
     printMethodInType(ShapeStruct, "addPixel");
     printMethodInType(ShapeStruct, "hasPixel");
 
-    printAs.value(ShaperStruct);
-    printMethodInType(ShaperStruct, "constructor");
-    printMethodInType(ShaperStruct, "processInputPixels");
-    printMethodInType(ShaperStruct, "process");
-    printMethodInType(ShaperStruct, "processPixel");
-    printMethodInType(ShaperStruct, "processAdjacentPixel");
+    printAs.value(FrameStruct);
+    printMethodInType(FrameStruct, "constructor");
+    printMethodInType(FrameStruct, "processInputPixels");
+    printMethodInType(FrameStruct, "process");
+    printMethodInType(FrameStruct, "processPixel");
+    printMethodInType(FrameStruct, "processAdjacentPixel");
 }
 
 TEST_F(CellTest, RecursiveCall)
@@ -1411,9 +1411,9 @@ static void printTask(const nlohmann::json& jsonTask)
     screen.Print();
 }
 
-TEST_F(CellTest, ShaperTest)
+TEST_F(CellTest, FrameTest)
 {
-    auto& ShaperStruct = getStruct("arc::Shaper");
+    auto& FrameStruct     = getStruct("arc::Frame");
     auto& rotationDir_45  = getVariable("arc::RotationDir::Degree_45");
     auto& rotationDir_90  = getVariable("arc::RotationDir::Degree_90");
     auto& rotationDir_135 = getVariable("arc::RotationDir::Degree_135");
@@ -1437,12 +1437,12 @@ TEST_F(CellTest, ShaperTest)
     input::Grid inputGrid1("inputGrid1", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
     cells::hybrid::arc::Grid grid1(kb, inputGrid1);
     printGrid(grid1);
-    Object shaper1(kb, ShaperStruct, kb.name("constructor"), { "grid", grid1 });
-    shaper1.method("process");
-    printAs.value(shaper1["shapes"]["size"], "shaper[shapes][size]");
-    EXPECT_EQ(&shaper1["shapes"]["size"], &_3_);
-    printShapeList(shaper1["shapes"]);
-    Object& shape1_2     = static_cast<Object&>(shaper1["shapes"]["first"]["next"]["value"]);
+    Object frame1(kb, FrameStruct, kb.name("constructor"), { "grid", grid1 });
+    frame1.method("process");
+    printAs.value(frame1["shapes"]["size"], "frame[shapes][size]");
+    EXPECT_EQ(&frame1["shapes"]["size"], &_3_);
+    printShapeList(frame1["shapes"]);
+    Object& shape1_2     = static_cast<Object&>(frame1["shapes"]["first"]["next"]["value"]);
     auto& shape1_2pixels = shape1_2["pixels"];
     //                                      |x  y |x  y |x  y
     EXPECT_EQ(printPixels(shape1_2pixels),       "[1, 0][2, 0]" \
@@ -1471,12 +1471,12 @@ TEST_F(CellTest, ShaperTest)
     input::Grid inputGrid2("inputGrid2", "[[7, 0, 0], [0, 7, 0], [0, 0, 7]]");
     cells::hybrid::arc::Grid grid2(kb, inputGrid2);
     printGrid(grid2);
-    Object shaper2(kb, ShaperStruct, kb.name("constructor"), { "grid", grid2 });
-    shaper2.method("process");
-    printAs.value(shaper2["shapes"]["size"], "shaper[shapes][size]");
-    EXPECT_EQ(&shaper2["shapes"]["size"], &_2_);
-    printShapeList(shaper2["shapes"]);
-    auto& shape2_1pixels = shaper2["shapes"]["first"]["value"]["pixels"];
+    Object frame2(kb, FrameStruct, kb.name("constructor"), { "grid", grid2 });
+    frame2.method("process");
+    printAs.value(frame2["shapes"]["size"], "frame[shapes][size]");
+    EXPECT_EQ(&frame2["shapes"]["size"], &_2_);
+    printShapeList(frame2["shapes"]);
+    auto& shape2_1pixels = frame2["shapes"]["first"]["value"]["pixels"];
     //                                      |x  y |x  y |x  y
     EXPECT_EQ(printPixels(shape2_1pixels), "[0, 0]" \
                                                  "[1, 1]" \
@@ -1491,12 +1491,12 @@ TEST_F(CellTest, ShaperTest)
                                                      "[7, 7, 7]]");
     cells::hybrid::arc::Grid grid3(kb, inputGrid3);
     printGrid(grid3);
-    Object shaper3(kb, ShaperStruct, kb.name("constructor"), { "grid", grid3 });
-    shaper3.method("process");
-    printAs.value(shaper3["shapes"]["size"], "shaper[shapes][size]");
-    EXPECT_EQ(&shaper3["shapes"]["size"], &_2_);
-    printShapeList(shaper3["shapes"]);
-    auto& shape3_1pixels = shaper3["shapes"]["first"]["value"]["pixels"];
+    Object frame3(kb, FrameStruct, kb.name("constructor"), { "grid", grid3 });
+    frame3.method("process");
+    printAs.value(frame3["shapes"]["size"], "frame[shapes][size]");
+    EXPECT_EQ(&frame3["shapes"]["size"], &_2_);
+    printShapeList(frame3["shapes"]);
+    auto& shape3_1pixels = frame3["shapes"]["first"]["value"]["pixels"];
     //                                      |x  y |x  y |x  y
     EXPECT_EQ(printPixels(shape3_1pixels), "[0, 0]"    "[2, 0]" \
                                            "[0, 1]"    "[2, 1]" \
@@ -1505,7 +1505,7 @@ TEST_F(CellTest, ShaperTest)
 
 TEST_F(CellTest, DISABLED_ArcTaskTest)
 {
-    auto& shaperStruct                   = getStruct("arc::Shaper");
+    auto& frameStruct                    = getStruct("arc::Frame");
     static const std::string arcFilePath = INFOCELL_ORIGARC_FILEPATH "007bbfb7.json";
     auto jsonTask                        = json::parse(std::ifstream(arcFilePath));
     auto document                        = renderJsonBoard(jsonTask["/test/0/input"_json_pointer]);
@@ -1519,16 +1519,16 @@ TEST_F(CellTest, DISABLED_ArcTaskTest)
     ArcPrizeTask arcTaskLoader(kb, "007bbfb7", jsonTask);
     CellI& arcTask = arcTaskLoader.m_cellTask;
 
-    Object shaper(kb, shaperStruct, kb.name("constructor"), { "grid", arcTask["challenge"]});
-    shaper.method("process");
-    printAs.value(shaper["shapes"]["size"], "shaper[shapes][size]");
-    printShapeList(shaper["shapes"]);
+    Object frame(kb, frameStruct, kb.name("constructor"), { "grid", arcTask["challenge"]});
+    frame.method("process");
+    printAs.value(frame["shapes"]["size"], "frame[shapes][size]");
+    printShapeList(frame["shapes"]);
 }
 
 TEST_F(CellTest, DISABLED_ArcTaskFromArcPrize)
 {
     const auto examineTask = [this](const nlohmann::json& allTask, const std::string& riddleId, const std::string& taskPath, const std::vector<std::string>& cellPaths) {
-        auto& shaperStruct            = getStruct("arc::Shaper");
+        auto& frameStruct             = getStruct("arc::Frame");
         std::string jsonRiddlePathStr = "/";
         jsonRiddlePathStr += riddleId;
         json::json_pointer jsonRiddlePath(jsonRiddlePathStr);
@@ -1545,10 +1545,10 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrize)
         }
         CellI& arcTask = *arcTaskPtr;
 
-        Object shaper(kb, shaperStruct, kb.name("constructor"), { "grid", arcTask });
-        shaper.method("process");
-        printAs.value(shaper["shapes"]["size"], "shaper[shapes][size]");
-        printShapeList(shaper["shapes"]);
+        Object frame(kb, frameStruct, kb.name("constructor"), { "grid", arcTask });
+        frame.method("process");
+        printAs.value(frame["shapes"]["size"], "frame[shapes][size]");
+        printShapeList(frame["shapes"]);
     };
 
     static const std::string arcFilePath = INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
@@ -1582,7 +1582,7 @@ std::string getArcColorName(CellI& hybridColor)
 TEST_F(CellTest, DISABLE_ArcTaskFromArcPrizeExamineTrainPair)
 {
     const auto examineTrainPair = [this](const nlohmann::json& allTask, const std::string& riddleId, int trainNum) {
-        auto& shaperStruct            = getStruct("arc::Shaper");
+        auto& frameStruct             = getStruct("arc::Frame");
         std::string jsonRiddlePathStr = "/";
         jsonRiddlePathStr += riddleId;
         json::json_pointer jsonRiddlePath(jsonRiddlePathStr);
@@ -1622,11 +1622,11 @@ TEST_F(CellTest, DISABLE_ArcTaskFromArcPrizeExamineTrainPair)
             inputGridPtr = arcTaskPtr;
             CellI& arcTask  = *arcTaskPtr;
 
-            Object shaper(kb, shaperStruct, kb.name("constructor"), { "grid", arcTask });
-            shaper.method("process");
-            inputShapesPtr = &shaper["shapes"];
-            printAs.value(shaper["shapes"]["size"], "shaper[shapes][size]");
-            printShapeList(shaper["shapes"]);
+            Object frame(kb, frameStruct, kb.name("constructor"), { "grid", arcTask });
+            frame.method("process");
+            inputShapesPtr = &frame["shapes"];
+            printAs.value(frame["shapes"]["size"], "frame[shapes][size]");
+            printShapeList(frame["shapes"]);
         }
         {
             CellI* arcTaskPtr = &arcTaskLoader.m_cellTask;
@@ -1636,11 +1636,11 @@ TEST_F(CellTest, DISABLE_ArcTaskFromArcPrizeExamineTrainPair)
             outputGridPtr = arcTaskPtr;
             CellI& arcTask   = *arcTaskPtr;
 
-            Object shaper(kb, shaperStruct, kb.name("constructor"), { "grid", arcTask });
-            shaper.method("process");
-            outputShapesPtr = &shaper["shapes"];
-            printAs.value(shaper["shapes"]["size"], "shaper[shapes][size]");
-            printShapeList(shaper["shapes"]);
+            Object frame(kb, frameStruct, kb.name("constructor"), { "grid", arcTask });
+            frame.method("process");
+            outputShapesPtr = &frame["shapes"];
+            printAs.value(frame["shapes"]["size"], "frame[shapes][size]");
+            printShapeList(frame["shapes"]);
         }
         CellI& inputGrid     = *inputGridPtr;
         CellI& inputShapes   = *inputShapesPtr;
@@ -1719,7 +1719,7 @@ TEST_F(CellTest, LoadThoseArcTaskWhereInputSizeEqOutputSize)
 TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
 {
     const auto examineTrainPair = [this](const nlohmann::json& allTask, const std::string& riddleId, int trainNum) {
-        auto& shaperStruct            = getStruct("arc::Shaper");
+        auto& frameStruct             = getStruct("arc::Frame");
         std::string jsonRiddlePathStr = "/";
         jsonRiddlePathStr += riddleId;
         json::json_pointer jsonRiddlePath(jsonRiddlePathStr);
@@ -1867,8 +1867,8 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
 TEST_F(CellTest, DISABLED_ArcTaskFromArcPrizeExamineAllTrainPair)
 {
     const auto examineTrainPair = [this](const nlohmann::json& allTask, int trainNum) {
-        auto& shaperStruct = getStruct("arc::Shaper");
-        int i              = 0;
+        auto& frameStruct = getStruct("arc::Frame");
+        int i             = 0;
         for (json::const_iterator it = allTask.begin(); it != allTask.end(); ++it) {
             std::string jsonRiddlePathStr = "/";
             jsonRiddlePathStr += it.key();
@@ -1906,10 +1906,10 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrizeExamineAllTrainPair)
                 }
                 inputGridPtr = arcTaskPtr;
 
-                Object shaper(kb, shaperStruct, kb.name("constructor"), { "grid", *inputGridPtr });
-                shaper.method("process");
-//                printAs.value(shaper["shapes"]["size"], "shaper[shapes][size]");
-//                printShapeList(shaper["shapes"]);
+                Object frame(kb, frameStruct, kb.name("constructor"), { "grid", *inputGridPtr });
+                frame.method("process");
+//                printAs.value(frame["shapes"]["size"], "frame[shapes][size]");
+//                printShapeList(frame["shapes"]);
             }
             {
                 CellI* arcTaskPtr = &arcTaskLoader.m_cellTask;
@@ -1918,10 +1918,10 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrizeExamineAllTrainPair)
                 }
                 outputGridPtr = arcTaskPtr;
 
-                Object shaper(kb, shaperStruct, kb.name("constructor"), { "grid", *outputGridPtr });
-                shaper.method("process");
-//                printAs.value(shaper["shapes"]["size"], "shaper[shapes][size]");
-//                printShapeList(shaper["shapes"]);
+                Object frame(kb, frameStruct, kb.name("constructor"), { "grid", *outputGridPtr });
+                frame.method("process");
+//                printAs.value(frame["shapes"]["size"], "frame[shapes][size]");
+//                printShapeList(frame["shapes"]);
             }
             CellI& inputGrid  = *inputGridPtr;
             CellI& outputGrid = *outputGridPtr;

@@ -7,7 +7,16 @@ namespace cells {
 namespace hybrid {
 namespace arc {
 
-EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
+CellI* isSymmetric(CellI& edge)
+{
+    brain::Brain& kb = edge.kb;
+
+    // TODO
+
+    return nullptr;
+}
+
+static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
 {
     brain::Brain& kb = lhs.kb;
 
@@ -537,7 +546,7 @@ void Shape::addPixel(CellI& pixel)
     m_hybridPixels.add(pixel);
 }
 
-Shaper::Shaper(brain::Brain& kb, cells::hybrid::arc::Grid& grid, CellI& ShapeStruct, CellI& TableRowStruct) :
+Frame::Frame(brain::Brain& kb, cells::hybrid::arc::Grid& grid, CellI& ShapeStruct, CellI& TableRowStruct) :
     CellI(kb),
     m_width(grid.widthCell()),
     m_height(grid.heightCell()),
@@ -552,7 +561,7 @@ Shaper::Shaper(brain::Brain& kb, cells::hybrid::arc::Grid& grid, CellI& ShapeStr
     processInputPixels();
 }
 
-void Shaper::processInputPixels()
+void Frame::processInputPixels()
 {
     std::vector<cells::hybrid::arc::Pixel>& pixels = m_grid.pixels();
     for (auto& pixel : pixels) {
@@ -560,7 +569,7 @@ void Shaper::processInputPixels()
     }
 }
 
-bool Shaper::has(CellI& role)
+bool Frame::has(CellI& role)
 {
     static CellI& name_grid        = kb.name("grid");
     static CellI& name_shapePixels = kb.name("shapePixels");
@@ -612,9 +621,9 @@ bool Shaper::has(CellI& role)
     return false;
 }
 
-CellI& Shaper::operator[](CellI& role)
+CellI& Frame::operator[](CellI& role)
 {
-    static CellI& ShaperStruct        = kb.getStruct("arc::Shaper");
+    static CellI& FrameStruct         = kb.getStruct("arc::Frame");
     static CellI& name_grid           = kb.name("grid");
     static CellI& name_shapePixels    = kb.name("shapePixels");
     static CellI& name_shapes         = kb.name("shapes");
@@ -626,7 +635,7 @@ CellI& Shaper::operator[](CellI& role)
     static CellI& name_downRightPoint = kb.name("downRightPoint");
 
     if (&role == &kb.ids.struct_) {
-        return ShaperStruct;
+        return FrameStruct;
     }
     if (&role == &kb.ids.width) {
         return m_width;
@@ -665,7 +674,7 @@ CellI& Shaper::operator[](CellI& role)
     throw "No such role!";
 }
 
-void Shaper::set(CellI& role, CellI& value)
+void Frame::set(CellI& role, CellI& value)
 {
     static CellI& name_upLeftPoint    = kb.name("upLeftPoint");
     static CellI& name_upRightPoint   = kb.name("upRightPoint");
@@ -686,22 +695,22 @@ void Shaper::set(CellI& role, CellI& value)
     }
 }
 
-void Shaper::erase(CellI& role)
+void Frame::erase(CellI& role)
 {
     throw "Changing a hybrid shape cell is not possible!";
 }
 
-void Shaper::operator()()
+void Frame::operator()()
 {
     // Do nothing
 }
 
-void Shaper::accept(Visitor& visitor)
+void Frame::accept(Visitor& visitor)
 {
     //    visitor.visit(*this);
 }
 
-void Shaper::process()
+void Frame::process()
 {
     static CellI& PixelStruct = kb.getStruct("arc::Pixel");
 
@@ -740,7 +749,7 @@ void Shaper::process()
     }
 }
 
-void Shaper::processPixel(CellI& shape, Set& checkPixels, CellI& checkPixel)
+void Frame::processPixel(CellI& shape, Set& checkPixels, CellI& checkPixel)
 {
     static CellI& ShapeStruct      = kb.getStruct("arc::Shape");
     static CellI& ShapePixelStruct = kb.getStruct("arc::ShapePixel");
@@ -762,7 +771,7 @@ void Shaper::processPixel(CellI& shape, Set& checkPixels, CellI& checkPixel)
     processAdjacentPixel(kb.directions.right, shape, checkPixels, checkPixel);
 }
 
-void Shaper::processAdjacentPixel(CellI& direction, CellI& p_shape, Set& checkPixels, CellI& checkPixel)
+void Frame::processAdjacentPixel(CellI& direction, CellI& p_shape, Set& checkPixels, CellI& checkPixel)
 {
     if (checkPixel.missing(direction)) {
         return;

@@ -46,7 +46,7 @@ public:
             spdlog::get("grid")->set_level(spdlog::level::trace);
             spdlog::get("shapeRelations")->set_level(spdlog::level::off);
         }),
-        ShaperStruct(getStruct("arc::Shaper")),
+        FrameStruct(getStruct("arc::Frame")),
         ShapeStruct(getStruct("arc::Shape")),
         ShapePointStruct(getStruct("arc::ShapePoint")),
         ShapePixelStruct(getStruct("arc::ShapePixel")),
@@ -92,7 +92,7 @@ public:
     void testEdgesImpl()
     {
         printInputHybridGrid();
-        shaperProcess();
+        frameProcess();
         sortShapePixelsAndCreateShapePoints();
         // printEveryShapePixels();
         printAndTestShapePixels();
@@ -113,7 +113,7 @@ public:
     {
         setInputGrid(frameJsonStr);
         printInputHybridGrid();
-        shaperProcess();
+        frameProcess();
         sortShapePixelsAndCreateShapePoints();
         sortShapePoints();
         calculateEdgesForShapes();
@@ -164,7 +164,7 @@ public:
     void printShapeRelations()
     {
         DEBUG(shapeRelations, "printShapeRelations");
-        Visitor::visitList(shaper()["shapes"], [this](CellI& shape, int, bool&) {
+        Visitor::visitList(frame()["shapes"], [this](CellI& shape, int, bool&) {
             int edgesCount = static_cast<Map&>(shape["edges"]).size();
             if (edgesCount == 1) {
                 TRACE(shapeRelations, "  shape id {} has only external edge", shape["id"].label());
@@ -193,22 +193,22 @@ public:
         m_inputHybridGridPtr = &inputHybridGrid;
     }
 
-    void shaperProcess()
+    void frameProcess()
     {
         auto& TableRowStruct = getStruct(kb.templateId("std::Map", ids.keyType, kb.std.Number, ids.valueType, ShapeStruct));
-        m_hybridShaper       = std::make_unique<hybrid::arc::Shaper>(kb, inputHybridGrid(), ShapeStruct, TableRowStruct);
-        m_hybridShaper->process();
+        m_hybridFrame        = std::make_unique<hybrid::arc::Frame>(kb, inputHybridGrid(), ShapeStruct, TableRowStruct);
+        m_hybridFrame->process();
         return;
-        m_shaper = std::make_unique<Object>(kb, ShaperStruct, kb.name("constructor"), Param { "grid", inputHybridGrid() });
-        m_shaper->method("process");
+        m_frame = std::make_unique<Object>(kb, FrameStruct, kb.name("constructor"), Param { "grid", inputHybridGrid() });
+        m_frame->method("process");
     }
 
-    CellI& shaper()
+    CellI& frame()
     {
-        if (m_hybridShaper) {
-            return *m_hybridShaper;
+        if (m_hybridFrame) {
+            return *m_hybridFrame;
         }
-        return *m_shaper;
+        return *m_frame;
     }
 
     cells::hybrid::arc::Grid& inputHybridGrid()
@@ -223,7 +223,7 @@ public:
 
     void sortShapePixelsAndCreateShapePoints()
     {
-        // so after shaper::Process we have shapes and we have Shaper::shapePixels where every x, y coordinates a shepe is registered
+        // so after frame::Process we have shapes and we have Frame::shapePixels where every x, y coordinates a shepe is registered
         // here we go from 0..grid.height() for x, and from 0..grid.width() for y and connect ever shape pixel in directions
         // up, down, left and right, and also creating shape Point in every pixel corner. Every shape point can point to adjacent shape pixels in derections
         // downRight, downLeft, upRight, upLeft
@@ -234,7 +234,7 @@ public:
         //      Pixel   Pixel
         // also, during the process, we adding the individual pixels to the shape object own shapePixel list, so it will have an
         // ordered list of pixels
-        Object& shapePixels    = static_cast<Object&>(shaper()["shapePixels"]);
+        Object& shapePixels    = static_cast<Object&>(frame()["shapePixels"]);
         CellI* previousUpPixel = nullptr;
         CellI* upPixel         = nullptr;
         CellI* leftPixel       = nullptr;
@@ -346,13 +346,13 @@ public:
 
                 // set corners
                 if (x == 0 && y == 0) {
-                    shaper().set("upLeftPoint", shapePixel["upLeftPoint"]);
+                    frame().set("upLeftPoint", shapePixel["upLeftPoint"]);
                 } else if (x == inputHybridGrid().width() - 1 && y == 0) {
-                    shaper().set("upRightPoint", shapePixel["upRightPoint"]);
+                    frame().set("upRightPoint", shapePixel["upRightPoint"]);
                 } else if (x == 0 && y == inputHybridGrid().height() - 1) {
-                    shaper().set("downLeftPoint", shapePixel["downLeftPoint"]);
+                    frame().set("downLeftPoint", shapePixel["downLeftPoint"]);
                 } else if (x == inputHybridGrid().width() - 1 && y == inputHybridGrid().height() - 1) {
-                    shaper().set("downRightPoint", shapePixel["downRightPoint"]);
+                    frame().set("downRightPoint", shapePixel["downRightPoint"]);
                 }
 
                 // stepping
@@ -379,7 +379,7 @@ public:
     void printEveryShapePixels()
     {
         TRACE(edge, "printEveryShapePixels");
-        Visitor::visitList(shaper()["shapes"], [this](CellI& currentShape, int, bool&) {
+        Visitor::visitList(frame()["shapes"], [this](CellI& currentShape, int, bool&) {
             TRACE(edge, "Shape id: {}, pixels: ", currentShape["id"].label());
             Visitor::visitList(currentShape["shapePixels"], [this](CellI& shapePixel, int, bool&) {
                 TRACE(edge, "[{}, {}]", shapePixel["pixel"]["x"].label(), shapePixel["pixel"]["y"].label());
@@ -444,7 +444,7 @@ public:
             }
         }
 
-        Object& shapePixels = static_cast<Object&>(shaper()["shapePixels"]);
+        Object& shapePixels = static_cast<Object&>(frame()["shapePixels"]);
         for (int y = 0; y < inputHybridGrid().height(); ++y) {
             Object& colX = static_cast<Object&>(shapePixels.method(kb.name("getValue"), { kb.ids.key, toCellNumber(y) }));
             for (int x = 0; x < inputHybridGrid().width(); ++x) {
@@ -700,7 +700,7 @@ public:
 
     void sortShapePoints()
     {
-        Visitor::visitList(shaper()["shapes"], [this](CellI& currentShape, int, bool&) {
+        Visitor::visitList(frame()["shapes"], [this](CellI& currentShape, int, bool&) {
             TRACE(edge, "Shape id: {}, points:", currentShape["id"].label());
 
             ScanLineState scanLineState = ScanLineState::Up;
@@ -890,7 +890,7 @@ public:
     void printAllShapePoints()
     {
         DEBUG(edge, "printAllShapePoints");
-        Visitor::visitList(shaper()["shapes"], [this](CellI& currentShape, int, bool&) {
+        Visitor::visitList(frame()["shapes"], [this](CellI& currentShape, int, bool&) {
             std::stringstream ss;
             int lastY = static_cast<Number&>(currentShape["shapePoints"]["first"]["value"]["y"]).value();
             TRACE(edge, "Shape id: {}", currentShape["id"].label());
@@ -910,7 +910,7 @@ public:
     void calculateEdgesForShapes()
     {
         DEBUG(edge, "calculateEdgesForShapes");
-        Visitor::visitList(shaper()["shapes"], [this](CellI& currentShape, int, bool&) {
+        Visitor::visitList(frame()["shapes"], [this](CellI& currentShape, int, bool&) {
             TRACE(edge, "  Shape id: {}", currentShape["id"].label());
 
             enum class ProcessingMode
@@ -1772,7 +1772,7 @@ For leftToRight direction edge from point middle
 
     void findRotationCornersUpLeft()
     {
-        CellI* firstColumnPointPtr = &shaper()["upLeftPoint"];
+        CellI* firstColumnPointPtr = &frame()["upLeftPoint"];
         CellI* shapePointPtr       = firstColumnPointPtr;
         while (shapePointPtr) {
             CellI& shapePoint = *shapePointPtr;
@@ -1817,7 +1817,7 @@ For leftToRight direction edge from point middle
     {
         DEBUG(shapeCorners, "findCornersUpRight");
 
-        CellI* lastColumnPointPtr = &shaper()["upRightPoint"];
+        CellI* lastColumnPointPtr = &frame()["upRightPoint"];
         CellI* shapePointPtr      = lastColumnPointPtr;
         while (shapePointPtr) {
             CellI& shapePoint = *shapePointPtr;
@@ -1861,7 +1861,7 @@ For leftToRight direction edge from point middle
 
     void findRotationCornersDownLeft()
     {
-        CellI* firstColumnPointPtr = &shaper()["downLeftPoint"];
+        CellI* firstColumnPointPtr = &frame()["downLeftPoint"];
         CellI* shapePointPtr       = firstColumnPointPtr;
         while (shapePointPtr) {
             CellI& shapePoint = *shapePointPtr;
@@ -1904,7 +1904,7 @@ For leftToRight direction edge from point middle
 
     void findRotationCornersDownRight()
     {
-        CellI* lastColumnPointPtr = &shaper()["downRightPoint"];
+        CellI* lastColumnPointPtr = &frame()["downRightPoint"];
         CellI* shapePointPtr      = lastColumnPointPtr;
         while (shapePointPtr) {
             CellI& shapePoint = *shapePointPtr;
@@ -1946,7 +1946,7 @@ For leftToRight direction edge from point middle
 
     void findMirroringCornersUpRight()
     {
-        CellI* firstColumnPointPtr = &shaper()["upRightPoint"];
+        CellI* firstColumnPointPtr = &frame()["upRightPoint"];
         CellI* shapePointPtr       = firstColumnPointPtr;
         while (shapePointPtr) {
             CellI& shapePoint = *shapePointPtr;
@@ -1991,7 +1991,7 @@ For leftToRight direction edge from point middle
 
     void findMirroringCornersDownLeft()
     {
-        CellI* firstColumnPointPtr = &shaper()["downLeftPoint"];
+        CellI* firstColumnPointPtr = &frame()["downLeftPoint"];
         CellI* shapePointPtr       = firstColumnPointPtr;
         while (shapePointPtr) {
             CellI& shapePoint = *shapePointPtr;
@@ -2093,7 +2093,7 @@ For leftToRight direction edge from point middle
 
     CellI* firstShapePixelPtr()
     {
-        Object& shapePixels = static_cast<Object&>(shaper()["shapePixels"]);
+        Object& shapePixels = static_cast<Object&>(frame()["shapePixels"]);
         Object& colX        = static_cast<Object&>(shapePixels.method(kb.name("getValue"), { kb.ids.key, _0_ }));
         CellI& shapePixel   = colX.method(kb.name("getValue"), { kb.ids.key, _0_ });
         return &shapePixel;
@@ -2106,7 +2106,7 @@ For leftToRight direction edge from point middle
         ScanLineState scanLineState = ScanLineState::Up;
         CellI* firstColumnPixelPtr  = firstShapePixelPtr();
         CellI* currentShapePixelPtr = firstShapePixelPtr();
-        int shapesCount             = static_cast<List&>(shaper()["shapes"]).size();
+        int shapesCount             = static_cast<List&>(frame()["shapes"]).size();
         int digits                  = 1;
         if (shapesCount > 9 && shapesCount < 100) {
             digits = 2;
@@ -2225,7 +2225,7 @@ For leftToRight direction edge from point middle
     {
         DEBUG(shapeIdGrid, "printShapeIdGridAsJson");
 
-        int shapesCount = static_cast<List&>(shaper()["shapes"]).size();
+        int shapesCount = static_cast<List&>(frame()["shapes"]).size();
         int digits      = 1;
         if (shapesCount > 9 && shapesCount < 100) {
             digits = 2;
@@ -2235,7 +2235,7 @@ For leftToRight direction edge from point middle
 
         std::stringstream ss;
         TRACE(shapeIdGrid, "[");
-        Object& shapePixels = static_cast<Object&>(shaper()["shapePixels"]);
+        Object& shapePixels = static_cast<Object&>(frame()["shapePixels"]);
         for (int y = 0; y < inputHybridGrid().height(); ++y) {
             ss << "  [";
             bool firstColumn = true;
@@ -2443,7 +2443,7 @@ For leftToRight direction edge from point middle
         nlohmann::json arcMatrix = nlohmann::json::parse(jsonStr);
         size_t matrixHeight      = arcMatrix.size();
         size_t matrixWidth       = arcMatrix[0].size();
-        Object& shapePixels      = static_cast<Object&>(shaper()["shapePixels"]);
+        Object& shapePixels      = static_cast<Object&>(frame()["shapePixels"]);
 
         int x = 0;
         int y = 0;
@@ -2462,7 +2462,7 @@ For leftToRight direction edge from point middle
 
     void expectedShapesCount(int expectedCount)
     {
-        int shapeCount = static_cast<Number&>(shaper()["shapes"]["size"]).value();
+        int shapeCount = static_cast<Number&>(frame()["shapes"]["size"]).value();
         EXPECT_EQ(shapeCount, expectedCount);
     }
 
@@ -2471,7 +2471,7 @@ For leftToRight direction edge from point middle
         for (const auto& edgeCountPair : shapeEdgeCounts) {
             int shapeId     = edgeCountPair.first;
             int edgeCount   = edgeCountPair.second;
-            CellI& shape    = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(shapeId) });
+            CellI& shape    = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(shapeId) });
             Map& shapeEdges = static_cast<Map&>(shape["edges"]);
             EXPECT_EQ(edgeCount, shapeEdges.size());
         }
@@ -2481,7 +2481,7 @@ For leftToRight direction edge from point middle
     {
         DEBUG(shapeRelations, "findPossibleBackgroundWithShapes");
 
-        List& shapesList = static_cast<List&>(shaper()["shapes"]);
+        List& shapesList = static_cast<List&>(frame()["shapes"]);
         int shapesCount  = shapesList.size();
         if (shapesCount < 2) {
             TRACE(shapeRelations, "  there isn't enough shape");
@@ -2591,7 +2591,7 @@ For leftToRight direction edge from point middle
 #endif
     }
 
-    CellI& ShaperStruct;
+    CellI& FrameStruct;
     CellI& ShapeStruct;
     CellI& ShapePointStruct;
     CellI& ShapePixelStruct;
@@ -2615,8 +2615,8 @@ For leftToRight direction edge from point middle
     std::unique_ptr<input::Grid> m_inputGrid;
     std::unique_ptr<cells::hybrid::arc::Grid> m_inputHybridGrid;
     cells::hybrid::arc::Grid* m_inputHybridGridPtr = nullptr;
-    std::unique_ptr<Object> m_shaper;
-    std::unique_ptr<cells::hybrid::arc::Shaper> m_hybridShaper;
+    std::unique_ptr<Object> m_frame;
+    std::unique_ptr<cells::hybrid::arc::Frame> m_hybridFrame;
     std::string m_outputSVGFileName;
 };
 
@@ -2630,11 +2630,11 @@ TEST_F(EdgeTester, ShapeWithHoleCompareExactMatch)
                                     [0,7,7,0,7],
                                     [0,0,7,7,7]])";
     processFrame(frame1);
-    CellI& shape1       = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape1       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& shape1_edge2 = static_cast<Map&>(shape1["edges"]).getValue(_2_);
 
     processFrame(frame2);
-    CellI& shape2       = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape2       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& shape2_edge2 = static_cast<Map&>(shape2["edges"]).getValue(_2_);
 
     cells::hybrid::arc::ShapeRelation shapeRelation = cells::hybrid::arc::compareShapes(shape1, shape2);
@@ -2655,11 +2655,11 @@ TEST_F(EdgeTester, ShapeWithHoleCompareRotate90)
                                     [7,0,7],
                                     [7,7,7]])";
     processFrame(frame1);
-    CellI& shape1       = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape1       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& shape1_edge2 = static_cast<Map&>(shape1["edges"]).getValue(_2_);
 
     processFrame(frame2);
-    CellI& shape2       = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape2       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& shape2_edge2 = static_cast<Map&>(shape2["edges"]).getValue(_2_);
 
     cells::hybrid::arc::ShapeRelation shapeRelation = cells::hybrid::arc::compareShapes(shape1, shape2);
@@ -2681,11 +2681,11 @@ TEST_F(EdgeTester, ShapeWithHoleCompareRotate180)
                                     [7,7,7],
                                     [0,7,0]])";
     processFrame(frame1);
-    CellI& shape1       = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape1       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& shape1_edge2 = static_cast<Map&>(shape1["edges"]).getValue(_2_);
 
     processFrame(frame2);
-    CellI& shape2       = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape2       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& shape2_edge2 = static_cast<Map&>(shape2["edges"]).getValue(_2_);
 
     cells::hybrid::arc::ShapeRelation shapeRelation = cells::hybrid::arc::compareShapes(shape1, shape2);
@@ -2705,11 +2705,11 @@ TEST_F(EdgeTester, ShapeWithHoleCompareRotate270)
                                     [0,7,7,0,7],
                                     [0,0,7,7,7]])";
     processFrame(frame1);
-    CellI& shape1       = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape1       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& shape1_edge2 = static_cast<Map&>(shape1["edges"]).getValue(_2_);
 
     processFrame(frame2);
-    CellI& shape2       = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape2       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& shape2_edge2 = static_cast<Map&>(shape2["edges"]).getValue(_2_);
 
     cells::hybrid::arc::ShapeRelation shapeRelation = cells::hybrid::arc::compareShapes(shape1, shape2);
@@ -2733,11 +2733,11 @@ TEST_F(EdgeTester, ShapeWithHoleCompare_Mirror_Horizontal)
                                     [0,7,7,7,7,7]])";
 
     processFrame(frame1);
-    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge1  = static_cast<Map&>(shape1["edges"]).getValue(_1_);
 
     processFrame(frame2);
-    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
     CellI& edge2  = static_cast<Map&>(shape2["edges"]).getValue(_1_);
 
     cells::hybrid::arc::EdgeRelation edgeRelation = cells::hybrid::arc::compareEdges(edge1, edge2);
@@ -2776,11 +2776,11 @@ TEST_F(EdgeTester, ShapeWithHoleCompare_Mirror_Vertical)
                                     [0,0,0,0,7,7,7]])";
 
     processFrame(frame1);
-    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge1  = static_cast<Map&>(shape1["edges"]).getValue(_1_);
 
     processFrame(frame2);
-    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge2  = static_cast<Map&>(shape2["edges"]).getValue(_1_);
 
     cells::hybrid::arc::EdgeRelation edgeRelation = cells::hybrid::arc::compareEdges(edge1, edge2);
@@ -2817,11 +2817,11 @@ TEST_F(EdgeTester, ShapeWithHoleCompare_Mirror_Horizontal_And_Vertical)
                                     [0,7,7]])";
 
     processFrame(frame1);
-    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge1  = static_cast<Map&>(shape1["edges"]).getValue(_1_);
 
     processFrame(frame2);
-    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
     CellI& edge2  = static_cast<Map&>(shape2["edges"]).getValue(_1_);
 
     cells::hybrid::arc::EdgeRelation edgeRelation = cells::hybrid::arc::compareEdges(edge1, edge2);
@@ -2846,14 +2846,14 @@ TEST_F(EdgeTester, ShapeCompareExactMatch)
                                     [0,7,7,7,7],
                                     [0,0,7,7,7]])";
     processFrame(frame1);
-    CellI& shape1FirstPixel = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
+    CellI& shape1FirstPixel = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
     CellI& edge1FirstPixel  = static_cast<Map&>(shape1FirstPixel["edges"]).getValue(_1_);
 
-    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge1  = static_cast<Map&>(shape1["edges"]).getValue(_1_);
 
     processFrame(frame2);
-    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge2  = static_cast<Map&>(shape2["edges"]).getValue(_1_);
 
     EXPECT_TRUE(edge1["rotationCorners"].has("upLeftNode"));
@@ -2879,11 +2879,11 @@ TEST_F(EdgeTester, ShapeCompareRotate90)
                                     [0,7,7,7,0]])";
 
     processFrame(frame1);
-    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge1  = static_cast<Map&>(shape1["edges"]).getValue(_1_);
 
     processFrame(frame2);
-    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge2  = static_cast<Map&>(shape2["edges"]).getValue(_1_);
 
     cells::hybrid::arc::EdgeRelation edgeRelation = cells::hybrid::arc::compareEdges(edge1, edge2);
@@ -2907,11 +2907,11 @@ TEST_F(EdgeTester, ShapeCompareRotate180)
                                     [7,7,0]])";
 
     processFrame(frame1);
-    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge1  = static_cast<Map&>(shape1["edges"]).getValue(_1_);
 
     processFrame(frame2);
-    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
     CellI& edge2  = static_cast<Map&>(shape2["edges"]).getValue(_1_);
 
     cells::hybrid::arc::EdgeRelation edgeRelation = cells::hybrid::arc::compareEdges(edge1, edge2);
@@ -2934,11 +2934,11 @@ TEST_F(EdgeTester, ShapeCompareRotate270)
                                     [0,0,7,7,7]])";
 
     processFrame(frame1);
-    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge1  = static_cast<Map&>(shape1["edges"]).getValue(_1_);
 
     processFrame(frame2);
-    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge2  = static_cast<Map&>(shape2["edges"]).getValue(_1_);
 
     cells::hybrid::arc::EdgeRelation edgeRelation = cells::hybrid::arc::compareEdges(edge1, edge2);
@@ -2962,11 +2962,11 @@ TEST_F(EdgeTester, ShapeCompare_Mirror_Horizontal)
                                     [0,7,7]])";
 
     processFrame(frame1);
-    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge1  = static_cast<Map&>(shape1["edges"]).getValue(_1_);
 
     processFrame(frame2);
-    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
     CellI& edge2  = static_cast<Map&>(shape2["edges"]).getValue(_1_);
 
     cells::hybrid::arc::EdgeRelation edgeRelation = cells::hybrid::arc::compareEdges(edge1, edge2);
@@ -2994,11 +2994,11 @@ TEST_F(EdgeTester, ShapeCompare_Mirror_Vertical)
                                     [7,7,0]])";
 
     processFrame(frame1);
-    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
     CellI& edge1  = static_cast<Map&>(shape1["edges"]).getValue(_1_);
 
     processFrame(frame2);
-    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
     CellI& edge2  = static_cast<Map&>(shape2["edges"]).getValue(_1_);
 
     cells::hybrid::arc::EdgeRelation edgeRelation = cells::hybrid::arc::compareEdges(edge1, edge2);
@@ -3026,11 +3026,11 @@ TEST_F(EdgeTester, ShapeCompare_Mirror_Horizontal_And_Vertical)
                                     [0,7,7]])";
 
     processFrame(frame1);
-    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge1  = static_cast<Map&>(shape1["edges"]).getValue(_1_);
 
     processFrame(frame2);
-    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
     CellI& edge2  = static_cast<Map&>(shape2["edges"]).getValue(_1_);
 
     cells::hybrid::arc::EdgeRelation edgeRelation = cells::hybrid::arc::compareEdges(edge1, edge2);
@@ -3311,7 +3311,7 @@ TEST_F(EdgeTester, EdgeTestMinimal)
     testEdges(R"([[0, 7, 7],
                   [7, 7, 7],
                   [7, 7, 7]])");
-    CellI& shape        = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape        = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     Map& shapeEdges     = static_cast<Map&>(shape["edges"]);
     CellI& externalEdge = shapeEdges.getValue(_1_);
 
@@ -3571,7 +3571,7 @@ TEST_F(EdgeTester, EdgeTest)
                   [0, 0, 2, 0, 0],
                   [0, 4, 0, 4, 0],
                   [0, 0, 0, 0, 0]])");
-    CellI& shape        = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
+    CellI& shape        = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
     Map& shapeEdges     = static_cast<Map&>(shape["edges"]);
     CellI& internalEdge = shapeEdges.getValue(_2_);
     List& edgeNodes     = static_cast<List&>(internalEdge["edgeNodes"]);

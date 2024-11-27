@@ -5969,16 +5969,16 @@ void Brain::createArcSolver()
             ast.call(*var_("ret"), "fromPixels", param("pixels", m_("pixels"))),
             ast.return_(*var_("ret")));
 
-    // struct Shaper
-    auto& shaperStruct
-        = arcScope.add<Struct>("Shaper")
+    // struct Frame
+    auto& frameStruct
+        = arcScope.add<Struct>("Frame")
               .subTypes(
                   param("tableType", tt_("std::Map", "keyType", _(std.Number), "valueType", tt_("std::Map", "keyType", _(std.Number), "valueType", "Shape"))))
               .members(
                   member("width", _(std.Number)),
                   member("height", _(std.Number)),
                   member("grid", _(std.Grid)),
-                  member("frameEdgeNodes", tt_("std::List", "valueType", "ShapeEdgeNode")),
+                  member("edgeNodes", tt_("std::List", "valueType", "ShapeEdgeNode")),
                   member("shapePixels", st_("tableType")),
                   member("upLeftPoint", "ShapePoint"),
                   member("upRightPoint", "ShapePoint"),
@@ -5989,7 +5989,7 @@ void Brain::createArcSolver()
                   member("inputPixels", tt_("std::Set", "valueType", _(std.Pixel))));
 
     /*
-    Shaper::Shaper(const cells::hybrid::Picture& picture) :
+    Frame::Frame(const cells::hybrid::Picture& picture) :
         m_width(picture.width()),
         m_height(picture.height()),
         m_picture(picture),
@@ -5998,7 +5998,7 @@ void Brain::createArcSolver()
         processInputPixels();
     }
     */
-    shaperStruct.addMethod("constructor")
+    frameStruct.addMethod("constructor")
         .parameters(
             param("grid", _(std.Grid)))
         .code(
@@ -6011,7 +6011,7 @@ void Brain::createArcSolver()
             m_("inputPixels") = ast.new_(tt_("std::Set", "valueType", _(std.Pixel)), "constructor"),
             ast.self().call("processInputPixels"));
     /*
-    void Shaper::processInputPixels()
+    void Frame::processInputPixels()
     {
         std::vector<cells::hybrid::Pixel>& pixels = const_cast<cells::hybrid::Picture&>(m_picture).pixels();
         for (cells::hybrid::Pixel& pixel : pixels) {
@@ -6019,7 +6019,7 @@ void Brain::createArcSolver()
         }
     }
     */
-    shaperStruct.addMethod("processInputPixels")
+    frameStruct.addMethod("processInputPixels")
         .code(
             var_("pixels") = m_("grid") / "pixels",
             var_("pixel")  = _(ids.emptyObject),
@@ -6033,7 +6033,7 @@ void Brain::createArcSolver()
                         .else_(var_("pixel") = _(ids.emptyObject)))));
 
     /*
-    void Shaper::process()
+    void Frame::process()
     {
         int shapeId = 1;
         while (!m_inputPixels.empty()) {
@@ -6056,7 +6056,7 @@ void Brain::createArcSolver()
         );
     }
     */
-    shaperStruct.addMethod("process")
+    frameStruct.addMethod("process")
         .code(
             var_("shapeId") = _(_1_),
             ast.while_(ast.not_(m_("inputPixels").call("empty")))
@@ -6090,7 +6090,7 @@ void Brain::createArcSolver()
                     var_("y") = ast.add(*var_("y"), _(_1_)))));
 
     /*
-    void Shaper::processPixel(Shape& shape, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
+    void Frame::processPixel(Shape& shape, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
     {
         shape.addPixel(checkPixel);
         m_inputPixels.erase(&checkPixel);
@@ -6107,7 +6107,7 @@ void Brain::createArcSolver()
         processAdjacentPixel(kb.directions.right, shape, checkPixels, checkPixel);
     }
     */
-    shaperStruct.addMethod("processPixel")
+    frameStruct.addMethod("processPixel")
         .parameters(
             param("shape", struct_("Shape")),
             param("checkPixels", tt_("std::Set", "valueType", "Pixel")),
@@ -6132,7 +6132,7 @@ void Brain::createArcSolver()
             ast.self().call("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))));
 
     /*
-    cells::hybrid::Pixel* Shaper::processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
+    cells::hybrid::Pixel* Frame::processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
     {
         if (checkPixel.has(direction)) {
             cells::hybrid::Pixel& pixel = static_cast<cells::hybrid::Pixel&>(checkPixel[direction]);
@@ -6145,7 +6145,7 @@ void Brain::createArcSolver()
         return nullptr;
     }
     */
-    shaperStruct.addMethod("processAdjacentPixel")
+    frameStruct.addMethod("processAdjacentPixel")
         .parameters(
             param("direction", _(std.Directions)),
             param("shape", struct_("Shape")),
@@ -6609,6 +6609,11 @@ Brain::InitPhase Brain::initPhase()
 
 Brain::Logger::Logger(std::function<void()> loggerLevelInit)
 {
+    // handle if multiple Brain instance is created
+    auto logger = spdlog::get("cells");
+    if (logger) {
+        return;
+    }
     createLogger("cells");
     createLogger("compileStruct");
     createLogger("symbolResolver");

@@ -30,6 +30,8 @@ public:
     std::vector<EdgeRelation> m_edgeRelations; // TODO
 };
 
+CellI* isSymmetric(CellI& edge);
+
 // compare two ShapeEdge
 EdgeRelation compareEdges(CellI& lhs, CellI& rhs);
 
@@ -64,10 +66,10 @@ public:
     CellI* m_internalEdges = nullptr;
 };
 
-class Shaper : public CellI
+class Frame : public CellI
 {
 public:
-    Shaper(brain::Brain& kb, cells::hybrid::arc::Grid& grid, CellI& ShapeStruct, CellI& TableRowStruct);
+    Frame(brain::Brain& kb, cells::hybrid::arc::Grid& grid, CellI& ShapeStruct, CellI& TableRowStruct);
 
     void process();
 
