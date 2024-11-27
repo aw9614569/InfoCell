@@ -1,5 +1,5 @@
-﻿#include "CellTestBase.h"
-#include "Arc.h"
+﻿#include "Arc.h"
+#include "CellTestBase.h"
 
 #include "Config.h"
 #include "app/App.h"
@@ -14,8 +14,8 @@
 
 using namespace infocell;
 using namespace infocell::cells;
-using nlohmann::json;
 using infocell::cells::test::CellTest;
+using nlohmann::json;
 
 static spdlog::logger* s_logger = nullptr;
 
@@ -94,17 +94,17 @@ public:
         printInputHybridGrid();
         shaperProcess();
         sortShapePixelsAndCreateShapePoints();
-//        printEveryShapePixels();
+        // printEveryShapePixels();
         printAndTestShapePixels();
         sortShapePoints();
-//        printAllShapePoints();
+        // printAllShapePoints();
         calculateEdgesForShapes();
         processEdgeNodes();
         validateEdgePoints();
-//        drawSvgFromShapePointEdgeJoints();
+        // drawSvgFromShapePointEdgeJoints();
         printShapeIdGrid();
         printShapeIdGridAsJson();
-//        printEdges();
+        // printEdges();
         printShapeRelations();
         findPossibleBackgroundWithShapes();
     }
@@ -224,7 +224,7 @@ public:
     void sortShapePixelsAndCreateShapePoints()
     {
         // so after shaper::Process we have shapes and we have Shaper::shapePixels where every x, y coordinates a shepe is registered
-        // here we go from 0..grid.height() for x, and from 0..grid.width() for y and connect ever shape pixel in directions 
+        // here we go from 0..grid.height() for x, and from 0..grid.width() for y and connect ever shape pixel in directions
         // up, down, left and right, and also creating shape Point in every pixel corner. Every shape point can point to adjacent shape pixels in derections
         // downRight, downLeft, upRight, upLeft
         //      Pixel   Pixel
@@ -347,7 +347,6 @@ public:
                 // set corners
                 if (x == 0 && y == 0) {
                     shaper().set("upLeftPoint", shapePixel["upLeftPoint"]);
-//                    TRACE(shapeCorners, "upRightPoint: ({}, {})", pointX, pointY);
                 } else if (x == inputHybridGrid().width() - 1 && y == 0) {
                     shaper().set("upRightPoint", shapePixel["upRightPoint"]);
                 } else if (x == 0 && y == inputHybridGrid().height() - 1) {
@@ -438,7 +437,7 @@ public:
             } else if (firstColumnPixelPtr->has("down")) {
                 currentShapePixelPtr = &(*firstColumnPixelPtr)["down"];
                 firstColumnPixelPtr  = currentShapePixelPtr;
-                referenceX = 0;
+                referenceX           = 0;
                 referenceY += 1;
             } else {
                 currentShapePixelPtr = nullptr;
@@ -523,9 +522,9 @@ public:
         CellI* currentShapePointPtr = &(*firstShapePixelPtr())["upLeftPoint"];
         CellI* firstColumnPointPtr  = currentShapePointPtr;
         while (currentShapePointPtr) {
-            CellI& shapePoint      = *currentShapePointPtr;
-            int pointX             = static_cast<Number&>(shapePoint["x"]).value();
-            int pointY             = static_cast<Number&>(shapePoint["y"]).value();
+            CellI& shapePoint = *currentShapePointPtr;
+            int pointX        = static_cast<Number&>(shapePoint["x"]).value();
+            int pointY        = static_cast<Number&>(shapePoint["y"]).value();
             svgFile << fmt::format("    <!-- point({}, {}) -->\n", pointX, pointY);
             svgFile << fmt::format("    <ellipse cx=\"{}\" cy=\"{}\" rx=\"3\" ry=\"3\" fill=\"black\" stroke=\"grey\"/>\n", 10 + pointX * 120, 30 + pointY * 120);
             svgFile << fmt::format("    <!-- edgeJoint -->\n");
@@ -537,9 +536,9 @@ public:
 
                 auto drawArrow = [this, &svgFile](int pointX, int pointY, CellI& edgeJoint, const std::string& edgeJointSlotName) {
                     const int arrowLineLength = 30;
-                    const int arrowLength = 3;
+                    const int arrowLength     = 3;
 
-                    CellI& edgeNode = edgeJoint[edgeJointSlotName];
+                    CellI& edgeNode  = edgeJoint[edgeJointSlotName];
                     CellI& direction = edgeNode["direction"];
                     int color        = static_cast<Number&>(edgeNode["edge"]["shape"]["color"]).value();
                     std::string debugText;
@@ -938,11 +937,11 @@ public:
             const char* toEdgeDirectionStr         = "";
             const char* toOppositeEdgeDirectionStr = "";
 
-            CellI* currentShapePointPtr            = nullptr;
-            CellI* firstShapePointPtr              = nullptr;
-            CellI* previousEdgeNodePtr             = nullptr;
-            int startPointX                        = -1;
-            int startPointY                        = -1;
+            CellI* currentShapePointPtr = nullptr;
+            CellI* firstShapePointPtr   = nullptr;
+            CellI* previousEdgeNodePtr  = nullptr;
+            int startPointX             = -1;
+            int startPointY             = -1;
 
             while (currentListItemPtr || currentShapePointPtr) {
                 CellI& currentListItem = *currentListItemPtr;
@@ -1001,11 +1000,10 @@ For leftToRight direction edge from point middle
 
                 switch (processingMode) {
                 case ProcessingMode::ExternalEdgeStart:
-                case ProcessingMode::InternalEdgeStart:
-                {
+                case ProcessingMode::InternalEdgeStart: {
                     // create new edge
-                    CellI& newEdge  = *new Object(kb, ShapeEdgeStruct);
-                    List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
+                    CellI& newEdge   = *new Object(kb, ShapeEdgeStruct);
+                    List& edgeNodes  = *new List(kb, ShapeEdgeNodeStruct);
                     CellI& newEdgeId = kb.pools.numbers.get(static_cast<Number&>(currentShape["lastEdgeId"]).value() + 1);
                     currentShape.set("lastEdgeId", newEdgeId);
                     newEdge.set("shape", currentShape);
@@ -1032,7 +1030,7 @@ For leftToRight direction edge from point middle
                         startPointY    = pointY;
                     } else {
                         newEdge.set("kind", InternalEdgeEV);
-                        processingMode = ProcessingMode::InternalEdgeDetect;
+                        processingMode   = ProcessingMode::InternalEdgeDetect;
                         CellI& distanceX = kb.pools.numbers.get(pointX - startPointX);
                         CellI& distanceY = kb.pools.numbers.get(pointY - startPointY);
                         newEdge.set("fromExternalX", distanceX);
@@ -1598,9 +1596,9 @@ For leftToRight direction edge from point middle
                         if (shapePoint.has("edgeJoint")) {
                             CellI& edgeJoint = shapePoint["edgeJoint"];
                             if (edgeJoint.has("leftDown") && edgeJoint.has("upRight")) {
-                                CellI& upRightEdgeNode   = edgeJoint["upRight"];
+                                CellI& upRightEdgeNode  = edgeJoint["upRight"];
                                 CellI& leftDownEdgeNode = edgeJoint["leftDown"];
-                                bool rightUpEdgeNode = edgeJoint.has("rightUp");
+                                bool rightUpEdgeNode    = edgeJoint.has("rightUp");
                                 if (!rightUpEdgeNode && (&upRightEdgeNode["edge"]["kind"] == &ExternalEdgeEV) && (&leftDownEdgeNode["edge"]["kind"] == &ExternalEdgeEV)) {
                                     isUnprocessedEdge = true;
                                 }
@@ -1609,14 +1607,14 @@ For leftToRight direction edge from point middle
                     }
                     if (isUnprocessedEdge) {
                         processingDirectionPtr = &DirectionRightEV;
-                        processingMode = ProcessingMode::InternalEdgeStart;
+                        processingMode         = ProcessingMode::InternalEdgeStart;
                     } else {
                         currentListItemPtr = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
                     }
                 } break;
                 } // switch processinMode
-            } // while has more shapePoints
-        }); // visit shapePoints
+            }     // while has more shapePoints
+        });       // visit shapePoints
     }
 
     void processEdgeNodes()
@@ -1751,13 +1749,13 @@ For leftToRight direction edge from point middle
             } else if (shapePoint.has("down")) {
                 switch (processingDirection) {
                 case ProcessingDirection::LeftToRight:
-                    processingDirection  = ProcessingDirection::UpToDown;
-                    shapePointPtr = firstColumnPointPtr;
+                    processingDirection = ProcessingDirection::UpToDown;
+                    shapePointPtr       = firstColumnPointPtr;
                     break;
                 case ProcessingDirection::UpToDown:
-                    processingDirection  = ProcessingDirection::LeftToRight;
-                    shapePointPtr = &(*firstColumnPointPtr)["down"];
-                    firstColumnPointPtr  = shapePointPtr;
+                    processingDirection = ProcessingDirection::LeftToRight;
+                    shapePointPtr       = &(*firstColumnPointPtr)["down"];
+                    firstColumnPointPtr = shapePointPtr;
                     break;
                 }
             } else {
@@ -1807,7 +1805,7 @@ For leftToRight direction edge from point middle
             if (shapePoint.has("right")) {
                 shapePointPtr = &shapePoint["right"];
             } else if (shapePoint.has("down")) {
-                shapePointPtr = &(*firstColumnPointPtr)["down"];
+                shapePointPtr       = &(*firstColumnPointPtr)["down"];
                 firstColumnPointPtr = shapePointPtr;
             } else {
                 shapePointPtr = nullptr;
@@ -1823,7 +1821,6 @@ For leftToRight direction edge from point middle
         CellI* shapePointPtr      = lastColumnPointPtr;
         while (shapePointPtr) {
             CellI& shapePoint = *shapePointPtr;
-//            TRACE(shapeCorners, "({}, {})", shapePoint["x"].label(), shapePoint["y"].label());
             if (shapePoint.has("edgeJoint")) {
                 CellI& edgeJoint = shapePoint["edgeJoint"];
                 if (edgeJoint.has("downLeft")) {
@@ -2074,7 +2071,7 @@ For leftToRight direction edge from point middle
                         if (edgeJoint.has(directionPair.first) || edgeJoint.has(directionPair.second)) {
                             EXPECT_TRUE(edgeJoint.has(directionPair.first));
                             EXPECT_TRUE(edgeJoint.has(directionPair.second));
-                            CellI& edgeNodeFirst = edgeJoint[directionPair.first];
+                            CellI& edgeNodeFirst  = edgeJoint[directionPair.first];
                             CellI& edgeNodeSecond = edgeJoint[directionPair.second];
                             EXPECT_EQ(&edgeNodeFirst["externalShape"], &edgeNodeSecond["edge"]["shape"]);
                             EXPECT_EQ(&edgeNodeSecond["externalShape"], &edgeNodeFirst["edge"]["shape"]);
@@ -2097,8 +2094,8 @@ For leftToRight direction edge from point middle
     CellI* firstShapePixelPtr()
     {
         Object& shapePixels = static_cast<Object&>(shaper()["shapePixels"]);
-        Object& colX = static_cast<Object&>(shapePixels.method(kb.name("getValue"), { kb.ids.key, _0_ }));
-        CellI& shapePixel = colX.method(kb.name("getValue"), { kb.ids.key, _0_ });
+        Object& colX        = static_cast<Object&>(shapePixels.method(kb.name("getValue"), { kb.ids.key, _0_ }));
+        CellI& shapePixel   = colX.method(kb.name("getValue"), { kb.ids.key, _0_ });
         return &shapePixel;
     }
 
@@ -2242,16 +2239,16 @@ For leftToRight direction edge from point middle
         for (int y = 0; y < inputHybridGrid().height(); ++y) {
             ss << "  [";
             bool firstColumn = true;
-            Object& colX = static_cast<Object&>(shapePixels.method(kb.name("getValue"), { kb.ids.key, toCellNumber(y) }));
+            Object& colX     = static_cast<Object&>(shapePixels.method(kb.name("getValue"), { kb.ids.key, toCellNumber(y) }));
             for (int x = 0; x < inputHybridGrid().width(); ++x) {
                 if (firstColumn) {
                     firstColumn = false;
                 } else {
                     ss << ", ";
                 }
-                firstColumn               = false;
-                CellI& shapePixel         = colX.method(kb.name("getValue"), { kb.ids.key, toCellNumber(x) });
-                CellI& shape              = shapePixel["shape"];
+                firstColumn       = false;
+                CellI& shapePixel = colX.method(kb.name("getValue"), { kb.ids.key, toCellNumber(x) });
+                CellI& shape      = shapePixel["shape"];
                 ss << fmt::format("{:>{}}", shape["id"].label(), digits);
             }
             ss << "]";
@@ -2425,7 +2422,7 @@ For leftToRight direction edge from point middle
             } else if (shapePoint.has("down")) {
                 if (scanLineState == ScanLineState::Up) {
                     currentShapePointPtr = firstColumnPointPtr;
-                    scanLineState = ScanLineState::Middle;
+                    scanLineState        = ScanLineState::Middle;
                 } else {
                     currentShapePointPtr = &(*firstColumnPointPtr)["down"];
                     firstColumnPointPtr  = currentShapePointPtr;
@@ -2452,7 +2449,7 @@ For leftToRight direction edge from point middle
         int y = 0;
         for (auto inputRowIt = arcMatrix.begin(); inputRowIt != arcMatrix.end(); ++inputRowIt) {
             for (const int id : *inputRowIt) {
-                CellI& currentId = kb.pools.numbers.get(id);
+                CellI& currentId  = kb.pools.numbers.get(id);
                 Object& colX      = static_cast<Object&>(shapePixels.method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(y) }));
                 CellI& shapePixel = colX.method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(x) });
                 EXPECT_EQ(&shapePixel["shape"]["id"], &currentId);
@@ -2472,9 +2469,9 @@ For leftToRight direction edge from point middle
     void expectedShapeEdgeCounts(const std::map<int, int>& shapeEdgeCounts)
     {
         for (const auto& edgeCountPair : shapeEdgeCounts) {
-            int shapeId = edgeCountPair.first;
-            int edgeCount = edgeCountPair.second;
-            CellI& shape  = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(shapeId) });
+            int shapeId     = edgeCountPair.first;
+            int edgeCount   = edgeCountPair.second;
+            CellI& shape    = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(shapeId) });
             Map& shapeEdges = static_cast<Map&>(shape["edges"]);
             EXPECT_EQ(edgeCount, shapeEdges.size());
         }
@@ -2491,7 +2488,7 @@ For leftToRight direction edge from point middle
             return;
         }
         const int targetContainedShapeCount = shapesCount - 1;
-        CellI* backgroundShapePtr     = nullptr;
+        CellI* backgroundShapePtr           = nullptr;
         Visitor::visitList(shapesList, [this, targetContainedShapeCount, &backgroundShapePtr](CellI& shape, int, bool&) {
             Map& edgesMap  = static_cast<Map&>(shape["edges"]);
             int edgesCount = edgesMap.size();
@@ -2633,11 +2630,11 @@ TEST_F(EdgeTester, ShapeWithHoleCompareExactMatch)
                                     [0,7,7,0,7],
                                     [0,0,7,7,7]])";
     processFrame(frame1);
-    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape1       = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& shape1_edge2 = static_cast<Map&>(shape1["edges"]).getValue(_2_);
 
     processFrame(frame2);
-    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape2       = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& shape2_edge2 = static_cast<Map&>(shape2["edges"]).getValue(_2_);
 
     cells::hybrid::arc::ShapeRelation shapeRelation = cells::hybrid::arc::compareShapes(shape1, shape2);
@@ -2645,7 +2642,6 @@ TEST_F(EdgeTester, ShapeWithHoleCompareExactMatch)
     EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &Degree_0);
     EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, &Degree_0);
 }
-
 
 TEST_F(EdgeTester, ShapeWithHoleCompareRotate90)
 {
@@ -2764,7 +2760,6 @@ TEST_F(EdgeTester, ShapeWithHoleCompare_Mirror_Horizontal)
     EXPECT_TRUE(shapeRelation.m_edgeRelations[1].m_isHorizontallyMirrored);
     EXPECT_FALSE(shapeRelation.m_edgeRelations[1].m_isVerticallyMirrored);
 }
-
 
 TEST_F(EdgeTester, ShapeWithHoleCompare_Mirror_Vertical)
 {
@@ -3197,7 +3192,6 @@ TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train3Output)
                   [0,0,0,7,0,0,0,0,0],
                   [0,0,7,1,7,0,0,0,0],
                   [0,0,0,7,0,0,0,0,0]])");
-
 }
 
 TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Test1Input)
@@ -3321,8 +3315,8 @@ TEST_F(EdgeTester, EdgeTestMinimal)
     Map& shapeEdges     = static_cast<Map&>(shape["edges"]);
     CellI& externalEdge = shapeEdges.getValue(_1_);
 
-    CellI* firstColumnPointPtr  = &(*firstShapePixelPtr())["upLeftPoint"];
-    CellI* currentShapePointPtr = firstColumnPointPtr;
+    CellI* firstColumnPointPtr   = &(*firstShapePixelPtr())["upLeftPoint"];
+    CellI* currentShapePointPtr  = firstColumnPointPtr;
     CellI* previousShapePointPtr = nullptr;
 
     EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
@@ -3340,7 +3334,7 @@ TEST_F(EdgeTester, EdgeTestMinimal)
     EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightDown"]["edge"]["shape"]["id"], &_1_);
 
     previousShapePointPtr = currentShapePointPtr;
-    currentShapePointPtr = &(*currentShapePointPtr)["right"];
+    currentShapePointPtr  = &(*currentShapePointPtr)["right"];
     EXPECT_EQ(&(*currentShapePointPtr)["x"], &_1_);
     EXPECT_EQ(&(*currentShapePointPtr)["y"], &_0_);
     EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
@@ -3577,8 +3571,8 @@ TEST_F(EdgeTester, EdgeTest)
                   [0, 0, 2, 0, 0],
                   [0, 4, 0, 4, 0],
                   [0, 0, 0, 0, 0]])");
-    CellI& shape    = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
-    Map& shapeEdges = static_cast<Map&>(shape["edges"]);
+    CellI& shape        = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
+    Map& shapeEdges     = static_cast<Map&>(shape["edges"]);
     CellI& internalEdge = shapeEdges.getValue(_2_);
     List& edgeNodes     = static_cast<List&>(internalEdge["edgeNodes"]);
     expectedShapeIds(R"([
@@ -3685,7 +3679,7 @@ TEST_F(EdgeTester, EdgeTestWithArc_4be741c5_Train3Output)
 TEST_F(EdgeTester, DISABLED_EdgeTestWithAllArcTask)
 {
     TaskSet taskSet(kb, INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
-//    TaskSet taskSet(kb, INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_EVALUATION_CHALLENGES_FILENAME);
+    // TaskSet taskSet(kb, INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_EVALUATION_CHALLENGES_FILENAME);
     for (auto& task : taskSet.m_tasks) {
         INFO(grid, fmt::format("id: {}, examples num: {}, tests num: {}", task.first, static_cast<List&>(task.second.m_cellExamplesList).size(), static_cast<List&>(task.second.m_cellTestsList).size()));
         TRACE(grid, "   examples:");
@@ -3701,7 +3695,6 @@ TEST_F(EdgeTester, DISABLED_EdgeTestWithAllArcTask)
             TRACE(grid, fmt::format("id: {}, example output: {}", task.first, humanIndex));
             setOutputSVGName(fmt::format("EdgeTestWithArc_{}_{}{}{}", task.first, "Train", humanIndex, "Output"));
             testEdges(static_cast<hybrid::arc::Grid&>(example["output"]));
-
         });
         TRACE(grid, "   tests:");
         Visitor::visitList(task.second.m_cellTestsList, [this, &task](CellI& example, int i, bool&) {
