@@ -2587,219 +2587,23 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
             WARN(compileStruct, "{} Unchecked method call {} in {}", ss.str(), astMethodId.label(), function.label());
         }
 #endif
-        if (1) {
-            Object& retOp = *new Object(kb, kb.std.op.Call);
-            retOp.set("ast", ast);
-            retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
-            retOp.set(kb.ids.method, compile(ast[kb.ids.method]));
-            retOp.set(kb.ids.stack, compile(kb.ast.get(_(function), _("stack"))));
-            if (ast.has("parameters")) {
-                List& parameters = *new List(kb, kb.std.Slot);
-                Visitor::visitList(ast[kb.ids.parameters], [this, &parameters, &compile, &_](CellI& param, int, bool&) {
-                    CellI& slot = *new Object(kb, kb.std.Slot);
-                    slot.set("slotRole", param[kb.ids.slotRole]);
-                    slot.set("slotType", compile(param[kb.ids.slotType]));
-                    parameters.add(slot);
-                });
-                retOp.set(kb.ids.parameters, parameters);
-            }
-
-            return retOp;
-        }
-
-/*
-        block {
-            var_method.value  = m_list.type.methods.index.add;
-            var_method.value.stack = fn Map::add(self: Map, in_key: Cell, in_value: Cell).stack;
-            var_newStackItem.value = new ListItem;
-            var_newStackFrame.value = new StackFrame;
-            var_newStackItem.value.value = var_newStackFrame.value;
-            var_newStackItem.value.previous = var_method.value.stack;
-            var_inputIndex.value = new Index;
-            if var_method.value.type.subTypes.index has localVars then {
-                var_localVars.value = new var_method.value.type.subTypes.index.localVars;
-                var_newStackFrame.value.localVars = var_localVars.value;
-                var_localVarsListItem.value = var_method.value.type.subTypes.index.localVars.slots.list.first;
-                do {
-                    var_localVarsListItemHasNext.value = true;
-                    var_localVars.value.var_localVarsListItem.value.value.slotRole = new op::Var;
-                    if var_localVarsListItem.value has next then
-                        var_localVarsListItem.value = var_localVarsListItem.value.next;
-                     else
-                        var_localVarsListItemHasNext.value = false;
-                } (var_localVarsListItemHasNext.value is true);
-            };
-            var_newStackFrame.value.input = var_inputIndex.value;
-            if var_method.value.type.subTypes.index.output has slots then
-                if var_method.value.type.subTypes.index.output.slots.index has value then {
-                var_newStackFrame.value.output = new var_method.value.type.subTypes.index.output;
-                var_newStackFrame.value.output.value = new op::Var;
-            };
-            var_inputIndex.value.self = m_list;
-            var_inputIndex.value.value = in_value;
-            var_method.value.stack = var_newStackItem.value;
-            eval(var_method);
-            if var_method.value.type.subTypes.index.output has slots then
-                if var_method.value.type.subTypes.index.output.slots.index has value then
-                    block.value = var_method.value.stack.value.output.value.value;
-            var_method.value.stack = var_method.value.stack.previous;
-         }
-        */
-        const char* blockName = &ast.struct_() == &kb.std.ast.Call ? "Call { ... }" : "SCall { ... }";
-        CellI* prevBlock      = nullptr;
-        if (state.has("lastBlock")) {
-
-            prevBlock = &state["lastBlock"];
-            state.erase("lastBlock");
-        }
-
-        Ast::Get* getMethodPtr = nullptr;
-        if (&ast.struct_() == &kb.std.ast.Call) {
-            getMethodPtr = &(kb.ast.get(astCell, _(kb.ids.struct_)) / "methods");
-        } else {
-            getMethodPtr = &(kb.ast.get(astCell, _("methods")));
-        }
-        Ast::Get& getMethod = (*getMethodPtr) / "index" / astMethod / "value";
-        auto& compiledAsts  = *new cells::List(kb, kb.std.op.Base);
-        Object& block       = *new Object(kb, kb.std.op.Block, blockName);
-        block.set("ast", ast);
-        block.set("ops", compiledAsts);
-        Object& varMethod = *new Object(kb, kb.std.op.Var, "Call { var_method; }");
-        varMethod.set("valueType", kb.std.op.Function);
-        CellI& storeMethod     = compile(kb.ast.set(_(varMethod), _("value"), getMethod));
-        CellI& setCurrentStack = compile(kb.ast.set(_(varMethod) / "value", _("stack"), kb.ast.get(_(function), _("stack"))));
-
-        Object& varNewStackItem = *new Object(kb, kb.std.op.Var, "Call { var_newStackItem; }");
-        varNewStackItem.set("valueType", kb.std.ListItem);
-        Object& varNewStackFrame = *new Object(kb, kb.std.op.Var, "Call { var_newStackFrame; }");
-        varNewStackFrame.set("valueType", kb.std.StackFrame);
-
-        Object& varInputIndex = *new Object(kb, kb.std.Index, "Call { var_inputIndex; }");
-        Object& varLocalVars = *new Object(kb, kb.std.op.Var, "Call { var_localVars; }");
-        varLocalVars.set("valueType", kb.std.Index);
-        Object& varLocalVarsList = *new Object(kb, kb.std.op.Var, "Call { var_localVarsList; }");
-        varLocalVarsList.set("valueType", kb.std.List);
-        Object& varLocalVarsListItem = *new Object(kb, kb.std.op.Var, "Call { var_localVarsListItem; }");
-        varLocalVarsListItem.set("valueType", kb.std.ListItem);
-        Object& varLocalVarsListItemHasNext = *new Object(kb, kb.std.op.Var, "Call { var_localVarsListItemHasNext; }");
-        varLocalVarsListItemHasNext.set("valueType", kb.std.Boolean);
-
-        CellI& storeStackItem     = compile(kb.ast.set(_(varNewStackItem), _("value"), kb.ast.new_(_(kb.std.ListItem))));
-        CellI& storeStackFrame    = compile(kb.ast.set(_(varNewStackFrame), _("value"), kb.ast.new_(_(kb.std.StackFrame))));
-        CellI& setListItem        = compile(kb.ast.set(_(varNewStackItem) / "value", _("value"), _(varNewStackFrame) / "value"));
-        CellI& setListItemPrev    = compile(kb.ast.set(_(varNewStackItem) / "value", _("previous"), _(varMethod) / "value" / "stack"));
-        CellI& setListItemNext    = compile(kb.ast.set(_(varMethod) / "value" / "stack", _("next"), _(varNewStackItem) / "value"));
-        CellI& storeInputIndex    = compile(kb.ast.set(_(varInputIndex), _("value"), kb.ast.new_(_(kb.std.Index))));
-        CellI& setMethod          = compile(kb.ast.set(_(varNewStackFrame) / "value", _("method"), _(varMethod) / "value"));
-
-        CellI& createNewLocalVars = compile(
-            kb.ast.if_(kb.ast.has(_(varMethod) / "value" / "struct" / "subTypes" / "index", _("localVars")))
-                .then_(kb.ast.block(
-                    kb.ast.set(_(varLocalVars), _("value"), kb.ast.new_(_(varMethod) / "value" / "struct" / "subTypes" / "index" / "localVars" / "value")),
-                    kb.ast.set(_(varNewStackFrame) / "value", _("localVars"), _(varLocalVars) / "value"),
-                    kb.ast.set(_(varLocalVarsListItem), _("value"), _(varMethod) / "value" / "struct" / "subTypes" / "index" / "localVars" / "value" / "slots" / "list" / "first"),
-                    kb.ast.do_(kb.ast.block(
-                                   kb.ast.set(_(varLocalVarsListItemHasNext), _("value"), _(kb.boolean.true_)),
-                                   kb.ast.set(_(varLocalVars) / "value", _(varLocalVarsListItem) / "value" / "value" / "slotRole", kb.ast.new_(_(kb.std.op.Var))),
-                                   kb.ast.if_(kb.ast.has(_(varLocalVarsListItem) / _("value"), _("next")))
-                                       .then_(kb.ast.set(_(varLocalVarsListItem), _("value"), _(varLocalVarsListItem) / "value" / "next"))
-                                       .else_(kb.ast.set(_(varLocalVarsListItemHasNext), _("value"), _(kb.boolean.false_)))))
-                        .while_(kb.ast.same(_(varLocalVarsListItemHasNext) / "value", _(kb.boolean.true_))))));
-
-        CellI& setInput      = compile(kb.ast.set(_(varNewStackFrame) / "value", _("input"), _(varInputIndex) / "value"));
-        CellI& setSelf       = compile(kb.ast.set(_(varInputIndex) / "value", _("self"), astCell));
-        CellI& setStackNext  = compile(kb.ast.set(_(varMethod) / "value" / "stack" / "previous", "next", _(varNewStackItem) / "value"));
-        CellI& setStackToNew = compile(kb.ast.set(_(varMethod) / "value", "stack", _(varNewStackItem) / "value"));
-        CellI& setRetValue   = compile(kb.ast.if_(kb.ast.has(_(varMethod) / "value" / "struct" / "subTypes" / "index", _("returnType")))
-                                           .then_(kb.ast.block(kb.ast.set(_(varNewStackFrame) / "value", _("output"), kb.ast.new_(_(kb.std.op.Var))),
-                                                               kb.ast.set(_(varNewStackFrame) / "value" / "output", _("valueType"), _(varMethod) / "value" / "struct" / "subTypes" / "index" / "returnType" / "value"))));
-        CellI& getResult     = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _("value") / _("struct") / _("subTypes") / _("index"), _("returnType")))
-                                           .then_(kb.ast.set(_(block), _("value"), _(varMethod) / "value" / "stack" / "value" / "output" / "value")));
-        CellI& setStackToOld = compile(kb.ast.set(_(varMethod) / "value" / "stack" / "previous" / "value" / "method", _("stack"), _(varMethod) / "value" / "stack" / "previous"));
-
-        CellI& revertStackVar = compile(
-            kb.ast.set(_(varNewStackItem), _("value"), _(varMethod) / "value" / "stack" ));
-
-        CellI& deleteStackItem = compile(
-            kb.ast.block(
-                kb.ast.if_(kb.ast.has(_(varNewStackItem) / "value" / "value", "localVars"))
-                    .then_(kb.ast.block(
-                        kb.ast.set(_(varLocalVarsListItem), "value", _(varNewStackItem) / "value" / "value" / "method" / "struct" / "subTypes" / "index" / "localVars" / "value" / "slots" / "list" / "first"),
-                        kb.ast.do_(kb.ast.block(
-                                       kb.ast.delete_(kb.ast.get(_(varNewStackItem) / "value" / "value" / "localVars", _(varLocalVarsListItem) / "value" / "value" / "slotRole")),
-                                       kb.ast.set(_(varLocalVarsListItemHasNext), "value", _(kb.boolean.true_)),
-                                       kb.ast.if_(kb.ast.has(_(varLocalVarsListItem) / "value", "next"))
-                                           .then_(kb.ast.set(_(varLocalVarsListItem), "value", _(varLocalVarsListItem) / "value" / "next"))
-                                           .else_(kb.ast.set(_(varLocalVarsListItemHasNext), "value", _(kb.boolean.false_)))))
-                            .while_(kb.ast.same(_(varLocalVarsListItemHasNext) / "value", _(kb.boolean.true_))),
-                        kb.ast.delete_(_(varNewStackItem) / "value" / "value" / "localVars"))),
-                kb.ast.if_(kb.ast.has(_(varNewStackItem) / "value" / "value", "output"))
-                    .then_(kb.ast.delete_(_(varNewStackItem) / "value" / "value" / "output")),
-                kb.ast.delete_(_(varNewStackItem) / "value" / "value" / "input"),
-                kb.ast.delete_(_(varNewStackItem) / "value" / "value"),
-                kb.ast.delete_(_(varNewStackItem) / "value")));
-
-        compiledAsts.add(storeMethod);
-        compiledAsts.add(setCurrentStack);
-        compiledAsts.add(storeStackItem);
-        compiledAsts.add(storeStackFrame);
-        compiledAsts.add(setListItem);
-        compiledAsts.add(setListItemPrev);
-        compiledAsts.add(setListItemNext);
-        compiledAsts.add(storeInputIndex);
-        compiledAsts.add(createNewLocalVars);
-        compiledAsts.add(setMethod);
-        compiledAsts.add(setInput);
-        compiledAsts.add(setRetValue);
-        compiledAsts.add(setSelf);
-
-
+        Object& retOp = *new Object(kb, kb.std.op.Call);
+        retOp.set("ast", ast);
+        retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
+        retOp.set(kb.ids.method, compile(ast[kb.ids.method]));
+        retOp.set(kb.ids.stack, compile(kb.ast.get(_(function), _("stack"))));
         if (ast.has("parameters")) {
-            Visitor::visitList(ast[kb.ids.parameters], [this, &compiledAsts, &compile, &varInputIndex, &_](CellI& param, int, bool&) {
-                Ast::Base& paramRole  = static_cast<Ast::Base&>(param[kb.ids.slotRole]);
-                Ast::Base& paramValue = static_cast<Ast::Base&>(param[kb.ids.slotType]);
-                CellI& setParam       = compile(kb.ast.set(_(varInputIndex) / "value", _(paramRole), paramValue));
-                setParam.label("Call { setParam; }");
-                compiledAsts.add(setParam);
+            List& parameters = *new List(kb, kb.std.Slot);
+            Visitor::visitList(ast[kb.ids.parameters], [this, &parameters, &compile, &_](CellI& param, int, bool&) {
+                CellI& slot = *new Object(kb, kb.std.Slot);
+                slot.set("slotRole", param[kb.ids.slotRole]);
+                slot.set("slotType", compile(param[kb.ids.slotType]));
+                parameters.add(slot);
             });
-        }
-        CellI& callMethod = *new Object(kb, kb.std.op.Activate, fmt::format("{}::Call {{ method(); }}", function.label()));
-        callMethod.set("cell", compile(kb.ast.get(_(varMethod), _(kb.ids.value))));
-
-        compiledAsts.add(setStackNext);
-        compiledAsts.add(setStackToNew);
-        compiledAsts.add(callMethod);
-        compiledAsts.add(getResult);
-        compiledAsts.add(revertStackVar);
-        compiledAsts.add(setStackToOld);
-        compiledAsts.add(deleteStackItem);
-
-        getMethod.label("Call { getMethod; }");
-        storeMethod.label("Call { storeMethod; }");
-        setCurrentStack.label("Call  { setCurrentStack; }");
-        storeStackItem.label("Call { storeStackItem; }");
-        storeStackFrame.label("Call { storeStackFrame; }");
-        setListItem.label("Call { setListItem; }");
-        setListItemPrev.label("Call { setListItemPrev; }");
-        setListItemPrev.label("Call { setListItemNext; }");
-        storeInputIndex.label("Call { storeInputIndex; }");
-        createNewLocalVars.label("Call { createNewLocalVars; }");
-        setMethod.label("Call { setMethod; }");
-        setInput.label("Call { setInput; }");
-        setRetValue.label("Call { setRetValue; }");
-        setSelf.label("Call { setSelf; }");
-        setStackNext.label("Call { setStackNext; }");
-        setStackToNew.label("Call { setStackToNew; }");
-        getResult.label("Call { getResult; }");
-        revertStackVar.label("Call { revertStackVar; }");
-        setStackToOld.label("Call { setStackToOld; }");
-        deleteStackItem.label("Call { deleteStackItem; }");
-
-        if (prevBlock) {
-            state.set("lastBlock", *prevBlock);
+            retOp.set(kb.ids.parameters, parameters);
         }
 
-        return block;
+        return retOp;
     } else if (&ast.struct_() == &kb.std.ast.And) {
         Object& retOp = *new Object(kb, kb.std.op.And);
         retOp.set("ast", ast);

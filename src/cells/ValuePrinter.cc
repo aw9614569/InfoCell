@@ -91,31 +91,6 @@ void CellValuePrinter::printOpBlock(CellI& cell)
                 }
                 m_ss << ")";
             }
-        } else if (ast.has(kb.ids.method)) {
-            if (&ast.struct_() == &kb.std.ast.Call) {
-                m_ss << ".";
-            } else {
-                m_ss << "::";
-            }
-            m_ss << ast[kb.ids.method][kb.ids.value].label();
-            m_ss << "(";
-            if (ast.has(kb.ids.parameters)) {
-                auto& opsList = cell[kb.ids.ops];
-                int paramNum  = 0;
-                visitList(opsList, [this, &kb, &paramNum](CellI& op, int i, bool&) {
-                    if (op.label() == "Call { setParam; }") {
-                        if (paramNum++ > 0) {
-                            m_ss << ", ";
-                        }
-                        auto& paramRole = op[kb.ids.role][kb.ids.value];
-                        auto& paramValue = op[kb.ids.value];
-                        m_ss << paramRole.label();
-                        m_ss << ": ";
-                        printImpl(paramValue);
-                    }
-                });
-            }
-            m_ss << ")";
         }
         return;
     }
