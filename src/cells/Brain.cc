@@ -241,8 +241,8 @@ Std::Std(brain::Brain& kb) :
 cells::CellI& Std::slot(cells::CellI& role, cells::CellI& type)
 {
     CellI& ret = *new Object(kb, kb.std.Slot);
-    ret.set("slotRole", role);
-    ret.set("slotType", type);
+    ret.set(kb.ids.slotRole, role);
+    ret.set(kb.ids.slotType, type);
 
     return ret;
 }
@@ -250,8 +250,8 @@ cells::CellI& Std::slot(cells::CellI& role, cells::CellI& type)
 cells::CellI& Std::slot(const std::string& role, cells::CellI& type)
 {
     CellI& ret = *new Object(kb, kb.std.Slot);
-    ret.set("slotRole", kb.name(role));
-    ret.set("slotType", type);
+    ret.set(kb.ids.slotRole, kb.name(role));
+    ret.set(kb.ids.slotType, type);
 
     return ret;
 }
@@ -259,8 +259,8 @@ cells::CellI& Std::slot(const std::string& role, cells::CellI& type)
 cells::CellI& Std::kvPair(cells::CellI& key, cells::CellI& value)
 {
     CellI& ret = *new Object(kb, kb.std.KVPair);
-    ret.set("key", key);
-    ret.set("value", value);
+    ret.set(kb.ids.key, key);
+    ret.set(kb.ids.value, value);
 
     return ret;
 }
@@ -321,8 +321,8 @@ CellI& Ast::Base::getFullyQualifiedNameImpl()
     }
     bool isEmptyName                  = false;
     CellI* scopeFullyQualifiedNamePtr = nullptr;
-    if (has("scope")) {
-        Scope& scope               = static_cast<Scope&>(get("scope"));
+    if (has(kb.ids.scope)) {
+        Scope& scope               = static_cast<Scope&>(get(kb.ids.scope));
         scopeFullyQualifiedNamePtr = &scope.getFullyQualifiedName();
     } else if (has("enum")) {
         Enum& enum_                = static_cast<Enum&>(get("enum"));
@@ -351,7 +351,7 @@ CellI& Ast::Base::getFullyQualifiedNameImpl()
     std::stringstream ss;
     int templateParamPrintModeFromCharIndex = fullyQualifiedName.size();
     if (has("instanceOf")) {
-        int paramsLength                    = static_cast<List&>(get("templateParams")).size();
+        int paramsLength                    = static_cast<List&>(get(kb.ids.templateParams)).size();
         templateParamPrintModeFromCharIndex = fullyQualifiedName.size() - paramsLength * 2;
     }
     Visitor::visitList(fullyQualifiedName, [this, &fullyQualifiedName, &ss, &templateParamPrintModeFromCharIndex](CellI& character, int i, bool& stop) {
@@ -363,7 +363,7 @@ CellI& Ast::Base::getFullyQualifiedNameImpl()
     });
     if (has("instanceOf")) {
         ss << "<";
-        Visitor::visitList(get("templateParams"), [this, &ss](CellI& slot, int i, bool& stop) {
+        Visitor::visitList(get(kb.ids.templateParams), [this, &ss](CellI& slot, int i, bool& stop) {
             CellI& slotRole = slot[kb.ids.slotRole];
             CellI& slotType = slot[kb.ids.slotType];
             if (i != 0) {
@@ -409,16 +409,16 @@ CellI& Ast::Base::resolveId(CellI& structId, CellI& containerId, CellI& unknownC
 
             auto& structReference = *new Object(kb, kb.std.StructReference);
             auto& unresolvedStruct = unknownCb(structReference);
-            structReference.set("value", unresolvedStruct);
-            structReference.set("id", structId);
-            structReference.set("scope", resolveState[kb.ids.scope]);
-            structReference.set("resolvedScope", resolveState[kb.ids.resolvedScope]);
+            structReference.set(kb.ids.value, unresolvedStruct);
+            structReference.set(kb.ids.id, structId);
+            structReference.set(kb.ids.scope, resolveState[kb.ids.scope]);
+            structReference.set(kb.ids.resolvedScope, resolveState[kb.ids.resolvedScope]);
 
-            if (resolveState.has("currentFn")) {
-                structReference.set("currentFn", resolveState[kb.ids.currentFn]);
+            if (resolveState.has(kb.ids.currentFn)) {
+                structReference.set(kb.ids.currentFn, resolveState[kb.ids.currentFn]);
             }
-            if (resolveState.has("currentStruct")) {
-                structReference.set("currentStruct", resolveState[kb.ids.currentStruct]);
+            if (resolveState.has(kb.ids.currentStruct)) {
+                structReference.set(kb.ids.currentStruct, resolveState[kb.ids.currentStruct]);
             }
             unresolvedContainer.add(structId, structReference);
 
@@ -431,10 +431,10 @@ CellI& Ast::Base::resolveTemplateInstanceId(CellI& structId, CellI& idScope, Cel
 {
     auto& templateId = ast[kb.ids.id];
     return resolveId(structId, kb.name("instances"), kb.name("unknownInstances"), resolveState, [this, &resolveState, &templateId, &structId ,&templateParams, &ast, &idScope](CellI& structReference) -> CellI& {
-        structReference.set("templateId", templateId);
-        structReference.set("templateParams", templateParams);
-        if (ast.has("scopes")) {
-            structReference.set(kb.name("idScope"), idScope);
+        structReference.set(kb.ids.templateId, templateId);
+        structReference.set(kb.ids.templateParams, templateParams);
+        if (ast.has(kb.ids.scopes)) {
+            structReference.set("idScope", idScope);
         }
         auto& unresolvedStruct = *new Object(kb, kb.std.Struct, fmt::format("{}", structId.label()));
         unresolvedStruct.set("incomplete", kb.boolean.true_);
@@ -448,17 +448,17 @@ Ast::Struct& Ast::Base::resolveTemplateInstanceIdAsAst(CellI& structId, CellI& i
 {
     auto& templateId = ast[kb.ids.id];
     auto& ret = resolveId(structId, kb.name("instanceAsts"), kb.name("unknownInstanceAsts"), resolveState, [this, &resolveState, &templateId, &structId, &templateParams, &ast, &idScope](CellI& structReference) -> CellI& {
-        structReference.set("templateId", templateId);
-        structReference.set("templateParams", templateParams);
-        if (ast.has("scopes")) {
-            structReference.set(kb.name("idScope"), idScope);
+        structReference.set(kb.ids.templateId, templateId);
+        structReference.set(kb.ids.templateParams, templateParams);
+        if (ast.has(kb.ids.scopes)) {
+            structReference.set("idScope", idScope);
         }
         auto& unresolvedStruct = *new Ast::Struct(kb, structId);
 
         return unresolvedStruct;
     });
-    if (ret.missing("scope")) {
-        ret.set("scope", idScope);
+    if (ret.missing(kb.ids.scope)) {
+        ret.set(kb.ids.scope, idScope);
     }
 
     return static_cast<Ast::Struct&>(ret);
@@ -494,7 +494,7 @@ Ast::Base& Ast::Base::resolveTemplatedType(CellI& ast, CellI& resolveState)
     auto& templateParams = ast[kb.ids.parameters];
 
     Scope* scopePtr = &static_cast<Scope&>(resolveState[kb.ids.scope]);
-    if (ast.has("scopes")) {
+    if (ast.has(kb.ids.scopes)) {
         auto& scopeList = ast[kb.ids.scopes];
         StructT& astStructT = scopePtr->resolveFullTemplateId(scopeList, templateId);
         scopePtr = &static_cast<Scope&>(astStructT[kb.ids.scope]);
@@ -503,10 +503,10 @@ Ast::Base& Ast::Base::resolveTemplatedType(CellI& ast, CellI& resolveState)
     if (!scope.hasItem<StructT>(templateId)) {
         std::cerr << fmt::format("Unknown template {}", templateId.label()) << std::endl;
         std::cerr << fmt::format("Current scope: {}", scope.label()) << std::endl;
-        if (resolveState.has("currentStruct")) {
+        if (resolveState.has(kb.ids.currentStruct)) {
             std::cerr << fmt::format("Current struct: {}", resolveState[kb.ids.currentStruct].label()) << std::endl;
         }
-        if (resolveState.has("currentFn")) {
+        if (resolveState.has(kb.ids.currentFn)) {
             std::cerr << fmt::format("Current function: {}", resolveState[kb.ids.currentFn].label()) << std::endl;
         }
         throw fmt::format("Unknown template {}", templateId.label());
@@ -585,23 +585,23 @@ Ast::Get& Ast::Parameter::operator/(const std::string& role)
 Ast::Slot::Slot(brain::Brain& kb, CellI& role, CellI& type) :
     BaseT<Slot>(kb, kb.std.ast.Slot, "ast.slot")
 {
-    set("slotRole", role);
-    set("slotType", type);
+    set(kb.ids.slotRole, role);
+    set(kb.ids.slotType, type);
 }
 
 Ast::Call::Call(brain::Brain& kb, CellI& cell, CellI& method) :
     BaseT<Call>(kb, kb.std.ast.Call, "ast.call")
 {
-    set("cell", cell);
-    set("method", method);
+    set(kb.ids.cell, cell);
+    set(kb.ids.method, method);
 }
 
 void Ast::Call::addParam(Slot& slot)
 {
-    if (missing("parameters")) {
-        set("parameters", kb.list(slot));
+    if (missing(kb.ids.parameters)) {
+        set(kb.ids.parameters, kb.list(slot));
     } else {
-        List& paramList = static_cast<List&>(get("parameters"));
+        List& paramList = static_cast<List&>(get(kb.ids.parameters));
         paramList.add(slot);
     }
 }
@@ -609,14 +609,14 @@ void Ast::Call::addParam(Slot& slot)
 Ast::StaticCall::StaticCall(brain::Brain& kb, CellI& cell, CellI& method) :
     BaseT<StaticCall>(kb, kb.std.ast.StaticCall, "ast.staticCall")
 {
-    set("cell", cell);
-    set("method", method);
+    set(kb.ids.cell, cell);
+    set(kb.ids.method, method);
 }
 
 void Ast::StaticCall::addParam(Slot& slot)
 {
-    if (missing("parameters")) {
-        set("parameters", kb.list(slot));
+    if (missing(kb.ids.parameters)) {
+        set(kb.ids.parameters, kb.list(slot));
     } else {
         List& paramList = static_cast<List&>(get("parameters"));
         paramList.add(slot);
@@ -626,7 +626,7 @@ void Ast::StaticCall::addParam(Slot& slot)
 Ast::Cell::Cell(brain::Brain& kb, CellI& value) :
     BaseT<Cell>(kb, kb.std.ast.Cell, "ast.cell")
 {
-    set("value", value);
+    set(kb.ids.value, value);
 }
 
 Ast::Get& Ast::Cell::operator/(Base& role)
@@ -641,7 +641,7 @@ Ast::Get& Ast::Cell::operator/(const std::string& role)
 Ast::StructName::StructName(brain::Brain& kb, CellI& name) :
     BaseT<StructName>(kb, kb.std.ast.StructName, "ast.structName")
 {
-    set("name", name);
+    set(kb.ids.name, name);
 }
 
 Ast::Self::Self(brain::Brain& kb) :
@@ -684,7 +684,7 @@ Ast::Throw::Throw(brain::Brain& kb) :
 Ast::Throw::Throw(brain::Brain& kb, Base& value) :
     BaseT<Throw>(kb, kb.std.ast.Throw, "ast.throw")
 {
-    set("value", value);
+    set(kb.ids.value, value);
 }
 
 Ast::Return::Return(brain::Brain& kb) :
@@ -695,13 +695,13 @@ Ast::Return::Return(brain::Brain& kb) :
 Ast::Return::Return(brain::Brain& kb, CellI& value) :
     BaseT<Return>(kb, kb.std.ast.Return, "ast.return")
 {
-    set("value", value);
+    set(kb.ids.value, value);
 }
 
 Ast::Block::Block(brain::Brain& kb, List& list) :
     BaseT<Block>(kb, kb.std.ast.Block, "ast.block")
 {
-    set("asts", list);
+    set(kb.ids.asts, list);
 }
 
 template <>
@@ -756,7 +756,7 @@ Ast::Scope::Scope(brain::Brain& kb, const std::string& nameStr) :
     structTsImpl(kb, "structTs", *this),
     enumsImpl(kb, "enums", *this)
 {
-    set("name", kb.name(nameStr));
+    set(kb.ids.name, kb.name(nameStr));
 }
 
 Ast::Base& Ast::Scope::resolveTypeName(CellI& typeName)
@@ -888,10 +888,10 @@ CellI& Ast::Scope::compile(TrieMap& earlyStructs)
 {
     auto& program     = *new Object(kb, kb.std.Program, "Program");
     auto& programData = *new Object(kb, kb.std.ProgramData, "ProgramData");
-    program.set("data", programData);
+    program.set(kb.ids.data, programData);
 
     auto& resolvedScope = *new Ast::Scope(kb, label());
-    set("resolvedScope", resolvedScope);
+    set(kb.ids.resolvedScope, resolvedScope);
 
     auto& compileState      = *new Object(kb, kb.std.CompileState, "CompileState");
     auto& compiledFunctions = *new TrieMap(kb, kb.std.Cell, kb.std.op.Function, "Functions");
@@ -906,9 +906,9 @@ CellI& Ast::Scope::compile(TrieMap& earlyStructs)
     auto& unknownInstanceAsts = *new TrieMap(kb, kb.std.Cell, kb.std.Struct, "unknownInstanceAsts");
     auto& compiledVariables   = *new TrieMap(kb, kb.std.Cell, kb.std.op.Var, "Variables");
 
-    programData.set("functions", compiledFunctions);
-    programData.set("structs", compiledStructs);
-    programData.set("variables", compiledVariables);
+    programData.set(kb.ids.functions, compiledFunctions);
+    programData.set(kb.ids.structs, compiledStructs);
+    programData.set(kb.ids.variables, compiledVariables);
 
     compileState.set("functions", functions);
     compileState.set("structs", structs);
@@ -930,8 +930,8 @@ CellI& Ast::Scope::compile(TrieMap& earlyStructs)
         TRACE(compileStruct, "early struct: {}", earlyStructKV[kb.ids.key].label());
 
         auto& structReference = *new Object(kb, kb.std.StructReference);
-        structReference.set("value", compiledStruct);
-        structReference.set("id", structId);
+        structReference.set(kb.ids.value, compiledStruct);
+        structReference.set(kb.ids.id, structId);
 
         if (&structRefAst.struct_() == &kb.std.ast.TemplatedType) {
             unknownInstances.add(structId, structReference);
@@ -2344,8 +2344,8 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         Visitor::visitList(list, [this, &compile, &compiledAsts, &function](CellI& ast, int, bool&) {
             compiledAsts.add(compile(ast));
         });
-        opBlock.set("ast", ast);
-        opBlock.set("ops", compiledAsts);
+        opBlock.set(kb.ids.ast, ast);
+        opBlock.set(kb.ids.ops, compiledAsts);
 
         if (prevBlock) {
             state.set("lastBlock", *prevBlock);
@@ -2356,22 +2356,22 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         return opBlock;
     } else if (&ast.struct_() == &kb.std.ast.Cell) {
         Object& constVar = *new Object(kb, kb.std.op.ConstVar);
-        constVar.set("ast", ast);
-        constVar.set("value", ast[kb.ids.value]);
+        constVar.set(kb.ids.ast, ast);
+        constVar.set(kb.ids.value, ast[kb.ids.value]);
         return constVar;
     } else if (&ast.struct_() == &kb.std.ast.ResolvedType) {
         Object& constVar = *new Object(kb, kb.std.op.ConstVar);
-        constVar.set("ast", ast);
-        constVar.set("value", ast[kb.ids.compiled]);
+        constVar.set(kb.ids.ast, ast);
+        constVar.set(kb.ids.value, ast[kb.ids.compiled]);
         return constVar;
     } else if (&ast.struct_() == &kb.std.ast.SelfFn) {
         Object& constVar = *new Object(kb, kb.std.op.ConstVar);
-        constVar.set("ast", ast);
-        constVar.set("value", function);
+        constVar.set(kb.ids.ast, ast);
+        constVar.set(kb.ids.value, function);
         return constVar;
     } else if (&ast.struct_() == &kb.std.ast.Self) {
         CellI& retOp = compile(kb.ast.get(_(function), _("stack")) / "value" / "input" / "self");
-        retOp.set("ast", ast);
+        retOp.set(kb.ids.ast, ast);
         retOp.label("self");
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Continue) {
@@ -2400,16 +2400,16 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Parameter) {
         CellI& retOp = compile(kb.ast.get(_(function), "stack") / "value" / "input" / _(ast[kb.ids.role]));
-        retOp.set("ast", ast);
+        retOp.set(kb.ids.ast, ast);
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Member) {
         CellI& member = compile(kb.ast.get(kb.ast.self(), kb.ast.cell(ast[kb.ids.role])));
-        member.set("ast", ast);
+        member.set(kb.ids.ast, ast);
         return member;
     } else if (&ast.struct_() == &kb.std.ast.Return) {
         Object& retOp = *new Object(kb, kb.std.op.Return, "op.return");
-        retOp.set("ast", ast);
-        if (ast.has("value")) {
+        retOp.set(kb.ids.ast, ast);
+        if (ast.has(kb.ids.value)) {
             retOp.set("result", compile(kb.ast.set(kb.ast.get(_(function), "stack") / "value" / "output", "value", static_cast<Ast::Base&>(ast[kb.ids.value]))));
         }
         return retOp;
@@ -2420,41 +2420,41 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
             static_cast<Map&>(function.struct_()[kb.ids.subTypes]).add(kb.name("localVars"), functionLocalVarsType);
         }
         CellI& localVarsType = function.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.localVars][kb.ids.value];
-        if (localVarsType.missing("slots")) {
-            localVarsType.set("slots", *new Map(kb, kb.std.Cell, kb.std.Slot));
+        if (localVarsType.missing(kb.ids.slots)) {
+            localVarsType.set(kb.ids.slots, *new Map(kb, kb.std.Cell, kb.std.Slot));
         }
         auto& slotsMap = static_cast<Map&>(localVarsType[kb.ids.slots]);
         if (!slotsMap.hasKey(ast[kb.ids.name])) {
             slotsMap.add(ast[kb.ids.name], kb.std.slot(ast[kb.ids.name], kb.std.op.Var));
         }
         CellI& retOp = compile(kb.ast.get(_(function), _("stack")) / "value" / "localVars" / _(ast[kb.ids.name]));
-        retOp.set("ast", ast);
+        retOp.set(kb.ids.ast, ast);
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Delete) {
         Object& retOp = *new Object(kb, kb.std.op.Delete);
-        retOp.set("ast", ast);
-        retOp.set("input", compile(ast[kb.ids.cell]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.input, compile(ast[kb.ids.cell]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Set) {
         Object& retOp = *new Object(kb, kb.std.op.Set);
-        retOp.set("ast", ast);
-        retOp.set("cell", compile(ast[kb.ids.cell]));
-        retOp.set("role", compile(ast[kb.ids.role]));
-        retOp.set("value", compile(ast[kb.ids.value]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
+        retOp.set(kb.ids.role, compile(ast[kb.ids.role]));
+        retOp.set(kb.ids.value, compile(ast[kb.ids.value]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Erase) {
         Object& retOp = *new Object(kb, kb.std.op.Erase);
-        retOp.set("ast", ast);
-        retOp.set("cell", compile(ast[kb.ids.cell]));
-        retOp.set("role", compile(ast[kb.ids.role]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
+        retOp.set(kb.ids.role, compile(ast[kb.ids.role]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.If) {
         Object& retOp = *new Object(kb, kb.std.op.If);
-        retOp.set("ast", ast);
-        retOp.set("condition", compile(ast[kb.ids.condition]));
-        retOp.set("then", compile(ast[kb.ids.then]));
-        if (ast.has("else_")) {
-            retOp.set("else_", compile(ast[kb.ids.else_]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.condition, compile(ast[kb.ids.condition]));
+        retOp.set(kb.ids.then, compile(ast[kb.ids.then]));
+        if (ast.has(kb.ids.else_)) {
+            retOp.set(kb.ids.else_, compile(ast[kb.ids.else_]));
             return retOp;
         } else {
             return retOp;
@@ -2475,41 +2475,41 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Do) {
         Object& retOp = *new Object(kb, kb.std.op.Do);
-        retOp.set("ast", ast);
-        retOp.set("condition", compile(ast[kb.ids.condition]));
-        retOp.set("statement", compile(ast[kb.ids.statement]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.condition, compile(ast[kb.ids.condition]));
+        retOp.set(kb.ids.statement, compile(ast[kb.ids.statement]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.While) {
         Object& retOp = *new Object(kb, kb.std.op.While);
-        retOp.set("ast", ast);
-        retOp.set("condition", compile(ast[kb.ids.condition]));
-        retOp.set("statement", compile(ast[kb.ids.statement]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.condition, compile(ast[kb.ids.condition]));
+        retOp.set(kb.ids.statement, compile(ast[kb.ids.statement]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.New) {
         auto& compiledAsts = *new cells::List(kb, kb.std.op.Base);
         auto& astObjectType = ast[kb.ids.objectType];
 
         Object& block = *new Object(kb, kb.std.op.Block);
-        block.set("ast", ast);
-        block.set("ops", compiledAsts);
+        block.set(kb.ids.ast, ast);
+        block.set(kb.ids.ops, compiledAsts);
 
         Object& opSet = *new Object(kb, kb.std.op.Set, "New { block.value = new objectType(); }");
-        opSet.set("ast", ast);
-        opSet.set("cell", compile(kb.ast.cell(block)));
-        opSet.set("role", compile(kb.ast.cell(kb.name("value"))));
+        opSet.set(kb.ids.ast, ast);
+        opSet.set(kb.ids.cell, compile(kb.ast.cell(block)));
+        opSet.set(kb.ids.role, compile(kb.ast.cell(kb.ids.value)));
 
         Object& opNew = *new Object(kb, kb.std.op.New);
-        opNew.set("ast", ast);
-        opNew.set("objectType", compile(astObjectType));
-        opSet.set("value", opNew);
+        opNew.set(kb.ids.ast, ast);
+        opNew.set(kb.ids.objectType, compile(astObjectType));
+        opSet.set(kb.ids.value, opNew);
 
         compiledAsts.add(opSet);
-        if (ast.has("constructor")) {
+        if (ast.has(kb.ids.constructor)) {
             Object& callAst = *new Object(kb, kb.std.ast.Call);
-            callAst.set("cell", kb.ast.get(kb.ast.cell(block), kb.ast.cell(kb.name("value"))));
-            callAst.set("method", ast[kb.ids.constructor]);
-            if (ast.has("parameters")) {
-                callAst.set("parameters", ast[kb.ids.parameters]);
+            callAst.set(kb.ids.cell, kb.ast.get(kb.ast.cell(block), kb.ast.cell(kb.ids.value)));
+            callAst.set(kb.ids.method, ast[kb.ids.constructor]);
+            if (ast.has(kb.ids.parameters)) {
+                callAst.set(kb.ids.parameters, ast[kb.ids.parameters]);
             }
             CellI& callConstructor = compile(callAst);
             callConstructor.label("New { call constructor; }");
@@ -2588,16 +2588,16 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         }
 #endif
         Object& retOp = *new Object(kb, kb.std.op.Call);
-        retOp.set("ast", ast);
+        retOp.set(kb.ids.ast, ast);
         retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
         retOp.set(kb.ids.method, compile(ast[kb.ids.method]));
-        retOp.set(kb.ids.stack, compile(kb.ast.get(_(function), _("stack"))));
-        if (ast.has("parameters")) {
+        retOp.set(kb.ids.stack, compile(kb.ast.get(_(function), _(kb.ids.stack))));
+        if (ast.has(kb.ids.parameters)) {
             List& parameters = *new List(kb, kb.std.Slot);
             Visitor::visitList(ast[kb.ids.parameters], [this, &parameters, &compile, &_](CellI& param, int, bool&) {
                 CellI& slot = *new Object(kb, kb.std.Slot);
-                slot.set("slotRole", param[kb.ids.slotRole]);
-                slot.set("slotType", compile(param[kb.ids.slotType]));
+                slot.set(kb.ids.slotRole, param[kb.ids.slotRole]);
+                slot.set(kb.ids.slotType, compile(param[kb.ids.slotType]));
                 parameters.add(slot);
             });
             retOp.set(kb.ids.parameters, parameters);
@@ -2606,110 +2606,110 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.And) {
         Object& retOp = *new Object(kb, kb.std.op.And);
-        retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast[kb.ids.lhs]));
-        retOp.set("rhs", compile(ast[kb.ids.rhs]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
+        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Or) {
         Object& retOp = *new Object(kb, kb.std.op.Or);
-        retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast[kb.ids.lhs]));
-        retOp.set("rhs", compile(ast[kb.ids.rhs]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
+        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Not) {
         Object& retOp = *new Object(kb, kb.std.op.Not);
-        retOp.set("ast", ast);
-        retOp.set("input", compile(ast[kb.ids.input]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.input, compile(ast[kb.ids.input]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Add) {
         Object& retOp = *new Object(kb, kb.std.op.Add);
-        retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast[kb.ids.lhs]));
-        retOp.set("rhs", compile(ast[kb.ids.rhs]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
+        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Subtract) {
         Object& retOp = *new Object(kb, kb.std.op.Subtract);
-        retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast[kb.ids.lhs]));
-        retOp.set("rhs", compile(ast[kb.ids.rhs]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
+        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Multiply) {
         Object& retOp = *new Object(kb, kb.std.op.Multiply);
-        retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast[kb.ids.lhs]));
-        retOp.set("rhs", compile(ast[kb.ids.rhs]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
+        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Divide) {
         Object& retOp = *new Object(kb, kb.std.op.Divide);
-        retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast[kb.ids.lhs]));
-        retOp.set("rhs", compile(ast[kb.ids.rhs]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
+        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.LessThan) {
         Object& retOp = *new Object(kb, kb.std.op.LessThan);
-        retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast[kb.ids.lhs]));
-        retOp.set("rhs", compile(ast[kb.ids.rhs]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
+        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.LessThanOrEqual) {
         Object& retOp = *new Object(kb, kb.std.op.LessThanOrEqual);
-        retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast[kb.ids.lhs]));
-        retOp.set("rhs", compile(ast[kb.ids.rhs]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
+        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.GreaterThan) {
         Object& retOp = *new Object(kb, kb.std.op.GreaterThan);
-        retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast[kb.ids.lhs]));
-        retOp.set("rhs", compile(ast[kb.ids.rhs]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
+        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.GreaterThanOrEqual) {
         Object& retOp = *new Object(kb, kb.std.op.GreaterThanOrEqual);
-        retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast[kb.ids.lhs]));
-        retOp.set("rhs", compile(ast[kb.ids.rhs]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
+        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Same) {
         Object& retOp = *new Object(kb, kb.std.op.Same);
-        retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast[kb.ids.lhs]));
-        retOp.set("rhs", compile(ast[kb.ids.rhs]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
+        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.NotSame) {
         Object& retOp = *new Object(kb, kb.std.op.NotSame);
-        retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast[kb.ids.lhs]));
-        retOp.set("rhs", compile(ast[kb.ids.rhs]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
+        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Equal) {
         Object& retOp = *new Object(kb, kb.std.op.Equal);
-        retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast[kb.ids.lhs]));
-        retOp.set("rhs", compile(ast[kb.ids.rhs]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
+        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.NotEqual) {
         Object& retOp = *new Object(kb, kb.std.op.NotEqual);
-        retOp.set("ast", ast);
-        retOp.set("lhs", compile(ast[kb.ids.lhs]));
-        retOp.set("rhs", compile(ast[kb.ids.rhs]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
+        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Has) {
         Object& retOp = *new Object(kb, kb.std.op.Has);
-        retOp.set("ast", ast);
-        retOp.set("cell", compile(ast[kb.ids.cell]));
-        retOp.set("role", compile(ast[kb.ids.role]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
+        retOp.set(kb.ids.role, compile(ast[kb.ids.role]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Missing) {
         Object& retOp = *new Object(kb, kb.std.op.Missing);
-        retOp.set("ast", ast);
-        retOp.set("cell", compile(ast[kb.ids.cell]));
-        retOp.set("role", compile(ast[kb.ids.role]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
+        retOp.set(kb.ids.role, compile(ast[kb.ids.role]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Get) {
         Object& retOp = *new Object(kb, kb.std.op.Get);
-        retOp.set("ast", ast);
-        retOp.set("cell", compile(ast[kb.ids.cell]));
-        retOp.set("role", compile(ast[kb.ids.role]));
+        retOp.set(kb.ids.ast, ast);
+        retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
+        retOp.set(kb.ids.role, compile(ast[kb.ids.role]));
         return retOp;
     }
 
@@ -2746,141 +2746,141 @@ void Ast::Function::checkMethodCall(CellI& astType, CellI& astMethodId, CellI& s
 
 List& Ast::Function::parameters()
 {
-    if (missing("parameters")) {
+    if (missing(kb.ids.parameters)) {
         throw "No parameters!";
     } else {
-        return static_cast<List&>(get("parameters"));
+        return static_cast<List&>(get(kb.ids.parameters));
     }
 }
 
 CellI& Ast::Function::returnType()
 {
-    if (missing("returnType")) {
+    if (missing(kb.ids.returnType)) {
         throw "No returnType!";
     } else {
-        return get("returnType");
+        return get(kb.ids.returnType);
     }
 }
 
 Ast::Base& Ast::Function::code()
 {
-    if (missing("code")) {
+    if (missing(kb.ids.code)) {
         throw "No code!";
     } else {
-        return static_cast<Ast::Base&>(get("code"));
+        return static_cast<Ast::Base&>(get(kb.ids.code));
     }
 }
 
 Ast::FunctionT::FunctionT(brain::Brain& kb, CellI& name, const std::string& nameStr) :
     BaseT<FunctionT>(kb, kb.std.ast.FunctionT, nameStr)
 {
-    set("name", name);
+    set(kb.ids.name, name);
     label(nameStr);
 }
 
 Ast::FunctionT::FunctionT(brain::Brain& kb, const std::string& nameStr) :
     BaseT<FunctionT>(kb, kb.std.ast.FunctionT, nameStr)
 {
-    set("name", kb.name(nameStr));
+    set(kb.ids.name, kb.name(nameStr));
     label(nameStr);
 }
 
 void Ast::FunctionT::parameters(Slot& param)
 {
-    if (missing("parameters")) {
-        set("parameters", *new List(kb, kb.std.Slot));
+    if (missing(kb.ids.parameters)) {
+        set(kb.ids.parameters, *new List(kb, kb.std.Slot));
     }
     parameters().add(param);
 }
 
 void Ast::FunctionT::returnType(CellI& type)
 {
-    set("returnType", type);
+    set(kb.ids.returnType, type);
 }
 
 void Ast::FunctionT::addBlock(Block& block)
 {
-    set("code", block);
+    set(kb.ids.code, block);
 }
 
 List& Ast::FunctionT::parameters()
 {
-    if (missing("parameters")) {
+    if (missing(kb.ids.parameters)) {
         throw "No parameters!";
     } else {
-        return static_cast<List&>(get("parameters"));
+        return static_cast<List&>(get(kb.ids.parameters));
     }
 }
 
 CellI& Ast::FunctionT::returnType()
 {
-    if (missing("returnType")) {
+    if (missing(kb.ids.returnType)) {
         throw "No returnType!";
     } else {
-        return get("returnType");
+        return get(kb.ids.returnType);
     }
 }
 
 Ast::Base& Ast::FunctionT::code()
 {
-    if (missing("code")) {
+    if (missing(kb.ids.code)) {
         throw "No code!";
     } else {
-        return static_cast<Ast::Base&>(get("code"));
+        return static_cast<Ast::Base&>(get(kb.ids.code));
     }
 }
 
 Ast::Delete::Delete(brain::Brain& kb, Base& cell) :
     BaseT<Delete>(kb, kb.std.ast.Delete, "ast.delete")
 {
-    set("cell", cell);
+    set(kb.ids.cell, cell);
 }
 
 Ast::Set::Set(brain::Brain& kb, Base& cell, Base& role, Base& value) :
     BaseT<Set>(kb, kb.std.ast.Set, "ast.set")
 {
-    set("cell", cell);
-    set("role", role);
-    set("value", value);
+    set(kb.ids.cell, cell);
+    set(kb.ids.role, role);
+    set(kb.ids.value, value);
 }
 
 Ast::Erase::Erase(brain::Brain& kb, Base& cell, Base& role) :
     BaseT<Erase>(kb, kb.std.ast.Erase, "ast.erase")
 {
-    set("cell", cell);
-    set("role", role);
+    set(kb.ids.cell, cell);
+    set(kb.ids.role, role);
 }
 
 Ast::If::If(brain::Brain& kb, Base& condition) :
     BaseT<If>(kb, kb.std.ast.If, "ast.if")
 {
-    set("condition", condition);
+    set(kb.ids.condition, condition);
 }
 
 Ast::If::If(brain::Brain& kb, Base& condition, Base& thenBranch) :
     BaseT<If>(kb, kb.std.ast.If, "ast.if")
 {
-    set("condition", condition);
-    set("then", thenBranch);
+    set(kb.ids.condition, condition);
+    set(kb.ids.then, thenBranch);
 }
 
 Ast::If::If(brain::Brain& kb, Base& condition, Base& thenBranch, Base& elseBranch) :
     BaseT<If>(kb, kb.std.ast.If, "ast.ifElse")
 {
-    set("condition", condition);
-    set("then", thenBranch);
-    set("else_", elseBranch);
+    set(kb.ids.condition, condition);
+    set(kb.ids.then, thenBranch);
+    set(kb.ids.else_, elseBranch);
 }
 
 Ast::If& Ast::If::then_(Base& thenBranch)
 {
-    set("then", thenBranch);
+    set(kb.ids.then, thenBranch);
     return *this;
 }
 
 Ast::If& Ast::If::else_(Base& elseBranch)
 {
-    set("else_", elseBranch);
+    set(kb.ids.else_, elseBranch);
     return *this;
 }
 
@@ -2909,37 +2909,37 @@ Ast::Match& Ast::Match::case_(const std::string& memberStr, Base& op)
 Ast::Do::Do(brain::Brain& kb, Base& statement) :
     BaseT<Do>(kb, kb.std.ast.Do, "ast.do")
 {
-    set("statement", statement);
+    set(kb.ids.statement, statement);
 }
 
 Ast::Do& Ast::Do::while_(Base& condition)
 {
-    set("condition", condition);
+    set(kb.ids.condition, condition);
     return *this;
 }
 
 Ast::While::While(brain::Brain& kb, Base& condition) :
     BaseT<While>(kb, kb.std.ast.While, "ast.while")
 {
-    set("condition", condition);
+    set(kb.ids.condition, condition);
 }
 
 Ast::While& Ast::While::do_(Base& statement)
 {
-    set("statement", statement);
+    set(kb.ids.statement, statement);
     return *this;
 }
 
 Ast::Var::Var(brain::Brain& kb, const std::string& nameStr) :
     BaseT<Var>(kb, kb.std.ast.Var, nameStr)
 {
-    set("name", kb.name(nameStr));
+    set(kb.ids.name, kb.name(nameStr));
 }
 
 Ast::Var::Var(brain::Brain& kb, CellI& name) :
     BaseT<Var>(kb, kb.std.ast.Var, name.label())
 {
-    set("name", name);
+    set(kb.ids.name, name);
 }
 
 CellI& Ast::Var::getFullyQualifiedName()
@@ -2960,12 +2960,12 @@ Ast::Get& Ast::Var::operator*()
 Ast::Member::Member(brain::Brain& kb, CellI& role) :
     BaseT<Member>(kb, kb.std.ast.Member, "ast.member")
 {
-    set("role", role);
+    set(kb.ids.role, role);
 }
 
 Ast::Set& Ast::Member::operator=(Base& value)
 {
-    Ast::Set& ret = Set::New(kb, Self::New(kb), Cell::New(kb, get("role")), value);
+    Ast::Set& ret = Set::New(kb, Self::New(kb), Cell::New(kb, get(kb.ids.role)), value);
     return ret;
 }
 
@@ -2981,12 +2981,12 @@ Ast::Get& Ast::Member::operator/(const std::string& role)
 
 Ast::Has& Ast::Member::exist()
 {
-    return Has::New(kb, Self::New(kb), Cell::New(kb, get("role")));
+    return Has::New(kb, Self::New(kb), Cell::New(kb, get(kb.ids.role)));
 }
 
 Ast::Missing& Ast::Member::missing()
 {
-    return Missing::New(kb, Self::New(kb), Cell::New(kb, get("role")));
+    return Missing::New(kb, Self::New(kb), Cell::New(kb, get(kb.ids.role)));
 }
 
 #if 0
@@ -3004,19 +3004,19 @@ Ast::Call& Ast::Member::operator()(const std::string& method)
 Ast::SubType::SubType(brain::Brain& kb, CellI& name) :
     BaseT<SubType>(kb, kb.std.ast.SubTypeName, "ast.subTypeName")
 {
-    set("name", name);
+    set(kb.ids.name, name);
 }
 
 Ast::TemplatedType::TemplatedType(brain::Brain& kb, CellI& id, CellI& typeList) :
     BaseT<TemplatedType>(kb, kb.std.ast.TemplatedType, "ast.templatedType")
 {
-    set("id", id);
-    set("parameters", typeList);
+    set(kb.ids.id, id);
+    set(kb.ids.parameters, typeList);
 }
 
 void Ast::TemplatedType::addParam(const std::string& role, CellI& type)
 {
-    List& paramList = static_cast<List&>(get("parameters"));
+    List& paramList = static_cast<List&>(get(kb.ids.parameters));
     paramList.add(kb.ast.slot(role, type));
 }
 
@@ -3028,28 +3028,28 @@ void Ast::TemplatedType::addParam(const std::string& role, const std::string& ty
 Ast::TemplateParam::TemplateParam(brain::Brain& kb, CellI& role) :
     BaseT<TemplateParam>(kb, kb.std.ast.TemplateParam, "ast.templateParam")
 {
-    set("role", role);
+    set(kb.ids.role, role);
 }
 
 Ast::New::New(brain::Brain& kb, Base& objectType) :
     BaseT<New>(kb, kb.std.ast.New, "ast.new")
 {
-    set("objectType", objectType);
+    set(kb.ids.objectType, objectType);
 }
 
 Ast::New::New(brain::Brain& kb, Base& objectType, Base& constructor) :
     BaseT<New>(kb, kb.std.ast.New, "ast.new()")
 {
-    set("objectType", objectType);
-    set("constructor", constructor);
+    set(kb.ids.objectType, objectType);
+    set(kb.ids.constructor, constructor);
 }
 
 void Ast::New::addParam(Slot& slot)
 {
-    if (missing("parameters")) {
-        set("parameters", kb.list(slot));
+    if (missing(kb.ids.parameters)) {
+        set(kb.ids.parameters, kb.list(slot));
     } else {
-        List& paramList = static_cast<List&>(get("parameters"));
+        List& paramList = static_cast<List&>(get(kb.ids.parameters));
         paramList.add(slot);
     }
 }
@@ -3057,50 +3057,50 @@ void Ast::New::addParam(Slot& slot)
 Ast::Same::Same(brain::Brain& kb, Base& lhs, Base& rhs) :
     BaseT<Same>(kb, kb.std.ast.Same, "ast.same")
 {
-    set("lhs", lhs);
-    set("rhs", rhs);
+    set(kb.ids.lhs, lhs);
+    set(kb.ids.rhs, rhs);
 }
 
 Ast::NotSame::NotSame(brain::Brain& kb, Base& lhs, Base& rhs) :
     BaseT<NotSame>(kb, kb.std.ast.NotSame, "ast.notSame")
 {
-    set("lhs", lhs);
-    set("rhs", rhs);
+    set(kb.ids.lhs, lhs);
+    set(kb.ids.rhs, rhs);
 }
 
 Ast::Equal::Equal(brain::Brain& kb, Base& lhs, Base& rhs) :
     BaseT<Equal>(kb, kb.std.ast.Equal, "ast.equal")
 {
-    set("lhs", lhs);
-    set("rhs", rhs);
+    set(kb.ids.lhs, lhs);
+    set(kb.ids.rhs, rhs);
 }
 
 Ast::NotEqual::NotEqual(brain::Brain& kb, Base& lhs, Base& rhs) :
     BaseT<NotEqual>(kb, kb.std.ast.NotEqual, "ast.notEqual")
 {
-    set("lhs", lhs);
-    set("rhs", rhs);
+    set(kb.ids.lhs, lhs);
+    set(kb.ids.rhs, rhs);
 }
 
 Ast::Has::Has(brain::Brain& kb, Base& cell, Base& role) :
     BaseT<Has>(kb, kb.std.ast.Has, "ast.has")
 {
-    set("cell", cell);
-    set("role", role);
+    set(kb.ids.cell, cell);
+    set(kb.ids.role, role);
 }
 
 Ast::Missing::Missing(brain::Brain& kb, Base& cell, Base& role) :
     BaseT<Missing>(kb, kb.std.ast.Missing, "ast.missing")
 {
-    set("cell", cell);
-    set("role", role);
+    set(kb.ids.cell, cell);
+    set(kb.ids.role, role);
 }
 
 Ast::Get::Get(brain::Brain& kb, Base& cell, Base& role) :
     BaseT<Get>(kb, kb.std.ast.Get, "ast.get")
 {
-    set("cell", cell);
-    set("role", role);
+    set(kb.ids.cell, cell);
+    set(kb.ids.role, role);
 }
 
 Ast::Get& Ast::Get::operator/(Base& role)
@@ -3115,77 +3115,77 @@ Ast::Get& Ast::Get::operator/(const std::string& role)
 Ast::And::And(brain::Brain& kb, Base& lhs, Base& rhs) :
     BaseT<And>(kb, kb.std.ast.And, "ast.and")
 {
-    set("lhs", lhs);
-    set("rhs", rhs);
+    set(kb.ids.lhs, lhs);
+    set(kb.ids.rhs, rhs);
 }
 
 Ast::Or::Or(brain::Brain& kb, Base& lhs, Base& rhs) :
     BaseT<Or>(kb, kb.std.ast.Or, "ast.or")
 {
-    set("lhs", lhs);
-    set("rhs", rhs);
+    set(kb.ids.lhs, lhs);
+    set(kb.ids.rhs, rhs);
 }
 
 Ast::Not::Not(brain::Brain& kb, Base& input) :
     BaseT<Not>(kb, kb.std.ast.Not, "ast.not")
 {
-    set("input", input);
+    set(kb.ids.input, input);
 }
 
 Ast::Add::Add(brain::Brain& kb, Base& lhs, Base& rhs) :
     BaseT<Add>(kb, kb.std.ast.Add, "ast.add")
 {
-    set("lhs", lhs);
-    set("rhs", rhs);
+    set(kb.ids.lhs, lhs);
+    set(kb.ids.rhs, rhs);
 }
 
 Ast::Subtract::Subtract(brain::Brain& kb, Base& lhs, Base& rhs) :
     BaseT<Subtract>(kb, kb.std.ast.Subtract, "ast.subtract")
 {
-    set("lhs", lhs);
-    set("rhs", rhs);
+    set(kb.ids.lhs, lhs);
+    set(kb.ids.rhs, rhs);
 }
 
 Ast::Multiply::Multiply(brain::Brain& kb, Base& lhs, Base& rhs) :
     BaseT<Multiply>(kb, kb.std.ast.Multiply, "ast.multiply")
 {
-    set("lhs", lhs);
-    set("rhs", rhs);
+    set(kb.ids.lhs, lhs);
+    set(kb.ids.rhs, rhs);
 }
 
 Ast::Divide::Divide(brain::Brain& kb, Base& lhs, Base& rhs) :
     BaseT<Divide>(kb, kb.std.ast.Divide, "ast.divide")
 {
-    set("lhs", lhs);
-    set("rhs", rhs);
+    set(kb.ids.lhs, lhs);
+    set(kb.ids.rhs, rhs);
 }
 
 Ast::LessThan::LessThan(brain::Brain& kb, Base& lhs, Base& rhs) :
     BaseT<LessThan>(kb, kb.std.ast.LessThan, "ast.lessThan")
 {
-    set("lhs", lhs);
-    set("rhs", rhs);
+    set(kb.ids.lhs, lhs);
+    set(kb.ids.rhs, rhs);
 }
 
 Ast::LessThanOrEqual::LessThanOrEqual(brain::Brain& kb, Base& lhs, Base& rhs) :
     BaseT<LessThanOrEqual>(kb, kb.std.ast.LessThanOrEqual, "ast.lessThanOrEqual")
 {
-    set("lhs", lhs);
-    set("rhs", rhs);
+    set(kb.ids.lhs, lhs);
+    set(kb.ids.rhs, rhs);
 }
 
 Ast::GreaterThan::GreaterThan(brain::Brain& kb, Base& lhs, Base& rhs) :
     BaseT<GreaterThan>(kb, kb.std.ast.GreaterThan, "ast.greaterThan")
 {
-    set("lhs", lhs);
-    set("rhs", rhs);
+    set(kb.ids.lhs, lhs);
+    set(kb.ids.rhs, rhs);
 }
 
 Ast::GreaterThanOrEqual::GreaterThanOrEqual(brain::Brain& kb, Base& lhs, Base& rhs) :
     BaseT<GreaterThanOrEqual>(kb, kb.std.ast.GreaterThanOrEqual, "ast.greaterThanOrEqual")
 {
-    set("lhs", lhs);
-    set("rhs", rhs);
+    set(kb.ids.lhs, lhs);
+    set(kb.ids.rhs, rhs);
 }
 
 Ast::Ast(brain::Brain& kb) :
