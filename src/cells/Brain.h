@@ -504,6 +504,9 @@ public:
         CellI& compile(TrieMap& earlyStructs);
 
     protected:
+        void registerEarlyStructs(TrieMap& earlyStructs, TrieMap& unknownStructs, TrieMap& unknownInstances);
+        void resolveEarlyStructs(TrieMap& earlyStructs, TrieMap& unknownStructs, TrieMap& unknownInstances, Scope& resolvedScope);
+        int instantiateTemplateInstances(TrieMap& unknownInstances, Object& compileState, Scope& resolvedScope);
         Enum* resolveFullEnumName(CellI& scopeList, CellI& name);
         Struct* resolveFullStructName(CellI& scopeList, CellI& name);
         Base* resolveFullNameInAllScope(CellI& scopeList, CellI& id, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb);

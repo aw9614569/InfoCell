@@ -929,6 +929,36 @@ CellI& Ast::Scope::compile(TrieMap& earlyStructs)
     compileState.set("globalScope", *this);
     compileState.set("globalResolvedScope", resolvedScope);
 
+    registerEarlyStructs(earlyStructs, unknownStructs, unknownInstances);
+
+    // Step 1. creating a shadow AST tree where templated thing are resolved
+    resolveTypes(compileState);
+    resolveEarlyStructs(earlyStructs, unknownStructs, unknownInstances, resolvedScope);
+
+    // Sanity check we still referencing an unknown struct
+    // Print all unknown references before bail out
+    Visitor::visitList(unknownStructs[kb.ids.list], [this](CellI& unknownStruct, int i, bool& stop) {
+        WARN(compileStruct, "unknown struct: {}", unknownStruct[kb.ids.value][kb.ids.value].label());
+    });
+
+    // Step 2. process the shadow AST tree and instantiate templates
+    int countOfInstantiedTemplates = instantiateTemplateInstances(unknownInstances, compileState, resolvedScope);
+
+    // Stop the compilation as we have unknown references
+    if (unknownStructs.size() > 0 || unknownInstances.size() != countOfInstantiedTemplates) {
+        throw "Referencing an unknown type!";
+    }
+    compileState.set("scope", *this);
+    compileState.set("resolvedScope", resolvedScope);
+
+    // Step 3. actual compilation
+    compileTheResolvedAsts(programData, compileState);
+
+    return program;
+}
+
+void Ast::Scope::registerEarlyStructs(TrieMap& earlyStructs, TrieMap& unknownStructs, TrieMap& unknownInstances)
+{
     Visitor::visitList(earlyStructs[kb.ids.list], [this, &unknownStructs, &unknownInstances](CellI& earlyStructKV, int i, bool& stop) {
         auto& structId       = earlyStructKV[kb.ids.key];
         auto& structRefAst   = earlyStructKV[kb.ids.value][kb.ids.slotRole];
@@ -946,10 +976,14 @@ CellI& Ast::Scope::compile(TrieMap& earlyStructs)
             unknownStructs.add(structId, structReference);
         }
     });
+}
 
-    resolveTypes(compileState);
-
-    auto& stdScope = getItem<Scope>("std");
+void Ast::Scope::resolveEarlyStructs(TrieMap& earlyStructs, TrieMap& unknownStructs, TrieMap& unknownInstances, Scope& resolvedScope)
+{
+    if (earlyStructs.empty()) {
+        return;
+    }
+    auto& stdScope         = getItem<Scope>("std");
     auto& resolvedStdScope = resolvedScope.getItem<Scope>("std");
 
     Visitor::visitList(earlyStructs[kb.ids.list], [this, &unknownStructs, &unknownInstances, &stdScope, &resolvedStdScope](CellI& earlyStructKV, int i, bool& stop) {
@@ -973,10 +1007,10 @@ CellI& Ast::Scope::compile(TrieMap& earlyStructs)
             }
         }
     });
+}
 
-    Visitor::visitList(unknownStructs[kb.ids.list], [this](CellI& unknownStruct, int i, bool& stop) {
-        TRACE(compileStruct, "unknown struct: {}", unknownStruct[kb.ids.value][kb.ids.value].label());
-    });
+int Ast::Scope::instantiateTemplateInstances(TrieMap& unknownInstances, Object& compileState, Scope& resolvedScope)
+{
     int instantiedNum = 0;
     Visitor::visitList(unknownInstances[kb.ids.list], [this, &compileState, &instantiedNum](CellI& unknownInstanceSlot, int i, bool& stop) {
         CellI& unknownInstance  = unknownInstanceSlot[kb.ids.value];
@@ -1016,19 +1050,12 @@ CellI& Ast::Scope::compile(TrieMap& earlyStructs)
         compileState.set("scope", idScope);
         auto& structT          = idScope.getItem<StructT>(templateId);
         auto& instantiedStruct = structT.instantiateWith(static_cast<List&>(templateParams), compileState);
-        auto& resolvedStruct = instantiedStruct.resolveTypes(compileState);
+        auto& resolvedStruct   = instantiedStruct.resolveTypes(compileState);
         resolvedIdScope.add<Struct>(resolvedStruct);
         instantiedNum = i + 1;
     });
-    if (unknownStructs.size() > 0 || unknownInstances.size() != instantiedNum) {
-        throw "Referencing to an unknown type!";
-    }
-    compileState.set("scope", *this);
-    compileState.set("resolvedScope", resolvedScope);
 
-    compileTheResolvedAsts(programData, compileState);
-
-    return program;
+    return instantiedNum;
 }
 
 void Ast::Scope::compileTheResolvedAsts(CellI& programData, CellI& state)
