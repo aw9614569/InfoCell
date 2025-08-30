@@ -761,7 +761,8 @@ Ast::Scope::Scope(brain::Brain& kb, const std::string& nameStr) :
     variablesImpl(kb, "variables", *this),
     structsImpl(kb, "structs", *this),
     structTsImpl(kb, "structTs", *this),
-    enumsImpl(kb, "enums", *this)
+    enumsImpl(kb, "enums", *this),
+    earlyStructs(kb, kb.std.Cell, kb.std.Cell, "earlyStructs")
 {
     set(kb.ids.name, kb.name(nameStr));
 }
@@ -891,7 +892,7 @@ Resolve template related references in normal functions or structs:
     instantiate structT with listed method
   - templates are instantied to a dedicated place
 */
-CellI& Ast::Scope::compile(TrieMap& earlyStructs)
+CellI& Ast::Scope::compile()
 {
     auto& program     = *new Object(kb, kb.std.Program, "Program");
     auto& programData = *new Object(kb, kb.std.ProgramData, "ProgramData");
@@ -929,11 +930,12 @@ CellI& Ast::Scope::compile(TrieMap& earlyStructs)
     compileState.set("globalScope", *this);
     compileState.set("globalResolvedScope", resolvedScope);
 
-    registerEarlyStructs(earlyStructs, unknownStructs, unknownInstances);
+    registerEarlyStructs(unknownStructs, unknownInstances);
 
     // Step 1. creating a shadow AST tree where templated thing are resolved
     resolveTypes(compileState);
-    resolveEarlyStructs(earlyStructs, unknownStructs, unknownInstances, resolvedScope);
+
+    resolveEarlyStructs(unknownStructs, unknownInstances, resolvedScope);
 
     // Sanity check we still referencing an unknown struct
     // Print all unknown references before bail out
@@ -957,7 +959,96 @@ CellI& Ast::Scope::compile(TrieMap& earlyStructs)
     return program;
 }
 
-void Ast::Scope::registerEarlyStructs(TrieMap& earlyStructs, TrieMap& unknownStructs, TrieMap& unknownInstances)
+CellI& Ast::Scope::reigisterStructBeforeCompilation(CellI& structAst)
+{
+    CellI* structIdPtr = nullptr;
+    if (&structAst.struct_() == &kb.std.ast.TemplatedType) {
+        List& idCell = *new List(kb, kb.std.Cell);
+        structIdPtr  = &idCell;
+        std::stringstream ss;
+        Visitor::visitList(structAst[kb.ids.scopes], [this, &idCell, &ss](CellI& scope, int i, bool&) {
+            Visitor::visitList(scope, [this, &idCell, &ss](CellI& character, int, bool&) {
+                idCell.add(character);
+                ss << character.label();
+            });
+            idCell.add(kb.pools.chars.get(':'));
+            idCell.add(kb.pools.chars.get(':'));
+            ss << "::";
+        });
+        Visitor::visitList(structAst[kb.ids.id], [this, &idCell, &ss](CellI& character, int, bool&) {
+            idCell.add(character);
+            ss << character.label();
+        });
+
+        ss << "<";
+        Visitor::visitList(structAst[kb.ids.parameters], [this, &idCell, &ss](CellI& slot, int i, bool&) {
+            if (i != 0) {
+                ss << ", ";
+            }
+            CellI& slotRole         = slot[kb.ids.slotRole];
+            CellI& slotType         = slot[kb.ids.slotType];
+            CellI& compiledSlotType = reigisterStructBeforeCompilation(slotType);
+
+            idCell.add(slotRole);
+            idCell.add(compiledSlotType);
+            ss << fmt::format("{}={}", slotRole.label(), compiledSlotType.label());
+        });
+        ss << ">";
+        idCell.label(ss.str());
+    } else if (&structAst.struct_() == &kb.std.ast.StructName) {
+        structIdPtr = &structAst[kb.ids.name];
+    } else if (&structAst.struct_() == &kb.std.ast.Cell) {
+        return structAst[kb.ids.value];
+    } else {
+        throw "Unsupported type!";
+    }
+    CellI& structId = *structIdPtr;
+    if (earlyStructs.hasKey(structId)) {
+        return earlyStructs.getValue(structId);
+    } else {
+        auto& unresolvedStruct = *new Object(kb, kb.std.Struct, fmt::format("{}", structId.label()));
+        unresolvedStruct.set("incomplete", kb.boolean.true_);
+
+        earlyStructs.add(structId, kb.std.slot(structAst, unresolvedStruct));
+        return unresolvedStruct;
+    }
+}
+
+void Ast::Scope::registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct)
+{
+    std::vector<std::string> sliced;
+    boost::algorithm::split_regex(sliced, fullName, boost::regex("::"));
+
+    if (sliced.empty()) {
+        throw "Invalid struct ID!";
+    }
+    std::stringstream ss;
+    List& idCell             = *new List(kb, kb.std.Cell);
+    const auto& structName   = sliced.back();
+    Ast::Scope* currentScope = &kb.globalScope;
+    if (sliced.size() > 1) {
+        for (int i = 0; i < sliced.size() - 1; ++i) {
+            const auto& scopeName = sliced[i];
+            currentScope          = &currentScope->getItem<Ast::Scope>(scopeName);
+            Visitor::visitList((*currentScope)["name"], [this, &idCell, &ss](CellI& character, int, bool&) {
+                idCell.add(character);
+                ss << character.label();
+            });
+            idCell.add(kb.pools.chars.get(':'));
+            idCell.add(kb.pools.chars.get(':'));
+            ss << "::";
+        }
+    }
+    Ast::Struct& structAst = currentScope->getItem<Ast::Struct>(structName);
+    Visitor::visitList(structAst[kb.ids.name], [this, &idCell, &ss](CellI& character, int, bool&) {
+        idCell.add(character);
+        ss << character.label();
+    });
+    idCell.label(ss.str());
+    earlyStructs.add(idCell, kb.std.slot(kb.struct_(fullName), compiledStruct));
+}
+
+void Ast::Scope::registerEarlyStructs(TrieMap& unknownStructs, TrieMap& unknownInstances)
 {
     Visitor::visitList(earlyStructs[kb.ids.list], [this, &unknownStructs, &unknownInstances](CellI& earlyStructKV, int i, bool& stop) {
         auto& structId       = earlyStructKV[kb.ids.key];
@@ -978,7 +1069,7 @@ void Ast::Scope::registerEarlyStructs(TrieMap& earlyStructs, TrieMap& unknownStr
     });
 }
 
-void Ast::Scope::resolveEarlyStructs(TrieMap& earlyStructs, TrieMap& unknownStructs, TrieMap& unknownInstances, Scope& resolvedScope)
+void Ast::Scope::resolveEarlyStructs(TrieMap& unknownStructs, TrieMap& unknownInstances, Scope& resolvedScope)
 {
     if (earlyStructs.empty()) {
         return;
@@ -6243,6 +6334,7 @@ Brain::Brain(std::function<void()> loggerLevelInit) :
     logger(loggerLevelInit),
     pools(*this),
     ids(*this),
+    globalScope(Ast::Scope(*this, "global")),
     std(*this),
     ast(*this),
     directions(*this),
@@ -6258,12 +6350,10 @@ Brain::Brain(std::function<void()> loggerLevelInit) :
     _6_(pools.numbers.get(6)),
     _7_(pools.numbers.get(7)),
     _8_(pools.numbers.get(8)),
-    _9_(pools.numbers.get(9)),
-    globalScope(Ast::Scope(*this, "global")),
-    earlyStructs(*this, std.Cell, std.Cell, "earlyStructs")
+    _9_(pools.numbers.get(9))
 {
     createContent();
-    reigisterStructBeforeCompilation(tt_("std::List", "valueType", _(std.Char))); // TODO instantiate on demand in getStruct
+    globalScope.reigisterStructBeforeCompilation(tt_("std::List", "valueType", _(std.Char))); // TODO instantiate on demand in getStruct
     registerBuiltInStruct("std::op::Activate", std.op.Activate);
     registerBuiltInStruct("std::op::Add", std.op.Add);
     registerBuiltInStruct("std::op::And", std.op.And);
@@ -6377,7 +6467,7 @@ Brain::Brain(std::function<void()> loggerLevelInit) :
     registerBuiltInStruct("std::CompileState", std.CompileState);
     registerBuiltInStruct("std::Directions", std.Directions);
 
-    auto& compiledGlobalScope = globalScope.compile(earlyStructs);
+    auto& compiledGlobalScope = globalScope.compile();
     compiledGlobalScopePtr    = &compiledGlobalScope[ids.data];
     m_initPhase               = InitPhase::FullyConstructed;
 
@@ -6461,93 +6551,9 @@ CellI& Brain::getVariable(CellI& name)
     throw "Unhandled state!";
 }
 
-CellI& Brain::reigisterStructBeforeCompilation(CellI& structAst)
-{
-    CellI* structIdPtr = nullptr;
-    if (&structAst.struct_() == &std.ast.TemplatedType) {
-        List& idCell = *new List(*this, std.Cell);
-        structIdPtr = &idCell;
-        std::stringstream ss;
-        Visitor::visitList(structAst[ids.scopes], [this, &idCell, &ss](CellI& scope, int i, bool&) {
-            Visitor::visitList(scope, [this, &idCell, &ss](CellI& character, int, bool&) {
-                idCell.add(character);
-                ss << character.label();
-            });
-            idCell.add(pools.chars.get(':'));
-            idCell.add(pools.chars.get(':'));
-            ss << "::";
-        });
-        Visitor::visitList(structAst[ids.id], [this, &idCell, &ss](CellI& character, int, bool&) {
-            idCell.add(character);
-            ss << character.label();
-        });
-
-        ss << "<";
-        Visitor::visitList(structAst[ids.parameters], [this, &idCell, &ss](CellI& slot, int i, bool&) {
-            if (i != 0) {
-                ss << ", ";
-            }
-            CellI& slotRole = slot[ids.slotRole];
-            CellI& slotType = slot[ids.slotType];
-            CellI& compiledSlotType = reigisterStructBeforeCompilation(slotType);
-
-            idCell.add(slotRole);
-            idCell.add(compiledSlotType);
-            ss << fmt::format("{}={}", slotRole.label(), compiledSlotType.label());
-        });
-        ss << ">";
-        idCell.label(ss.str());
-    } else if (&structAst.struct_() == &std.ast.StructName) {
-        structIdPtr = &structAst[ids.name];
-    } else if (&structAst.struct_() == &std.ast.Cell) {
-        return structAst[ids.value];
-    } else {
-        throw "Unsupported type!";
-    }
-    CellI& structId = *structIdPtr;
-    if (earlyStructs.hasKey(structId)) {
-        return earlyStructs.getValue(structId);
-    } else {
-        auto& unresolvedStruct = *new Object(*this, std.Struct, fmt::format("{}", structId.label()));
-        unresolvedStruct.set("incomplete", boolean.true_);
-
-        earlyStructs.add(structId, std.slot(structAst, unresolvedStruct));
-        return unresolvedStruct;
-    }
-}
-
 void Brain::registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct)
 {
-    std::vector<std::string> sliced;
-    boost::algorithm::split_regex(sliced, fullName, boost::regex("::"));
-
-    if (sliced.empty()) {
-        throw "Invalid struct ID!";
-    }
-    std::stringstream ss;
-    List& idCell             = *new List(*this, std.Cell);
-    const auto& structName   = sliced.back();
-    Ast::Scope* currentScope = &globalScope;
-    if (sliced.size() > 1) {
-        for (int i = 0; i < sliced.size() - 1; ++i) {
-            const auto& scopeName = sliced[i];
-            currentScope          = &currentScope->getItem<Ast::Scope>(scopeName);
-            Visitor::visitList((*currentScope)["name"], [this, &idCell, &ss](CellI& character, int, bool&) {
-                idCell.add(character);
-                ss << character.label();
-            });
-            idCell.add(pools.chars.get(':'));
-            idCell.add(pools.chars.get(':'));
-            ss << "::";
-        }
-    }
-    Ast::Struct& structAst = currentScope->getItem<Ast::Struct>(structName);
-    Visitor::visitList(structAst[ids.name], [this, &idCell, &ss](CellI& character, int, bool&) {
-        idCell.add(character);
-        ss << character.label();
-    });
-    idCell.label(ss.str());
-    earlyStructs.add(idCell, std.slot(struct_(fullName), compiledStruct));
+    globalScope.registerBuiltInStruct(fullName, compiledStruct);
 }
 
 CellI& Brain::name(const std::string& str)
@@ -6560,7 +6566,7 @@ CellI& Brain::ListOf(CellI& valueType)
     switch (m_initPhase) {
     case InitPhase::Init: {
         auto& ret = tt_("std::List", "valueType", _(valueType));
-        reigisterStructBeforeCompilation(ret);
+        globalScope.reigisterStructBeforeCompilation(ret);
 
         return ret;
     }
@@ -6580,7 +6586,7 @@ CellI& Brain::MapOf(CellI& keyType, CellI& valueType)
     switch (m_initPhase) {
     case InitPhase::Init: {
         auto& ret = tt_("std::Map", "keyType", _(keyType), "valueType", _(valueType));
-        reigisterStructBeforeCompilation(ret);
+        globalScope.reigisterStructBeforeCompilation(ret);
 
         return ret;
     }

@@ -501,11 +501,13 @@ public:
         StructT& resolveFullTemplateId(CellI& scopeList, CellI& name);
         Scope& getRootScope();
         CellI& getFullyQualifiedName();
-        CellI& compile(TrieMap& earlyStructs);
+        CellI& compile();
+        CellI& reigisterStructBeforeCompilation(CellI& id);
+        void registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct);
 
     protected:
-        void registerEarlyStructs(TrieMap& earlyStructs, TrieMap& unknownStructs, TrieMap& unknownInstances);
-        void resolveEarlyStructs(TrieMap& earlyStructs, TrieMap& unknownStructs, TrieMap& unknownInstances, Scope& resolvedScope);
+        void registerEarlyStructs(TrieMap& unknownStructs, TrieMap& unknownInstances);
+        void resolveEarlyStructs(TrieMap& unknownStructs, TrieMap& unknownInstances, Scope& resolvedScope);
         int instantiateTemplateInstances(TrieMap& unknownInstances, Object& compileState, Scope& resolvedScope);
         Enum* resolveFullEnumName(CellI& scopeList, CellI& name);
         Struct* resolveFullStructName(CellI& scopeList, CellI& name);
@@ -519,6 +521,7 @@ public:
         template<class TAst>
         Items<TrieMap, TAst>& getItemMember();
 
+        TrieMap earlyStructs;
         Items<TrieMap, Scope> scopesImpl;
         Items<TrieMap, Function> functionsImpl;
         Items<TrieMap, FunctionT> functionTsImpl;
@@ -1272,6 +1275,7 @@ public:
     Logger logger;
     Pools pools;
     ID ids;
+    Ast::Scope globalScope;
     Std std;
     Ast ast;
     Directions directions;
@@ -1290,8 +1294,6 @@ public:
     CellI& _8_;
     CellI& _9_;
 
-    Ast::Scope globalScope;
-    TrieMap earlyStructs;
     CellI* compiledGlobalScopePtr = nullptr;
 
 public:
@@ -1299,7 +1301,6 @@ public:
     CellI& getStruct(CellI& name);
     CellI& getVariable(const std::string& nameStr);
     CellI& getVariable(CellI& name);
-    CellI& reigisterStructBeforeCompilation(CellI& id);
     void registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct);
     CellI& name(const std::string& str);
     template <typename... Args>
