@@ -24,7 +24,6 @@ public:
     List break_;
     List cell;
     List children;
-    List code;
     List color;
     List compiled;
     List condition;
@@ -33,6 +32,7 @@ public:
     List currentFn;
     List currentStruct;
     List data;
+    List description;
     List destructor;
     List else_;
     List enum_;
@@ -46,6 +46,7 @@ public:
     List index;
     List input;
     List instances;
+    List instructions;
     List item;
     List itemType;
     List key;
@@ -540,6 +541,9 @@ public:
         void addMethod(Function& method);
 
     public:
+        template <typename... Args>
+        StructBase& description(Args&&... args);
+
         StructBase& members(Slot& slot);
         template <typename... Args>
         StructBase& members(Slot& slot, Args&&... args)
@@ -572,6 +576,7 @@ public:
         Base& getSubType(CellI& name);
 
     protected:
+        void addBlock(Block& block);
 
         Items<Map, Function> methodsImpl;
         Map& methods();
@@ -686,7 +691,10 @@ public:
         Function& returnType(CellI& type);
 
         template <typename... Args>
-        void code(Args&&... args);
+        void instructions(Args&&... args);
+
+        template <typename... Args>
+        void description(Args&&... args);
 
         Ast::Function& resolveTypes(CellI& resolveState);
         CellI& compile(CellI& state);
@@ -701,7 +709,7 @@ public:
         void checkMethodCall(CellI& astType, CellI& astMethodId, CellI& state);
         List& parameters();
         CellI& returnType();
-        Base& code();
+        Base& instructions();
     };
 
     class FunctionT : public BaseT<FunctionT>
@@ -738,7 +746,7 @@ public:
         void addBlock(Block& block);
         List& parameters();
         CellI& returnType();
-        Base& code();
+        Base& instructions();
     };
 
     class Delete : public BaseT<Delete>
@@ -1440,7 +1448,14 @@ Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string&
 }
 
 template <typename... Args>
-void Ast::Function::code(Args&&... args)
+Ast::StructBase& Ast::StructBase::description(Args&&... args)
+{
+    addBlock(*new Block(kb, kb.list(std::forward<Args>(args)...)));
+    return *this;
+}
+
+template <typename... Args>
+void Ast::Function::instructions(Args&&... args)
 {
     addBlock(*new Block(kb, kb.list(std::forward<Args>(args)...)));
 }
