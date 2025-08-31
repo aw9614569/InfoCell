@@ -2496,7 +2496,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         constVar.set(kb.ids.value, function);
         return constVar;
     } else if (&ast.struct_() == &kb.std.ast.Self) {
-        CellI& retOp = compile(kb.ast.get(_(function), _("stack")) / "value" / "input" / "self");
+        CellI& retOp = compile(kb.ast.get(_(function), _(kb.ids.stack)) / _(kb.ids.value) / _(kb.ids.input) / _(kb.ids.self));
         retOp.set(kb.ids.ast, ast);
         retOp.label("self");
         return retOp;
@@ -2505,27 +2505,27 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
             throw "No statement to break!";
         }
         CellI& lastBlock = state["lastBlock"];
-        CellI& retOp     = compile(kb.ast.set(_(lastBlock), "status", _(kb.ids.continue_)));
+        CellI& retOp     = compile(kb.ast.set(_(lastBlock), _(kb.ids.status), _(kb.ids.continue_)));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Break) {
         if (state.missing("lastBlock")) {
             throw "No statement to break!";
         }
         CellI& lastBlock = state["lastBlock"];
-        CellI& retOp     = compile(kb.ast.set(_(lastBlock), "status", _(kb.ids.break_)));
+        CellI& retOp     = compile(kb.ast.set(_(lastBlock), _(kb.ids.status), _(kb.ids.break_)));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Throw) {
         if (state.missing("lastBlock")) {
             throw "No statement to break!";
         }
         CellI& lastBlock = state["lastBlock"];
-        CellI& retOp     = compile(kb.ast.set(_(lastBlock), "status", _(kb.ids.throw_)));
+        CellI& retOp     = compile(kb.ast.set(_(lastBlock), _(kb.ids.status), _(kb.ids.throw_)));
         if (ast.has("value")) {
-            retOp.set("result", compile(kb.ast.set(_(lastBlock), "value", static_cast<Ast::Base&>(ast[kb.ids.value]))));
+            retOp.set(kb.ids.result, compile(kb.ast.set(_(lastBlock), _(kb.ids.value), static_cast<Ast::Base&>(ast[kb.ids.value]))));
         }
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Parameter) {
-        CellI& retOp = compile(kb.ast.get(_(function), "stack") / "value" / "input" / _(ast[kb.ids.role]));
+        CellI& retOp = compile(kb.ast.get(_(function), _(kb.ids.stack)) / _(kb.ids.value) / _(kb.ids.input) / _(ast[kb.ids.role]));
         retOp.set(kb.ids.ast, ast);
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Member) {
@@ -2536,7 +2536,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         Object& retOp = *new Object(kb, kb.std.op.Return, "op.return");
         retOp.set(kb.ids.ast, ast);
         if (ast.has(kb.ids.value)) {
-            retOp.set(kb.ids.result, compile(kb.ast.set(kb.ast.get(_(function), "stack") / "value" / "output", "value", static_cast<Ast::Base&>(ast[kb.ids.value]))));
+            retOp.set(kb.ids.result, compile(kb.ast.set(kb.ast.get(_(function), _(kb.ids.stack)) / _(kb.ids.value) / _(kb.ids.output), _(kb.ids.value), static_cast<Ast::Base&>(ast[kb.ids.value]))));
         }
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Var) {
@@ -2553,7 +2553,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         if (!slotsMap.hasKey(ast[kb.ids.name])) {
             slotsMap.add(ast[kb.ids.name], kb.std.slot(ast[kb.ids.name], kb.std.op.Var));
         }
-        CellI& retOp = compile(kb.ast.get(_(function), _("stack")) / "value" / "localVars" / _(ast[kb.ids.name]));
+        CellI& retOp = compile(kb.ast.get(_(function), _(kb.ids.stack)) / _(kb.ids.value) / _(kb.ids.localVars) / _(ast[kb.ids.name]));
         retOp.set(kb.ids.ast, ast);
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Delete) {
