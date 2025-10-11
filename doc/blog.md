@@ -1,4 +1,4 @@
-2025-09-07
+﻿2025-09-07
 ==========
 
 Idea behind a blog format is to be able to write down ideas as fast as possible without orginizing it to prevent forgetting.
@@ -364,8 +364,8 @@ concept Storage {
 
     fn getState() -> State
        description {
-           var item = return_();
-           match item {
+           any_var item;
+           match return_() {
              State::Empty => statement_(empty());
              State::Store => statement_(store(item));
            }
@@ -389,5 +389,485 @@ concept Storage {
            return_() == item;
        }
     }
+}
+```
+
+```
+concept AssociativeStorage {
+    type Key;
+    type Value;
+    enum State { Empty = empty(), Store = !empty() };
+
+    statement init() {
+        statement(empty());
+    }
+
+    statement store(key: Key, value: Self::Value) {
+        self.hasKey(key) == true;
+        self.getValue(key) == value;
+        reason(self.store(key, value)); // Maybe this can be generated?
+    }
+
+    statement missing(key: Key) {
+        self.hasKey(key) == false;
+        reason(self.remove(key) or never(self.store(key, unknown(value))));
+    }
+
+    statement empty() {
+        any_var item;
+        statement(missing(item));
+        reason(self.remove(item) or never(self.store(item)));
+    }
+
+    fn store(key: Self::Key, value: Self::Value)
+       description {
+          consequence(statement_(store(key, value)));
+       }
+
+    fn remove(key: Self::Key)
+       description {
+          consequence(statement_(missing(key)));
+       }
+
+    fn getState() -> State
+       description {
+           map (return_()) {
+             State::Empty when statement_(empty());
+             State::Store when !statement_(empty());
+           }
+
+    fn hasKey(key: Self::Key) -> bool
+       description {
+           map (return_())
+               true => {
+                   var_var value: Self::Value; // so any value
+                   statement_(store(key, value));
+               };
+               false => statement_(missing(key));
+           }
+       }
+
+    fn getValue(key: Self::Key) -> Self::Value
+       description {
+           if (statement_(empty())) {
+              #error
+           }
+           var value;
+           statement_(store(key, value));
+           return_() == value;
+       }
+}
+```
+
+```
+concept Activatable : AssociativeStorage {
+    type OriginalStruct;
+    type ResultStruct;
+
+    enum State { Original = !activated(), Activated = activated() };
+
+    statement activated() {
+        <self As AssociativeStorage>.statement_(hasKey("result"));
+    }
+
+    fn getState() -> State
+    fn activate();
+    fn getOriginal() -> OriginalStruct
+    fn getResult() -> ResultStruct
+}
+
+concept ArcPixel : AssociativeStorage
+{
+}
+```
+
+2025-09-28
+==========
+
+```
+concept Activatable : AssociativeStorage {
+    type OriginalStruct;
+    type ResultStruct;
+
+    enum State { Original = !activated(), Activated = activated() };
+
+    statement activated() {
+        <self As AssociativeStorage>.statement_(hasKey("result"));
+    }
+
+    fn getState() -> State
+    fn activate();
+    fn getOriginal() -> OriginalStruct
+    fn getResult() -> ResultStruct
+}
+```
+```
+impl Storage for ArcPixel
+{
+    type Item = arc::Color;
+
+}
+```
+```
+concept Storage {
+    type Item;
+    enum State { Empty, Store }; // when capacity is 1
+
+    statement store(item: Self::Item) {
+        self.contains(item) == true;
+        self.get() == item;
+    }
+
+    statement missing(item: Self::Item) {
+        self.contains(item) == false;
+    }
+
+    statement empty() {
+        any_var item;
+        self.contains(item) == false;
+    }
+
+    fn store(item: Self::Item)
+       description {
+          consequence(statement_(store(item)));
+       }
+
+    fn remove(item: Self::Item)
+       description {
+          consequence(statement_(empty()) and statement_(missing(item)));
+       }
+
+    fn getState() -> State
+       description {
+           any_var item;
+           match return_() {
+             State::Empty => statement_(empty());
+             State::Store => statement_(store(item));
+           }
+       }
+
+    fn contains(item: Self::Item) -> bool
+       description {
+           match return_() {
+               true => statement_(store(item));
+               false => statement_(missing(item));
+           }
+       }
+
+    fn get() -> Self::Item {
+       description {
+           if (statement_(empty())) {
+              #error
+           }
+           var item;
+           statement_(store(item));
+           return_() == item;
+       }
+    }
+}
+```
+```
+concept Number : Storage {
+    statement larger(lhs: Number, rhs: Number) {
+        self.subtract(lhs) == rhs;
+    }
+
+    statement smaller(lhs: Number, rhs: Number) {
+        self.add(lhs) == rhs;
+    }
+
+    fn add(number: Number) -> Number
+       description {
+          consequence(statement_(larger(number, Storage::get())));
+       }
+
+    fn subtract(number: Number) -> Number
+       description {
+          consequence(statement_(smaller(number, Storage::get())));
+       }
+}
+```
+
+2025-09-28
+==========
+
+```
+concept Storage {
+    type Item;
+    enum State { Empty, Store }; // when capacity is 1
+
+    statement store(item: Self::Item) {
+        self.contains(item) == true;
+        self.get() == item;
+        self.getState() == State::Store;
+    }
+
+    statement missing(item: Self::Item) {
+        self.contains(item) == false;
+    }
+
+    statement empty() {
+        any_var item;
+        self.contains(item) == false;
+    }
+
+    fn store(item: Self::Item)
+       description {
+          consequence(statement_(store(item)));
+       }
+
+    fn remove(item: Self::Item)
+       description {
+          consequence(statement_(empty()) and statement_(missing(item)));
+       }
+
+    fn getState() -> State
+       description {
+           any_var item;
+           match return_() {
+             State::Empty => statement_(empty());
+             State::Store => statement_(store(item));
+           }
+       }
+
+    fn contains(item: Self::Item) -> bool
+       description {
+           match return_() {
+               true => statement_(store(item));
+               false => statement_(missing(item));
+           }
+       }
+
+    fn get() -> Self::Item {
+       description {
+           if (statement_(empty())) {
+              #error
+           } else {
+              var item;
+              reason(statement_(store(item)));
+              consequence(return_().statement_(store(item)));
+           }
+       }
+    }
+}
+```
+
+2025-10-02
+==========
+
+https://abuseofnotation.github.io/category-theory-illustrated/01_set/
+
+The empty set has some special properties, for example, it is a subset of every other set. Mathematically speaking,
+ (∀A → ∅ ⊆ A  (∀means “for all”)
+
+
+2025-10-06
+==========
+
+```
+ // capacity is 1
+ // storage for a slot.name or slot.value where always has a value
+concept Storage {
+    type Item;
+
+    statement store(item: Self::Item) {
+        self.get() == item;
+    }
+
+    fn store(item: Self::Item)
+       description {
+          consequence(statement_(store(item)));
+       }
+
+    fn get() -> Self::Item {
+       description {
+          var item;
+          reason(statement_(store(item)));
+          consequence(return_().statement_(store(item)));
+       }
+    }
+}
+```
+
+```
+concept UnlimitedStorage {
+    type Item;
+    enum State { Empty, Store };
+
+    statement store(item: Self::Item) {
+        self.contains(item) == true;
+        self.get() == item;
+        self.getState() == State::Full;
+    }
+
+    statement missing(item: Self::Item) {
+        self.contains(item) == false;
+    }
+
+    statement empty() {
+        any_var item;
+        self.contains(item) == false;
+        self.getState() == State::Empty;
+    }
+
+    fn store(item: Self::Item)
+       description {
+          consequence(statement_(store(item)));
+       }
+
+    fn remove(item: Self::Item)
+       description {
+          consequence(statement_(empty()) and statement_(missing(item)));
+       }
+
+    fn getState() -> State
+       description {
+           var result = statement_(empty()) ? State::Empty : State::Full;
+           consequence(return_().statement_(store(result)));
+       }
+
+    fn contains(item: Self::Item) -> bool
+       description {
+           var result = statement_(store(item)) ? true : false;
+           consequence(return_().statement_(store(result)));
+       }
+
+    fn get() -> Self::Item {
+       description {
+           if (statement_(empty())) {
+              consequence(error());
+           } else {
+              var item;
+              reason(statement_(store(item)));
+              consequence(return_().statement_(store(item)));
+           }
+       }
+    }
+}
+```
+
+
+
+
+2025-10-07
+==========
+
+- I just rejected the "microcode idea" from 2025-09-25
+- I use the "result" name instead of "value". There is name collision with SET. There we have cell, name (role, key), value.
+   But that value is not a result value.
+- I don't know how to express that the "concept InfoCell" is just exist for every infocell.
+
+```
+concept InfoCell {
+    type Key: InfoCell;
+    type Value: InfoCell;
+
+    statement store(key: Key, value: Self::Value) {
+        self.has(key) == true;
+        self.get(key) == value;
+    }
+
+    statement exist(key: Key) {
+        self.has(key) == true;
+    }
+
+    statement missing(key: Key) {
+        self.has(key) == false;
+    }
+
+    fn set(key: Self::Key, value: Self::Value)
+       description {
+          consequence(self().statement_(store(key, value)));
+       }
+
+    fn has(key: Self::Key) -> bool
+       description {
+           consequence(return_().statement_(store("result", statement_(exist(key)))));
+       }
+
+    fn get(key: Self::Key) -> Self::Value
+       description {
+           if (statement_(empty())) {
+              consequence(error());
+           } else {
+              var value;
+              reason(self().statement_(store(key, value)));
+              consequence(return_().statement_(store("result", value)));
+           }
+       }
+
+    fn remove(key: Self::Key)
+       description {
+          consequence(self().statement_(missing(key)));
+       }
+
+}
+```
+
+```
+statement MemberStruct()
+{
+    InfoCell::store("key", Slot("key", InfoCell));
+    InfoCell::store("value", Slot("value", Struct));
+}
+
+statement ListNodeStruct()
+{
+    InfoCell::store("previous", Member("previous", ListItem));
+    InfoCell::store("next", Member("next", ListItem));
+    InfoCell::store("value", Member("value", InfoCell));
+}
+
+statement ListHeadStruct()
+{
+    InfoCell::store("first", Member("previous", ListItem));
+    InfoCell::store("last", Member("next", ListItem));
+    InfoCell::store("size", Member("size", Number));
+}
+
+concept List {
+    type Value;
+    type Node;
+
+    statement empty() {
+        InfoCell::has("first") == true;
+    }
+
+    statement connect(from: Infocell, name: Infocell, value: Self::Value) {
+        <from As InfoCell>.has(name) == true;
+        <from As InfoCell>.get(name).get(value) == value;
+    }
+
+    fn add(value: Self::Value) -> Node
+       description {
+          var lastNode = self().statement_(empty()) ? self() : last();
+          consequence(self().statement_(connect(lastNode, "next", value)));
+       }
+
+    fn empty() -> bool
+       description {
+          consequence(return_().statement_(store("result", statement_(empty()))));
+       }
+
+    fn size() -> Number
+       description {
+          consequence(return_().statement_(store("result", statement_(count()))));
+       }
+}
+```
+
+```
+concept Iterable {
+    type Value;
+
+    fn isEmpty() -> bool;
+
+    fn setFirstValue();
+
+    fn getCurrentValue() -> Value;
+
+    fn hasNextValue() -> bool;
+
+    fn setNextValue();
 }
 ```
