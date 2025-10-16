@@ -93,6 +93,7 @@ ID::ID(brain::Brain& kb) :
     stateParam3(kb, kb.std.Char, "stateParam3"),
     stateParamInit(kb, kb.std.Char, "stateParamInit"),
     stateRhs(kb, kb.std.Char, "stateRhs"),
+    stateStackCall(kb, kb.std.Char, "stateStackCall"),
     stateThen(kb, kb.std.Char, "stateThen"),
     static_(kb, kb.std.Char, "static_"),
     status(kb, kb.std.Char, "status"),
@@ -2717,12 +2718,11 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         retOp.set(kb.ids.statement, compile(ast[kb.ids.statement]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.New) {
-        auto& compiledAsts = *new cells::List(kb, kb.std.op.Base);
-        auto& astObjectType = ast[kb.ids.objectType];
+        CellI* firstOpBlockNode   = nullptr;
+        auto& astObjectType       = ast[kb.ids.objectType];
 
         Object& block = *new Object(kb, kb.std.op.Block);
         block.set(kb.ids.ast, ast);
-        block.set(kb.ids.ops, compiledAsts);
 
         Object& opSet = *new Object(kb, kb.std.op.Set, "New { block.value = new objectType(); }");
         opSet.set(kb.ids.ast, ast);
@@ -2734,7 +2734,11 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         opNew.set(kb.ids.objectType, compile(astObjectType));
         opSet.set(kb.ids.value, opNew);
 
-        compiledAsts.add(opSet);
+        CellI& newOpBlockNode = *new Object(kb, kb.std.op.Activate);
+        newOpBlockNode.set(kb.ids.cell, opSet);
+        newOpBlockNode.set(kb.ids.parent, block);
+        firstOpBlockNode = &newOpBlockNode;
+
         if (ast.has(kb.ids.constructor)) {
             Object& callAst = *new Object(kb, kb.std.ast.Call);
             callAst.set(kb.ids.cell, kb.ast.get(kb.ast.cell(block), kb.ast.cell(kb.ids.value)));
@@ -2744,8 +2748,12 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
             }
             CellI& callConstructor = compile(callAst);
             callConstructor.label("New { call constructor; }");
-            compiledAsts.add(callConstructor);
+            CellI& newOpBlockNode = *new Object(kb, kb.std.op.Activate);
+            newOpBlockNode.set(kb.ids.cell, callConstructor);
+            newOpBlockNode.set(kb.ids.parent, block);
+            (*firstOpBlockNode).set(kb.ids.next, newOpBlockNode);
         }
+        block.set(kb.ids.ops, *firstOpBlockNode);
         return block;
     } else if (&ast.struct_() == &kb.std.ast.Call || &ast.struct_() == &kb.std.ast.StaticCall) {
         Ast::Base& astCell     = static_cast<Ast::Base&>(ast[kb.ids.cell]);
@@ -4153,6 +4161,7 @@ Strings::Strings(brain::Brain& kb) :
         { "stateParam3", kb.ids.stateParam3 },
         { "stateParamInit", kb.ids.stateParamInit },
         { "stateRhs", kb.ids.stateRhs },
+        { "stateStackCall", kb.ids.stateStackCall },
         { "stateThen", kb.ids.stateThen },
         { "static_", kb.ids.static_ },
         { "status", kb.ids.status },
@@ -4264,6 +4273,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("lhs", "Base"),
             member("rhs", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Number"));
 
     opScope.add<Struct>("And")
@@ -4271,6 +4282,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("lhs", "Base"),
             member("rhs", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Boolean"));
 
     opScope.add<Struct>("Block")
@@ -4289,6 +4302,8 @@ void AstStd::createOp()
             member("method", "ast::Base"),
             member("parameters", tt_("std::List", "valueType", "std::Slot")),
             member("stack", "ast::Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Cell"));
 
     opScope.add<Struct>("ConstVar")
@@ -4299,6 +4314,8 @@ void AstStd::createOp()
     opScope.add<Struct>("Delete")
         .members(
             member("ast", "ast::Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("input", "Base"));
 
     opScope.add<Struct>("Divide")
@@ -4306,12 +4323,16 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("lhs", "Base"),
             member("rhs", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Number"));
 
     opScope.add<Struct>("Do")
         .members(
             member("ast", "ast::Base"),
             member("status", "std::Cell"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("condition", "Base"),
             member("statement", "Base"));
 
@@ -4320,6 +4341,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("lhs", "Base"),
             member("rhs", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Boolean"));
 
     opScope.add<Struct>("Erase")
@@ -4327,6 +4350,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("cell", "Base"),
             member("role", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "Base"));
 
     opScope.add<Struct>("Function")
@@ -4334,6 +4359,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("stack", "Stack"),
             member("op", tt_("std::List", "valueType", "Base")),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("static_", "std::Boolean"));
 
     opScope.add<Struct>("Get")
@@ -4350,6 +4377,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("lhs", "Base"),
             member("rhs", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Boolean"));
 
     opScope.add<Struct>("GreaterThanOrEqual")
@@ -4357,6 +4386,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("lhs", "Base"),
             member("rhs", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Boolean"));
 
     opScope.add<Struct>("Has")
@@ -4383,6 +4414,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("lhs", "Base"),
             member("rhs", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Boolean"));
 
     opScope.add<Struct>("LessThanOrEqual")
@@ -4390,6 +4423,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("lhs", "Base"),
             member("rhs", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Boolean"));
 
     opScope.add<Struct>("Missing")
@@ -4397,6 +4432,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("cell", "Base"),
             member("role", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Boolean"));
 
     opScope.add<Struct>("Multiply")
@@ -4404,18 +4441,24 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("lhs", "Base"),
             member("rhs", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Number"));
 
     opScope.add<Struct>("New")
         .members(
             member("ast", "ast::Base"),
             member("value", "std::Cell"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("objectType", "Base"));
 
     opScope.add<Struct>("Not")
         .members(
             member("ast", "ast::Base"),
             member("input", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Boolean"));
 
     opScope.add<Struct>("NotEqual")
@@ -4423,6 +4466,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("lhs", "Base"),
             member("rhs", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Boolean"));
 
     opScope.add<Struct>("NotSame")
@@ -4430,6 +4475,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("lhs", "Base"),
             member("rhs", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Boolean"));
 
     opScope.add<Struct>("Or")
@@ -4437,11 +4484,15 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("lhs", "Base"),
             member("rhs", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Boolean"));
 
     opScope.add<Struct>("Return")
         .members(
             member("ast", "ast::Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("result", "ast::Base"));
 
     opScope.add<Struct>("Same")
@@ -4467,6 +4518,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("lhs", "Base"),
             member("rhs", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Number"));
 
     opScope.add<Struct>("Var")

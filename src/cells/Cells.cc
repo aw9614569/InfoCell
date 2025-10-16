@@ -354,7 +354,7 @@ void Object::operator()()
 }
 #else
 // core data handling
-static void evalOpGet(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpGet(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -383,7 +383,7 @@ static void evalOpGet(CellI& self, CellI*& currentCell, CellI* previousCell)
     }
 }
 
-static void evalOpSet(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpSet(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -418,7 +418,7 @@ static void evalOpSet(CellI& self, CellI*& currentCell, CellI* previousCell)
     }
 }
 
-static void evalOpHas(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpHas(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -447,7 +447,7 @@ static void evalOpHas(CellI& self, CellI*& currentCell, CellI* previousCell)
     }
 }
 
-static void evalOpMissing(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpMissing(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -476,7 +476,7 @@ static void evalOpMissing(CellI& self, CellI*& currentCell, CellI* previousCell)
     }
 }
 
-static void evalOpErase(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpErase(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -505,7 +505,7 @@ static void evalOpErase(CellI& self, CellI*& currentCell, CellI* previousCell)
     }
 }
 
-static void evalOpNew(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpNew(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -519,7 +519,6 @@ static void evalOpNew(CellI& self, CellI*& currentCell, CellI* previousCell)
         currentCell            = &inputObjectType;
         self.set(kb.ids.state, kb.ids.stateParam1);
     } else if (&state == &kb.ids.stateParam1) {
-        CellI& cell = self[kb.ids.cell][kb.ids.value];
         CellI& objectType = self[kb.ids.objectType][kb.ids.value];
 
         if (&objectType == &kb.std.Number) {
@@ -535,7 +534,7 @@ static void evalOpNew(CellI& self, CellI*& currentCell, CellI* previousCell)
     }
 }
 
-static void evalOpDelete(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpDelete(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -561,7 +560,7 @@ static void evalOpDelete(CellI& self, CellI*& currentCell, CellI* previousCell)
 }
 
 // code running
-static void evalOpActivate(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpActivate(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -578,24 +577,270 @@ static void evalOpActivate(CellI& self, CellI*& currentCell, CellI* previousCell
     } else if (&state == &kb.ids.stateParam1) {
         previousCell     = currentCell;
         CellI& inputCell = self[kb.ids.cell];
-        CellI* status    = nullptr;
-        if (&inputCell.struct_() == &kb.std.op.Return) {
-            status = &kb.ids.return_;
-        } else {
-            status = &kb.ids.process;
+        CellI* status    = &kb.ids.process;
+#if 0
+       if (&op.struct_() == &kb.std.op.Return) {
+            op();
+            set(kb.ids.status, kb.ids.return_);
+            break;
         }
-        self.set(kb.ids.status, *status);
+        set(kb.ids.status, kb.ids.process);
+        op();
+        if (&(*this)[kb.ids.status] == &kb.ids.continue_ || &(*this)[kb.ids.status] == &kb.ids.break_) {
+            break;
+        }
+        if (op.has(kb.ids.status)) {
+            if (&op[kb.ids.status] == &kb.ids.return_ || &op[kb.ids.status] == &kb.ids.continue_ || &op[kb.ids.status] == &kb.ids.break_) {
+                set(kb.ids.status, op[kb.ids.status]);
+                break;
+            }
+        }
+#endif
+        if (self.has(kb.ids.parent)) {
+            CellI& parent = self[kb.ids.parent];
+            if (&inputCell.struct_() == &kb.std.op.Return) {
+                parent.set(kb.ids.status, kb.ids.return_);
+                status = &kb.ids.return_;
+            } else if (&parent[kb.ids.status] == &kb.ids.continue_ || &parent[kb.ids.status] == &kb.ids.break_) {
+                status = &parent[kb.ids.status];
+            } else if (self.has(kb.ids.status)) {
+                if (&self[kb.ids.status] == &kb.ids.return_ || &self[kb.ids.status] == &kb.ids.continue_ || &self[kb.ids.status] == &kb.ids.break_) {
+                    parent.set(kb.ids.status, self[kb.ids.status]);
+                    status = &self[kb.ids.status];
+                }
+            }
+        }
         if (status == &kb.ids.process && self.has(kb.ids.next)) {
             CellI& nextCell = self[kb.ids.next];
             currentCell     = &nextCell;
         } else {
-            currentCell = &self[kb.ids.previous];
+            if (self.has(kb.ids.parent)) {
+                CellI& parent = self[kb.ids.parent];
+                currentCell   = &parent[kb.ids.previous];
+            } else {
+                currentCell = &self[kb.ids.previous];
+            }
         }
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
 }
 
-static void evalOpFunction(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    std::cout << "evalOpCall self: " << &self << ", state: " << self[kb.ids.state].label() << std::endl;
+    CellI& state = self[kb.ids.state];
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputCell = self[kb.ids.cell];
+        previousCell     = currentCell;
+        currentCell      = &inputCell;
+        self.set(kb.ids.state, kb.ids.stateParam1);
+    } else if (&state == &kb.ids.stateParam1) {
+        CellI& inputMethod = self[kb.ids.method];
+        previousCell       = currentCell;
+        currentCell        = &inputMethod;
+        self.set(kb.ids.state, kb.ids.stateParam2);
+    } else if (&state == &kb.ids.stateParam2) {
+        CellI& inputStack = self[kb.ids.stack];
+        previousCell      = currentCell;
+        currentCell       = &inputStack;
+        self.set(kb.ids.state, kb.ids.stateParam3);
+    } else if (&state == &kb.ids.stateParam3) {
+        CellI& cell       = self[kb.ids.cell][kb.ids.value];
+        CellI& methodName = self[kb.ids.method][kb.ids.value];
+        CellI& stack      = self[kb.ids.stack][kb.ids.value];
+
+        CellI* methodPtr = nullptr;
+        if (&self[kb.ids.ast].struct_() == &kb.std.ast.Call) {
+            methodPtr = &cell[kb.ids.struct_][kb.ids.methods];
+        } else {
+            methodPtr = &cell[kb.ids.methods];
+        }
+        CellI& method = (*methodPtr)[kb.ids.index][methodName][kb.ids.value];
+
+        CellI& stackFrame = *new Object(kb, kb.std.StackFrame);
+        stackFrame.set(kb.ids.method, method);
+
+        CellI& inputIndex = *new Object(kb, kb.std.Index);
+        inputIndex.set(kb.ids.self, cell);
+        if (self.has(kb.ids.parameters)) {
+            Visitor::visitList(self[kb.ids.parameters], [&self, &kb, &inputIndex](CellI& parameter, int, bool& stop) {
+                parameter[kb.ids.slotType](); // TODO pfff
+                inputIndex.set(parameter[kb.ids.slotRole], parameter[kb.ids.slotType][kb.ids.value]);
+            });
+        }
+        stackFrame.set(kb.ids.input, inputIndex);
+
+        if (method.struct_()[kb.ids.subTypes][kb.ids.index].has(kb.ids.localVars)) {
+            CellI& localVarsList  = method.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.localVars][kb.ids.value][kb.ids.slots][kb.ids.list];
+            Index& localVarsIndex = *new Index(kb /*, method.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.localVars][kb.ids.value] */);
+            if (method.struct_()[kb.ids.subTypes][kb.ids.index].has(kb.ids.localVars)) {
+                Visitor::visitList(localVarsList, [&self, &kb, &localVarsIndex](CellI& slot, int, bool& stop) {
+                    localVarsIndex.set(slot[kb.ids.slotRole], *new Object(kb, kb.std.op.Var));
+                });
+                stackFrame.set(kb.ids.localVars, localVarsIndex);
+            }
+        }
+        if (method.struct_()[kb.ids.subTypes][kb.ids.index].has(kb.ids.returnType)) {
+            CellI& returnVar = *new Object(kb, kb.std.op.Var);
+            returnVar.set(kb.ids.valueType, method.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.returnType][kb.ids.value]);
+            stackFrame.set(kb.ids.output, returnVar);
+        }
+
+        CellI& newStackListItem = *new Object(kb, kb.std.ListItem);
+        newStackListItem.set(kb.ids.value, stackFrame);
+        newStackListItem.set(kb.ids.previous, stack);
+        stack.set(kb.ids.next, newStackListItem);
+
+#if 0
+        CellI* oldStackItem = method.has(kb.ids.stack) ? &method[kb.ids.stack] : nullptr;
+#endif
+        method.set(kb.ids.stack, newStackListItem);
+        std::cout << "method " << method.label() << " stack set to " << &newStackListItem << std::endl;
+        if (method.has(kb.ids.state) && (&method[kb.ids.state] != &kb.ids.stateParamInit)) {
+            std::cout << "TODO";
+        }
+        previousCell = currentCell;
+        currentCell  = &method;
+        self.set(kb.ids.state, kb.ids.stateStackCall);
+    } else if (&state == &kb.ids.stateStackCall) {
+        CellI& cell             = self[kb.ids.cell][kb.ids.value];
+        CellI& methodName       = self[kb.ids.method][kb.ids.value];
+        CellI* methodPtr        = nullptr;
+
+        if (&self[kb.ids.ast].struct_() == &kb.std.ast.Call) {
+            methodPtr = &cell[kb.ids.struct_][kb.ids.methods];
+        } else {
+            methodPtr = &cell[kb.ids.methods];
+        }
+        CellI& method = (*methodPtr)[kb.ids.index][methodName][kb.ids.value];
+
+        CellI& newStackListItem = method[kb.ids.stack];
+        CellI& stack            = newStackListItem[kb.ids.previous];
+        CellI& stackFrame       = newStackListItem[kb.ids.value];
+        CellI& inputIndex       = stackFrame[kb.ids.input];
+
+#if 0
+        if (oldStackItem) {
+            method.set(kb.ids.stack, *oldStackItem);
+        }
+#endif
+        method.set(kb.ids.stack, stack);
+        std::cout << "method " << method.label() << " stack restored to " << &stack << std::endl;
+        stack.erase(kb.ids.next);
+        if (stackFrame.has(kb.ids.output)) {
+            self.set(kb.ids.value, stackFrame[kb.ids.output][kb.ids.value]);
+            delete &stackFrame[kb.ids.output];
+        }
+        delete &inputIndex;
+        if (stackFrame.has(kb.ids.localVars)) {
+            CellI& localVarsList  = method.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.localVars][kb.ids.value][kb.ids.slots][kb.ids.list];
+            CellI& localVarsIndex = stackFrame[kb.ids.localVars];
+            Visitor::visitList(localVarsList, [&self, &kb, &localVarsIndex](CellI& slot, int, bool& stop) {
+                delete &localVarsIndex[slot[kb.ids.slotRole]];
+            });
+            delete &localVarsIndex;
+        }
+        std::cout << "delete newStackListItem: " << &newStackListItem << std::endl;
+        delete &newStackListItem;
+        delete &stackFrame;
+
+        previousCell = currentCell;
+        currentCell  = &self[kb.ids.previous];
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    // TODO
+#if 0
+void Object::opCall()
+{
+    CellI& inputCell = get(kb.ids.cell);
+    inputCell();
+    CellI& cell = inputCell[kb.ids.value];
+
+    CellI& inputMethod = get(kb.ids.method);
+    inputMethod();
+    CellI& methodName = inputMethod[kb.ids.value];
+
+    CellI* methodPtr = nullptr;
+    if (&get(kb.ids.ast).struct_() == &kb.std.ast.Call) {
+        methodPtr = &cell[kb.ids.struct_][kb.ids.methods];
+    } else {
+        methodPtr = &cell[kb.ids.methods];
+    }
+    CellI& method = (*methodPtr)[kb.ids.index][methodName][kb.ids.value];
+
+    CellI& inputStack = get(kb.ids.stack);
+    inputStack();
+    CellI& stack = inputStack[kb.ids.value];
+
+    CellI& stackFrame = *new Object(kb, kb.std.StackFrame);
+    stackFrame.set(kb.ids.method, method);
+
+    CellI& inputIndex = *new Object(kb, kb.std.Index);
+    inputIndex.set(kb.ids.self, cell);
+    if (has(kb.ids.parameters)) {
+        Visitor::visitList(get(kb.ids.parameters), [this, &inputIndex](CellI& parameter, int, bool& stop) {
+            parameter[kb.ids.slotType]();
+            inputIndex.set(parameter[kb.ids.slotRole], parameter[kb.ids.slotType][kb.ids.value]);
+        });
+    }
+    stackFrame.set(kb.ids.input, inputIndex);
+
+    if (method.struct_()[kb.ids.subTypes][kb.ids.index].has(kb.ids.localVars)) {
+        CellI& localVarsList  = method.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.localVars][kb.ids.value][kb.ids.slots][kb.ids.list];
+        Index& localVarsIndex = *new Index(kb /*, method.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.localVars][kb.ids.value] */);
+        if (method.struct_()[kb.ids.subTypes][kb.ids.index].has(kb.ids.localVars)) {
+            Visitor::visitList(localVarsList, [this, &localVarsIndex](CellI& slot, int, bool& stop) {
+                localVarsIndex.set(slot[kb.ids.slotRole], *new Object(kb, kb.std.op.Var));
+            });
+            stackFrame.set(kb.ids.localVars, localVarsIndex);
+        }
+    }
+    if (method.struct_()[kb.ids.subTypes][kb.ids.index].has(kb.ids.returnType)) {
+        CellI& returnVar = *new Object(kb, kb.std.op.Var);
+        returnVar.set(kb.ids.valueType, method.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.returnType][kb.ids.value]);
+        stackFrame.set(kb.ids.output, returnVar);
+    }
+
+    CellI& newStackListItem = *new Object(kb, kb.std.ListItem);
+    newStackListItem.set(kb.ids.value, stackFrame);
+    newStackListItem.set(kb.ids.previous, stack);
+    stack.set(kb.ids.next, newStackListItem);
+
+    CellI* oldStackItem = method.has(kb.ids.stack) ? &method[kb.ids.stack] : nullptr;
+    method.set(kb.ids.stack, newStackListItem);
+
+    method();
+
+    if (oldStackItem) {
+        method.set(kb.ids.stack, *oldStackItem);
+    }
+    stack.erase(kb.ids.next);
+    if (stackFrame.has(kb.ids.output)) {
+        set(kb.ids.value, stackFrame[kb.ids.output][kb.ids.value]);
+        delete &stackFrame[kb.ids.output];
+    }
+    delete &inputIndex;
+    if (stackFrame.has(kb.ids.localVars)) {
+        CellI& localVarsList  = method.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.localVars][kb.ids.value][kb.ids.slots][kb.ids.list];
+        CellI& localVarsIndex = stackFrame[kb.ids.localVars];
+        Visitor::visitList(localVarsList, [this, &localVarsIndex](CellI& slot, int, bool& stop) {
+            delete &localVarsIndex[slot[kb.ids.slotRole]];
+        });
+        delete &localVarsIndex;
+    }
+    delete &newStackListItem;
+    delete &stackFrame;
+}
+
+#endif
+}
+
+static void evalOpFunction(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -615,7 +860,7 @@ static void evalOpFunction(CellI& self, CellI*& currentCell, CellI* previousCell
     }
 }
 
-static void evalOpIf(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpIf(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -660,7 +905,7 @@ static void evalOpIf(CellI& self, CellI*& currentCell, CellI* previousCell)
     }
 }
 
-static void evalOpDo(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpDo(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -668,7 +913,7 @@ static void evalOpDo(CellI& self, CellI*& currentCell, CellI* previousCell)
     }
 }
 
-static void evalOpWhile(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpWhile(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -676,7 +921,7 @@ static void evalOpWhile(CellI& self, CellI*& currentCell, CellI* previousCell)
     }
 }
 
-static void evalOpBlock(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpBlock(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -688,6 +933,7 @@ static void evalOpBlock(CellI& self, CellI*& currentCell, CellI* previousCell)
         CellI& ops   = self[kb.ids.ops];
         previousCell = currentCell;
         currentCell  = &ops;
+        self.set(kb.ids.status, kb.ids.process);
         self.set(kb.ids.state, kb.ids.stateParam1);
     } else if (&state == &kb.ids.stateParam1) {
         previousCell = currentCell;
@@ -714,8 +960,28 @@ static void evalOpBlock(CellI& self, CellI*& currentCell, CellI* previousCell)
 #endif
 }
 
-static void evalOpReturn(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpReturn(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self[kb.ids.state];
+    if (self.has(kb.ids.result)) {
+        if (&state == &kb.ids.stateParamInit) {
+            self.set(kb.ids.previous, *previousCell);
+            CellI& result = self[kb.ids.result];
+            previousCell  = currentCell;
+            currentCell   = &result;
+            self.set(kb.ids.state, kb.ids.stateParam1);
+        } else if (&state == &kb.ids.stateParam1) {
+            previousCell = currentCell;
+            currentCell  = &self[kb.ids.previous];
+            self.set(kb.ids.state, kb.ids.stateParamInit);
+        }
+    } else {
+        std::swap(currentCell, previousCell);
+    }
 #if 0 // TODO
     if (has(kb.ids.result)) {
         CellI& result = get(kb.ids.result);
@@ -725,7 +991,7 @@ static void evalOpReturn(CellI& self, CellI*& currentCell, CellI* previousCell)
 }
 
 // compare
-static void evalOpSame(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpSame(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -754,7 +1020,7 @@ static void evalOpSame(CellI& self, CellI*& currentCell, CellI* previousCell)
     }
 }
 
-static void evalOpNotSame(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpNotSame(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -783,7 +1049,7 @@ static void evalOpNotSame(CellI& self, CellI*& currentCell, CellI* previousCell)
     }
 }
 
-static void evalOpEqual(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpEqual(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -812,7 +1078,7 @@ static void evalOpEqual(CellI& self, CellI*& currentCell, CellI* previousCell)
     }
 }
 
-static void evalOpNotEqual(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpNotEqual(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -841,7 +1107,7 @@ static void evalOpNotEqual(CellI& self, CellI*& currentCell, CellI* previousCell
     }
 }
 
-static void evalOpLessThan(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpLessThan(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -870,7 +1136,7 @@ static void evalOpLessThan(CellI& self, CellI*& currentCell, CellI* previousCell
     }
 }
 
-static void evalOpLessThanOrEqual(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpLessThanOrEqual(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -899,7 +1165,7 @@ static void evalOpLessThanOrEqual(CellI& self, CellI*& currentCell, CellI* previ
     }
 }
 
-static void evalOpGreaterThan(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpGreaterThan(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -928,7 +1194,7 @@ static void evalOpGreaterThan(CellI& self, CellI*& currentCell, CellI* previousC
     }
 }
 
-static void evalOpGreaterThanOrEqual(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpGreaterThanOrEqual(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -957,7 +1223,7 @@ static void evalOpGreaterThanOrEqual(CellI& self, CellI*& currentCell, CellI* pr
     }
 }
 // logic
-static void evalOpAnd(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpAnd(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -995,7 +1261,7 @@ static void evalOpAnd(CellI& self, CellI*& currentCell, CellI* previousCell)
     }
 }
 
-static void evalOpOr(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpOr(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -1024,7 +1290,7 @@ static void evalOpOr(CellI& self, CellI*& currentCell, CellI* previousCell)
     }
 }
 
-static void evalOpNot(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpNot(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -1048,7 +1314,7 @@ static void evalOpNot(CellI& self, CellI*& currentCell, CellI* previousCell)
 }
 
 // math
-static void evalOpAdd(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpAdd(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -1077,7 +1343,7 @@ static void evalOpAdd(CellI& self, CellI*& currentCell, CellI* previousCell)
     }
 }
 
-static void evalOpSubtract(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpSubtract(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -1106,7 +1372,7 @@ static void evalOpSubtract(CellI& self, CellI*& currentCell, CellI* previousCell
     }
 }
 
-static void evalOpMultiply(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpMultiply(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -1135,7 +1401,7 @@ static void evalOpMultiply(CellI& self, CellI*& currentCell, CellI* previousCell
     }
 }
 
-static void evalOpDivide(CellI& self, CellI*& currentCell, CellI* previousCell)
+static void evalOpDivide(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
@@ -1170,10 +1436,14 @@ void Object::operator()()
 
     CellI* currentCell  = this;
     CellI* previousCell = &kb.ids.emptyObject;
+    std::cout << "Object::operator()()" << std::endl;
 
     while (currentCell) {
         CellI& self = *currentCell;
         CellI& type = self.struct_();
+        if (!(&type == &kb.std.op.Function || (type.has(kb.ids.memberOf) && type[kb.ids.memberOf][kb.ids.index].has(kb.std.op.Function)))) {
+//            std::cout << self.struct_().label() << std::endl;
+        }
         if (&type == &kb.std.op.Get) {
             evalOpGet(self, currentCell, previousCell);
         } else if (&type == &kb.std.op.Set) {
@@ -1191,7 +1461,7 @@ void Object::operator()()
         } else if (&type == &kb.std.op.Activate) {
             evalOpActivate(self, currentCell, previousCell);
         } else if (&type == &kb.std.op.Call) {
-            opCall();
+            evalOpCall(self, currentCell, previousCell);
         } else if (&type == &kb.std.op.Function || (type.has(kb.ids.memberOf) && type[kb.ids.memberOf][kb.ids.index].has(kb.std.op.Function))) {
             if (s_debugFunctionCalls && (self.missing(kb.ids.state) || (&self[kb.ids.state] == &kb.ids.stateParamInit))) {
                 printIndent();
@@ -1203,7 +1473,7 @@ void Object::operator()()
             }
             evalOpFunction(self, currentCell, previousCell);
         } else if (&type == &kb.std.op.Return) {
-            opReturn();
+            evalOpReturn(self, currentCell, previousCell);
         } else if (&type == &kb.std.op.Same) {
             evalOpSame(self, currentCell, previousCell);
         } else if (&type == &kb.std.op.NotSame) {
