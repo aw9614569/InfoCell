@@ -830,6 +830,10 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         self.set(kb.ids.state, kb.ids.stateStackCall);
         previousMethod.set(kb.ids.lastOp, self);
 
+        if (method.label() == "fn Set<valueType=Pixel>::first() -> Pixel") {
+            std::cout << "";
+        }
+
         if (method.has(kb.ids.state) && (&method[kb.ids.state] != &kb.ids.stateParamInit)) {
             std::cout << "recursive call for " << method.struct_().label() << std::endl;
             List& cellPath = *new List(kb, kb.std.op.Base);
@@ -1025,14 +1029,7 @@ static void evalOpDo(CellI& self, CellI*& currentCell, CellI*& previousCell)
         previousCell = currentCell;
         currentCell = &statement;
         self.set(kb.ids.state, kb.ids.stateStatement);
-    }
-    else if (&state == &kb.ids.stateParamEval) {
-        CellI& statement = self[kb.ids.statement];
-        previousCell = currentCell;
-        currentCell = &statement;
-        self.set(kb.ids.state, kb.ids.stateStatement);
-    }
-    else if (&state == &kb.ids.stateStatement) {
+    } else if (&state == &kb.ids.stateStatement) {
         CellI& statement = self[kb.ids.statement];
         if (&statement.struct_() == &kb.std.op.Return) {
             self.set(kb.ids.status, kb.ids.return_);
@@ -1044,8 +1041,7 @@ static void evalOpDo(CellI& self, CellI*& currentCell, CellI*& previousCell)
         previousCell = currentCell;
         currentCell = &inputCondition;
         self.set(kb.ids.state, kb.ids.stateCondition);
-    }
-    else if (&state == &kb.ids.stateCondition) {
+    } else if (&state == &kb.ids.stateCondition) {
         previousCell = currentCell;
         if (self.has(kb.ids.status) && (&self[kb.ids.status] == &kb.ids.return_)) {
             currentCell = &self[kb.ids.previous];
@@ -1055,7 +1051,7 @@ static void evalOpDo(CellI& self, CellI*& currentCell, CellI*& previousCell)
             bool condition = &self[kb.ids.condition][kb.ids.value] == &kb.boolean.true_;
             if (condition) {
                 currentCell = &self[kb.ids.statement];
-                self.set(kb.ids.state, kb.ids.stateParamEval);
+                self.set(kb.ids.state, kb.ids.stateStatement);
             } else {
                 currentCell = &self[kb.ids.previous];
                 self.set(kb.ids.state, kb.ids.stateParamInit);
@@ -1078,14 +1074,7 @@ static void evalOpWhile(CellI& self, CellI*& currentCell, CellI*& previousCell)
         previousCell = currentCell;
         currentCell = &inputCondition;
         self.set(kb.ids.state, kb.ids.stateCondition);
-    }
-    else if (&state == &kb.ids.stateParamEval) {
-        CellI& statement = self[kb.ids.statement];
-        previousCell = currentCell;
-        currentCell = &statement;
-        self.set(kb.ids.state, kb.ids.stateStatement);
-    }
-    else if (&state == &kb.ids.stateStatement) {
+    } else if (&state == &kb.ids.stateStatement) {
         CellI& statement = self[kb.ids.statement];
         if (&statement.struct_() == &kb.std.op.Return) {
             self.set(kb.ids.status, kb.ids.return_);
@@ -1097,8 +1086,7 @@ static void evalOpWhile(CellI& self, CellI*& currentCell, CellI*& previousCell)
         previousCell = currentCell;
         currentCell = &inputCondition;
         self.set(kb.ids.state, kb.ids.stateCondition);
-    }
-    else if (&state == &kb.ids.stateCondition) {
+    } else if (&state == &kb.ids.stateCondition) {
         previousCell = currentCell;
         if (self.has(kb.ids.status) && (&self[kb.ids.status] == &kb.ids.return_)) {
             currentCell = &self[kb.ids.previous];
@@ -1108,7 +1096,7 @@ static void evalOpWhile(CellI& self, CellI*& currentCell, CellI*& previousCell)
             bool condition = &self[kb.ids.condition][kb.ids.value] == &kb.boolean.true_;
             if (condition) {
                 currentCell = &self[kb.ids.statement];
-                self.set(kb.ids.state, kb.ids.stateParamEval);
+                self.set(kb.ids.state, kb.ids.stateStatement);
             } else {
                 currentCell = &self[kb.ids.previous];
                 self.set(kb.ids.state, kb.ids.stateParamInit);
