@@ -6592,7 +6592,6 @@ AstTest::AstTest(brain::Brain& kb) :
             var_("result") = new_(tt_("std::Map", "keyType", _(std.Number), "valueType", _(std.Color))),
             var_("result") = new_(tt_("std::TrieMap", "keyType", _(std.Number), "valueType", _(std.Color))));
 
-#if 1
     testStruct.addMethod("factorial")
         .parameters(
             parameter("input", _(std.Number)))
@@ -6601,20 +6600,7 @@ AstTest::AstTest(brain::Brain& kb) :
             if_(greaterThanOrEqual(p_("input"), _(_1_)))
                 .then_(return_(multiply(p_("input"), self()("factorial")("input", subtract(p_("input"), _(_1_))))))
                 .else_(return_(_(_1_))));
-#else
-    testStruct.addMethod("factorial")
-        .parameters(
-            parameter("input", _(std.Number)))
-        .returnType(_(std.Number))
-        .instructions(
-            if_(greaterThanOrEqual(p_("input"), _(_1_)))
-                .then_(block(
-                    var_("testSub")  = subtract(p_("input"), _(_1_)),
-                    var_("testFact") = self()("factorial")("input", *var_("testSub")),
-                    var_("testMul")  = multiply(p_("input"), *var_("testFact")),
-                    return_(*var_("testMul"))))
-                .else_(return_(_(_1_))));
-#endif
+
     testScope.add<Enum>("TestEnum")
         .values(
             ev_("value1"), // init with Void
