@@ -728,7 +728,7 @@ static void loadOpState(CellI& opState)
     } else {
         op.set(state, value);
     }
-    std::cout << "         set (" << &op << ")" << op.struct_().label() << "[" << state.label() << ":" << value.label() << "]" << std::endl;
+//    std::cout << "         set (" << &op << ")" << op.struct_().label() << "[" << state.label() << ":" << value.label() << "]" << std::endl;
 }
 
 static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
@@ -830,17 +830,13 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         self.set(kb.ids.state, kb.ids.stateStackCall);
         previousMethod.set(kb.ids.lastOp, self);
 
-        if (method.label() == "fn Set<valueType=Pixel>::first() -> Pixel") {
-            std::cout << "";
-        }
-
         if (method.has(kb.ids.state) && (&method[kb.ids.state] != &kb.ids.stateParamInit)) {
-            std::cout << "recursive call for " << method.struct_().label() << std::endl;
+//            std::cout << "recursive call for " << method.struct_().label() << std::endl;
             List& cellPath = *new List(kb, kb.std.op.Base);
             CellI& lastOp  = method[kb.ids.lastOp];
             for (CellI* currentOp = &lastOp; currentOp != &method; currentOp = (*currentOp).has(kb.ids.parent) ? &(*currentOp)[kb.ids.parent] : &(*currentOp)[kb.ids.previous]) {
                 CellI& op = *currentOp;
-                std::cout << "         [" << op.struct_().label() << ":" << op[kb.ids.state].label() << "]" << std::endl;
+//                std::cout << "         [" << op.struct_().label() << ":" << op[kb.ids.state].label() << "]" << std::endl;
                 saveOpState(cellPath, op);
             }
 #if 0
@@ -913,7 +909,7 @@ static void evalOpFunction(CellI& self, CellI*& currentCell, CellI*& previousCel
         CellI& stackNode = self[kb.ids.stack];
         CellI& stackFrame = stackNode[kb.ids.value];
         static_cast<Object&>(self).printIndent();
-        std::cout << "return " << std::endl;
+//        std::cout << "return " << std::endl;
 //        std::cout << "return " << self.label() << std::endl;
         if (stackFrame.has(kb.ids.ops)) {
             Visitor::visitList(stackFrame[kb.ids.ops], [&kb](CellI& opState, int, bool& stop) {
@@ -1592,7 +1588,7 @@ static void evalOpDivide(CellI& self, CellI*& currentCell, CellI*& previousCell)
 
 void Object::operator()()
 {
-    s_debugFunctionCalls = true; // Turn on / off debug here
+    s_debugFunctionCalls = false; // Turn on / off debug here
 
     CellI* currentCell  = this;
     CellI* previousCell = &kb.ids.emptyObject;
