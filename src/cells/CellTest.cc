@@ -1002,7 +1002,7 @@ class Trie
 {
     struct Node
     {
-        Node(char data);
+        Node() = default;
         ~Node();
 
         char m_data = 0;
@@ -1025,9 +1025,6 @@ private:
     std::unique_ptr<Node> m_root;
 };
 
-Trie::Node::Node(char data) :
-    m_data(data) { }
-
 Trie::Node::~Node()
 {
     for (auto& pair : m_children) {
@@ -1037,7 +1034,7 @@ Trie::Node::~Node()
 
 Trie::Trie()
 {
-    m_root = std::make_unique<Node>('\0');
+    m_root = std::make_unique<Node>();
 }
 
 bool Trie::empty()
@@ -1048,16 +1045,19 @@ bool Trie::empty()
 void Trie::insert(const std::string& word)
 {
     Node* currentNode = m_root.get();
+    char lastChar     = 0;
 
     for (char ch : word) {
         Node*& children = currentNode->m_children[ch];
         if (children == nullptr) {
-            children = new Node(ch);
+            children = new Node();
         }
         currentNode = children;
+        lastChar    = ch;
     }
     // At the end of the word, mark this node as the leaf node
     currentNode->m_isLeaf = 1;
+    currentNode->m_data   = lastChar;
 }
 
 int Trie::search(const std::string& word)
@@ -1107,6 +1107,7 @@ void Trie::removeCb(Node& node, const std::string& key, int depth)
 
 void Trie::print()
 {
+    // FIXME: this is a terrible and buggy print implementation! But actually it is not used in real code base this is just a proof of concept something don't build on this algo
     if (empty())
         return;
     printCb(m_root.get());
@@ -1114,9 +1115,12 @@ void Trie::print()
 
 void Trie::printCb(Node* node)
 {
-    printf("%c -> ", node->m_data);
+    if (node->m_data) {
+        printf("!");
+    }
 
     for (auto& it : node->m_children) {
+        printf("%c -> ", it.first);
         printCb(it.second);
     }
 }
@@ -1170,6 +1174,369 @@ TEST_F(CellTest, TrieMapTest)
     EXPECT_EQ(&trieMap[ids.size], &_0_);
     EXPECT_FALSE(trieMap.hasKey(key1));
 }
+
+///
+////////////
+// Proof of concept trie class for searching tool usage
+class CellTrie
+{
+    struct Node
+    {
+        ~Node();
+
+        CellI* m_data = 0;
+        std::map<CellI*, Node*> m_children;
+        bool m_isLeaf = false;
+    };
+
+public:
+    CellTrie(brain::Brain& kb);
+    bool empty();
+    CellI& serializeAst(CellI& ast);
+    void add(CellI& ast, CellI& tool);
+    CellI* findToolByAst(CellI& expr);
+    CellI* findToolByList(CellI& expr);
+    void print();
+    CellI& createTool(CellI& ast, CellI& toolDesc);
+
+private:
+    void printCb(Node* node);
+
+    brain::Brain& kb;
+    std::unique_ptr<Node> m_root;
+};
+
+CellTrie::Node::~Node()
+{
+    for (auto& pair : m_children) {
+        delete pair.second;
+    }
+}
+
+CellTrie::CellTrie(brain::Brain& kb) :
+    kb(kb)
+{
+    m_root = std::make_unique<Node>();
+}
+
+bool CellTrie::empty()
+{
+    return m_root->m_children.empty();
+}
+
+CellI& CellTrie::serializeAst(CellI& ast)
+{
+    CellI& slotList    = ast.struct_()[kb.ids.slots][kb.ids.list];
+    CellI* slotItemPtr = slotList.has(kb.ids.first) ? &slotList[kb.ids.first] : nullptr;
+    List& ret          = *new List(kb, kb.std.Cell);
+    ret.label(ast.label());
+    struct Context
+    {
+        CellI& ast;
+        CellI& slotItem;
+    };
+    std::stack<Context> stack;
+    bool first = true;
+    CellI* currentPtr = &ast;
+    while (slotItemPtr) {
+        CellI& slotItem = *slotItemPtr;
+        CellI& slot     = slotItem[kb.ids.value];
+        CellI& role     = slot[kb.ids.slotRole];
+        CellI& current  = *currentPtr;
+
+        if (first) {
+            first = false;
+            ret.add(kb.ids.struct_);
+            ret.add(current.struct_());
+        }
+
+        if (current.has(role)) {
+            CellI& value = current[role];
+            ret.add(role);
+            if (&role == &kb.ids.struct_) {
+                ret.add(value);
+                if (&role == &kb.ids.op) {
+                    ret.add(value);
+                }
+            } else if (&value.struct_() == &kb.std.ast.Cell) {
+                ret.add(value[kb.ids.value]);
+                if (&value[kb.ids.value] == &kb.ids.op) {
+                    ret.add(value[kb.ids.value]);
+                }
+            } else if (&value.struct_() == &kb.std.ast.Var) {
+                ret.add(kb.ids.op);
+                ret.add(kb.ids.variable);
+            } else if ((&role != &kb.ids.struct_) && (&value.struct_() == &kb.std.ast.Get)) { // TODO should be some kind of std.ast.Base check here
+                ret.add(kb.ids.op);
+                ret.add(kb.ids.push);
+                stack.push({ current, *slotItemPtr });
+                first       = true;
+                currentPtr  = &value;
+                slotItemPtr = &value.struct_()[kb.ids.slots][kb.ids.list][kb.ids.first];
+                continue;
+            }
+        }
+
+        slotItemPtr = slotItem.has(kb.ids.next) ? &slotItem[kb.ids.next] : nullptr;
+        if (!slotItemPtr && !stack.empty()) {
+            slotItemPtr = &stack.top().slotItem;
+            currentPtr  = &stack.top().ast;
+            stack.pop();
+            ret.add(kb.ids.op);
+            ret.add(kb.ids.pop);
+            slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
+        }
+    }
+
+    return ret;
+}
+
+void CellTrie::add(CellI& ast, CellI& tool)
+{
+    Node* currentNode = m_root.get();
+    CellI& astAsList  = serializeAst(ast);
+
+    Visitor::visitList(astAsList, [&currentNode](CellI& value, int, bool& stop) {
+        Node*& roleNode = currentNode->m_children[&value];
+        if (roleNode == nullptr) {
+            roleNode = new Node();
+        }
+        currentNode = roleNode;
+    });
+
+    // At the end of the word, mark this node as the leaf node
+    currentNode->m_isLeaf = 1;
+    currentNode->m_data   = &tool;
+}
+
+CellI* CellTrie::findToolByList(CellI& inputList)
+{
+    brain::Brain& kb  = this->kb;
+    Node* currentNode = m_root.get();
+
+    Visitor::visitList(inputList, [&currentNode, &kb](CellI& value, int, bool& stop) {
+        auto chFindIt = currentNode->m_children.find(&value);
+        if (chFindIt == currentNode->m_children.end()) {
+            auto opFindIt = currentNode->m_children.find(&kb.ids.op);
+            if (opFindIt == currentNode->m_children.end()) {
+                stop        = true;
+                currentNode = nullptr;
+                return;
+            } else {
+                Node* opNode = opFindIt->second;
+                auto varFindIt = opNode->m_children.find(&kb.ids.variable);
+                if (varFindIt == opNode->m_children.end()) {
+                    stop        = true;
+                    currentNode = nullptr;
+                    return;
+                }
+                currentNode = varFindIt->second;
+            }
+        } else {
+            currentNode = chFindIt->second;
+        }
+    });
+
+    if (currentNode->m_isLeaf == 1)
+        return currentNode->m_data;
+
+    return nullptr;
+}
+
+CellI& CellTrie::createTool(CellI& ast, CellI& toolDesc)
+{
+    brain::Brain& kb   = this->kb;
+    CellI* slotItemPtr = &toolDesc[kb.ids.first];
+    CellI* ret         = nullptr;
+    bool first         = true;
+    while (slotItemPtr) {
+        CellI& key = (*slotItemPtr)[kb.ids.value];
+
+        if (first) {
+            if (&key.struct_() != &kb.std.ast.Cell && (&key[kb.ids.value] != &kb.ids.struct_)) {
+                throw "Tool description without type!";
+            }
+            first               = false;
+            CellI& nextSlotItem = (*slotItemPtr)[kb.ids.next];
+            CellI& valueCell    = nextSlotItem[kb.ids.value];
+            if (&valueCell.struct_() != &kb.std.ast.Cell) {
+                throw "Tool description type is not constant value!";
+            }
+            CellI& type = valueCell[kb.ids.value];
+            if (&type == &kb.std.ast.Set) {
+                ret = new Object(kb, kb.std.ast.Set, toolDesc.label());
+            }
+            slotItemPtr = &nextSlotItem;
+        } else if (&key.struct_() == &kb.std.ast.Cell) {
+            CellI& role         = key[kb.ids.value];
+            CellI& nextSlotItem = (*slotItemPtr)[kb.ids.next];
+            CellI& valueCell    = nextSlotItem[kb.ids.value];
+            if (&valueCell.struct_() == &kb.std.ast.Cell) {
+                ret->set(role, valueCell[kb.ids.value]);
+            } else {
+                CellI* valuePtr = &ast;
+                Visitor::visitList(valueCell, [&valuePtr, &kb](CellI& pathItem, int, bool& stop) {
+                    CellI& currentValue = *valuePtr;
+                    valuePtr            = &currentValue[pathItem];
+                });
+                ret->set(role, *valuePtr);
+            }
+            slotItemPtr = &nextSlotItem;
+        } else {
+            throw "Tool description role is not constant value!";
+        }
+
+        slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
+    }
+
+    return *ret;
+}
+
+void CellTrie::print()
+{
+    if (empty())
+        return;
+    printCb(m_root.get());
+}
+
+void CellTrie::printCb(Node* node)
+{
+    printf("%s -> ", node->m_data->label().c_str());
+
+    for (auto& it : node->m_children) {
+        printCb(it.second);
+    }
+}
+
+void print_search_new(CellTrie& trie, CellI& list)
+{
+    std::cout << fmt::format("Searching tool for '{}' ... ", list.label());
+    if (CellI* tool = trie.findToolByList(list))
+        std::cout << fmt::format("found '{}'!", tool->label());
+    else
+        std::cout << "Not Found!";
+    std::cout << std::endl;
+}
+////////////
+
+TEST_F(CellTest, CellTrieTest)
+{
+    CellTrie cellTrie(kb);
+
+    // the op.set(x, y, z) description is op.eq(op.get(x, y), z)
+    // here we creating the ast for op.eq(op.get(x, y), z)
+    CellI& astVarX = *new Object(kb, kb.std.ast.Var);
+    astVarX.set(kb.ids.name, kb.pools.chars.get('X'));
+
+    CellI& astVarY = *new Object(kb, kb.std.ast.Var);
+    astVarY.set(kb.ids.name, kb.pools.chars.get('Y'));
+
+    CellI& astVarZ = *new Object(kb, kb.std.ast.Var);
+    astVarZ.set(kb.ids.name, kb.pools.chars.get('Z'));
+
+    CellI& astGet = *new Object(kb, kb.std.ast.Get);
+    astGet.set(kb.ids.cell, astVarX);
+    astGet.set(kb.ids.role, astVarY);
+
+    CellI& ast = *new Object(kb, kb.std.ast.Equal);
+    ast.set(kb.ids.lhs, astGet);
+    ast.set(kb.ids.rhs, astVarZ);
+
+    // the op.set(x, y, z) should be recovered from the above structure so we need to serialize the op.set(...) in a way where the variables can be extracted from the op.get(...) expression
+    List& tool = *new List(kb, kb.std.Cell, "op.set(x, y, z)");
+    tool.add(kb.ast.cell(kb.ids.struct_));
+    tool.add(kb.ast.cell(kb.std.ast.Set));
+
+    tool.add(kb.ast.cell(kb.ids.cell));
+    tool.add(kb.list(kb.ids.lhs, kb.ids.cell));
+
+    tool.add(kb.ast.cell(kb.ids.role));
+    tool.add(kb.list(kb.ids.lhs, kb.ids.role));
+
+    tool.add(kb.ast.cell(kb.ids.value));
+    tool.add(kb.list(kb.ids.rhs));
+
+
+    // here we generating the serialized version of op.eq(op.get(x, y), z) to be able to store in the trie
+    CellI& astAsList = cellTrie.serializeAst(ast);
+    {
+        std::stringstream ss;
+        Visitor::visitList(astAsList, [&ss](CellI& value, int, bool& stop) {
+            ss << value.label() << " ";
+        });
+        EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Get cell op variable role op variable op pop rhs op variable ");
+    }
+
+    cellTrie.add(ast, tool);
+
+    Object& pixel = *new Object(kb, kb.std.Color, "pixel");
+
+    // Now we can create a request so I request to satisfy the following pixel.get(green) == 5
+    // The expected tool to use is pixel.set(green, 5)
+    CellI& requestGet = *new Object(kb, kb.std.ast.Get);
+    requestGet.set(kb.ids.cell, kb.ast.cell(pixel));
+    requestGet.set(kb.ids.role, kb.ast.cell(kb.ids.green));
+
+    CellI& request = *new Object(kb, kb.std.ast.Equal, "pixel.get(green) == 5");
+    request.set(kb.ids.lhs, requestGet);
+    request.set(kb.ids.rhs, kb.ast.cell(kb._5_));
+
+    CellI& requestAstList = cellTrie.serializeAst(request);
+    {
+        std::stringstream ss;
+        Visitor::visitList(requestAstList, [&ss](CellI& value, int, bool& stop) {
+            ss << value.label() << " ";
+        });
+        EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Get cell pixel role green op pop rhs 5 ");
+    }
+
+    print_search_new(cellTrie, requestAstList);
+    CellI* resultToolDesc = cellTrie.findToolByList(requestAstList);
+    EXPECT_EQ(resultToolDesc, &tool);
+    CellI& resultToolAst = cellTrie.createTool(request, *resultToolDesc);
+    EXPECT_EQ(&resultToolAst.struct_(), &kb.std.ast.Set);
+    EXPECT_EQ(&resultToolAst[kb.ids.cell].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.value], &pixel);
+    EXPECT_EQ(&resultToolAst[kb.ids.role].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[kb.ids.role][kb.ids.value], &kb.ids.green);
+    EXPECT_EQ(&resultToolAst[kb.ids.value].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[kb.ids.value][kb.ids.value], &kb._5_);
+    // TODO compile the result tp OPs
+    std::cout << "";
+
+#if 0
+    trie.insert("hi");
+    trie.insert("teabag");
+    trie.insert("teacan");
+    print_search_new(trie, "tea");
+    print_search_new(trie, "teabag");
+    print_search_new(trie, "teacan");
+    print_search_new(trie, "hi");
+    print_search_new(trie, "hey");
+    print_search_new(trie, "hello");
+    trie.print();
+    printf("\n");
+#endif
+}
+
+#if 0
+TEST_F(CellTest, TrieMapTest)
+{
+    TrieMap trieMap(kb, kb.std.Number, kb.std.Number, "testTrieMap");
+    EXPECT_EQ(&trieMap[ids.size], &_0_);
+    auto& key1   = kb.list(_0_, _1_, _2_, _3_, _4_);
+    auto& value1 = kb.directions.down;
+    trieMap.add(key1, value1);
+    EXPECT_EQ(&trieMap[ids.size], &_1_);
+    EXPECT_TRUE(trieMap.hasKey(key1));
+    EXPECT_EQ(&trieMap.getValue(key1), &value1);
+    trieMap.remove(key1);
+    EXPECT_EQ(&trieMap[ids.size], &_0_);
+    EXPECT_FALSE(trieMap.hasKey(key1));
+}
+
+///
+#endif
 
 TEST_F(CellTest, StringTest)
 {
@@ -1912,6 +2279,7 @@ int main(int argc, char** argv)
     ::testing::InitGoogleTest(&argc, argv);
     int ret = RUN_ALL_TESTS();
     std::cout << "Constructed: " << CellI::s_constructed << ", destructed: " << CellI::s_destructed << ", live: " << CellI::s_constructed - CellI::s_destructed << std::endl;
+    std::cout << "Tick count: " << CellTest::getKb().ap.m_time.value() << std::endl;
     CellTest::freeKb();
 
     return ret;

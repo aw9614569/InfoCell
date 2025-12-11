@@ -143,6 +143,11 @@ void CellTest::freeKb()
     m_kb.reset();
 }
 
+brain::Brain& CellTest::getKb()
+{
+    return *m_kb;
+}
+
 void CellTest::printMethodInType(CellI& type, const std::string& method)
 {
     printAs.value(type[ids.methods][ids.index][kb.name(method)][ids.value]);

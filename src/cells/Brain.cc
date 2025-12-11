@@ -68,8 +68,10 @@ ID::ID(brain::Brain& kb) :
     parent(kb, kb.std.Char, "parent"),
     pixels(kb, kb.std.Char, "pixels"),
     pixelsMap(kb, kb.std.Char, "pixelsMap"),
+    pop(kb, kb.std.Char, "pop"),
     previous(kb, kb.std.Char, "previous"),
     process(kb, kb.std.Char, "process"),
+    push(kb, kb.std.Char, "push"),
     red(kb, kb.std.Char, "red"),
     resolvedScope(kb, kb.std.Char, "resolvedScope"),
     result(kb, kb.std.Char, "result"),
@@ -4863,7 +4865,6 @@ void AstStd::createAst()
     astScope.add<Struct>("Var")
         .members(
             member("name", "std::Cell"),
-            member("role", "Base"),
             member("scope", "Scope"));
 
     astScope.add<Struct>("While")
@@ -6650,6 +6651,7 @@ Brain::Brain(std::function<void()> loggerLevelInit) :
     coordinates(*this),
     boolean(*this),
     numbers(*this),
+    ap(*this),
     _0_(pools.numbers.get(0)),
     _1_(pools.numbers.get(1)),
     _2_(pools.numbers.get(2)),

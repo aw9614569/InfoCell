@@ -73,8 +73,10 @@ public:
     List parent;
     List pixels;
     List pixelsMap;
+    List pop;
     List previous;
     List process;
+    List push;
     List red;
     List resolvedScope;
     List result;
@@ -1367,6 +1369,7 @@ public:
     Coordinates coordinates;
     Boolean boolean;
     Numbers numbers;
+    cells::hybrid::ActivationPointer ap;
 
     CellI& _0_;
     CellI& _1_;
@@ -1440,7 +1443,7 @@ CellI& Brain::templateId(const std::string& nameStr, Args&&... args)
 template <typename... Args>
 List& Brain::list(CellI& value, Args&&... args)
 {
-    List& ret = *new List(*this, value.struct_());
+    List& ret = *new List(*this, value.kb.std.Cell);
     ret.add(value);
     if constexpr (sizeof...(Args) > 0) {
         ret.add(std::forward<Args>(args)...);

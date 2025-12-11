@@ -30,6 +30,7 @@ class CellTest : public ::testing::Test
 {
 public:
     static void freeKb();
+    static brain::Brain& getKb();
 
 protected:
     CellTest(std::function<void()> loggerLevelInit = []() {});

@@ -442,6 +442,7 @@ public:
 
     int value() const;
     void value(int newValue);
+    void increase();
 
 protected:
     void calculateDigits();
@@ -484,6 +485,23 @@ protected:
 };
 
 namespace hybrid {
+// ============================================================================
+class ActivationPointer : public CellI
+{
+public:
+    ActivationPointer(brain::Brain& kb);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    CellI* m_currentCell  = nullptr;
+    CellI* m_previousCell = nullptr;
+    Number m_time;
+};
 
 // ============================================================================
 class Color : public CellI

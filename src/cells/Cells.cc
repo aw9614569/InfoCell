@@ -1498,9 +1498,12 @@ void Object::operator()()
 
     CellI* currentCell  = this;
     CellI* previousCell = &kb.ids.emptyObject;
-//    std::cout << "Object::operator()()" << std::endl;
+    kb.ap.m_currentCell  = currentCell;
+    kb.ap.m_previousCell = previousCell;
+    int tick = 0;
+    //    std::cout << "Object::operator()()" << std::endl;
 
-    while (currentCell) {
+    do {
         CellI& self = *currentCell;
         CellI& type = self.struct_();
         if (!(&type == &kb.std.op.Function || (type.has(kb.ids.memberOf) && type[kb.ids.memberOf][kb.ids.index].has(kb.std.op.Function)))) {
@@ -1578,11 +1581,11 @@ void Object::operator()()
             // assuming it is a datacell, so do nothing
             std::swap(currentCell, previousCell);
         }
-
-        if (currentCell == &kb.ids.emptyObject) {
-            currentCell = nullptr;
-        }
-    }
+        kb.ap.m_currentCell = currentCell;
+        kb.ap.m_previousCell = previousCell;
+        ++tick;
+    } while (currentCell != &kb.ids.emptyObject);
+    kb.ap.m_time.value(kb.ap.m_time.value() + tick);
 }
 
 CellI& Object::operator[](CellI& role)
@@ -2777,6 +2780,12 @@ void Number::value(int newValue)
     m_digitsList.reset();
 }
 
+void Number::increase()
+{
+    ++m_value;
+    m_digitsList.reset();
+}
+
 void Number::calculateDigits()
 {
     if (m_value == 0) {
@@ -2874,6 +2883,60 @@ void String::calculateCharacters()
 #pragma endregion
 namespace hybrid {
 #pragma region Color
+
+// ============================================================================
+ActivationPointer::ActivationPointer(brain::Brain& kb) :
+    CellI(kb), m_time(kb)
+{
+}
+
+bool ActivationPointer::has(CellI& role)
+{
+    if (&role == &kb.ids.struct_) {
+        return true;
+    }
+    if (&role == &kb.ids.cell || &role == &kb.ids.previous) {
+        return true;
+    }
+
+    return false;
+}
+
+void ActivationPointer::set(CellI& role, CellI& value)
+{
+    throw "Changing the activation pointer cell is not possible!";
+}
+
+void ActivationPointer::erase(CellI& role)
+{
+    throw "Changing the activation pointer cell is not possible!";
+}
+
+void ActivationPointer::operator()()
+{
+    // Do nothing
+}
+
+CellI& ActivationPointer::operator[](CellI& role)
+{
+    if (&role == &kb.ids.struct_) {
+        return kb.std.Color; // TODO
+    }
+    if (&role == &kb.ids.cell) {
+        return *m_currentCell;
+    }
+    if (&role == &kb.ids.previous) {
+        return *m_previousCell;
+    }
+
+    throw "No such role!";
+}
+
+void ActivationPointer::accept(Visitor& visitor)
+{
+//    visitor.visit(*this);
+}
+
 // ============================================================================
 Color::Color(brain::Brain& kb, const input::Color& inputColor) :
     CellI(kb),

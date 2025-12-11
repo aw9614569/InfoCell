@@ -871,3 +871,385 @@ concept Iterable {
     fn setNextValue();
 }
 ```
+
+2025-10-31
+==========
+
+- Maybe I shouldn't reject the microcode idea yet
+- I started focus on one cell -> more cells transition
+- So during storage in one cell we can say we exchange place for a value
+- For a multicell data-structure we still exchange place for a value where every value will have a uniwue place (a path)
+
+```
+concept InfoCell {
+    type Place: InfoCell;
+    type Value: InfoCell;
+
+    statement store(place: Place, value: Self::Value) {
+        self.has(place) == true;
+        self.get(place) == value;
+    }
+    ...
+```
+
+```
+concept List {
+    type Value: InfoCell;
+
+    statement add(value: Self::Value) {
+        self.contains(value) == true;
+    }
+    ...
+}
+```
+```
+concept ListIterator {
+    type Value: InfoCell;
+
+    ...
+}
+```
+
+2025-11-07
+==========
+
+- I started focus on single linked list methods
+- in this case we have only an add() method and an iter
+- somehow we have to take into account the time as we can call the add(method multiple times)
+
+```
+
+concept Iterator {
+    type Value: InfoCell;
+
+    ...
+}
+
+concept List<T> {
+    type Value: InfoCell;
+    type Iterator: Iterator<T>;
+
+    statement contains(value: Self::Value) {
+        ???
+    }
+
+    void add(value: Self::Value) {
+    }
+
+    fn getIterator() -> Self::Iterator
+    ...
+}
+```
+
+2025-11-08
+==========
+
+- I try describe the method calls with gherkin like DSL, the idea is that creating a repeated, but numbered scenarios and
+  referencing the unknow values X from the add(X) scenario to the usage scenario.
+
+```
+Given
+   list = List<T>
+IndexedWhen(1)
+   { X=unknown; list.add(X); }
+And Repeated(N times)
+   { X=unknown; list.add(X); }
+Then
+   iter = list.iter();
+   iter.isEmpty() == false;
+After
+   iter.setFirstValue();
+Then
+   iter.getCurrentValue() == IndexedWhen(1).X;
+And Repeated(N, i)
+{
+   iter.hasNextValue() == true;
+   iter.getCurrentValue() == IndexedWhen(i).X;
+After
+   iter.setFirstValue();
+}
+
+Then
+   iter.hasNextValue() == false;
+```
+
+
+2025-11-10
+==========
+
+- I dont have to index anything as I can just reference everything
+
+```
+addScenario()
+.given(
+   member("list", tt_("List", "valueType", tp_("valueType")))
+.when(
+   var_("item") = unknown(),
+   list.add(X);
+)
+.when(N times)( // TODO
+   var_("item") = unknown(),
+   list.add(X);
+)
+.then(
+   var_("iter") = list.iter(),
+   var_("iter")("isEmpty")() == false
+)
+After
+   iter.setFirstValue();
+Then
+   iter.getCurrentValue() == IndexedWhen(1).X;
+And Repeated(N, i)
+{
+   iter.hasNextValue() == true;
+   iter.getCurrentValue() == IndexedWhen(i).X;
+After
+   iter.setFirstValue();
+}
+
+Then
+   iter.hasNextValue() == false;
+```
+
+- an other idea is to use control cells (if, do, while, ...) for struct description
+- so a list can be
+
+```
+struct List<T>
+{
+    struct ListItem<T>
+    {
+        value -> T;
+    };
+    size -> Number; number of connected ListItems
+    first -> ListItem<T>; the first element of connected ListItems
+             ListItem<T>*(connection: next) // the '*' is regexp like zero or more kleenstar
+             repeated(name: first, type: ListItem<T>, amount: zeroOrMore, connection: next)
+
+    last -> ListItem<T>; the last element of connected ListItems
+};
+```
+
+2025-11-11
+==========
+
+- The scenario way doesn't seems to work as it can not be composed but the structure description way seems promising.
+- XML DTD kinda similar but now I can use the indicative mood like statements
+- Maybe I should just define extension points where the structure can grow (where you can add connections to new cells
+  that will be part of the structure)
+- This way I can represent a binary tree as every node can be extended at two extension points where you can add extra two
+  nodes for every node.
+- Now the task, EXACTLY how can I express this thing
+- I can use true statements for this and I can use get/has + controls do, while, if ...
+
+2025-11-12
+==========
+
+- So I am thinking on where to store this data member information. So list.first is only exists if the add(x) method creates it.
+  Why not just describe this member in the add(x) then? list.size is always exists so I can document it in the description of ListHead.
+- An other point is, how and where to document the reason of this data structure. The short reason is that I want to make reachable
+  N amount of unknown X cells from the ListHead node and modifying the unknown X cells are not allowed. So this is the original problem.
+  And one solution to this problem is that the ListHead
+    - represent an empty list if size is 0 and first is missing
+    - represent a list with one element if size is 1 and the first element connects to a ListNode cell. The listNode.value cell will contains
+      the value that we want to store
+    - represent a list with more then one element if the first element connects to a ListNode cell and ...
+
+2025-11-15
+==========
+
+- I'm thinking on the reachability of cells in case of composed cells. So every stored value in a datastructure can be reached from the entry node of the
+  datastructure. We can express this thing a statement.
+  ```
+  reachable(from: Cell, to: Cell, path: Cell) -> bool
+  {
+     get(from, path) == to;
+  }
+
+  // ex.: list.first.next.value reachable(list, value, { first, next })
+  statement reachable(from: Cell, to: Cell, path: List<Cell>)
+  {
+     var currentNode = from;
+     for (link in path) {
+        currentNode = get(currentNode, link);
+     }
+     currentNode == to;
+  }
+  ```
+
+2025-11-16
+==========
+
+- Maybe I need a reachability plan?
+- How to express first element?
+  - For the first element it is true, that there is no previous element
+  - For the last element it is true, that there is no next element
+  - From first element the last element is always reachable through repeated "next" edges
+- Ok, so for linked nodes we have to know the first element, and the edge for the next element
+
+
+```
+pub trait SingleLinkedList {
+    type First;
+    type Last;
+    type Previous;
+    type Next;
+
+    statement next(from, to)
+    {
+       get(from, Next) == to;
+    }
+
+    statement first(from, to)
+    {
+       has(from, Previous) == false;
+    }
+
+    statement last(from, to)
+    {
+       has(from, Next) == false;
+    }
+}
+
+statement next(from, to)
+{
+   get(from, next) == to;
+}
+statement first(from, to)
+{
+   has(from, previous) == false;
+}
+statement last(from, to)
+{
+   has(from, next) == false;
+}
+```
+
+2025-11-17
+==========
+
+- We can say that a
+  - ListHead represent a group
+  - ListNode.value represent an item inside a group
+  - a "next" between listNode1 and listNode2 represent and order between listNode1.value and listNode2.value
+- Actually I can use a cell that hold numbered items with the following
+  ```
+  inputValues
+    type -> Index
+    1 -> apple   // started from 1
+    2 -> banana  // increased by 1
+    3 -> carrot  // last element as 4 is missing
+  ```
+  but Index use List under the hood so nevermind ...
+
+
+2025-11-18
+==========
+
+- Thinking about the "in". When we can say that an element is in the group.We should state that every element is in the group.
+
+2025-11-23
+==========
+
+- I'm a little bit optimistic now. Looks like I can express the one statement from multiple infocells problem with reassigning or creating new variables.
+  - by setting new infocell value to a variable we can say that we are switching to an other infocell so the statements will be true for that variable. So we
+    we can create some kind of sequence points. So I can just stepping a variable in a do oor while loop.
+- I can't see more problems now, so I can switch back to thinking on implementing the tool usage algorithm (where the x.set(y, z) consequence is x.get(y) == z so I can
+  write a request to let this pixel green, so pixel.get(color) == green and the algorithm should generate a pixel.set(color, green)).
+
+```
+Expr := | Data | Get | Has | Equal;
+
+Set :=
+cell: Get(cursor, type) == ast.Equal &
+role: Get(cursor, cell) == ast.Expr &
+value: Get(cursor, type) == ast.Expr
+
+        InfoCellGrammar() : Grammar("InfoCell")
+        {
+            Data;
+            Expr | Data | Get | Has | Equal;
+            Stmt | Set | If | Do | While;
+
+            Get & .cell(Expr)
+                & .role(Expr)
+
+            Set & Equal
+                & .lhs(Get)
+                & .rhs(Expr)
+                ;
+
+            Prec1 | Mul | Div | DecimalLiteral;
+
+            Mul & DecimalLiteral
+                & '*'
+                & Prec1
+                ;
+
+            Div & DecimalLiteral
+                & '/'
+                & Prec1
+                ;
+
+            Prec2 | Add | Sub | Prec1;
+
+            Add & Prec1
+                & '+'
+                & Prec2
+                ;
+
+            Sub & Prec1
+                & '-'
+                & Prec2
+                ;
+
+            Expr | Equal | NotEqual | Prec2;
+
+            Equal
+                & Prec2
+                & "=="
+                & Expr
+                ;
+
+            NotEqual
+                & Prec2
+                & "!="
+                & Expr
+                ;
+        }
+```
+
+2025-12-02
+==========
+
+- trying to create a lookup structure for `x.set(y, z)` => `x.get(y) == z`
+
+```
+ids.struct_: std.op.Equal
+ids.lhs:     { ids.struct_: std.op.Get, ids.cell: var("x"), ids.role: var("y") }
+ids.rhs:     var("z")
+```
+
+So this is bad as `var("x")`, `var("y")` and `var("z")` is only meaningful in a `x.set(y, z)` context. So the `x, y, z` is come frome the query and it shouldn't be
+in the lookaup table. But we should emit a query where we can express the following: whatever is here put me that value to `var("x")`. So we need two structure,
+the query and the lookup one.
+
+```
+<ids.struct_, std.op.Equal>: [](this, key, value) { key == ids.struct_; value == std.op.Equal; }
+<ids.lhs, *>:     [](this, key, value) {
+                     key == ids.lhs;
+                     child = this / value; pair = firstPair(child);
+                     <ids.struct_, std.op.Get>: [](this = child, key = pair / key, value = pair / value) { key == ids.struct_; value == std.op.Get; }
+                     <ids.cell, *>: [](this = child, key = pair.key, value = pair.value) { key == ids.cell; }
+                     <ids.role, *>: [](this = child, key = pair.key, value = pair.value) { key == ids.role; } }
+<ids.rhs, *>:     [](this, key, value) { key == ids.rhs; }
+
+=>
+
+set(this / ids.lhs / ids.cell, this / ids.lhs / ids.role, this / ids.rhs)
+```
+
+2025-12-11
+==========
+
+Created a proof of concept tool finder
