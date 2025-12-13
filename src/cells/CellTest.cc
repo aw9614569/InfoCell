@@ -1236,7 +1236,7 @@ CellI& CellTrie::serializeAst(CellI& ast)
         CellI& slotItem;
     };
     std::stack<Context> stack;
-    bool first = true;
+    bool first        = true;
     CellI* currentPtr = &ast;
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
@@ -1266,7 +1266,7 @@ CellI& CellTrie::serializeAst(CellI& ast)
             } else if (&value.struct_() == &kb.std.ast.Var) {
                 ret.add(kb.ids.op);
                 ret.add(kb.ids.variable);
-            } else if ((&role != &kb.ids.struct_) && (&value.struct_() == &kb.std.ast.Get)) { // TODO should be some kind of std.ast.Base check here
+            } else if ((&role != &kb.ids.struct_) && (&value.struct_() == &kb.std.ast.Get || &value.struct_() == &kb.std.ast.Return)) { // TODO should be some kind of std.ast.Base check here
                 ret.add(kb.ids.op);
                 ret.add(kb.ids.push);
                 stack.push({ current, *slotItemPtr });
@@ -1345,6 +1345,8 @@ CellI* CellTrie::findToolByList(CellI& inputList)
 
 CellI& CellTrie::createTool(CellI& ast, CellI& toolDesc)
 {
+    auto& ListOfCellStruct = kb.getStruct(kb.templateId("std::List", kb.ids.valueType, kb.std.Cell));
+
     brain::Brain& kb   = this->kb;
     CellI* slotItemPtr = &toolDesc[kb.ids.first];
     CellI* ret         = nullptr;
@@ -1371,15 +1373,22 @@ CellI& CellTrie::createTool(CellI& ast, CellI& toolDesc)
             CellI& role         = key[kb.ids.value];
             CellI& nextSlotItem = (*slotItemPtr)[kb.ids.next];
             CellI& valueCell    = nextSlotItem[kb.ids.value];
+            CellI* valuePtr     = nullptr;
             if (&valueCell.struct_() == &kb.std.ast.Cell) {
-                ret->set(role, valueCell[kb.ids.value]);
-            } else {
-                CellI* valuePtr = &ast;
+                valuePtr = &valueCell[kb.ids.value];
+                ret->set(role, *valuePtr);
+            } else if (&valueCell.struct_() == &ListOfCellStruct) {
+                valuePtr = &ast;
                 Visitor::visitList(valueCell, [&valuePtr, &kb](CellI& pathItem, int, bool& stop) {
                     CellI& currentValue = *valuePtr;
                     valuePtr            = &currentValue[pathItem];
                 });
                 ret->set(role, *valuePtr);
+            } else {
+                throw "Tool description value is not a constant value or List!";
+            }
+            if (&(*valuePtr).struct_() != &kb.std.ast.Cell) {
+                std::cout << "TODO";
             }
             slotItemPtr = &nextSlotItem;
         } else {
@@ -1434,66 +1443,93 @@ TEST_F(CellTest, CellTrieTest)
     CellI& astVarZ = *new Object(kb, kb.std.ast.Var);
     astVarZ.set(kb.ids.name, kb.pools.chars.get('Z'));
 
-    CellI& astGet = *new Object(kb, kb.std.ast.Get);
-    astGet.set(kb.ids.cell, astVarX);
-    astGet.set(kb.ids.role, astVarY);
+    CellI& setEffectGet = *new Object(kb, kb.std.ast.Get);
+    setEffectGet.set(kb.ids.cell, astVarX);
+    setEffectGet.set(kb.ids.role, astVarY);
 
-    CellI& ast = *new Object(kb, kb.std.ast.Equal);
-    ast.set(kb.ids.lhs, astGet);
-    ast.set(kb.ids.rhs, astVarZ);
+    CellI& setEffect = *new Object(kb, kb.std.ast.Equal);
+    setEffect.set(kb.ids.lhs, setEffectGet);
+    setEffect.set(kb.ids.rhs, astVarZ);
 
-    // the op.set(x, y, z) should be recovered from the above structure so we need to serialize the op.set(...) in a way where the variables can be extracted from the op.get(...) expression
-    List& tool = *new List(kb, kb.std.Cell, "op.set(x, y, z)");
-    tool.add(kb.ast.cell(kb.ids.struct_));
-    tool.add(kb.ast.cell(kb.std.ast.Set));
+    CellI& getEffectGet = *new Object(kb, kb.std.ast.Get);
+    getEffectGet.set(kb.ids.cell, astVarX);
+    getEffectGet.set(kb.ids.role, astVarY);
 
-    tool.add(kb.ast.cell(kb.ids.cell));
-    tool.add(kb.list(kb.ids.lhs, kb.ids.cell));
+    CellI& getEffect = *new Object(kb, kb.std.ast.Return);
+    getEffect.set(kb.ids.value, getEffectGet);
 
-    tool.add(kb.ast.cell(kb.ids.role));
-    tool.add(kb.list(kb.ids.lhs, kb.ids.role));
+    // the set(x, y, z) should be recovered from the above structure so we need to serialize the set(...) in a way where the variables can be extracted from the get(...) expression
+    List& setBuilder = *new List(kb, kb.std.Cell, "set(x, y, z)");
+    setBuilder.add(kb.ast.cell(kb.ids.struct_));
+    setBuilder.add(kb.ast.cell(kb.std.ast.Set));
 
-    tool.add(kb.ast.cell(kb.ids.value));
-    tool.add(kb.list(kb.ids.rhs));
+    setBuilder.add(kb.ast.cell(kb.ids.cell));
+    setBuilder.add(kb.list(kb.ids.lhs, kb.ids.cell));
 
+    setBuilder.add(kb.ast.cell(kb.ids.role));
+    setBuilder.add(kb.list(kb.ids.lhs, kb.ids.role));
 
-    // here we generating the serialized version of op.eq(op.get(x, y), z) to be able to store in the trie
-    CellI& astAsList = cellTrie.serializeAst(ast);
+    setBuilder.add(kb.ast.cell(kb.ids.value));
+    setBuilder.add(kb.list(kb.ids.rhs));
+
+    List& getBuilder = *new List(kb, kb.std.Cell, "return get(x, y)");
+    getBuilder.add(kb.ast.cell(kb.ids.struct_));
+    getBuilder.add(kb.ast.cell(kb.std.ast.Get));
+
+    getBuilder.add(kb.ast.cell(kb.ids.cell));
+    getBuilder.add(kb.list(kb.ids.value, kb.ids.cell));
+
+    getBuilder.add(kb.ast.cell(kb.ids.role));
+    getBuilder.add(kb.list(kb.ids.value, kb.ids.role));
+
+    cellTrie.add(setEffect, setBuilder);
+    cellTrie.add(getEffect, getBuilder);
+
+    // here we generating the serialized version of op.eq(op.get(x, y), z) to be able to test
+    CellI& setEffectAsList = cellTrie.serializeAst(setEffect);
     {
         std::stringstream ss;
-        Visitor::visitList(astAsList, [&ss](CellI& value, int, bool& stop) {
+        Visitor::visitList(setEffectAsList, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
         EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Get cell op variable role op variable op pop rhs op variable ");
     }
 
-    cellTrie.add(ast, tool);
+    // here we generating the serialized version of op.eq(op.get(x, y), z) to be able to test
+    CellI& getEffectAsList = cellTrie.serializeAst(getEffect);
+    {
+        std::stringstream ss;
+        Visitor::visitList(getEffectAsList, [&ss](CellI& value, int, bool& stop) {
+            ss << value.label() << " ";
+        });
+        EXPECT_EQ(ss.str(), "struct ast::Return value op push struct ast::Get cell op variable role op variable op pop ");
+    }
 
     Object& pixel = *new Object(kb, kb.std.Color, "pixel");
 
     // Now we can create a request so I request to satisfy the following pixel.get(green) == 5
     // The expected tool to use is pixel.set(green, 5)
-    CellI& requestGet = *new Object(kb, kb.std.ast.Get);
-    requestGet.set(kb.ids.cell, kb.ast.cell(pixel));
-    requestGet.set(kb.ids.role, kb.ast.cell(kb.ids.green));
+    CellI& requestForSetGet = *new Object(kb, kb.std.ast.Get);
+    requestForSetGet.set(kb.ids.cell, kb.ast.cell(pixel));
+    requestForSetGet.set(kb.ids.role, kb.ast.cell(kb.ids.green));
 
-    CellI& request = *new Object(kb, kb.std.ast.Equal, "pixel.get(green) == 5");
-    request.set(kb.ids.lhs, requestGet);
-    request.set(kb.ids.rhs, kb.ast.cell(kb._5_));
+    CellI& requestForSet = *new Object(kb, kb.std.ast.Equal, "pixel.get(green) == 5");
+    requestForSet.set(kb.ids.lhs, requestForSetGet);
+    requestForSet.set(kb.ids.rhs, kb.ast.cell(kb._5_));
 
-    CellI& requestAstList = cellTrie.serializeAst(request);
+    CellI& requestForSetAstList = cellTrie.serializeAst(requestForSet);
     {
         std::stringstream ss;
-        Visitor::visitList(requestAstList, [&ss](CellI& value, int, bool& stop) {
+        Visitor::visitList(requestForSetAstList, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
         EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Get cell pixel role green op pop rhs 5 ");
     }
 
-    print_search_new(cellTrie, requestAstList);
-    CellI* resultToolDesc = cellTrie.findToolByList(requestAstList);
-    EXPECT_EQ(resultToolDesc, &tool);
-    CellI& resultToolAst = cellTrie.createTool(request, *resultToolDesc);
+    print_search_new(cellTrie, requestForSetAstList);
+    CellI* resultToolDesc = cellTrie.findToolByList(requestForSetAstList);
+    EXPECT_EQ(resultToolDesc, &setBuilder);
+    CellI& resultToolAst = cellTrie.createTool(requestForSet, *resultToolDesc);
     EXPECT_EQ(&resultToolAst.struct_(), &kb.std.ast.Set);
     EXPECT_EQ(&resultToolAst[kb.ids.cell].struct_(), &kb.std.ast.Cell);
     EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.value], &pixel);
@@ -1502,6 +1538,25 @@ TEST_F(CellTest, CellTrieTest)
     EXPECT_EQ(&resultToolAst[kb.ids.value].struct_(), &kb.std.ast.Cell);
     EXPECT_EQ(&resultToolAst[kb.ids.value][kb.ids.value], &kb._5_);
     // TODO compile the result tp OPs
+
+    // test the return get(x, y)
+    CellI& requestForGetGet = *new Object(kb, kb.std.ast.Get);
+    requestForGetGet.set(kb.ids.cell, kb.ast.cell(pixel));
+    requestForGetGet.set(kb.ids.role, kb.ast.cell(kb.ids.green));
+
+    CellI& requestForGet = *new Object(kb, kb.std.ast.Return, "return pixel.get(green)");
+    requestForGet.set(kb.ids.value, requestForGetGet);
+
+    CellI& requestForGetAstList = cellTrie.serializeAst(requestForGet);
+    {
+        std::stringstream ss;
+        Visitor::visitList(requestForGetAstList, [&ss](CellI& value, int, bool& stop) {
+            ss << value.label() << " ";
+        });
+        EXPECT_EQ(ss.str(), "struct ast::Return value op push struct ast::Get cell pixel role green op pop ");
+    }
+
+    print_search_new(cellTrie, requestForGetAstList);
     std::cout << "";
 
 #if 0

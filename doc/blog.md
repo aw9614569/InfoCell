@@ -1252,4 +1252,12 @@ set(this / ids.lhs / ids.cell, this / ids.lhs / ids.role, this / ids.rhs)
 2025-12-11
 ==========
 
-Created a proof of concept tool finder
+Created a proof of concept tool finder for `x.set(y, z)` => `x.get(y) == z`
+
+
+2025-12-12
+==========
+
+Ok so the variable names should be started with capital as in prolog. So `X.set(Y, Z)` => `X.get(Y) == Z` but `pixel.get(green) == 5`
+To extending the idea I want ot express the request of `pixel.get(currentTheme / color) == 5`. In this case `currentTheme / color` is a `get`
+but it is equals to an output variable. So the `currentTheme / color` will be searched as a `currentTheme / color == $output`
