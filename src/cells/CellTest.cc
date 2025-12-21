@@ -1203,7 +1203,7 @@ public:
     CellI* findToolByAst(CellI& ast);
     CellI* findToolByList(CellI& list);
     void print();
-    CellI& createTool(CellI& ast, CellI& toolDesc);
+    void createTool(CellI& var, CellI& ast, CellI& toolDesc);
 
 private:
     void addValue(Node*& node, CellI& value);
@@ -1538,62 +1538,109 @@ CellI* CellTrie::findToolByList(CellI& list)
     return nullptr;
 }
 
-CellI& CellTrie::createTool(CellI& ast, CellI& toolDesc)
+void CellTrie::createTool(CellI& var, CellI& inputAst, CellI& inputToolDesc)
 {
     auto& ListOfCellStruct = kb.getStruct(kb.templateId("std::List", kb.ids.valueType, kb.std.Cell));
 
-    brain::Brain& kb   = this->kb;
-    CellI* slotItemPtr = &toolDesc[kb.ids.first];
-    CellI* ret         = nullptr;
-    bool first         = true;
-    while (slotItemPtr) {
-        CellI& key = (*slotItemPtr)[kb.ids.value];
+    brain::Brain& kb = this->kb;
+    List& toCreate   = *new List(kb, kb.std.Cell);
+    Index& toCreateItemRoot = *new Index(kb);
+    toCreateItemRoot.set(kb.ids.ast, inputAst);
+    toCreateItemRoot.set(kb.ids.description, inputToolDesc);
+    toCreateItemRoot.set(kb.ids.cell, var);
+    toCreateItemRoot.set(kb.ids.role, kb.ids.name);
 
-        if (first) {
-            if (&key.struct_() != &kb.std.ast.Cell && (&key[kb.ids.value] != &kb.ids.struct_)) {
-                throw "Tool description without type!";
-            }
-            first               = false;
-            CellI& nextSlotItem = (*slotItemPtr)[kb.ids.next];
-            CellI& valueCell    = nextSlotItem[kb.ids.value];
-            if (&valueCell.struct_() != &kb.std.ast.Cell) {
-                throw "Tool description type is not constant value!";
-            }
-            CellI& type = valueCell[kb.ids.value];
-            if (&type == &kb.std.ast.Set) {
-                ret = new Object(kb, kb.std.ast.Set, toolDesc.label());
-            }
-            slotItemPtr = &nextSlotItem;
-        } else if (&key.struct_() == &kb.std.ast.Cell) {
-            CellI& role         = key[kb.ids.value];
-            CellI& nextSlotItem = (*slotItemPtr)[kb.ids.next];
-            CellI& valueCell    = nextSlotItem[kb.ids.value];
-            CellI* valuePtr     = nullptr;
-            if (&valueCell.struct_() == &kb.std.ast.Cell) {
-                valuePtr = &valueCell[kb.ids.value];
-                ret->set(role, *valuePtr);
-            } else if (&valueCell.struct_() == &ListOfCellStruct) {
-                valuePtr = &ast;
-                Visitor::visitList(valueCell, [&valuePtr, &kb](CellI& pathItem, int, bool& stop) {
-                    CellI& currentValue = *valuePtr;
-                    valuePtr            = &currentValue[pathItem];
-                });
-                ret->set(role, *valuePtr);
+    toCreate.add(toCreateItemRoot);
+    CellI* toCreateItemPtr = &toCreate[kb.ids.first];
+    while (toCreateItemPtr) {
+        CellI& toCreateItem = (*toCreateItemPtr)[kb.ids.value];
+        CellI& ast          = toCreateItem[kb.ids.ast];
+        CellI& toolDesc     = toCreateItem[kb.ids.description];
+        CellI* ret          = &toCreateItem[kb.ids.cell];
+        CellI& retKey       = toCreateItem[kb.ids.role];
+
+        CellI* slotItemPtr = &toolDesc[kb.ids.first];
+        bool first         = true;
+        List& subTools     = *new List(kb, kb.std.Cell);
+        while (slotItemPtr) {
+            CellI& key = (*slotItemPtr)[kb.ids.value];
+
+            if (first) {
+                if (&key.struct_() != &kb.std.ast.Cell && (&key[kb.ids.value] != &kb.ids.struct_)) {
+                    throw "Tool description without type!";
+                }
+                first               = false;
+                CellI& nextSlotItem = (*slotItemPtr)[kb.ids.next];
+                CellI& valueCell    = nextSlotItem[kb.ids.value];
+                if (&valueCell.struct_() != &kb.std.ast.Cell) {
+                    throw "Tool description type is not constant value!";
+                }
+                CellI& type = valueCell[kb.ids.value];
+                CellI* newObj = new Object(kb, type, toolDesc.label());
+                ret->set(retKey, *newObj);
+                ret = newObj;
+
+                slotItemPtr = &nextSlotItem;
+            } else if (&key.struct_() == &kb.std.ast.Cell) {
+                CellI& role         = key[kb.ids.value];
+                CellI& nextSlotItem = (*slotItemPtr)[kb.ids.next];
+                CellI& valueCell    = nextSlotItem[kb.ids.value];
+                CellI* valuePtr     = nullptr;
+                if (&valueCell.struct_() == &kb.std.ast.Cell) {
+                    valuePtr = &ast[role];
+                    ret->set(role, *valuePtr);
+                } else if (&valueCell.struct_() == &ListOfCellStruct) {
+                    valuePtr = &ast;
+                    Visitor::visitList(valueCell, [&valuePtr, &kb](CellI& pathItem, int, bool& stop) {
+                        CellI& currentValue = *valuePtr;
+                        valuePtr            = &currentValue[pathItem];
+                    });
+                    ret->set(role, *valuePtr);
+                } else {
+                    throw "Tool description value is not a constant value or List!";
+                }
+                if (&(*valuePtr).struct_() != &kb.std.ast.Cell) {
+                    static CellI& retVal = *new Object(kb, kb.std.ast.Return);
+                    retVal.set(kb.ids.value, *valuePtr);
+                    subTools.add(kb.ast.slot(*ret, role));
+                }
+                slotItemPtr = &nextSlotItem;
             } else {
-                throw "Tool description value is not a constant value or List!";
+                throw "Tool description role is not constant value!";
             }
-            if (&(*valuePtr).struct_() != &kb.std.ast.Cell) {
-                std::cout << "TODO";
-            }
-            slotItemPtr = &nextSlotItem;
-        } else {
-            throw "Tool description role is not constant value!";
+
+            slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
         }
+        CellI* subpToolItemPtr = &subTools[kb.ids.first];
+        static CellI& retVal   = *new Object(kb, kb.std.ast.Return);
+        while (subpToolItemPtr) {
+            CellI& slot       = (*subpToolItemPtr)[kb.ids.value];
+            CellI& key        = slot[kb.ids.slotRole];
+            CellI& value      = slot[kb.ids.slotType];
+            CellI& subToolAst = key[value];
 
-        slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
+            retVal.set(kb.ids.value, subToolAst);
+
+            CellI* subToolDesc = findToolByAst(retVal);
+
+            if (!subToolDesc) {
+                throw "Sub tool not found!";
+            }
+            Index& toCreateItemSub = *new Index(kb);
+            toCreateItemSub.set(kb.ids.ast, subToolAst);
+            toCreateItemSub.set(kb.ids.description, *subToolDesc);
+            toCreateItemSub.set(kb.ids.cell, (*ret));
+            toCreateItemSub.set(kb.ids.role, value);
+            toCreate.add(toCreateItemSub);
+
+            CellI* toDelete = subpToolItemPtr;
+            subpToolItemPtr = (*subpToolItemPtr).has(kb.ids.next) ? &(*subpToolItemPtr)[kb.ids.next] : nullptr;
+            subTools.remove((List::Item*)toDelete);
+        }
+        CellI* toDelete = toCreateItemPtr;
+        toCreateItemPtr = (*toCreateItemPtr).has(kb.ids.next) ? &(*toCreateItemPtr)[kb.ids.next] : nullptr;
+        toCreate.remove((List::Item*)toDelete);
     }
-
-    return *ret;
 }
 
 void CellTrie::print()
@@ -1612,7 +1659,7 @@ void CellTrie::printCb(Node* node)
     }
 }
 
-void findToolByAst(CellTrie& trie, CellI& ast)
+void testFindToolByAst(CellTrie& trie, CellI& ast)
 {
     std::cout << fmt::format("Searching tool by AST for '{}' ... ", ast.label());
     if (CellI* tool = trie.findToolByAst(ast))
@@ -1621,7 +1668,7 @@ void findToolByAst(CellTrie& trie, CellI& ast)
         std::cout << "Not Found!";
     std::cout << std::endl;
 }
-void findToolByList(CellTrie& trie, CellI& list)
+void testFindToolByList(CellTrie& trie, CellI& list)
 {
     std::cout << fmt::format("Searching tool by list for '{}' ... ", list.label());
     if (CellI* tool = trie.findToolByList(list))
@@ -1681,10 +1728,10 @@ TEST_F(CellTest, CellTrieTest)
     getBuilder.add(kb.ast.cell(kb.std.ast.Get));
 
     getBuilder.add(kb.ast.cell(kb.ids.cell));
-    getBuilder.add(kb.list(kb.ids.value, kb.ids.cell));
+    getBuilder.add(kb.ast.cell(kb.ids.cell));
 
     getBuilder.add(kb.ast.cell(kb.ids.role));
-    getBuilder.add(kb.list(kb.ids.value, kb.ids.role));
+    getBuilder.add(kb.ast.cell(kb.ids.role));
 
     cellTrie.add(setEffect, setBuilder);
     cellTrie.add(getEffect, getBuilder);
@@ -1712,7 +1759,7 @@ TEST_F(CellTest, CellTrieTest)
     Object& pixel = *new Object(kb, kb.std.Color, "pixel");
     // currentTheme is a test structure to be able to test a nested get. So instead of pixel.get(green) we can replace the "green" node with "currentTheme / std.Color" so we can write
     // pixel.get(currentTheme.get(std.Color)) == 5
-    Index currentTheme(kb);
+    Index currentTheme(kb, "currentTheme");
     currentTheme.set(kb.std.Color, kb.ids.green);
 
     // Now we can create a request so I request to satisfy the following pixel.get(green) == 5
@@ -1734,11 +1781,13 @@ TEST_F(CellTest, CellTrieTest)
         EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Get cell pixel role green op pop rhs 5 ");
     }
 
-    findToolByAst(cellTrie, requestForSet);
-    findToolByList(cellTrie, requestForSetAstList);
+    testFindToolByAst(cellTrie, requestForSet);
+    testFindToolByList(cellTrie, requestForSetAstList);
     CellI* resultToolDesc = cellTrie.findToolByList(requestForSetAstList);
     EXPECT_EQ(resultToolDesc, &setBuilder);
-    CellI& resultToolAst = cellTrie.createTool(requestForSet, *resultToolDesc);
+    CellI& resultToolAstVar = *new Object(kb, kb.std.ast.Var, "resultToolAstVar");
+    cellTrie.createTool(resultToolAstVar, requestForSet, *resultToolDesc);
+    CellI& resultToolAst = resultToolAstVar[kb.ids.name];
     EXPECT_EQ(&resultToolAst.struct_(), &kb.std.ast.Set);
     EXPECT_EQ(&resultToolAst[kb.ids.cell].struct_(), &kb.std.ast.Cell);
     EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.value], &pixel);
@@ -1765,15 +1814,15 @@ TEST_F(CellTest, CellTrieTest)
         EXPECT_EQ(ss.str(), "struct ast::Return value op push struct ast::Get cell pixel role green op pop ");
     }
 
-    findToolByAst(cellTrie, requestForGet);
-    findToolByList(cellTrie, requestForGetAstList);
+    testFindToolByAst(cellTrie, requestForGet);
+    testFindToolByList(cellTrie, requestForGetAstList);
 
     // test the return get((get(...), y)
-    CellI& requestForSetWithGetGetGet = *new Object(kb, kb.std.ast.Get);
+    CellI& requestForSetWithGetGetGet = *new Object(kb, kb.std.ast.Get, "get(currentTheme, color)");
     requestForSetWithGetGetGet.set(kb.ids.cell, kb.ast.cell(currentTheme));
     requestForSetWithGetGetGet.set(kb.ids.role, kb.ast.cell(kb.std.Color));
 
-    CellI& requestForSetWithGetGet = *new Object(kb, kb.std.ast.Get);
+    CellI& requestForSetWithGetGet = *new Object(kb, kb.std.ast.Get, "get(get(currentTheme, color), green)");
     requestForSetWithGetGet.set(kb.ids.cell, requestForSetWithGetGetGet);
     requestForSetWithGetGet.set(kb.ids.role, kb.ast.cell(kb.ids.green));
 
@@ -1787,47 +1836,27 @@ TEST_F(CellTest, CellTrieTest)
         Visitor::visitList(requestForSetWithGetAstList, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
-        EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Get cell op push struct ast::Get cell  role Color op pop role green op pop rhs 5 ");
+        EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Get cell op push struct ast::Get cell currentTheme role Color op pop role green op pop rhs 5 ");
     }
     CellI* test1 = cellTrie.findToolByAst(requestForSetWithGet);
     CellI* test2 = cellTrie.findToolByList(requestForSetWithGetAstList);
-    findToolByAst(cellTrie, requestForSetWithGet);
-    findToolByList(cellTrie, requestForSetWithGetAstList);
+    testFindToolByAst(cellTrie, requestForSetWithGet);
+    testFindToolByList(cellTrie, requestForSetWithGetAstList);
+    CellI& resultToolForTest1AstVar = *new Object(kb, kb.std.ast.Var, "resultToolForTest1AstVar");
+    cellTrie.createTool(resultToolForTest1AstVar, requestForSetWithGet, *test1);
+    CellI& resultToolForTest1Ast = resultToolForTest1AstVar[kb.ids.name];
+    EXPECT_EQ(&resultToolForTest1Ast.struct_(), &kb.std.ast.Set);
+    EXPECT_EQ(&resultToolForTest1Ast[kb.ids.cell].struct_(), &kb.std.ast.Get);
+    EXPECT_EQ(&resultToolForTest1Ast[kb.ids.cell][kb.ids.cell].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolForTest1Ast[kb.ids.cell][kb.ids.cell][kb.ids.value], &currentTheme);
+    EXPECT_EQ(&resultToolForTest1Ast[kb.ids.cell][kb.ids.role].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolForTest1Ast[kb.ids.cell][kb.ids.role][kb.ids.value], &kb.std.Color);
+    EXPECT_EQ(&resultToolForTest1Ast[kb.ids.role].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolForTest1Ast[kb.ids.role][kb.ids.value], &kb.ids.green);
+    EXPECT_EQ(&resultToolForTest1Ast[kb.ids.value].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolForTest1Ast[kb.ids.value][kb.ids.value], &kb._5_);
     std::cout << "";
-
-#if 0
-    trie.insert("hi");
-    trie.insert("teabag");
-    trie.insert("teacan");
-    print_search_new(trie, "tea");
-    print_search_new(trie, "teabag");
-    print_search_new(trie, "teacan");
-    print_search_new(trie, "hi");
-    print_search_new(trie, "hey");
-    print_search_new(trie, "hello");
-    trie.print();
-    printf("\n");
-#endif
 }
-
-#if 0
-TEST_F(CellTest, TrieMapTest)
-{
-    TrieMap trieMap(kb, kb.std.Number, kb.std.Number, "testTrieMap");
-    EXPECT_EQ(&trieMap[ids.size], &_0_);
-    auto& key1   = kb.list(_0_, _1_, _2_, _3_, _4_);
-    auto& value1 = kb.directions.down;
-    trieMap.add(key1, value1);
-    EXPECT_EQ(&trieMap[ids.size], &_1_);
-    EXPECT_TRUE(trieMap.hasKey(key1));
-    EXPECT_EQ(&trieMap.getValue(key1), &value1);
-    trieMap.remove(key1);
-    EXPECT_EQ(&trieMap[ids.size], &_0_);
-    EXPECT_FALSE(trieMap.hasKey(key1));
-}
-
-///
-#endif
 
 TEST_F(CellTest, StringTest)
 {
