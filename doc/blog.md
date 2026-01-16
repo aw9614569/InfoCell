@@ -1261,3 +1261,21 @@ Created a proof of concept tool finder for `x.set(y, z)` => `x.get(y) == z`
 Ok so the variable names should be started with capital as in prolog. So `X.set(Y, Z)` => `X.get(Y) == Z` but `pixel.get(green) == 5`
 To extending the idea I want ot express the request of `pixel.get(currentTheme / color) == 5`. In this case `currentTheme / color` is a `get`
 but it is equals to an output variable. So the `currentTheme / color` will be searched as a `currentTheme / color == $output`
+
+2026-01-04
+==========
+
+To moving forward I want to experiment with numbers.
+So the description of `x.add(1)` is that the future value of x is larger by 1 from the current value. And the statement will have two parameters.
+so the description is something like `x.greater(future(x), by=1)` and the `x.greater(than, by)` statement will make true the following expression `x.subtract(by) == than`.
+
+2026-01-16
+==========
+
+I think the `add` operation can be expressed as `x.add(y) == z` => `z.subtract(y) == x`. With a matcher of
+`struct ast::Equal lhs op push struct ast::Subtract lhs op variable rhs op variable op pop rhs op variable `.
+To enforce some effect there needs to be an output like variable, probably `output` where we can put a value for example to `output.value` so output is just a variable.
+In this case we have to mark the original request, for example `x + 2 == 3` as a context, and add `output.get(value) == x` as a request.
+
+After thinking on numbers there are some problem. First the x + x == 2 can't be solved without dividing. Second, the known - unknown problems, so in case
+of `x.add(y) == z` this is only relevant if and only if the `x` and `y` are known. Otherwise `x + x == 2` leads to `x == 2 - x` which is not really useful.
