@@ -4566,8 +4566,7 @@ void AstStd::createAst()
         .description(
             equal(subtract(return_(), m_("rhs")), m_("lhs")),
             return_(add(m_("lhs"), m_("rhs"))),
-            return_(add(m_("rhs"), m_("lhs")))
-         )
+            return_(add(m_("rhs"), m_("lhs"))))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
@@ -4600,6 +4599,10 @@ void AstStd::createAst()
             member("cell", "Base"));
 
     astScope.add<Struct>("Divide")
+        .description(
+            // TODO check rhs != 0
+            equal(multiply(return_(), m_("rhs")), m_("lhs")),
+            return_(divide(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
@@ -4630,6 +4633,8 @@ void AstStd::createAst()
             member("rhs", "Base"));
 
     astScope.add<Struct>("Erase")
+        .description(
+            equal(has(m_("cell"), m_("role")), false_()))
         .members(
             member("cell", "Base"),
             member("role", "Base"));
@@ -4668,16 +4673,24 @@ void AstStd::createAst()
             member("role", "Base"));
 
     astScope.add<Struct>("GreaterThan")
+        .description(
+            lessThan(subtract(m_("rhs"), m_("lhs")), _(kb._0_)),
+            return_(greaterThan(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
 
     astScope.add<Struct>("GreaterThanOrEqual")
+        .description(
+            lessThanOrEqual(subtract(m_("rhs"), m_("lhs")), _(kb._0_)),
+            return_(greaterThanOrEqual(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
 
     astScope.add<Struct>("Has")
+        .description(
+            return_(has(m_("cell"), m_("role"))))
         .members(
             member("cell", "Base"),
             member("role", "Base"));
@@ -4693,11 +4706,17 @@ void AstStd::createAst()
             member("else_", "Base"));
 
     astScope.add<Struct>("LessThan")
+        .description(
+            greaterThan(subtract(m_("rhs"), m_("lhs")), _(kb._0_)),
+            return_(lessThan(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
 
     astScope.add<Struct>("LessThanOrEqual")
+        .description(
+            greaterThanOrEqual(subtract(m_("rhs"), m_("lhs")), _(kb._0_)),
+            return_(lessThanOrEqual(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
@@ -4707,11 +4726,17 @@ void AstStd::createAst()
             member("role", "Base"));
 
     astScope.add<Struct>("Missing")
+        .description(
+            return_(missing(m_("cell"), m_("role"))))
         .members(
             member("cell", "Base"),
             member("role", "Base"));
 
     astScope.add<Struct>("Multiply")
+        .description(
+            if_(notSame(m_("lhs"), _(kb._0_))).then_(
+                equal(divide(return_(), m_("lhs")), m_("rhs"))),
+            return_(multiply(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
@@ -4727,11 +4752,15 @@ void AstStd::createAst()
             member("input", "Base"));
 
     astScope.add<Struct>("NotEqual")
+        .description(
+            return_(notEqual(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
 
     astScope.add<Struct>("NotSame")
+        .description(
+            return_(notSame(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
@@ -4755,6 +4784,8 @@ void AstStd::createAst()
             member("value", "std::Cell"));
 
     astScope.add<Struct>("Same")
+        .description(
+            return_(same(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
@@ -4778,8 +4809,7 @@ void AstStd::createAst()
 
     astScope.add<Struct>("Set")
         .description(
-            equal(m_("cell") / m_("role"), m_("value"))
-        )
+            equal(m_("cell") / m_("role"), m_("value")))
         .members(
             member("cell", "Base"),
             member("role", "Base"),
