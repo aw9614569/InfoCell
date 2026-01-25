@@ -4563,6 +4563,11 @@ void AstStd::createAst()
     auto& astScope = stdScope.add<Scope>("ast");
     astScope.add<Struct>("Base");
     astScope.add<Struct>("Add")
+        .description(
+            equal(subtract(return_(), m_("rhs")), m_("lhs")),
+            return_(add(m_("lhs"), m_("rhs"))),
+            return_(add(m_("rhs"), m_("lhs")))
+         )
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
@@ -4618,6 +4623,8 @@ void AstStd::createAst()
             member("value", "std::Cell"));
 
     astScope.add<Struct>("Equal")
+        .description(
+            return_(equal(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
@@ -4654,6 +4661,8 @@ void AstStd::createAst()
             member("static_", "std::Boolean"));
 
     astScope.add<Struct>("Get")
+        .description(
+            return_(m_("cell") / m_("role")))
         .members(
             member("cell", "Base"),
             member("role", "Base"));
@@ -4674,6 +4683,10 @@ void AstStd::createAst()
             member("role", "Base"));
 
     astScope.add<Struct>("If")
+        .description(
+            equal(_("ActivationPointer") / _("currentCell"), _("condition")), // do we need this?!
+            if_(m_("condition")).then_(m_("then")) // is this enough?!
+            )
         .members(
             member("condition", "Base"),
             member("then", "Base"),
@@ -4764,6 +4777,9 @@ void AstStd::createAst()
     astScope.add<Struct>("SelfFn");
 
     astScope.add<Struct>("Set")
+        .description(
+            equal(m_("cell") / m_("role"), m_("value"))
+        )
         .members(
             member("cell", "Base"),
             member("role", "Base"),
@@ -4814,6 +4830,9 @@ void AstStd::createAst()
             member("name", "std::Cell"));
 
     astScope.add<Struct>("Subtract")
+        .description(
+            equal(add(return_(), m_("rhs")), m_("lhs")),
+            return_(add(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));

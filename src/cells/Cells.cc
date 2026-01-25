@@ -888,16 +888,14 @@ static void evalOpIf(CellI& self, CellI*& currentCell, CellI*& previousCell)
         if (condition) {
             branchPtr = &self[kb.ids.then];
             self.set(kb.ids.state, kb.ids.stateThen);
-        }
- else if (self.has(kb.ids.else_)) {
-     branchPtr = &self[kb.ids.else_];
-     self.set(kb.ids.state, kb.ids.stateElse);
+        } else if (self.has(kb.ids.else_)) {
+            branchPtr = &self[kb.ids.else_];
+            self.set(kb.ids.state, kb.ids.stateElse);
         }
         previousCell = currentCell;
         if (branchPtr) {
             currentCell = branchPtr;
-        }
-        else {
+        } else {
             currentCell = &self[kb.ids.previous];
             self.set(kb.ids.state, kb.ids.stateParamInit);
         }
