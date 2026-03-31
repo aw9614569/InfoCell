@@ -186,12 +186,12 @@ TEST_F(CellTest, CellTrieTestForMathAdd)
         {
             Var& x = var_("x");
 
-            // test x.value + 2 = 4 =>
+#if 1 // TODO
+            // test x + 2 = 4 => equal(add(get(x, value), 2)), 4)
             Base& ast = equal(add(_(x) / _(kb.ids.value), _(_2_)), _(_4_));
-            // _(output) / _(value) == _(x)
-#if 0 // TODO
-            // test 2 + x = 4
-            Base& ast = equal(add(_(_2_), _(x)), _(_4_));
+#else
+            // test 2 + x = 4 => equal(add(2, get(x, value))), 4)
+            Base& ast = equal(add(_(_2_), _(x) / _(kb.ids.value)), _(_4_));
 #endif
             varX    = &x;
             request = &ast;
@@ -222,7 +222,6 @@ TEST_F(CellTest, CellTrieTestForMathAdd)
     EXPECT_EQ(&resultToolAst[kb.ids.value][kb.ids.lhs][kb.ids.value], &_4_);
     EXPECT_EQ(&resultToolAst[kb.ids.value][kb.ids.rhs].struct_(), &kb.std.ast.Cell);
     EXPECT_EQ(&resultToolAst[kb.ids.value][kb.ids.rhs][kb.ids.value], &_2_);
-    std::cout << "";
 }
 
 TEST_F(CellTest, Numbers)

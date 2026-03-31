@@ -5457,6 +5457,8 @@ void AstStd::createAst()
             _(std.ast.Base))
         .description(
             equal(add(return_(), m_("rhs")), m_("lhs")),
+            equal(add(m_("rhs"), return_()), m_("lhs")),
+//            equal(m_("lhs"), add(return_(), m_("rhs"))),
             return_(subtract(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", "Base"),

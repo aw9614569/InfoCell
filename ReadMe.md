@@ -15,7 +15,7 @@ This project originally started in a gap year around 1998 or 1999. The data cell
 
 Years later I was able to implement the active cells, but the real breakthrough to use monad like datacells for wrapping is only 10 years old maybe. I tried to create a new languge for infocells, so I started study parsers and programming languages. I wrote a very generic parser, just to realize that I don't really need it. I was able to embed infocells to the C++ language utilizing its flexible features. After that point I was able to create complex infocell structures, including list, map, set, trie, ... around 5 years ago.
 
-So I started experimenting with algorithmic AI. I invented a simple problem to test how can utilize infocells to solve it. I wrote down the numbers from 0 to 30 in one column "0 1 2 3", in the other column I wrote the written form of numbers, for example "zero one two three". The task was, to write a C program that able to continue the columns. And I can test program creation capability by introducing different human languages, for example Hungarian or Chinese. There was a problem although, this problem was hard to invent and way too haviliy relied on numbers. I started searching on internet how can I find similar problems. The brakthrough was, when I googled program-synthesis. I found the first ARC challenge which was already over by one year. I read the "On the measure of intelligence" by Francois Chollet paper. It was a perfect match with my ideas. It was 2021.
+So I started experimenting with algorithmic AI. I invented a simple problem to test how can utilize infocells to solve it. I wrote down the numbers from 0 to 30 in one column "0 1 2 3", in the other column I wrote the written form of numbers, for example "zero one two three". The task was, to write a C program that able to continue the columns. And I can test program creation capability by introducing different human languages, for example Hungarian or Chinese. There was a problem although, this problem was hard to invent and way too haviliy relied on numbers. I started searching on internet how can I find similar problems. The brakthrough was, when I googled program-synthesis. I found the first ARC challenge which was already over by one year. I read the [On the measure of intelligence by François Chollet](https://arxiv.org/abs/1911.01547) paper. It was a perfect match with my ideas. It was 2021.
 
 I refocused my work to be able to create a program that solves ARC challenges. I created a whole languge with infocells by introducing many concepts from C++ and Rust to infocells. I wrote template systems, methods, trait like thing, enums, ... I wrote a whole compiler in it, so I separated the active cells from the language construct describer AST (here AST is not really abstract syntax tree, but I just refer to the "parsed format of a language" here) data cells. I was able to create and compile relativly complex programs in it. Running the infocells doesn't require normal stack anymore, every state of execution is inside the info cells. So theoretically I can pause the execution an save the state and later continue from there.
 
@@ -35,29 +35,42 @@ In short, the infocell as a data structure and executable cell as a concept is q
 
 The fundamental unit of the infocell theory is the information cell (infocell), which is the only primitive type in the language. As in LISP, code and data share a unified representation. Unlike LISP, however, the core structure here is an object composed of key–value pairs, where both keys and values are object references. This system can be described as an executable domain-specific language (DSL). Because the language has no native syntax, it must be embedded in a host language. The reference implementation uses C++, leveraging its operator overloading capabilities to express and manipulate infocells effectively.
 
-![Representing an infocell](images/SampleCell.png)
+![Representing an infocell](doc/diagrams/SampleCell.svg)
 
 Here is an example. The comment section contains a regular C++ code. The real infocell code is coming after it. The info cell code is also in C++ but it actually creates info cells in runtime.
-```
-    /*
-    void Index::remove(CellI& role)
-    {
-        if (!m_type->hasSlot(role)) {
-            return;
-        }
-        m_slots.erase(&role);
-        m_type->removeSlot(role);
+```cpp
+/*
+void Index::remove(CellI& role)
+{
+    if (!m_type->hasSlot(role)) {
+        return;
     }
-    */
-    indexStruct.addMethod("remove")
-        .parameters(
-            parameter("key", _(std.Cell)))
-        .instructions(
-            if_(not_(m_("struct")("hasSlot")("slotRole", p_("key"))))
-                .then_(return_()),
-            erase(self(), p_("key")),
-            m_("struct")("removeSlot")("slotRole", p_("key")));
+    m_slots.erase(&role);
+    m_type->removeSlot(role);
+}
+*/
+indexStruct.addMethod("remove")
+    .parameters(
+        parameter("key", _(std.Cell)))
+    .instructions(
+        if_(not_(m_("struct")("hasSlot")("slotRole", p_("key"))))
+            .then_(return_()),
+        erase(self(), p_("key")),
+        m_("struct")("removeSlot")("slotRole", p_("key")));
 ```
+
+The above C++ code creates infocells. We can actually print those infocells and we got the following syntax. The infocell pseudo syntax is a mix of C++ and Rust. There is no parser for this syntax we can only print it. The idea is that, we embed the language to an existing one, so we don't need a new parser. Something like DOM API on web, where we can create HTML nodes. In this case we create infocell AST nodes that can be compiled to a running code on the fly.
+
+```
+fn Index::remove(self: Index, p_key: Cell)
+{
+    if not(m_struct.hasSlot(slotRole: p_key)) then
+        return;
+    self.erase(p_key);
+    m_struct.removeSlot(slotRole: p_key);
+}
+```
+
 
 The primary advantage of this representation is that the infocell language can be extended easily, as it does not require a dedicated parser - only implementing new standard C++ methods. We extend the language by introducing a new [grammatical mood](https://en.wikipedia.org/wiki/Grammatical_mood).
 
@@ -73,7 +86,7 @@ Measurements are expressed using the form `measurementTool(parameters) == result
 
 Here is an example for a description segment:
 
-```
+```cpp
     astScope.add<Struct>("Set")
         .memberOf(
             _(std.ast.Base))
@@ -89,7 +102,7 @@ Here we express the fact that after executing a primitive cell `Set` you can act
 
 This description segment also the base for a prompt as we call it current AI systems. For example:
 
-```
+```cpp
 // It is true that I can get a number from an unknown cell `X` at `value` and after I add number 2 to it I get 4.
 // so 2 + x = 4
 Prompt:
@@ -98,7 +111,7 @@ equal(add(_(_2_), _(x) / _(kb.ids.value)), _(_4_))
 ```
 The generated answer is
 
-```
+```cpp
 // x = 4 - 2
 set(_(x), _(kb.ids.value), subtract(_(_4_), _(_2_)))
 ```
@@ -120,7 +133,7 @@ An info cell is essentially an object just like an object from a regular OOP wor
 
 In C++, an infocell is implemented as a class that stores pairs of pointers to instances of the same class. Essentially, it serves as a wrapper around `std::map`. While it resembles a mathematical set, each element in this context possesses a unique identifier, which itself is also a set reference. Also the elements in a set are set references.
 
-```
+```cpp
 class Cell
 {
     std::map<Cell*, Cell*> m_slots;
@@ -138,6 +151,35 @@ Data cells are forming data structures. There is a mini standard library impleme
 There are "emulated" data structures in the system those are pretending that they were created from regular infocells, but actually we just emulate them from C++ code. This is the `hybrid` namespace in the code, these kinda behave like implants. Also every input sensor is hybrid cells, for example an image sensor from C++ side is a regular std::vector but from inside the infocells looks like data structure created from infocells.
 
 There are some ARC-AGI challenge related cells in the hybrid namespace these represent ARC grid and colors that can be feed with a regular ARC-AGI json file, but can be read as an infocell data structure.
+
+### Hybrid cells
+
+We can create hybrid cells that pretending that they are regular data cells but actually a bridge between a native C++ object an infocell. We have to implement the following interface for it.
+
+```cpp
+class CellI
+{
+public:
+    virtual bool has(CellI& role)               = 0;
+    virtual void set(CellI& role, CellI& value) = 0;
+    virtual void erase(CellI& role)             = 0;
+    virtual CellI& operator[](CellI& role)      = 0;
+```
+The getter `operator[]` returns a slot value if the there is a slot named `role`. For hystorical reasons, instead of key-value pair, I started using role:value. It is use the C++ operator overloding to be able to write expression like `dataCell[ids.list][ids.first][ids.value]` we can also use the `get()` method for it, but it is longer to write `cell.get(ids.list).get(ids.first).get(ids.value)`. From the infocell world we have to use an active cell which has a type of `Get`. That active cell `Get` will call this `operator[]` method.
+
+The `has(CellI& role)` will check that a slot is exist at a role. The active cell type `Has` will call this method.
+
+The `set(CellI& role, CellI& value)` can change a slot value if we want. The active cell type `Set` will call this method.
+
+The `void erase(CellI& role)` remove a slot named `role` if that slot exist. The active cell type `Erase` will call this method.
+
+These 4 operations are the core functions for a datacell.
+
+### Data cell reflection
+
+A data cell very primitive doesn't have have knowledge about what are the slots inside. We have to know in advance what are the available slots there. For this reason there is a dedicated slot in every data cell that contains a list about slots. In this diagram the `mapSlotList` is the list itself. That describer cell actually not just a list but contains a Map datastructure that has a list. The reason for this to be able to access the slot descriptors by key also.
+
+![Map type struct](doc/diagrams/MapTypeStruct.svg)
 
 ### Active cells / primitive tools
 
@@ -202,17 +244,17 @@ In the previous chapters the tool concept was introduced. We have the ingredient
 
 Let's say we have a requirement (with other words request or prompt): `pixel.get(green) == 5` where the `pixel` cell exists. So our request is that we want to get out from the cell `pixel` a slot called `green` and the expected slot value in this case is `5`. In order to make the equation true, we need two thing.
 
-![Requirement example](diagrams/RequestExample.svg)
+![Requirement example](doc/diagrams/RequestExample.svg)
 
 First we need to find a tool whose effect is equivalent to the equation itself. Remember we described the tool's effect with equations. We need a "database" of effects for tools and we just look up requirement in that database to find a tool where the tool effect equals the requirement. The idea here is we register the tool, in this case the `CELL.set(KEY, VALUE)` tool with an effect of `CELL.get(KEY) == VALUE`. With this Prolog syntax the CAPITAL words represent variables. In this case the `CELL` variable is pixel, the `KEY` is green and the `VALUE` is `5`. We have a perfect match for the original request.
 
 Second, we need a tool synthetiser or tool builder functionality here. We matched the tool `CELL.set(KEY, VALUE)` and we have to syntetize the non parametric actual tool which is `pixel.set(green, 5)`.
 
-![Requirement example](diagrams/ResultExample.svg)
+![Requirement example](doc/diagrams/ResultExample.svg)
 
 For database lookup the idea is following. We creating a trie datastructure and we use the self reflection capability of the data cells. For the original request we use two main cells: the `ast.Equal` and `ast.Get`. For the mondaic parameter wrappers we use extra three data cells, those were not represented on the above diagram for clarity reasons. Those non-represented cells purpose are to provide a `value` slot for the active cells as active cells are only able to get values from a `value` slot. Here is the full picture, but representing those grey `ast.Cell` type cells just add more confusion then clarity so I usually don't represent them.
 
-![Requirement example with wrappers](diagrams/RequestExampleWithWrappers.svg)
+![Requirement example with wrappers](doc/diagrams/RequestExampleWithWrappers.svg)
 
 The first cell in this example called `requestForSet`, it has 3 slots. First slot in there is the describer slot, called `struct` points to the describer cell `ast.Equal` which contains a list of possible slots for the cell. The second and thir are the `ids.lhs` and `ids.rhs` slots. The left hand side slot points to the `ast.Get` and the right hand side of the equal node points to the wrapped value of `5`. We lookup cells only by content, as is no dedicated `name` field anywhere. A cell only contains key-value pairs. If want to lookup a cell we have to know those key-value pairs. We want to find a tool which has an effect that match with this request. So we have to register matchers to our database. The matcher is a regex like thing but for ast nodes. The idea similar to the [Clang AST matchers](https://clang.llvm.org/docs/LibASTMatchersReference.html).
 
@@ -228,7 +270,7 @@ What about more complex requirements. What if I put extra nodes to the requireme
 Let's take the following request: `get(get(currentTheme, std.Color), green) == 5`. We actually do find the same set tool `CELL.set(KEY, VALUE)`, but here the CELL variable is not a datacell. For an active cell we need a tool which has an effect of `get(currentTheme, std.Color)`. But this is not exactly what we want here. We actually want a cell that returns a value, so we can get the input from a `value` slot here. That is why we start looking for a tool which returns value, so it is a measurement tool `return get(currentTheme, std.Color)`.
 
 
-```
+```cpp
     astScope.add<Struct>("Get")
         .memberOf(
             _(std.ast.Base))
@@ -242,11 +284,11 @@ Let's take the following request: `get(get(currentTheme, std.Color), green) == 5
 How to deal with math functions? How we can express what is `1 + 2`? In the infocell word those are regular tools. We can define a connection between the input parameters and the return value. We can use the `subtract` tool to "measure" the effect. The effect is in the return value, so we can state, if we subtract the rhs input value from the return value we got the lhs input value, in short the effect of `lhs + rhs == return` is `return - rhs == lhs`. And also we have to register the `add` tool as a measurement tool 
 `return rhs + lhs`. So a math tool is dual purpose tool.
 
-There is a side effect of putting the return value to the effect description. Let's say the request is `x.get(value) - 2 == 1` where `x` is an empty cell. Here we find the tool `add` with effect `return - rhs == lhs`, because that is a perfect match equation. But what is `return` here? Here we have to unify (unification is the core Prolog algorithm) the `return` with `x.get(value)` so we end up with the equation of `x.get(value) == 2 + 1` and we can find the tool set for this, where CELL is `x` KEY is `value` and VALUE is `return 2 + 1`.
+There is a side effect of putting the return value to the effect description. Let's say the request is `x.get(value) - 2 == 1` where `x` is an empty cell. Here we find the tool `add` with effect `return - rhs == lhs`, because that is a perfect match equation. But what is `return` here? Here we have to unify ([unification](https://en.wikipedia.org/wiki/Unification_(computer_science)) is a core Prolog algorithm) the `return` with `x.get(value)` so we end up with the equation of `x.get(value) == 2 + 1` and we can find the tool set for this, where CELL is `x` KEY is `value` and VALUE is `return 2 + 1`.
 
 There are some other issues here that we need to address here, for example how to handle the fact that `measurementTool(parameters) == result` is the same as `result == measurementTool(parameters)`. Here we can register both side of the equation to the tool finder trie database or we can do a double lookup. An other problem is that we have to introduce the constness to symbols as for math equation the tool finder can find a solution where it try to rewrite the number `2` to `1` which is a bad solution.
 
-```
+```cpp
     astScope.add<Struct>("Add")
         .memberOf(
             _(std.ast.Base))
@@ -266,56 +308,28 @@ How to deal with multi line request? Let's say given an empty list the request i
 
 What makes this requirement true? To "solve" this we have to insert the element `1` three time to the list. There are some non-implement approach to this also.
 
-![Representing an infocell](diagrams/ToolFinder.svg)
+![Pattern matching based tool usage system](doc/diagrams/ToolFinder.svg)
 
 
 # Pattern matching based image recognition
 
+The image recognition currently focusion on [ARC-AGI](https://arcprize.org/) grids.
+
+![A sample ARC grid](doc/diagrams/ArcGridSample.svg)
+
+The ARC grid input is a JSON file and as a first step we have to bring it to the infocell word. Here is the internal infocell representation of a grid.
+
+![Representation of a sample ARC grid with infocells](doc/diagrams/ArcGridSampleWithInfocells.svg)
+
 Image recognition is currently based on mostly edge detection. First we calculate an edge of a same colored pixel "patch". The we get the unit vectors of that edge (for pixel there is only 4 unit vector toUp, toRight, toDown, toLeft). This approach basically the serializaton of the edge so we can put it in a trie lookup structure the same way as the tool finding works. The external edge vectors are pointing to clockwise and the internal edges are counter clockwise.
 
-Edge detection is based on detecting which pixel configuration starts an external or internal edge. We always examine only 4 pixel at a time.
+Edge detection is based on detecting which pixel configuration starts an external or internal edge. We always examine only 4 pixel at a time on a 2x2 area. The external edge is always around a same colored pixel blob. If that pixel blob containes holes, around the holes are the internal edges for that blob. But there will be a corresponding external edge for the blob which fits the hole.
 
-```
-  0 1 2 3 4 5 6 7 8
-0 .................
-1 .................     |
-2 ....XX...........   --.--.
-3 .................     |XX|
-4 .................     .--.
-5 .................
-6 .................
-7 .................
+![External edges around two pixel blob on a 3 x 3 pixel grid ](doc/diagrams/PixelConfigurationOverview.svg)
 
-For leftToRight direction edge from point middle
- 1 0000 Invalid state, can not happen
- 2 1000 Skip
- 3 0100 Skip
- 4 1100 Skip
- 5 0010 Skip
- 6 1010 Skip
- 7 0110 Special
- 8 1110 Start internal edge
- 9 0001 Start external edge
-10 1001 Skip
-11 0101 Skip
-12 1101 Skip
-13 0011 Skip
-14 1011 Skip
-15 0111 Skip
-16 1111 Skip
+The edge detection algorithm starts with detecting a start of an edge, based on 2 x 2 moving window. If we detect of a start of an edge we try to continue that edge. The edge continuation is based on a similar approach. The same 2 x 2 windows is checked but with different pixel patterns.
 
- Invalid  Skip     Skip     Skip     Skip     Skip     Special  New int  New ext Skip      Skip     Skip     Skip     Skip     Skip     Skip
- 1        2        3        4        5        6        7        8        9        10       11       12       13       14       15       16
- 0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭  0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭   0🡬 0🡭  1🡬 0🡭   0🡬 1🡭   1🡬 1🡭   0🡬 0🡭   1🡬 0🡭  0🡬 1🡭   1🡬 1🡭
- 0🡯 0🡮   0🡯 0🡮   0🡯 0🡮   0🡯 0🡮  1🡯 0🡮   1🡯 0🡮   1🡯 0🡮   1🡯 0🡮   0🡯 1🡮  0🡯 1🡮   0🡯 1🡮   0🡯 1🡮   1🡯 1🡮   1🡯 1🡮  1🡯 1🡮   1🡯 1🡮
- ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐  ┌──┬──┐
- │  │  │  │██│  │  │  │██│  │██│██│  │  │  │  │██│  │  │  │██│  │██│██│  │  │  │  │██│  │  │  │██│  │██│██│  │  │  │  │██│  │  │  │██│  │██│██│
- ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►  ├──∙──►
- │  │  │  │  │  │  │  │  │  │  │  │  │██│  │  │██│  │  │██│  │  │██│  │  │  │██│  │  │██│  │  │██│  │  │██│  │██│██│  │██│██│  │██│██│  │██│██│
- └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘  └──┴──┘
-```
-
-![Edge detection with internal edges](diagrams/EdgeTestWithArc_00d62c1b_Train1Output.svg)
+![Edge detection is based on local pattern matching](doc/diagrams/PixelConfigurationForEdgeStart.svg)
 
 # Discussion and Future Work
 
@@ -329,7 +343,6 @@ Planned future work includes:
 - Performance optimization and scalability analysis
 - Formalization of the pattern‑matching algorithm
 
-
 # Conclusion
 
-This work introduces information‑cell theory as a syntax‑free, description‑driven programming model. By unifying code, data, and execution state within a single reflective structure, the system offers a novel perspective on symbolic AI and program synthesis. While still experimental, the framework demonstrates that many capabilities commonly associated with neural architectures can emerge from purely symbolic mechanisms when equipped with sufficient introspection and pattern matching.
+This work introduces information‑cell theory as a syntax‑free, description‑driven programming model. By unifying code, data, and execution state within a single reflective structure, the system offers a novel perspective on symbolic AI and program synthesis. While still experimental, the framework demonstrates that many capabilities commonly associated with neural architectures can emerge from purely symbolic mechanisms when equipped with sufficient introspection and pattern matching and utilizing descriptive grammar.
